@@ -140,12 +140,38 @@
       --font-display: "Poppins", system-ui, sans-serif;   /* pairing / headings */
       --font-mono: "JetBrains Mono", monospace;
 
-      /* ── Motion ── */
-      --t-fast: 150ms;
-      --t-base: 200ms;
-      --t-slow: 300ms;
+      /* ── Motion ──
+      The rungs are named for what they DO, and each one carries the usage
+      that decides it. A value belongs to a rung because the motion matches,
+      never because the number is close.
+
+        --t-stagger   per-item offset in a list entrance
+        --t-intent    the wait that filters a cursor passing through
+        --t-fast      a close, a text swap, a hover
+        --t-base      an open — dropdown, modal, tab slide, icon swap
+        --t-medium    a panel or toast CLOSE
+        --t-slow      a panel OPEN, a long slide
+        --t-emphasis  the one-off moment — a first paint, a success
+
+      Opens and closes are NOT the same length. Opening is an invitation and
+      can take its time; closing is getting out of the way and must not. Every
+      open/close pair in this file reads one rung apart for that reason, and
+      the four that did not were the whole of this pass. */
+      --t-stagger:  40ms;
+      --t-intent:   80ms;
+      --t-fast:    150ms;
+      --t-base:    250ms;
+      --t-medium:  350ms;
+      --t-slow:    400ms;
+      --t-emphasis: 500ms;
       --ease-out:    cubic-bezier(0.22,1,0.36,1);
       --ease-spring: cubic-bezier(0.34,1.56,0.64,1);
+
+      /* The non-resting blur an entering surface settles FROM, always to 0.
+      It softens a swap or a slide; it is never put on a plain fade, and never
+      on a surface that already carries a backdrop-filter — that is two blurs
+      on one element and the second one is only cost. */
+      --blur-small: 2px;
 
       /* ── Shadow / Elevation ── */
       --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
@@ -219,7 +245,14 @@
 
       /* Four tokens the library referenced but nothing ever defined, so the
       transitions and hover lifts reading them silently did nothing.
-      Defined here as the aliases they were plainly meant to be. */
+      Defined here as the aliases they were plainly meant to be.
+
+      The two lifts are now READ — the five hover rules that had been spelling
+      out translateY(-1px) and (-2px) by hand call them instead, which is what
+      makes the depth of a hover one decision rather than five. The two
+      duration aliases are still unreferenced in this repo; they are kept
+      because upstream uses those names, and a token defined here costs
+      nothing while a name that resolves to nothing costs a silent no-op. */
       --transition-fast: var(--t-fast);
       --transition-base: var(--t-base);
       --motion-hover-lift-sm: translateY(-1px);
@@ -858,7 +891,7 @@
       max-width: 300px;
       transition: border-color var(--t-base), transform var(--t-base), box-shadow var(--t-base);
     }
-    .bcard:hover { border-color: var(--card-border-hover); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+    .bcard:hover { border-color: var(--card-border-hover); transform: var(--motion-hover-lift-sm); box-shadow: var(--shadow-md); }
     .bcard.p1 { border-color: color-mix(in srgb, var(--err) 20%, transparent); }
     .bcard.p2 { border-color: color-mix(in srgb, var(--warn) 20%, transparent); }
     .bcard.p3 { border-color: color-mix(in srgb, var(--ok) 16%, transparent); }
@@ -919,7 +952,7 @@
       border-radius: var(--r-xl); padding: 18px 20px;
       transition: border-color var(--t-base), transform var(--t-base);
     }
-    .surface-card:hover { border-color: var(--card-border-hover); transform: translateY(-1px); }
+    .surface-card:hover { border-color: var(--card-border-hover); transform: var(--motion-hover-lift-sm); }
     .surface-icon {
       width: 34px; height: 34px; border-radius: var(--r-lg);
       display: flex; align-items: center; justify-content: center;
@@ -1186,7 +1219,16 @@
       border: 5px solid transparent;
       border-top-color: var(--d800);
     }
-    .tooltip-wrap:hover .tooltip { opacity: 1; }
+    /* A tooltip is the one surface that opens without being asked, so it waits
+       --t-intent first: long enough that a cursor crossing a row of icon
+       buttons leaves no trail of labels behind it, short enough that a cursor
+       which stopped never notices the wait. The delay is on the SHOW only —
+       leaving is a decision already made, and a label that lingers on the way
+       out is the same clutter arriving late.
+
+       Click does not wait: .is-open below carries no delay, because a tooltip
+       you opened on purpose is not an accident to be filtered. */
+    .tooltip-wrap:hover .tooltip { opacity: 1; transition-delay: var(--t-intent); }
 
     /* ═══════════════════════════════════════════════
        SKELETON LOADER
@@ -1460,9 +1502,10 @@
       display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
       padding: 0 0 28px;
       opacity: 0; pointer-events: none;
-      transition: opacity 280ms cubic-bezier(0.22,1,0.36,1);
+      transition: opacity var(--t-medium) var(--ease-out);
     }
-    .aimy-overlay.open { opacity: 1; pointer-events: all; }
+    .aimy-overlay.open { opacity: 1; pointer-events: all;
+      transition: opacity var(--t-slow) var(--ease-out); }
 
     .overlay-close {
       position: absolute; top: 20px; right: 20px;
@@ -1571,7 +1614,7 @@
       transition: transform var(--t-fast), box-shadow var(--t-fast);
       box-shadow: 0 2px 10px rgba(var(--accent-rgb),0.4);
     }
-    .overlay-send:hover { transform: translateY(-1px); box-shadow: 0 4px 18px rgba(var(--accent-rgb),0.55); }
+    .overlay-send:hover { transform: var(--motion-hover-lift-sm); box-shadow: 0 4px 18px rgba(var(--accent-rgb),0.55); }
     .overlay-send svg { width: 14px; height: 14px; stroke: #fff; }
     /* ═══════════════════════════════════════════════
        THE BEAM — the composer while AiMY is answering
@@ -1668,7 +1711,7 @@
       pointer-events: none;
       z-index: -1;
       opacity: 0;
-      transition: opacity 420ms var(--ease-out);
+      transition: opacity var(--t-slow) var(--ease-out);
     }
     .is-generating > .beam { opacity: 1; animation: beam-spin 4.2s linear infinite; }
 
@@ -1878,9 +1921,14 @@
       display: flex; flex-direction: column; gap: 10px;
       opacity: 0; transform: translateY(10px) scale(0.97);
       pointer-events: none;
-      transition: opacity 220ms var(--ease-out), transform 220ms var(--ease-out);
+      /* The one pair where the close is the SLOWER half, and deliberately.
+         A toast dismisses itself on a timer you are not waiting on, so a
+         quick exit reads as a flinch at the edge of vision — the thing you
+         were about to look at, gone. It leaves on --t-medium. */
+      transition: opacity var(--t-medium) var(--ease-out), transform var(--t-medium) var(--ease-out);
     }
-    .aimy-toast.visible { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+    .aimy-toast.visible { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto;
+      transition: opacity var(--t-base) var(--ease-out), transform var(--t-base) var(--ease-out); }
 
     .aimy-toast-icon {
       width: 28px; height: 28px; border-radius: var(--r-md); flex-shrink: 0;
@@ -2046,13 +2094,20 @@
     .drawer-stage { position: relative; height: 260px; border-radius: var(--r-lg); overflow: hidden;
       border: 1px solid var(--card-border); background: var(--card-bg-raised); }
     .drawer-scrim { position: absolute; inset: 0; background: rgba(0,0,0,0.45); opacity: 0; pointer-events: none;
-      transition: opacity var(--t-base); }
+      transition: opacity var(--t-medium) var(--ease-out); }
+    /* A panel is the widest travel in the system, so it is the pair where an
+       equal close reads worst: 400ms of a wall sliding back over a decision
+       already made. Out on --t-medium, and the scrim goes with it — a scrim
+       still fading behind a panel that has left is a dimmed room with nothing
+       in it. */
     .drawer-panel { position: absolute; top: 0; right: 0; bottom: 0; width: 280px; max-width: 80%;
       background: var(--card-bg); border-left: 1px solid var(--card-border); box-shadow: var(--shadow-lg);
-      transform: translateX(100%); transition: transform var(--t-slow) var(--ease-out);
+      transform: translateX(100%); transition: transform var(--t-medium) var(--ease-out);
       display: flex; flex-direction: column; padding: 18px; }
-    .drawer-stage.open .drawer-scrim { opacity: 1; pointer-events: auto; }
-    .drawer-stage.open .drawer-panel { transform: translateX(0); }
+    .drawer-stage.open .drawer-scrim { opacity: 1; pointer-events: auto;
+      transition: opacity var(--t-slow) var(--ease-out); }
+    .drawer-stage.open .drawer-panel { transform: translateX(0);
+      transition: transform var(--t-slow) var(--ease-out); }
     .drawer-title { font-size: 14px; font-weight: 700; color: var(--d50); margin-bottom: 6px; }
 
     /* ── Popover ── */
@@ -2064,7 +2119,8 @@
       z-index: 20; }
     .pop-bubble::after { content: ""; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
       border: 6px solid transparent; border-top-color: var(--panel-bg); }
-    .pop.open .pop-bubble { opacity: 1; pointer-events: auto; transform: translateX(-50%) scale(1); }
+    .pop.open .pop-bubble { opacity: 1; pointer-events: auto; transform: translateX(-50%) scale(1);
+      transition: opacity var(--t-base), transform var(--t-base); }
     .pop-title { font-size: 14px; font-weight: 700; color: var(--d50); margin-bottom: 4px; }
     .pop-text { font-size: 16px; line-height: 1.55; color: var(--ink-muted); }
 
@@ -2147,12 +2203,17 @@
 
     /* ── Menu (dropdown action menu) ── */
     .menu-anchor { position: relative; display: inline-block; }
+    /* The CLOSED rule carries the close (--t-fast) and the .open rule carries
+       the open (--t-base): a transition always belongs to the state being
+       moved TO, so writing them on the two rules is what makes a dropdown
+       leave faster than it arrives. */
     .menu { position: absolute; top: calc(100% + 6px); left: 0; min-width: 200px; z-index: 25;
       background: var(--panel-bg); backdrop-filter: blur(12px); border: 1px solid var(--glass-border);
       border-radius: var(--r-lg); box-shadow: var(--shadow-lg); padding: 6px;
       opacity: 0; transform: translateY(-4px); pointer-events: none;
       transition: opacity var(--t-fast), transform var(--t-fast); }
-    .menu-anchor.open .menu { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    .menu-anchor.open .menu { opacity: 1; transform: translateY(0); pointer-events: auto;
+      transition: opacity var(--t-base), transform var(--t-base); }
     .menu-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--r-sm);
       font-size: 14px; color: var(--d200); cursor: pointer; transition: background var(--t-fast), color var(--t-fast); }
     .menu-item:hover { background: var(--card-bg-raised); color: var(--d50); }
@@ -3753,8 +3814,8 @@
       transition: transform var(--t-base), border-color var(--t-base), box-shadow var(--t-base);
     }
     .lift-demo:hover { border-color: var(--card-border-hover); }
-    .lift-md:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
-    .lift-sm:hover { transform: translateY(-1px); }
+    .lift-md:hover { transform: var(--motion-hover-lift-md); box-shadow: var(--shadow-lg); }
+    .lift-sm:hover { transform: var(--motion-hover-lift-sm); }
 
     /* ═══════════════════════════════════════════════
        REDUCED MOTION
@@ -3764,11 +3825,37 @@
        rather than removed — the signal survives, the
        movement does not.
     ═══════════════════════════════════════════════ */
+    /* ═══════════════════════════════════════════════
+       THE THEME SWAP IS NOT A TRANSITION
+
+       Held for one frame by aimy-ds.js while the toggle re-resolves every
+       token. Without it, only the elements that happen to transition the
+       property being swapped animate into the new theme, and everything else
+       arrives instantly — so the page changes theme in two passes and the
+       slower one looks like a stale fill.
+
+       Duration AND delay, because a suppressed transition that still waits is
+       the same tear one beat later. */
+    .theme-swapping,
+    .theme-swapping *,
+    .theme-swapping *::before,
+    .theme-swapping *::after {
+      transition-duration: 0s !important;
+      transition-delay: 0s !important;
+    }
+
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
+        /* Zeroing the DURATIONS alone left every DELAY standing, and a delay
+           with no motion after it is just a wait. The stagger was the visible
+           case: the tenth row of a list still arrived 300ms late, having never
+           animated — it was simply absent, then there. Any hold that exists to
+           pace motion has nothing left to pace here. */
+        animation-delay: 0s !important;
+        transition-delay: 0s !important;
         scroll-behavior: auto !important;
       }
       /* Looping decorative motion — stop outright */

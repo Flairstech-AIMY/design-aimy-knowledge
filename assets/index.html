@@ -162,11 +162,21 @@
          finger is up before the surface finishes answering. Without a step
          below --t-fast, every product invents its own value and they differ. */
       --t-press: 90ms;
-      --t-fast: 150ms;
-      --t-base: 200ms;
-      --t-slow: 300ms;
+      /* Seven rungs, each named for what it does. --t-stagger is the per-item
+         offset in a list entrance; --t-intent is the wait that filters a
+         cursor passing through. Opens and closes are one rung apart, always:
+         --t-base opens and --t-fast closes, --t-slow opens and --t-medium
+         closes. --t-emphasis is the one-off — a first paint, a success. */
+      --t-stagger:  40ms;
+      --t-intent:   80ms;
+      --t-fast:    150ms;
+      --t-base:    250ms;
+      --t-medium:  350ms;
+      --t-slow:    400ms;
+      --t-emphasis: 500ms;
       --ease-out:    cubic-bezier(0.22,1,0.36,1);
       --ease-spring: cubic-bezier(0.34,1.56,0.64,1);
+      --blur-small: 2px;
 
       /* ── Shadow / Elevation ── */
       --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);

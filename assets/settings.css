@@ -477,7 +477,12 @@ textarea.set2-fld { resize: vertical; min-height: 6rem; line-height: var(--lh-ba
   opacity: 0; pointer-events: none; z-index: 4;
   transition: opacity var(--t-fast) var(--ease-out);
 }
-.set2-tip-wrap:hover .set2-tip,
+/* Same intent gate as .tooltip in the library, and split from the focus rule
+   for the reason the library's is: hovering is something a cursor does on its
+   way somewhere, so it waits; focusing is something a person did, so it does
+   not. Written as one selector list both would wait, and a keyboard user would
+   pay --t-intent for a tooltip they asked for by name. */
+.set2-tip-wrap:hover .set2-tip { opacity: 1; transition-delay: var(--t-intent); }
 .set2-tip-b:focus-visible + .set2-tip { opacity: 1; }
 /* Below rather than beside, for a glyph on a HEADING. The sideways placement
    above exists because `.set2-modal-bd` scrolls and clips its top edge; a
@@ -1061,7 +1066,14 @@ kbd {
   display: block; height: 100%; border-radius: inherit;
   background: var(--brand);
   /* Matches the tick, so the fill glides between samples instead of stepping
-     sixteen times a second. */
+     sixteen times a second.
+
+     The one duration in the build deliberately off the motion scale, and it
+     should stay off it. Every rung there is chosen against a human — how long
+     a close may take, how long a cursor will wait. This one is chosen against
+     the sampler: it is 60ms because the data arrives every 62.5ms, and a rung
+     that answered to taste would tear or stall the moment either changed.
+     Snapping it to --t-fast would make the bar lag its own numbers. */
   transition: width 60ms linear;
 }
 /* A determinate bar already says how far along it is; the sheen says it is

@@ -413,7 +413,7 @@ body[data-thread="active"] .gate-stage .overlay-thread {
 .gate-hero {
   text-align: center;
   padding-bottom: 1.5rem;
-  animation: gate-rise 520ms var(--ease-out) both;
+  animation: gate-rise var(--t-emphasis) var(--ease-out) both;
 }
 .gate-hello {
   margin: 0;
@@ -437,7 +437,7 @@ body[data-thread="active"] .gate-stage .overlay-thread {
 .gate-composer {
   flex-shrink: 0;
   padding-bottom: 1.5rem;
-  animation: gate-rise 560ms var(--ease-out) 60ms both;
+  animation: gate-rise var(--t-emphasis) var(--ease-out) var(--t-intent) both;
 }
 body[data-thread="active"] .gate-composer { animation: none; }
 
@@ -478,8 +478,8 @@ body[data-thread="active"] .gate-chips { display: none; }
    css-audit — the repo established this pattern, this only reuses it. */
 .gate-chips .overlay-sugg-chip {
   opacity: 0;
-  animation: gate-chip-in 420ms var(--ease-out) forwards;
-  animation-delay: calc(var(--i, 0) * 40ms);
+  animation: gate-chip-in var(--t-emphasis) var(--ease-out) forwards;
+  animation-delay: calc(min(var(--i, 0), 8) * var(--t-stagger));
 }
 .gate-chips .overlay-sugg-chip:active { transform: scale(0.98); }
 

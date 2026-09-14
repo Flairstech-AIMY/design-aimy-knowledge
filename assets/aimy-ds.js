@@ -26,11 +26,44 @@
 (function () {
   const btn = document.getElementById('ds-theme-toggle');
   if (!btn) return;
+  /* Swapping the theme re-resolves every token at once, and any element that
+     also declares a transition on the property that changed will ANIMATE to
+     its new value instead of arriving at it. Measured before this existed:
+     .entry-action crossfaded rgb(51,105,255) -> rgb(29,78,216) over 150ms
+     while the topnav beside it, which transitions nothing, flipped on the
+     same frame. Half the page dissolving into the new theme while the other
+     half snaps is not a transition, it is a tear — and it read as the button
+     having kept the old theme's fill, because for 150ms it had.
+
+     So the swap is not a moment to animate: nothing moved, nothing opened,
+     a value was simply replaced. `.theme-swapping` suppresses transitions for
+     exactly one frame while that happens. Removed on the frame AFTER the
+     paint, not on a timer — a timer either fires early and lets the tail of
+     the swap animate, or fires late and eats the first real interaction. */
+  let swapFrame = 0;
   btn.addEventListener('click', function () {
     const root = document.documentElement;
     const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+
+    root.classList.add('theme-swapping');
     if (next === 'light') root.setAttribute('data-theme', 'light');
     else root.removeAttribute('data-theme');
+    /* Force the recalc now, with transitions still suppressed, so the new
+       values are committed before anything is allowed to animate again.
+       This is the same idiom knowledge.js already uses. */
+    void root.offsetWidth;
+
+    /* rAF does not fire in a hidden tab, and this class suppresses ALL motion
+       while it is on — the one failure that must not be possible here is it
+       getting stuck. The timer is not a second mechanism, it is the floor
+       under the first. */
+    const release = function () { root.classList.remove('theme-swapping'); };
+    cancelAnimationFrame(swapFrame);
+    swapFrame = requestAnimationFrame(function () {
+      swapFrame = requestAnimationFrame(release);
+    });
+    setTimeout(release, 100);
+
     try { localStorage.setItem('aimy-ds-theme', next); } catch (e) {}
   });
 })();
