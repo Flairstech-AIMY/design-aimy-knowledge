@@ -3865,20 +3865,14 @@
      can see, and is one click to discard. Picking from a menu is not a
      confirmation of an action — it IS the action, with its one parameter.
 
-     Type by icon, label and the line under it, never colour (§6.3). The glyph
-     is the same one the byline and the card's meta line use, so a reader
-     learns one mapping for the whole product. */
-  const TYPE_FOR = {
-    article:  'A rule or an answer, written out.',
-    ticket:   'One customer case, and how it was closed.',
-    icp:      'Who to sell to, and who to rule out.',
-    campaign: 'An objective, a window, and what ran.',
-    asset:    'A file, with its usage rights and approval.',
-    pptx:     'A slide deck, and whether it may be shown.',
-    story:    'A customer outcome, with a quote cleared to use.',
-    blog:     'A post, and where it is published.',
-    webpage:  'A page we crawl, and what changed since.'
-  };
+     Type by icon and label, never colour (§6.3). The glyph is the same one the
+     byline and the card's meta line use, so a reader learns one mapping for the
+     whole product.
+
+     The nine one-line definitions that used to sit under each label are gone.
+     They explained what an Article or an ICP is — a fact learned once, on a
+     menu opened weekly, and after the first time they were nine lines to scan
+     past to reach the name you already knew. The names carry it. */
 
   /* The trigger is passed in, because the two surfaces that offer this have
      different buttons — a text action on the result line, a filled one on the
@@ -3891,10 +3885,7 @@
         <div class="menu-label">New document</div>
         ${Object.keys(TYPES).map((k) => `<button class="menu-item" type="button" role="menuitem" data-new-type="${k}">
           ${TYPES[k].ico.replace('<svg', '<svg width="14" height="14"')}
-          <span class="new-menu-text">
-            <span class="new-menu-name">${esc(TYPES[k].label)}</span>
-            <span class="new-menu-for">${esc(TYPE_FOR[k])}</span>
-          </span>
+          <span class="new-menu-name">${esc(TYPES[k].label)}</span>
         </button>`).join('')}
       </div>
     </span>`;
@@ -6218,7 +6209,14 @@
   function docInsights(o) {
     const found = corpusFindings().filter((t) => t.ids.indexOf(o.id) > -1).slice(0, 2);
     if (!found.length) return '';
-    return `<div class="ins-band">
+    /* The reply to a report. `reported` is the one finding whose subject is an
+       ANSWER rather than a document — somebody read something AiMY said, and
+       said it was wrong — and until now the only response was a state change
+       on a card. The host is rendered here and filled after the paint; empty
+       on every other document, and empty when the patterns are not loaded. */
+    const repaired = openProblems(o)
+      ? `<div class="agent-repair" id="agentRepair"></div>` : '';
+    return `${repaired}<div class="ins-band">
       <p class="ins-rail-lead">${AIMY_MARK(12, 14)}<span>AiMY noticed</span></p>
       ${found.map((t) => `<div class="ins-row">
         <p class="ins-row-text">${esc(insightMine(t, o))}</p>
@@ -6826,6 +6824,25 @@
     const canvas = $('#docCanvas');
     if (canvas) canvas.scrollTop = keep;
     if (!preview) wireSelectionMenu();
+    /* Here rather than in the template, because the pattern is React and needs
+       the node to exist first — the same ordering `bodyDrawn` below needs. */
+    if (window.AIMY_AGENT) {
+      const rep = $('#agentRepair');
+      if (rep) {
+        /* The newest unresolved problem is the one being answered. Quoting what
+           the person actually wrote is the difference between a reply and a
+           form letter — and it is already on the document. */
+        const open = (o.comments || []).filter((c) => c.problem && !c.done);
+        const last = open[open.length - 1];
+        window.AIMY_AGENT.repair(rep, o, last ? {
+          note: last.who + ' reported: “' + last.text + '”',
+          fixes: [
+            'Stopped citing it until the report is cleared',
+            'Sent it to ' + responsible(o) + ', who owns this document'
+          ]
+        } : null);
+      }
+    }
     /* A repaint replaces the DOM the caret was living in. Scroll was already
        carried across; the armed state has to travel with it or an AI accept
        mid-edit would drop you back out of the text you were in. */
@@ -9329,6 +9346,10 @@
   }
 
   let pendingCommit = null;
+  /* Carried beside the runner rather than read off the surface, for the same
+     reason `pendingCommit` is: the commit element is torn down before the
+     receipt is built, so anything the receipt needs has to outlive it. */
+  let pendingAgent = null;
 
   /* One structured commit surface, used by every consequential write. Free
      text never performs one — it only ever stages one. */
@@ -9336,6 +9357,7 @@
     const host = $('#commitHost');
     if (!host) return;
     pendingCommit = o.onRun || null;
+    pendingAgent = o.agent || null;
     const effects = (o.effects || []).concat([['rev', o.reversible || 'Reversible for 24h · logged to the audit trail']]);
     const effIco = (k) => k === 'ok' ? ICO.check : k === 'warn' ? ICO.warn : k === 'rev' ? ICO.shield : ICO.slash;
 
@@ -9387,7 +9409,7 @@
       </div>`;
   }
 
-  function closeCommit() { const h = $('#commitHost'); if (h) h.innerHTML = ''; pendingCommit = null; }
+  function closeCommit() { const h = $('#commitHost'); if (h) h.innerHTML = ''; pendingCommit = null; pendingAgent = null; }
 
   /* ═══════════════════════════════════════════════
      THE WRITE ROUTE
@@ -9467,7 +9489,49 @@
         excluded.length ? ['skip', `<strong>${excluded.length}</strong> ${excluded.length === 1 ? 'is' : 'are'} already
           excluded from retrieval, so answers do not change until this is confirmed.`] : null,
         spec.rung ? ['warn', esc(spec.rung)] : null
-      ].filter(Boolean)
+      ].filter(Boolean),
+
+      /* ── The run, and the receipt ──
+
+         Only for a write that touches MORE THAN ONE document. On a single one
+         the act is over before a phase could finish, and a cycle of three
+         labels would be theatre in front of something already done — the
+         toast is the honest report there.
+
+         Undeclared when the patterns are absent, which costs nothing: the
+         handler falls through to the toast it always used. */
+      agent: willAct > 1 ? {
+        phases: [
+          { label: 'Reaching the sources', orb: 'orbit' },
+          { label: willAct + ' document' + (willAct === 1 ? '' : 's') + ' · ' + spec.verb, orb: 'sweep' },
+          { label: 'Checking what changed', orb: 'globe' }
+        ],
+        phaseMs: 850,
+        context: 'AiMY',
+        doneLabel: willAct + ' ' + spec.verb,
+        receipt: {
+          /* {label, value}, not pairs. The kit reads these as objects and an
+             array silently renders nothing — the three rows were absent and
+             the receipt looked like it simply had no detail to give. */
+          meta: [
+            { label: 'What',  value: willAct + ' document' + (willAct === 1 ? '' : 's') + ' ' + spec.verb },
+            { label: 'Where', value: from },
+            /* Named from the ladder the commit just applied, so the receipt
+               reports the rung the act actually went through rather than a
+               flat "you did this". */
+            { label: 'Authority', value: spec.typed ? 'Typed confirmation' : 'Your confirmation' }
+          ],
+          before: 0,
+          after: willAct,
+          unit: 'docs',
+          stripLabel: spec.verb.charAt(0).toUpperCase() + spec.verb.slice(1),
+          /* Reversible writes get a real window. The two that are not get none
+             — offering Undo on a permanent delete is the worst kind of lie a
+             receipt can tell. */
+          undoSeconds: spec.typed === 'delete' ? 0 : 10,
+          onUndo: () => toast('Undone', null, 'Nothing was changed')
+        }
+      } : null
     });
   }
 
@@ -11895,6 +11959,8 @@
         /* And if it throws, say so. A commit that dies mid-run used to leave
            this surface open with the button still sitting there, which reads
            as "it refuses and will not tell me why". */
+        /* Read before the teardown clears it, the same ordering `run` needs. */
+        const agent = pendingAgent;
         let handled = false, failed = false;
         try { handled = run ? run() === true : false; }
         catch (err) { failed = true; console.error('commit failed:', err); }
@@ -11906,6 +11972,25 @@
            commit that ran, changed something. */
         if (!failed && canvas.open) canvas.close();
         if (failed) { toast("That didn't go through", null, 'Nothing was changed'); return; }
+        /* ── A run you can watch, and a receipt ──
+
+           A commit may declare `agent`, and when it does the confirmation it
+           already asked for runs through a visible cycle and lands on a
+           receipt instead of a toast. OPT-IN PER WRITE: there are fifty-three
+           toasts in this file and almost all of them report something small
+           and instant, where a receipt would be ceremony. The ones that earn
+           it are the writes that touch several documents at once.
+
+           `handled` still wins. A commit that wrote its own toast has already
+           said something more specific than either of these could. */
+        if (!handled && agent && window.AIMY_AGENT && window.AIMY_AGENT.available()) {
+          const host = $('#agentHost');
+          window.AIMY_AGENT.open(host);
+          window.AIMY_AGENT.run(host, agent, () => {
+            window.AIMY_AGENT.receipt(host, Object.assign({ title: label }, agent.receipt || {}));
+          });
+          return;
+        }
         /* An onRun that says something specific returns true and keeps its own
            toast. Without this the generic one lands on top of it, and the user
            reads a restatement of the button they just pressed. */
@@ -14257,6 +14342,20 @@
     loadChats();
     userMenu.init();
     wire();
+
+    /* ══ THE FOUR PATTERNS ══════════════════════════════════════
+       Before the gate branch, because the thinking trace is wanted on both
+       shells and the gate returns early. Same contract as AIMY_GATE and
+       AIMY_SETTINGS: hand over the few functions it cannot compute for
+       itself, and guard the call, because the file is optional. */
+    if (window.AIMY_AGENT) {
+      window.AIMY_AGENT.init({
+        flagForHuman: (o) => {
+          toast('Asked a person to look', null,
+                o && o.title ? 'About ' + o.title : 'The report is now waiting on a human');
+        }
+      });
+    }
 
     const u = $('#userName'), r = $('#userRole'), a = $('#userAvatar');
     if (u) u.textContent = USER.name;

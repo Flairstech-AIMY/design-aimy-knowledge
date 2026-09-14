@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Poppins:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="assets/aimy-ds.css?v=7" />
-  <link rel="stylesheet" href="assets/knowledge.css?v=229" />
+  <link rel="stylesheet" href="assets/knowledge.css?v=234" />
   <!-- The settings modules render into this page's stage now, so their
        stylesheet loads with it. Nothing in it paints console markup: every
        rule is namespaced `.set2-`, apart from `kbd` and `.w-lock`, neither of
@@ -409,6 +409,10 @@
 
 <div id="commitHost"></div>
 <div id="toastHost"></div>
+<!-- Where a run and its receipt land. Outside the grid, because a commit can
+     change the page under them and neither should be repainted away. -->
+<div id="agentHost" hidden></div>
+
 
 <!-- Where the settings modals mount: the dry run, the typed-count deletions,
      the new-skill sheet, the file upload, adding people. It lives at the body
@@ -453,6 +457,12 @@
      to answer first; and knowledge.js hands it `patch` and `readURL` from
      inside its own `init`, which waits for DOMContentLoaded either way. -->
 <script src="assets/settings.js?v=445"></script>
-<script src="assets/knowledge.js?v=349"></script>
+<!-- The four patterns AiMY does not already have. Optional: every call site in
+     knowledge.js is guarded, so the console runs without them. -->
+<script src="assets/halaska-kit.bundle.js?v=7"></script>
+<script src="assets/halaska-bridge.js?v=2"></script>
+<script src="assets/halaska-mounts.js?v=2"></script>
+
+<script src="assets/knowledge.js?v=354"></script>
 </body>
 </html>
