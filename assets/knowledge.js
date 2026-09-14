@@ -7923,7 +7923,6 @@
           <span class="ov-chat-name">${isPinned(key) ? `<span class="ov-chat-pin" aria-label="Pinned">${ICO.pin.replace('<svg', '<svg width="10" height="10"')}</span>` : ''}${esc(threadName(key))}</span>
           ${SESSIONS[key] ? `<span class="ov-chat-agent">${esc(CHAT_AGENTS[agentOf(key)].label)}</span>` : ''}
         </span>
-        ${(THREADS[key] || []).length ? `<span class="ov-chat-n">${(THREADS[key] || []).length}</span>` : ''}
       </button>`}
       ${SESSIONS[key] && CHAT_EDIT !== key
         ? `<button class="ov-chat-more" type="button" data-chat-menu="${esc(key)}"

@@ -852,8 +852,8 @@ button {
   color: var(--d500); padding: 0 0.5rem; margin-bottom: 0.5rem;
 }
 .ov-chat {
-  /* `flex-start`, so a title can run to two lines: centred would float the
-     turn count against the middle of a wrapped question. */
+  /* `flex-start`, so a wrapped title grows downward from the top of the row
+     rather than recentring itself and shifting the agent label with it. */
   display: flex; align-items: flex-start; gap: 0.5rem;
   min-height: 1.5rem; padding: 0.5rem; border-radius: var(--r-sm);
   font-size: var(--ty-meta); color: var(--ink-muted);
@@ -1026,10 +1026,6 @@ button {
   line-height: var(--lh-snug); letter-spacing: var(--ls-wide);
 }
 .ov-chat.is-here .ov-chat-agent { color: var(--d400); }
-.ov-chat-n {
-  margin-left: auto; flex-shrink: 0;
-  font-size: var(--ty-micro); color: var(--d500); font-variant-numeric: tabular-nums;
-}
 .ov-chat-none { font-size: var(--fs-base); color: var(--d500); line-height: var(--lh-relaxed); padding: 0 0.5rem; }
 
 .ov-chats-toggle {
