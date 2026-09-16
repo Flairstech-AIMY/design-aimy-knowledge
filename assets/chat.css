@@ -271,26 +271,71 @@ body[data-rail="collapsed"] .gate-rail { visibility: hidden; }
   white-space: nowrap;
 }
 
+/* ══ THE SIDE-PANEL TOGGLE IS ONE CONTROL ACROSS THE PRODUCT ═════════════
+   Same Lucide `panel-left`, same job — open or shut the conversations panel —
+   and until now four different treatments of it: the masthead's was a 2.125rem
+   boxed control at --r-md on a 4% ground, this one a bare 1.75rem glyph at
+   --r-sm with no ground at all. Two shells of one product, one control, and
+   you could not tell by looking that it was the same button.
+
+   THE MASTHEAD'S IS THE ONE THAT MOVES NOTHING. `.rail-toggle` is shared
+   chrome — AiMY Sales and AiMY QA carry the same class, and this file's own
+   topnav notes say in as many words that shared chrome is not a product's to
+   re-scale. It also sits in a row with the theme control and the bell, which
+   are the same 2.125rem box; a bare glyph there would be the odd one out. So
+   the gate's moves to it rather than the other way round.
+
+   `.gate-rail-peek` comes along because it IS this button in its other
+   placement — one attribute, one handler, only ever one of them on screen. It
+   keeps the raised ground and shadow its own rule gives it below 900, where it
+   floats over the thread rather than sitting in a header; that is about
+   elevation, not identity, and it is argued where it is set.
+
+   `pointer: coarse` still takes both to 2.75rem. A target sized for a thumb
+   outranks a size shared with a mouse-driven masthead. */
 .gate-rail-btn,
 .gate-rail-peek {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 2.125rem;
+  height: 2.125rem;
   flex-shrink: 0;
   padding: 0;
-  border: 0;
-  border-radius: var(--r-sm);
-  background: transparent;
-  color: var(--ink-faint);
+  border: 0.0625rem solid rgba(255,255,255,0.08);
+  border-radius: var(--r-md);
+  background: rgba(255,255,255,0.04);
+  /* ══ THE SAME GREY THE OTHER TWO CARRY ════════════════════════
+     `--d400` / `--d200`, which is what `.rail-toggle` in the console masthead,
+     `.ov-chats-toggle` on the canvas and `.topnav-bell` all sit at, and what
+     Sales gives this button. This was `--ink-quiet` (`--d300`, #a8b5c5) at
+     rest and `--ink-primary` (`--d50`) on hover — a rung brighter standing
+     still and three rungs brighter under the cursor, on the same icon in the
+     same chip as the other two.
+
+     THIS ONE CHANGES THE 1536 RENDER, unlike its two counterparts: they are
+     painted only below 1040 and 900, this one is `inline-flex` at every width
+     and measures 34×34 on the gate at the reference size. Changed on an
+     explicit call to make all three identical, not as a side effect of the
+     responsive pass — which is the rule this is an exception to. */
+  color: var(--d400);
   cursor: pointer;
   transition: background-color var(--t-fast), color var(--t-fast);
 }
 .gate-rail-btn svg,
 .gate-rail-peek svg { width: 1.0625rem; height: 1.0625rem; }
+:root[data-theme="light"] .gate-rail-btn,
+:root[data-theme="light"] .gate-rail-peek {
+  background: rgba(16,24,40,0.04); border-color: rgba(16,24,40,0.10);
+}
+:root[data-theme="light"] .gate-rail-btn:hover,
+:root[data-theme="light"] .gate-rail-peek:hover { background: rgba(16,24,40,0.07); }
+/* The light half of this hover already said `rgba(16,24,40,0.07)`, the exact
+   value `.rail-toggle` uses — so only the dark half had drifted, to a solid
+   `--card-bg-raised` (#1c2630) where the masthead washes white at 8%. A pair
+   of rules that agree in one theme and not the other is drift, not intent. */
 .gate-rail-btn:hover,
-.gate-rail-peek:hover { background: var(--card-bg-raised); color: var(--ink-primary); }
+.gate-rail-peek:hover { background: rgba(255,255,255,0.08); color: var(--d200); }
 .gate-rail-btn:focus-visible,
 .gate-rail-peek:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
 

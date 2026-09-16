@@ -8631,6 +8631,25 @@
       const th = this.thread;
       if (!th) return;
       th.classList.toggle('is-at-end', th.scrollHeight - th.clientHeight - th.scrollTop < 4);
+      /* ══ AND THE CHROME STEPS ASIDE ONCE YOU ARE READING ═══════════════
+         The badge and the basis bar are `position: absolute` over the thread —
+         which is right at the top of a conversation, where they say what this
+         surface is and what it answered from, and wrong four messages down,
+         where they are two labels parked on top of somebody's reading.
+
+         So they belong to the TOP of the thread rather than to the canvas: at
+         rest they are there, and the first scroll takes them away.
+
+         THE CLASS GOES ON THE OVERLAY, not on the thread. Both elements come
+         BEFORE `.overlay-thread` in the markup and a sibling combinator only
+         reaches forward, so a class on the thread cannot address them. The
+         overlay is the nearest ancestor that can.
+
+         8px rather than 0, so a rubber-band or a one-pixel settle after a
+         repaint does not flicker them. Measured here rather than stored: this
+         function is already three layout reads and a class write, and this
+         adds neither. */
+      if (this.overlay) this.overlay.classList.toggle('is-scrolled', th.scrollTop > 8);
     },
 
     /* The scroll path goes through here instead. syncEdge is three layout reads

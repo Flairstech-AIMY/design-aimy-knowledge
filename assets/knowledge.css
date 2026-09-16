@@ -1028,16 +1028,42 @@ button {
 .ov-chat.is-here .ov-chat-agent { color: var(--d400); }
 .ov-chat-none { font-size: var(--fs-base); color: var(--d500); line-height: var(--lh-relaxed); padding: 0 0.5rem; }
 
+/* ══ AND IT IS A CONTROL, NOT A PANEL ════════════════════════════
+   `--glass-bg` is `rgba(20,27,36,0.85)` — a PANEL ground, sized for a surface
+   that has to be opaque enough to read paragraphs on. Under a 2rem button
+   standing on the canvas it disappears: near-black at 85% over a dark
+   translucent canvas is just the canvas again, so this read as a bare icon
+   floating with no chip beneath it while `.rail-toggle`, the same control one
+   screen over, read as a button.
+
+   It now carries what every other small control in this shell carries —
+   white 4% on white 8%, the pair `.rail-toggle`, `.gate-rail-btn` and
+   `.topnav-bell` already share, with the light-theme inversion that goes with
+   it. Which is also what Sales draws here, measured: `rgba(255,255,255,0.04)`
+   on `rgba(255,255,255,0.08)`, the reason its toggle has a ground and this
+   one did not.
+
+   The transition is `background-color` and `color`, not `all`: `border-color`
+   stays instant on purpose, matching `.rail-toggle`. */
 .ov-chats-toggle {
   display: none;
   position: absolute; top: 1rem; left: 1rem; z-index: 4;
   width: 2rem; height: 2rem;
   align-items: center; justify-content: center;
   border-radius: var(--r-md);
-  background: var(--glass-bg); border: 0.0625rem solid var(--glass-border);
-  color: var(--ink-quiet); cursor: pointer;
+  background: rgba(255,255,255,0.04);
+  border: 0.0625rem solid rgba(255,255,255,0.08);
+  /* --d400 / --d200, the pair `.rail-toggle` and `.topnav-bell` carry and the
+     pair Sales gives this same button. It was `--ink-quiet` / `--ink-primary`,
+     a rung brighter at rest and three rungs brighter on hover. */
+  color: var(--d400); cursor: pointer;
+  transition: background-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
 }
-.ov-chats-toggle:hover { color: var(--ink-primary); }
+:root[data-theme="light"] .ov-chats-toggle {
+  background: rgba(16,24,40,0.04); border-color: rgba(16,24,40,0.10);
+}
+.ov-chats-toggle:hover { background: rgba(255,255,255,0.08); color: var(--d200); }
+:root[data-theme="light"] .ov-chats-toggle:hover { background: rgba(16,24,40,0.07); }
 .ov-chats-toggle:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
 .ov-chats-toggle svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 2; }
 
@@ -1111,36 +1137,28 @@ button {
   .aimy-overlay.chats-open .overlay-chats { transition: transform var(--t-slow) var(--ease-out), visibility 0s; }
 }
 
-/* At phone width there is not enough height to spend clearing the top bar. */
-@media (max-width: 720px) {
-  .aimy-overlay { top: 0; }
+/* ══ THE MASTHEAD STAYS, AND THE CANVAS OPENS UNDER IT ═══════════════
+   Two rules lived here and both are gone, because they only ever existed as
+   a pair: `.aimy-overlay { top: 0 }` took the masthead's 60px of height for
+   the canvas, and `body:has(.aimy-overlay.open) .app-topnav { display: none }`
+   cleaned up after it — the canvas ground is translucent with a backdrop
+   filter, so the bar it covered read straight THROUGH it and put two ×
+   buttons and two account circles on the same 60px band.
 
-  /* ══ SO THE BAR IT COVERS HAS TO GO WITH IT ════════════════════════
-     The rule above reclaims the masthead's 60px by starting the canvas at the
-     top of the window. What it did not account for is that the masthead is
-     STILL PAINTED underneath — the canvas is z-index 600 against its 100, so
-     it does cover it, but the canvas ground is translucent and has a
-     backdrop-filter, so the bar read straight through it and the two sets of
-     controls landed on each other.
+   The second was never a fix for anything but the first. Dropping the first
+   dissolves the collision instead of hiding it: the canvas keeps the base
+   rule's `top: var(--topbar-height)` at every width, the bar sits above it
+   rather than under it, and nothing is drawn on top of anything.
 
-     Measured with the canvas open, every width from 720 down to 400:
-     `.overlay-close` overlapped `#userPill` at all of them, and the AiMY
-     Canvas badge sat behind the bell. Two × buttons and two account-shaped
-     circles in one 60px band, one of which does nothing because it is under
-     the other.
+   MATCHED TO SALES, which never took the masthead in the first place. Its
+   phone rule is `inset: calc(var(--topbar-height) + var(--call-strip)) 0 0`
+   — the same offset plus a minimised call's strip, which this product has no
+   equivalent of, so the base rule already IS that rule here.
 
-     A canvas that has taken the whole window is the page, and it carries its
-     own way out — the × and Escape — so the chrome beneath it is not reachable
-     and should not be legible. Above 720 nothing here applies: the canvas
-     starts below the bar and both are real.
-
-     `:has()` rather than a body class toggled in knowledge.js, because the
-     state is already in the DOM — `.aimy-overlay.open` is what every other
-     rule in this section keys off, and a second flag set in script is the one
-     that goes out of sync. The gate has no `.aimy-overlay` at all, so this
-     cannot reach it. */
-  body:has(.aimy-overlay.open) .app-topnav { display: none; }
-}
+   The height argument was sound and is simply outranked. Below 900 the
+   masthead is the only place the product menu, the bell and the account pill
+   exist, and the canvas is where people spend the day: a surface you are in
+   all day should not be the one place the rest of the product stops. */
 
 @media (prefers-reduced-motion: no-preference) {
   /* Opacity only. Sales tried a `translateX(-12px)` entrance twice and both
@@ -1195,6 +1213,42 @@ button {
 .overlay-thread.is-at-end {
   -webkit-mask-image: none;
           mask-image: none;
+}
+
+/* ══ THE BADGE AND THE BASIS BELONG TO THE TOP OF THE THREAD ═════════════
+   Both float over the conversation. At the top that is what they are for —
+   what this surface is, and what it answered from. Scrolled, they are two
+   labels sitting on the reading, and the badge in particular was crossing the
+   text of whatever passed under it.
+
+   They leave on the first scroll and come back at the top. `visibility` rides
+   with the opacity so a faded badge is not still in the tab order, delayed by
+   the fade on the way out and flipped at 0s on the way in — the pattern the
+   drawers in this file already use.
+
+   `.overlay-close` and `.ov-chats-toggle` deliberately do NOT go with them:
+   one is the way out of the canvas and the other the way to another
+   conversation, and a control you need is not chrome you are done with. */
+.aimy-overlay .overlay-badge,
+.aimy-overlay .overlay-context-bar {
+  transition: opacity var(--t-base) var(--ease-out), visibility 0s;
+}
+.aimy-overlay.is-scrolled .overlay-badge,
+/* `.open.is-scrolled` for the basis bar, not `.is-scrolled` alone. Its reveal
+   rule at :2494 is `.aimy-overlay.open .overlay-context-bar { opacity: 1 }` —
+   the same (0,3,0) as this selector and 1200 lines further down, so it won on
+   source order and the bar hid by `visibility` while its opacity stayed at 1:
+   gone, but with no fade. Measured. Two classes outrank it wherever it sits,
+   and the bar has nothing to say while the overlay is shut anyway. */
+.aimy-overlay.open.is-scrolled .overlay-context-bar {
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity var(--t-fast) var(--ease-out), visibility 0s linear var(--t-fast);
+}
+@media (prefers-reduced-motion: reduce) {
+  .aimy-overlay .overlay-badge,
+  .aimy-overlay .overlay-context-bar,
+  .aimy-overlay.is-scrolled .overlay-badge,
+  .aimy-overlay.is-scrolled .overlay-context-bar { transition: none; }
 }
 
 /* ═══════════════════════════════════════════════
@@ -6375,6 +6429,19 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
 /* The toggle. Hidden above the drawer breakpoint, where the rail is simply
    there and a button offering to reveal it would be describing a state that is
    already true. */
+/* ══ AND THE ICON IS THE SAME GREY AS THE BELL BESIDE IT ══════════════
+   `--ink-quiet` is `--d300` (#a8b5c5); `.topnav-bell`, sitting in this same
+   row four controls over, is `--d400` (#93a2b4). One rung apart, on two
+   buttons the same size with the same ground and the same border — which
+   reads as one of them being lit and the other not, rather than as a
+   hierarchy, because there is no hierarchy between them to state.
+
+   `--d400` / `--d200`, written the way `.topnav-bell` writes it rather than
+   through `--ink-faint` / `--ink-secondary`, which resolve to the identical
+   values: these three buttons are one family and the point is lost if they
+   are spelled three different ways. Sales settles it the same way and in one
+   rule — `.topnav-bell:hover, .rail-toggle:hover { color: var(--d200) }` —
+   so this is the arrangement both products were already meant to have. */
 .rail-toggle {
   display: none;
   width: 2.125rem; height: 2.125rem; flex-shrink: 0;
@@ -6382,13 +6449,13 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
   margin-right: 0.5rem; border-radius: var(--r-md);
   background: rgba(255,255,255,0.04);
   border: 0.0625rem solid rgba(255,255,255,0.08);
-  color: var(--ink-quiet); cursor: pointer;
+  color: var(--d400); cursor: pointer;
   transition: background-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
 }
 :root[data-theme="light"] .rail-toggle {
   background: rgba(16,24,40,0.04); border-color: rgba(16,24,40,0.10);
 }
-.rail-toggle:hover { background: rgba(255,255,255,0.08); color: var(--ink-primary); }
+.rail-toggle:hover { background: rgba(255,255,255,0.08); color: var(--d200); }
 :root[data-theme="light"] .rail-toggle:hover { background: rgba(16,24,40,0.07); }
 .rail-toggle:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
 .rail-toggle svg { width: 1.0625rem; height: 1.0625rem; fill: none; stroke: currentColor; stroke-width: 2; }
@@ -6475,6 +6542,27 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
 ═══════════════════════════════════════════════ */
 .doc-overlay  { z-index: 450; }
 .aimy-float-wrap { z-index: 550; }
+
+/* ══ THE CANVAS'S OWN CONTROLS SIT ABOVE ITS THREAD ════════════════
+   `.overlay-close`, `.overlay-badge` and `.overlay-thread` were all
+   `z-index: auto`, which puts them on one level where the LAST one painted
+   wins. The thread is painted after, so the moment a conversation is long
+   enough to scroll, a message bubble passing under the header takes the tap:
+   the × is drawn, fully visible, and does nothing. `.overlay-thread` already
+   reserves 5rem of top padding, so at the top of a thread nothing is under
+   them — which is why this only shows up once you have scrolled, and why a
+   short conversation never reproduces it.
+
+   AiMY Sales carries the same fix for the same reason, measured there rather
+   than here: "at 894 and at 459 the element under the cursor is `.msg-bubble`
+   — the control is drawn, fully visible, and cannot be pressed."
+
+   1, not Sales' 10, because this build's conversation drawer sits at 2 and its
+   scrim at 2 as well: a drawer standing over the canvas should still cover the
+   canvas's own controls, which is the arrangement verified when that scrim was
+   added. 1 clears the thread and nothing else. */
+.overlay-close,
+.overlay-badge { z-index: 1; }
 .aimy-overlay { z-index: 600; }
 
 .doc-overlay {
