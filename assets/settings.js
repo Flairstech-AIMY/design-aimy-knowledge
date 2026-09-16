@@ -3100,7 +3100,32 @@
 
   /* Geometry. In px at the drawn scale; the layer is transformed as a whole to
      fit, so these are never recomputed for zoom. */
-  const SC = { w: 148, h: 30, gapX: 46, gapY: 12, padX: 20, padY: 20 };
+  /* ══ TWO GEOMETRIES, BECAUSE SCALING IS NOT ADAPTING ═════════════════════
+     These numbers are the map's LAYOUT, not its zoom: a column is `w + gapX`
+     wide, so four levels of the default depth come to 770 units however the
+     canvas is scaled afterwards. Shrinking that to fit a phone is what
+     `--sc-k` was doing, and at a 390 viewport it resolved to 0.33 — every
+     label a third of its size, which is not a small map, it is an unreadable
+     one. Flooring the scale at 0.85 fixed the reading and left 399px of
+     panning, because a 770-unit map simply does not go into a 271px column.
+
+     So the map is drawn NARROWER instead. The node loses 44 units of width it
+     was only spending on names that truncate at both sizes, and the gap loses
+     28 it was spending on elbows that read fine at 18 — together that is 122
+     units per level, and at the default depth it takes the map from 770 to
+     494. Same nodes, same depth, same tree: fewer pixels between them.
+
+     104 rather than smaller, because the node still has to hold a name. Below
+     about 96 units "Discovery" and "Self-Service" start truncating too, and a
+     map of ellipses shows more of nothing.
+
+     736 IS settings.css's OWN RUNG (46rem), and it is where the wide map stops
+     fitting: at 0.85 it needs 655px of canvas, which is about a 780 viewport,
+     and 736 is the nearest rung under that. Above it nothing changes — the
+     wide geometry is what the 1536 reference draws, to the unit. */
+  const SC_WIDE  = { w: 148, h: 30, gapX: 46, gapY: 12, padX: 20, padY: 20 };
+  const SC_TIGHT = { w: 104, h: 28, gapX: 18, gapY: 10, padX: 12, padY: 12 };
+  const SC = Object.assign({}, SC_WIDE);
   /* ══ AND THEY ARE REM, NOT PIXELS ═════════════════════════════
      The layout above is arithmetic in one unit space, and it does not matter
      what that unit is called as long as everything uses the same one. It
@@ -3120,8 +3145,19 @@
      the lever. Converting here rather than rewriting the arithmetic keeps the
      layout walk in whole units, where it is readable. */
   const SC_U = (n) => (n / 16) + 'rem';
-  const SC_STEP_X = SC.w + SC.gapX;
-  const SC_STEP_Y = SC.h + SC.gapY;
+  /* `let`, because the geometry above is chosen per render now. Both readers —
+     the layout walk and scNode — run inside one `M.hierarchy` call, so setting
+     these once at the top of it is enough for the two to agree. */
+  let SC_STEP_X = SC.w + SC.gapX;
+  let SC_STEP_Y = SC.h + SC.gapY;
+  /* Keyed to the viewport rather than to a container query because the numbers
+     it picks are JS, not CSS: this runs before the canvas exists. */
+  function scSetGeom() {
+    const tight = typeof window !== 'undefined' && window.innerWidth <= 736;
+    Object.assign(SC, tight ? SC_TIGHT : SC_WIDE);
+    SC_STEP_X = SC.w + SC.gapX;
+    SC_STEP_Y = SC.h + SC.gapY;
+  }
   const SIB_CAP = 6;
   /* Which branches are open past the depth cap, and which have had their
      siblings revealed. Gestures mid-read, not places — restoring them on a
@@ -3145,7 +3181,15 @@
      and opened whatever the depth cap says; everything else stays on the
      canvas, dimmed. Filtering to the matches would remove the containment that
      is the only reason a match means anything — "Tier 1" alone tells you
-     nothing about whose Tier 1 it is. */
+     nothing about whose Tier 1 it is.
+
+     IT WAS BRIEFLY REMOVED, and the reason is worth keeping: it rendered at
+     ZERO PIXELS WIDE at every width, 1536 included, so what reached the screen
+     was an unlabelled dark sliver beside the depth picker and nobody could
+     tell it was a search. That was never a defect in this function — it was
+     `.set2-fld { width: 100% }` with no flex basis next to a `margin-left:
+     auto` cluster, which is fixed in settings.css at §THE SEARCH TAKES THE
+     ROOM THE CONTROLS LEAVE. The behaviour below is unchanged. */
   function scKeep(q) {
     if (!q) return null;
     const keep = new Set();
@@ -3236,6 +3280,8 @@
   }
 
   M.hierarchy = function (st) {
+    /* Before scLayout, which reads SC on every node it places. */
+    scSetGeom();
     const f = readF(st);
     const q = (f.sq || '').trim();
     const map = scLayout(st);
