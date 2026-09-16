@@ -4142,9 +4142,30 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
    lines were byte-identical") reproduced in the rail one pass later. A count is
    ambient; a phrase names the group beneath it, so they separate on all three. */
 .rail-conn-phrase { font-size: var(--ty-meta); font-weight: var(--fw-bold); color: var(--ink-quiet); margin-bottom: 0.25rem; }
+/* ── The row, and the one control on it ──
+
+   A connection is a claim, and a claim can be wrong, so the sentence carries
+   the button that removes it rather than sending you back to the picker to
+   find the same document among forty-one others.
+
+   It is ALWAYS drawn. Revealing it on hover is the reflex here and it is two
+   bugs: there is no hover on a touch screen, and an affordance you have to
+   discover by waving at it is not quiet, it is hidden — which is the no-muted-
+   text rule one step out from text. What keeps it from shouting is size and
+   ink, not absence: a 14px glyph in secondary ink that only takes the error
+   colour once you are on it. */
+.rail-conn-row { display: flex; align-items: center; gap: 0.125rem; margin-left: -8px; }
+.rail-conn-drop {
+  flex: none; display: grid; place-items: center;
+  width: 1.5rem; height: 1.5rem; padding: 0;
+  border: 0; border-radius: var(--r-sm); background: none;
+  color: var(--ink-secondary); cursor: pointer;
+}
+.rail-conn-drop:hover { background: var(--err-bg); color: var(--err); }
+.rail-conn-drop:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: -2px; }
 .rail-conn-item {
-  display: flex; align-items: baseline; gap: 0.5rem; width: 100%;
-  padding: 0.25rem 0.5rem; margin-left: -8px; border-radius: var(--r-sm);
+  display: flex; align-items: baseline; gap: 0.5rem; flex: 1; min-width: 0;
+  padding: 0.25rem 0.5rem; border-radius: var(--r-sm);
   background: none; border: 0; cursor: pointer; text-align: left;
   font-family: var(--font-sans); font-size: var(--ty-body); font-weight: var(--fw-semibold); color: var(--ink-primary);
 }

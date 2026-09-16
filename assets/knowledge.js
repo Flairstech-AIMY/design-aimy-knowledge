@@ -126,6 +126,17 @@
     thumbDown:svg('<path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"/><path d="M17 14V2"/>'),
     share:    svg('<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/>'),
     clip:     svg('<path d="m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551"/>'),
+    /* Lucide `link-2-off`. Two other variants were tried in the same 24px box
+       and both lost on the same axis — what survives at 14px. `unlink` draws
+       the break literally, two halves pulled apart, but it spends four of its
+       six subpaths on spark lines that are the first thing to go at this size;
+       `unlink-2` is one clean stroke and reads as *a link* on a row whose
+       every neighbour is one. This keeps a whole link and strikes it through,
+       so the meaning is carried by the single longest stroke in the glyph.
+       It also rhymes: `slash` already marks the excluded effect in every
+       commit surface, and this is the same diagonal. */
+    unlink:   svg('<path d="M9 17H7A5 5 0 0 1 7 7"/><path d="M15 7h2a5 5 0 0 1 4 8"/>'
+              + '<line x1="8" x2="12" y1="12" y2="12"/><line x1="2" x2="22" y1="2" y2="22"/>'),
     skill:    svg('<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/>'),
     person:   svg('<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'),
     folder2:  svg('<path d="M20 5a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h2.5a1.5 1.5 0 0 1 1.2.6l.6.8a1.5 1.5 0 0 0 1.2.6z"/><path d="M3 8.268a2 2 0 0 0-1 1.738V19a2 2 0 0 0 2 2h11a2 2 0 0 0 1.732-1"/>')
@@ -5952,11 +5963,21 @@
     const group = (phrase) => `<div class="rail-conn">
           <span class="rail-conn-phrase">${esc(phrase)}</span>
           ${(groups[phrase] || []).length
-            ? groups[phrase].map((e) => `<button class="rail-conn-item"
-                ${e.kind === 'doc' ? `data-open-doc="${esc(e.id)}"` : `data-peek="${esc(e.kind)}:${esc(e.id)}"`}>
-                <span class="rail-conn-label">${esc(e.label)}</span>
-                ${e.by ? `<span class="rail-conn-by">${esc(e.by)}, ${esc(fmtShort(e.at))}</span>` : ''}
-              </button>`).join('')
+            ? groups[phrase].map((e) => `<div class="rail-conn-row">
+                <button class="rail-conn-item"
+                  ${e.kind === 'doc' ? `data-open-doc="${esc(e.id)}"` : `data-peek="${esc(e.kind)}:${esc(e.id)}"`}>
+                  <span class="rail-conn-label">${esc(e.label)}</span>
+                  ${e.by ? `<span class="rail-conn-by">${esc(e.by)}, ${esc(fmtShort(e.at))}</span>` : ''}
+                </button>
+                <!-- Outside the row's button, not inside it: a button in a
+                     button is not a thing, and the click that removes a claim
+                     must not be one pixel's difference from the click that
+                     navigates to it. -->
+                <button class="rail-conn-drop" data-act="disconnect"
+                  data-obj="${esc(o.id)}" data-arg="${esc(e.id)}"
+                  aria-label="Remove ${esc(phrase.toLowerCase())} ${esc(e.label)}"
+                  title="Remove this connection">${ICO.unlink.replace('<svg', '<svg width="14" height="14"')}</button>
+              </div>`).join('')
             : `<p class="rail-empty">${esc((feature && feature.empty) || 'Nothing yet.')}</p>`}
         </div>`;
 
@@ -6109,6 +6130,86 @@
       }
     });
     syncPickCount();
+  }
+
+  /* ── Removing one is not the inverse of adding several ──
+
+     Connecting is a batch: you arrive with three documents in mind, tick them
+     in one list and commit once. Removing is never a batch — you are looking
+     at ONE sentence in the rail that is wrong. So the control lives on the row
+     rather than back inside the picker, and it takes what the row already
+     shows instead of making you find the same document again among forty-one
+     others.
+
+     It goes through `commit` for the reason `resolve` does, and it is not
+     ceremony: two of the asserted phrases are what `statusOf` computes a badge
+     from, so dropping one can move a document from Conflicting to No issues
+     without anybody having touched a word of either document. The dialog says
+     so by MEASURING it — drop the edge, read both badges, put it back — rather
+     than by guessing from the phrase, because `statusSet` and supersession
+     both outrank a contradiction and a guess would be wrong on exactly the
+     documents where it matters. */
+  function disconnectClaim(o, otherId) {
+    const other = byId(otherId);
+    if (!other) return;
+    /* The raw records, not just the pair of ids. `dropEdge` takes the id pair
+       and `assertEdge` would put the edge back under YOUR name and today's
+       date — so an undo would quietly reassign somebody else's claim to you.
+       Keeping the records means undo restores the author and the date too. */
+    const saved = EDGES.filter((e) =>
+      (e.from === o.id && e.to === otherId) || (e.from === otherId && e.to === o.id));
+    if (!saved.length) return;
+
+    /* The phrase as the rail says it, which is the direction it was claimed
+       in — `Replaces` from this end and `Replaced by` from the other. */
+    const link = edgesOf('doc', o.id).filter((e) => e.kind === 'doc' && e.id === otherId)[0];
+    const phrase = (link && link.phrase) || 'Related to';
+
+    /* Dropped and restored inside one synchronous pass, so nothing renders in
+       between and nothing outside this function can observe the gap. */
+    const was = [statusOf(o), statusOf(other)];
+    dropEdge(o.id, otherId);
+    const then = [statusOf(o), statusOf(other)];
+    saved.forEach((e) => EDGES.push(e));
+    rebuildRelated();
+
+    const moved = [[o, was[0], then[0]], [other, was[1], then[1]]]
+      .filter((r) => r[1] !== r[2])
+      .map((r) => ['warn', `<strong>${esc(r[0].title)}</strong> goes from
+        <strong>${esc(STATUS[r[1]].label)}</strong> to <strong>${esc(STATUS[r[2]].label)}</strong>.`]);
+
+    const by = saved[0].by;
+    const when = fmtShort(saved[0].at);
+
+    commit({
+      title: 'Remove a connection',
+      current: phrase + ' ' + other.title,
+      proposed: 'Not connected',
+      /* Who said it, and when. An edge AiMY drew and an edge a colleague drew
+         are the same row on screen and are not the same thing to remove: one
+         is disagreeing with a detector, the other is overwriting a person. */
+      rationale: by === 'AiMY'
+        ? `AiMY claimed this on <strong>${esc(when)}</strong>. Removing it says the detection was
+           wrong — nothing inside either document changes, only what is claimed between them.`
+        : `<strong>${esc(by || 'Somebody')}</strong> claimed this on <strong>${esc(when)}</strong>.
+           Removing it drops <em>their</em> claim, not yours. Nothing inside either document changes.`,
+      confirm: 'Remove it', done: 'Removed', danger: true,
+      effects: moved.concat([
+        ['ok', 'Neither document shows it any more, from either end'],
+        ['skip', 'Both documents stay exactly where they are — nothing is archived or deleted']
+      ]),
+      onRun: () => {
+        dropEdge(o.id, otherId);
+        recompute(); render(); markCard(o.id); markCard(otherId);
+        toast('Connection removed', 'Undo',
+          esc(o.title) + ' — no longer ' + esc(phrase.toLowerCase()) + ' ' + esc(other.title));
+        undoStack = () => {
+          saved.forEach((e) => EDGES.push(e));
+          rebuildRelated(); recompute(); render();
+        };
+        return true;
+      }
+    });
   }
 
   function gateReport() {
@@ -13442,6 +13543,8 @@
        rail block to something wide enough to read. */
     if (kind === 'ground') { groundingAnswer(o); return; }
     if (kind === 'connect') { connectPicker(o); return; }
+    /* `arg` is the document at the other end, off the row that was clicked. */
+    if (kind === 'disconnect') { disconnectClaim(o, arg); return; }
     if (kind === 'compare' || kind === 'resolve') {
       const other = byId((RELATED[o.id] || { contradicts: [] }).contradicts[0]);
       /* Setting the status by hand says two documents disagree without saying
