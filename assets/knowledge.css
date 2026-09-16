@@ -584,7 +584,7 @@ button {
   line-height: 0.875rem; padding: 0.25rem 0.5rem; border-radius: var(--r-sm);
   background: rgba(255,255,255,0.06); border: 0.0625rem solid rgba(255,255,255,0.1);
   color: var(--ink-muted); cursor: pointer; white-space: nowrap;
-  transition: background-color var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+  transition: background-color var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
 }
 .copy-btn:hover { background: rgba(255,255,255,0.1); color: var(--d100); border-color: rgba(255,255,255,0.18); }
 .copy-btn.copied { background: var(--ok-bg); border-color: color-mix(in srgb, var(--ok) 30%, transparent); color: var(--ink-ok); }
@@ -858,7 +858,7 @@ button {
   min-height: 1.5rem; padding: 0.5rem; border-radius: var(--r-sm);
   font-size: var(--ty-meta); color: var(--ink-muted);
   cursor: pointer; text-align: left; width: 100%;
-  transition: background-color var(--t-fast), color var(--t-fast);
+  transition: background-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
 }
 .ov-chat:hover { background: var(--accent-dim); color: var(--d50); }
 .ov-chat:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: -2px; }
@@ -966,7 +966,7 @@ button {
   border: 0; border-radius: var(--r-sm);
   background: none; color: var(--ink-faint); cursor: pointer;
   opacity: 0;
-  transition: opacity var(--t-fast), background-color var(--t-fast), color var(--t-fast);
+  transition: opacity var(--t-fast) var(--ease-out), background-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
 }
 .ov-chat-row:hover .ov-chat-more,
 .ov-chat-row:focus-within .ov-chat-more,
@@ -1041,6 +1041,19 @@ button {
 .ov-chats-toggle:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
 .ov-chats-toggle svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 2; }
 
+/* Present at every width, painted at none of them until the drawer exists —
+   `.rail-scrim`'s own pattern, and `display` rather than the `hidden`
+   attribute for its reason: opening is then one class, and the fade has
+   something to transition from.
+
+   BEFORE the query, not after it. Written underneath, this rule and the
+   `display: block` inside the query are both (0,1,0) and the later one wins on
+   source order — so the scrim stayed `display: none` with the drawer open and
+   the whole thing was inert. Measured at 900, 768 and 480: box 0x0, every
+   time. `.rail-scrim` sits above its own query at :6165 and that is not a
+   coincidence. */
+.ov-chats-scrim { display: none; }
+
 /* Below this the column and a readable thread cannot both fit, and the thread
    is what you came for -- so the thread takes the width and the column moves
    behind a toggle. It was `display: none`, which does not put the thread first;
@@ -1056,22 +1069,77 @@ button {
     -webkit-backdrop-filter: blur(1.125rem);
     box-shadow: var(--shadow-xl);
     transform: translateX(-100%); visibility: hidden;
+    /* ══ THE DOOR STAYS ON TOP OF WHAT IT OPENED ══════════════════════
+       `.ov-chats-toggle` is `top: 1rem; left: 1rem`, 2rem square, at z-index 4
+       against this column's 3 — correct, because while the drawer is open that
+       button is how you shut it. But the column's own 1.25rem of padding put
+       New conversation directly underneath it: measured at 900, 768 and 480,
+       the toggle occupied x 16–48 / y 76–108 and the button x 12–216 / y
+       80–104, so the control overlapped the primary action of the panel it
+       had just opened, at every width this drawer exists at.
+
+       3.5rem = 1rem of inset + 2rem of button + 0.5rem, which reads as the
+       drawer's head with its control in it rather than as a gap. It replaces
+       the padding rather than adding to it, so the rows below do not move
+       twice. Sales carries the same rule for the same collision. */
+    padding-top: 3.5rem;
   }
   .aimy-overlay.chats-open .overlay-chats { transform: none; visibility: visible; }
   .ov-chats-toggle { display: inline-flex; }
+
+  .ov-chats-scrim {
+    display: block;
+    position: absolute; z-index: 2; inset: 0;
+    background: rgba(10, 14, 18, 0.5);
+    opacity: 0; pointer-events: none;
+  }
+  .aimy-overlay.chats-open .ov-chats-scrim { opacity: 1; pointer-events: auto; }
+}
+:root[data-theme="light"] .ov-chats-scrim { background: rgba(16, 24, 40, 0.28); }
+@media (prefers-reduced-motion: no-preference) {
+  /* The scrim leaves with the column, not on its own clock — the pairing the
+     rail drawer already states. */
+  .ov-chats-scrim { transition: opacity var(--t-medium) var(--ease-out); }
+  .aimy-overlay.chats-open .ov-chats-scrim { transition: opacity var(--t-slow) var(--ease-out); }
 }
 @media (prefers-reduced-motion: no-preference) {
   /* visibility is held for the whole close so the column cannot be tabbed into
      while it is sliding out, then flipped at 0s on the way in. That part was
      already right; what was not is that the panel left at exactly the speed it
      arrived. Out on --t-medium, in on --t-slow. */
-  .overlay-chats { transition: transform var(--t-medium) var(--ease-out), visibility var(--t-medium); }
+  .overlay-chats { transition: transform var(--t-medium) var(--ease-out), visibility var(--t-medium) var(--ease-out); }
   .aimy-overlay.chats-open .overlay-chats { transition: transform var(--t-slow) var(--ease-out), visibility 0s; }
 }
 
 /* At phone width there is not enough height to spend clearing the top bar. */
 @media (max-width: 720px) {
   .aimy-overlay { top: 0; }
+
+  /* ══ SO THE BAR IT COVERS HAS TO GO WITH IT ════════════════════════
+     The rule above reclaims the masthead's 60px by starting the canvas at the
+     top of the window. What it did not account for is that the masthead is
+     STILL PAINTED underneath — the canvas is z-index 600 against its 100, so
+     it does cover it, but the canvas ground is translucent and has a
+     backdrop-filter, so the bar read straight through it and the two sets of
+     controls landed on each other.
+
+     Measured with the canvas open, every width from 720 down to 400:
+     `.overlay-close` overlapped `#userPill` at all of them, and the AiMY
+     Canvas badge sat behind the bell. Two × buttons and two account-shaped
+     circles in one 60px band, one of which does nothing because it is under
+     the other.
+
+     A canvas that has taken the whole window is the page, and it carries its
+     own way out — the × and Escape — so the chrome beneath it is not reachable
+     and should not be legible. Above 720 nothing here applies: the canvas
+     starts below the bar and both are real.
+
+     `:has()` rather than a body class toggled in knowledge.js, because the
+     state is already in the DOM — `.aimy-overlay.open` is what every other
+     rule in this section keys off, and a second flag set in script is the one
+     that goes out of sync. The gate has no `.aimy-overlay` at all, so this
+     cannot reach it. */
+  body:has(.aimy-overlay.open) .app-topnav { display: none; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -1173,6 +1241,32 @@ button {
    reads as a textarea waiting for a second line. The 24px minimum meets the
    pointer target on its own, and the bar forwards clicks for the rest. */
 .aimy-float-input, .overlay-input { min-height: 1.5rem; }
+
+/* ══ AND A WIDTH FLOOR IT DOES NOT DESERVE ════════════════════════════
+   `min-width: 0`, which is the one declaration standing between the send
+   button and the inside of its own bar on a phone.
+
+   The library gives the field `flex: 1` and nothing else. A flex item's
+   `min-width` defaults to `auto`, which for an <input> resolves to the
+   control's INTRINSIC size — about 170px in Chrome, from the UA's default
+   `size` — and `flex-shrink` is not allowed to go below it. So the field
+   stopped shrinking at 170 while the bar kept narrowing, and the two items
+   after it were pushed out of the end.
+
+   Measured on console.html at a 360px viewport, bar 312px wide ending at 336:
+
+     before   input 170 (r=249) · hint r=328 · send 338→374   38px outside
+     after    input 123 (r=202) · hint r=281 · send 291→327   inside
+
+   The send button — the bar's whole purpose — rendered past the right edge of
+   the surface it belongs to, and `overflow` upstream hid it rather than
+   scrolling to it, so nothing reported a defect.
+
+   Both composers, because they are the same three-part bar: the float bar on
+   the console and the canvas's own. Corrected here rather than in
+   aimy-ds.css, which is a faithful copy of the shared library and stays one. */
+.aimy-float-input, .overlay-input { min-width: 0; }
+
 .aimy-float-bar, .overlay-input-bar { cursor: text; }
 
 /* A staged prompt is AiMY-composed and waiting on you, so the bar says so
@@ -1223,7 +1317,7 @@ button {
   .topnav-bell, .ds-theme-toggle, .aimy-float-send, .overlay-send, .overlay-close,
   .agg-more, .ss-clear, .wb-back, .tab, .nav-item, .bcard-dismiss-reason {
     transition: transform var(--t-press) var(--ease-out),
-                background-color var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+                background-color var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
   }
   .btn:active, .entry-action:active, .filter-chip:active, .seg-btn:active,
   .bcard-ack-btn:active, .overlay-sugg-chip:active,
@@ -1235,9 +1329,88 @@ button {
 
   /* Large surfaces move less — the same 3% reads as a lurch at card scale. */
   .rq-row, .src-row, .type-card, .list-row {
-    transition: transform var(--t-press) var(--ease-out), background-color var(--t-fast);
+    transition: transform var(--t-press) var(--ease-out), background-color var(--t-fast) var(--ease-out);
   }
   .rq-row:active, .src-row:active, .type-card:active, .list-row:active { transform: scale(0.995); }
+}
+
+/* ═══════════════════════════════════════════════
+   THE THINKING LABEL, CHANGING WHILE THE STATE HOLDS
+
+   The mark keeps turning; the words under it resolve into the next thing that
+   is true. Out is quick and up, in is slower and from below - the same
+   asymmetry the token block argues for on opens and closes, for the same
+   reason: what you are leaving should get out of the way, what is arriving is
+   the part worth watching land.
+
+   The blur is affordable here and almost nowhere else on this surface: it is
+   ONE short line of text, three times per answer. A blur is a repaint per
+   frame, and the rule for this codebase is that it never lands on a list.
+═══════════════════════════════════════════════ */
+.ai-thinking-label { display: inline-block; }
+@media (prefers-reduced-motion: no-preference) {
+  .ai-thinking-label.is-out {
+    animation: think-label-out var(--t-fast) var(--ease-out) forwards;
+  }
+  .ai-thinking-label.is-in {
+    animation: think-label-in var(--t-base) var(--ease-out) backwards;
+  }
+}
+@keyframes think-label-out {
+  to { opacity: 0; transform: translateY(-0.25rem); filter: blur(var(--blur-small)); }
+}
+@keyframes think-label-in {
+  from { opacity: 0; transform: translateY(0.25rem); filter: blur(var(--blur-small)); }
+}
+
+/* ═══════════════════════════════════════════════
+   MOVING BETWEEN PLACES
+
+   The stage is replaced by writing innerHTML, so every navigation is a
+   teardown and the eye reads a teardown as a blink. A view transition
+   photographs the old state, lets the write happen, and dissolves between the
+   two - which is the only way to get continuity out of this architecture
+   without rewriting it into a diffing one.
+
+   Only a PLACE gets this. Typing into a filter narrows the set you are already
+   looking at, 260ms of debounce at a time, and dissolving the screen on each
+   of those is the strobe rather than the cure - render() decides, and passes
+   `quiet` for anything that is not a move. See AIMY_MOTION.swap.
+
+   THE CHROME IS NOT IN IT. Naming the stage lifts it out of the root snapshot,
+   so the topnav, the rail and the composer are never captured and never
+   cross-faded against themselves - they simply stay put while the thing that
+   actually changed is the thing that moves. The root keeps a short dissolve
+   for the small diffs that ride along with a move: the chip bar emptying, the
+   brief re-ordering.
+═══════════════════════════════════════════════ */
+@media (prefers-reduced-motion: no-preference) {
+  #wbStage { view-transition-name: wb-stage; }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: var(--t-fast);
+    animation-timing-function: var(--ease-out);
+  }
+
+  /* Asymmetric on purpose, and the reason is the same one the token block
+     gives for opens and closes: the state you are LEAVING should get out of
+     the way quickly, and the state you are ARRIVING at is the one worth
+     watching land. The outgoing stage is gone in 150ms; the incoming one takes
+     250 and resolves out of a blur, which is the one place in a navigation
+     where a blur is affordable - it is a single element, once. */
+  ::view-transition-old(wb-stage) {
+    animation: wb-stage-out var(--t-fast) var(--ease-out) both;
+  }
+  ::view-transition-new(wb-stage) {
+    animation: wb-stage-in var(--t-base) var(--ease-out) both;
+  }
+  @keyframes wb-stage-out {
+    to { opacity: 0; transform: scale(0.994); }
+  }
+  @keyframes wb-stage-in {
+    from { opacity: 0; transform: scale(1.006); filter: blur(var(--blur-medium)); }
+  }
 }
 
 /* ═══════════════════════════════════════════════
@@ -1421,7 +1594,7 @@ body {
   font-weight: 600;
   color: var(--d400);
   cursor: pointer;
-  transition: background-color var(--t-fast), color var(--t-fast), border-color var(--t-fast),
+  transition: background-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out),
               transform var(--t-press) var(--ease-out);
   border: 0.0625rem solid transparent;
   white-space: nowrap;
@@ -1459,7 +1632,7 @@ span.topnav-tab:hover { background: none; }
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color var(--t-fast), color var(--t-fast), transform var(--t-press) var(--ease-out);
+  transition: background-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out), transform var(--t-press) var(--ease-out);
   color: var(--d400);
   position: relative;
 }
@@ -1485,7 +1658,7 @@ span.topnav-tab:hover { background: none; }
   background: rgba(255, 255, 255, 0.04);
   border: 0.0625rem solid rgba(255, 255, 255, 0.08);
   cursor: pointer;
-  transition: border-color var(--t-fast), background-color var(--t-fast), transform var(--t-press) var(--ease-out);
+  transition: border-color var(--t-fast) var(--ease-out), background-color var(--t-fast) var(--ease-out), transform var(--t-press) var(--ease-out);
 }
 .topnav-user:hover { border-color: rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.07); }
 .topnav-user:active { transform: scale(0.97); }
@@ -1606,7 +1779,7 @@ span.topnav-tab:hover { background: none; }
   border: 0.0625rem solid rgba(255,255,255,0.08);
   display: flex; align-items: center; justify-content: center;
   color: var(--d400); cursor: pointer; position: relative;
-  transition: background-color var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+  transition: background-color var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
 }
 .topnav-bell:hover { background: rgba(255,255,255,0.08); color: var(--d200); }
 .topnav-bell svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 2; }
@@ -1638,7 +1811,7 @@ span.topnav-tab:hover { background: none; }
   letter-spacing: var(--ls-wide); line-height: var(--lh-snug);
   color: var(--ink-faint); text-decoration: none;
   border: 0.0625rem solid var(--glass-border);
-  transition: background-color var(--t-fast), color var(--t-fast), border-color var(--t-fast);
+  transition: background-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out);
 }
 .ver-link:hover { background: rgba(255,255,255,0.08); color: var(--d100); border-color: var(--card-border); }
 :root[data-theme="light"] .ver-link:hover { background: rgba(16,24,40,0.07); }
@@ -1653,29 +1826,226 @@ span.topnav-tab:hover { background: none; }
   .ver-link { display: none; }
 }
 
-/* The last rung. Below this a centred strip cannot be centred against
-   anything -- so it stops trying, takes the width the flanks leave, and
-   scrolls inside its own pill. The pill keeps its border and its radius; only
-   the tabs move, which is why this still reads as one control rather than as a
-   row that overflowed. */
+/* ══ THE CHEVRON ON THE MARK ═══════════════════════════════════════
+   The account pill's chevron, in its size and its ink, because it makes the
+   same promise: the thing beside me opens. It is the same Lucide glyph the
+   pill draws, written the same way — one chevron in this masthead, not two
+   drawings of one.
+
+   Quiet: no ground and no border, since it hangs off the brand mark and a
+   boxed control there would read as a second logo.
+
+   Ported from AiMY Sales' .prod-chev, which solved this first.
+   ═══════════════════════════════════════════════ */
+
+/* `display: none` ON THE ANCHOR, NOT ONLY ON THE CHEVRON, AND THAT IS THE
+   WHOLE REFERENCE-WIDTH ARGUMENT.
+
+   Sales hides the chevron and leaves its wrapper standing, which is free
+   there because that masthead's logo region has no gap. This one is
+   `.topnav-logo { gap: 0.5rem }` (:1557), so a wrapper that still generates a
+   box is a flex item, and a flex item is 8px of gap — at 1536, where the
+   rendering is off-limits. Measured with the anchor painted at base: the mark
+   moved and every offset downstream of it moved with it.
+
+   So the anchor itself goes, and comes back only in the query below.
+
+   AND THIS WHOLE SECTION SITS ABOVE THAT QUERY, WHICH IS LOAD-BEARING. This
+   rule and the `display: flex` that answers it are both (0,1,0), so whichever
+   comes later in the file wins outright. Written underneath the query — which
+   is where it started — the anchor stayed `display: none` at every width and
+   the chevron never appeared at all; measured at 900, 768, 640, 480 and 400,
+   on both shells. `.rail-scrim` and `.ov-chats-scrim` sit above their own
+   queries for exactly this reason. Do not move it back down. */
+/* NOT `position: relative`, and that is the whole of the rule under it. The
+   library's `.menu` is `position: absolute; left: 0`, so it hangs off the
+   nearest positioned ancestor — make that the anchor and the panel starts at
+   the CHEVRON's left edge. Measured: 111.2px in on the gate, 161.2 on the
+   console, a 200px card floating in the middle of a 400px masthead with the
+   mark it belongs to nowhere near it. Left static, the nearest positioned
+   ancestor is `.topnav-logo`, which is the edge it should share. */
+.prod-anchor { display: none; position: static; align-items: center; flex-shrink: 0; }
+
+.prod-chev {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.5rem; height: 1.5rem; flex-shrink: 0;
+  padding: 0; border: 0; background: none; cursor: pointer;
+  color: var(--d400);
+  transition: color var(--t-fast) var(--ease-out), transform var(--t-fast) var(--ease-out);
+}
+/* AGAINST `.topnav-logo svg { height: 2rem }` (:1472), which is a DESCENDANT
+   selector and therefore reaches everything this anchor puts inside the logo
+   region — the chevron and every mark in the menu under it. Left alone it
+   drew a 32px chevron beside a 28px wordmark, and rendered the AiMY glyph on
+   each menu row at four times the size the strip draws it. Both sizes are
+   restated here rather than the library rule being narrowed, because that rule
+   is what sizes the wordmark itself. */
+.prod-chev svg { width: 0.875rem; height: 0.875rem; }
+.prod-chev:hover { color: var(--d100); }
+.prod-chev:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; border-radius: var(--r-xs); }
+/* Lit while its menu is open, which is what the account pill's own chevron
+   does — one rotation language in this bar. */
+.prod-anchor:has(.prod-menu:not([hidden])) .prod-chev { color: var(--d50); transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) {
+  .prod-anchor:has(.prod-menu:not([hidden])) .prod-chev { transform: none; }
+}
+
+/* THE MENU HANGS FROM THE MARK, NOT FROM THE CHEVRON'S OWN 24px BOX.
+   It is the AiMY mark that owns this list, and `left: 0` on the anchor is the
+   chevron's left edge — 150px in from the masthead's own edge, which on a
+   400px screen is a 220px card with nowhere to go but back over itself.
+   Anchored on `.topnav-logo` instead, so the menu shares the mark's left edge.
+
+   Shown by [hidden] rather than by `.menu-anchor.open`, which is the reason
+   `.user-anchor .user-menu` gives at :1717 and holds here for the same two
+   causes: the design system's global closer knows nothing about the button
+   that owns the panel, so aria-expanded would drift, and this page already
+   speaks [hidden] at the bell and the pill. (0,2,0) to outrank the local
+   `.menu` visibility fix at :5531. */
+.topnav-logo:has(.prod-anchor) { position: relative; }
+.prod-anchor .prod-menu {
+  left: 0; right: auto;
+  min-width: 12.5rem;
+  z-index: 940;
+  opacity: 1; visibility: visible; transform: none; pointer-events: auto;
+}
+.prod-anchor .prod-menu[hidden] { display: none; }
+/* AND NO UNDERLINES. Three of these five entries are real <a>s and two are
+   not, so the user agent's anchor underline drew a line under exactly three
+   rows of a list where every row is the same kind of thing. The strip has the
+   same mix and underlines none of them. */
+.prod-menu .menu-item { text-decoration: none; gap: 0.5rem; }
+.prod-menu .menu-item svg { width: 0.8125rem; height: 0.875rem; flex-shrink: 0; }
+/* THE ONE YOU ARE ON IS MARKED THE WAY THE STRIP MARKS IT — `.topnav-tab.active`
+   is one declaration (:1611) and this is that same one. Not the menu's own
+   hover ground, which is how a MENU says "this one" and would say it a second
+   time, in a second language, over a mark already saying it. */
+.prod-menu .menu-item.is-on,
+.prod-menu .menu-item.is-on:hover { background: none; color: var(--ink-action); }
+/* The ones with nowhere to go are quiet rather than struck through: a product
+   that is not built yet is not an error. */
+.prod-menu .menu-item[disabled]:not(.is-on) { color: var(--ink-quiet); cursor: default; }
+.prod-menu .menu-item[disabled]:hover { background: none; }
+
+/* ══ WHY THE MENU IS NOT KEYED TO THE STRIP'S OWN LIMIT ════════════
+   The strip's limit was measured, and it is much lower than the rung this
+   switches on at. Fonts settled, `scrollWidth - clientWidth` on
+   `.topnav-tabs-inner` walking the width down:
+
+       900   0        whole, 270px of clearance to the right cluster
+       660   0        whole, 30.8px of clearance
+       640   0        whole, 10.8px of clearance
+       630   7        clipped
+       400   237      119px of window onto 356px of tabs
+
+   So the five tabs fit to 637, and an earlier draft of this fired at 640 for
+   that reason — Sales' own rule is that the strip moves when it stops fitting,
+   and Sales measured 720 for a SIX-tab strip 474.6px wide, which is 80px more
+   than this one needs.
+
+   IT IS KEYED TO THE SHELL INSTEAD, at Nour's call: 900 is where the rail and
+   the canvas column both become drawers, so the products leave the bar at the
+   same moment rather than 260px later. The cost is stated plainly — between
+   900 and 640 five tabs that would still have fitted are behind a chevron —
+   and the gain is one narrow mode instead of three shapes.
+
+   IT MOVES, IT DOES NOT GO. The products hang from the mark as a menu, read
+   back off this same strip so there is one of them. A row of its own was the
+   obvious alternative and costs 44px of every phone screen for five links that
+   are a chevron away; this costs 24.
+
+   --topbar-height IS UNTOUCHED, and that is deliberate: the canvas, the rail
+   drawer, its scrim and the notifications panel are all `position: fixed`
+   against it, and a masthead that grew would have moved all four. */
+
+/* ══ THE LAST RUNG, AND THE STRIP IS NOT ON IT ═════════════════════
+   Below this a centred strip cannot be centred against anything, so it comes
+   off the masthead and hangs from the mark as a menu instead — one chevron,
+   the list behind it, the one you are on marked. The anatomy is at §THE
+   CHEVRON ON THE MARK below; this is where it switches on.
+
+   WHAT USED TO BE HERE was a strip that stopped centring, took the width the
+   flanks left and scrolled inside its own pill behind a fade. That is gone
+   with the rules that drew it — `overflow-x`, the scroll snapping and the mask
+   are dead the moment the strip is `display: none`, and leaving them would be
+   two answers to one question with only one of them reachable.
+
+   900 IS THE SHELL'S OWN NARROW RUNG, not the strip's. On the measurement the
+   strip alone is whole down to 637 — it is 356.4px wide here, five tabs, and
+   the flanks clear it by 270px at this width. So this is not the strip running
+   out of room; it is the width at which everything else in the shell changes
+   state, and the products move with them:
+
+       1040   the briefing rail becomes a drawer
+        900   the canvas's conversation column becomes a drawer
+        900   the products leave the bar for the mark   <- this
+
+   One narrow mode, entered once. The alternative was a masthead that kept a
+   left-aligned scrolling strip for another 260px after the two panels beside
+   it had already become drawers, which is three shapes where the shell has
+   two. Sales reaches the same arrangement at its own equivalent rung. */
 @media (max-width: 900px) {
   .app-topnav { padding: 0 0.75rem; gap: 0.5rem; }
   .topnav-logo, .topnav-right { flex: 0 0 auto; }
-  .topnav-tabs { flex: 1 1 auto; min-width: 0; justify-content: flex-start; }
-  .topnav-tabs-inner {
-    max-width: 100%;
-    overflow-x: auto;
-    scroll-snap-type: x proximity;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    /* The strip has to say that it continues. A hard stop at the pill's border
-       reads as "that is all of them"; a fade reads as "there is more". */
-    -webkit-mask-image: linear-gradient(90deg, #000 0 92%, transparent 100%);
-            mask-image: linear-gradient(90deg, #000 0 92%, transparent 100%);
-  }
-  .topnav-tabs-inner::-webkit-scrollbar { display: none; }
-  .topnav-tab { flex-shrink: 0; scroll-snap-align: start; }
   .topnav-logo svg { height: 1.75rem; }
+
+  .topnav-tabs { display: none; }
+  .prod-anchor { display: flex; }
+  /* The strip was the middle of three regions and the logo's trailing space
+     existed to separate it. With the strip gone that space is a gap before
+     nothing. */
+  .topnav-logo { padding-right: 0; margin-right: 0; }
+
+  /* ══ AND SOMETHING HAS TO HOLD THE RIGHT EDGE ══════════════════════
+     THE STRIP WAS DOING IT. It carried `flex: 1 1 auto` while both flanks are
+     `0 0 auto`, so the strip — not the cluster — is what absorbed the leftover
+     width and pushed the bell and the account pill out to the right edge.
+     Taking it out of the row leaves no flexible item at all, and both flanks,
+     being `0 0 auto`, pack against the start: measured, the theme control, the
+     bell and the pill ended up against the chevron with the whole right half
+     of the masthead empty behind them.
+
+     `margin-left: auto` is that job done by the item that actually wants the
+     edge, and it cannot be removed by a later breakpoint the way the strip
+     was. Sales reaches the same layout by keeping one of its two
+     `.topnav-spacer` divs; this masthead has no spacers, so the free space is
+     claimed rather than occupied. */
+  .topnav-right { margin-left: auto; }
+}
+
+/* ══ THE BOTTOM RUNG, AND ONLY THE CONSOLE REACHES IT ══════════════
+   The masthead's parts do not shrink, so below some width they simply do not
+   fit. Added up on the Console, which is the wider of the two shells because
+   it alone carries the rail toggle:
+
+       12  padding
+      173  .topnav-logo   = toggle 34 + mark 91 + chevron 24 + two 8px gaps
+        8  gap
+      150  .topnav-right  = theme 34 + bell 34 + account 58 + two gaps
+       12  padding
+      ---
+      355
+
+   Measured against that: 0 over at 360, 3 at 340, 23 at 320 — the account
+   pill's right edge simply leaves the screen. The gate needs 305 for want of
+   the toggle, so it clears 320 on its own and nothing here changes it.
+
+   TWO THINGS GIVE, AND NEITHER IS A FUNCTION. The masthead's own side padding
+   drops from 12 to 8, and the account pill loses its CHEVRON — not its avatar,
+   which is the target, and not the theme control or the bell, which do things.
+   The chevron is the pill saying "this opens"; at 320 the room it costs is
+   worth more than the promise it makes, and it is the same call the ladder
+   already made 800px earlier when the user's NAME went. Measured after: 0 over
+   at 360, 340 and 320.
+
+   354.98, because 355 is the width it FITS at — the rule has to start one
+   pixel below that, and the .98 clears a fractional viewport for the reason
+   written out at the search's query. 320 is the floor this targets; below it
+   the masthead is still 15px over and no current device is that narrow. */
+@media (max-width: 354.98px) {
+  .app-topnav { padding-left: 0.5rem; padding-right: 0.5rem; }
+  .topnav-logo { gap: 0.375rem; }
+  .topnav-user > svg { display: none; }
 }
 
 /* ── The notifications panel ───────────────────────────────────────
@@ -1709,6 +2079,96 @@ span.topnav-tab:hover { background: none; }
 :root[data-theme="light"] .ntf-panel { scrollbar-color: rgba(16,24,40,0.12) transparent; }
 :root[data-theme="light"] .ntf-panel::-webkit-scrollbar-thumb { background: rgba(16,24,40,0.12); }
 
+/* ═══════════════════════════════════════════════
+   THE MASTHEAD PANELS ARRIVE AND LEAVE
+
+   The notifications panel snapped on and snapped off. Everything else on this
+   surface that opens over something else moves while it does it — the rail
+   drawer, the canvas column, the peek, the canvas's own composer — and this
+   was the one dropdown that did not.
+
+   THE VALUES ARE THE LIBRARY'S, NOT NEW ONES. aimy-ds.css:2229 already states
+   the house idiom for a menu: `opacity: 0` and `translateY(-4px)` closed,
+   `opacity: 1` and `translateY(0)` open, and — in its own words — "a
+   transition always belongs to the state being moved TO, so writing them on
+   the two rules is what makes a dropdown leave faster than it arrives". So in
+   on --t-base, out on --t-fast. The drawers in this file already lean the same
+   way (out on --t-medium, in on --t-slow); this is that asymmetry at a
+   dropdown's scale.
+
+   ALL THREE PANELS, NOT JUST THE BELL. The bell, the account menu and the
+   product menu are the same component shown the same way — by `[hidden]`, on
+   the same 60px row, within eight pixels of each other. `.user-anchor` states
+   the rule this follows in as many words: a second dropdown language in one
+   topnav is one too many. Animating one and leaving its two neighbours to snap
+   is exactly that second language. One rule, three selectors.
+
+   WHY THIS NEEDS `allow-discrete`, WHICH IS THE WHOLE TRICK. These panels are
+   hidden with the `hidden` ATTRIBUTE, which is `display: none`, and you cannot
+   transition out of `display: none` — the element is simply not rendered, so
+   there is no frame to animate and the close would still snap however long the
+   duration said. `transition-behavior: allow-discrete` on `display` holds the
+   panel displayed for the duration and flips it at the end, and
+   `@starting-style` supplies the before-change value on the way in, which
+   otherwise does not exist for an element that was not being rendered a frame
+   ago. No JS changes: `bell.show()` and `bell.close()` still set one property.
+
+   A browser without either feature ignores both and gets today's behaviour —
+   the panel appears and disappears at once, which is what it does now. */
+.ntf-panel,
+.user-anchor .user-menu,
+.prod-anchor .prod-menu {
+  /* `none`, not `translateY(0)`: the open state has to stay byte-identical to
+     what it renders today, and `none` is what `.user-anchor .user-menu`
+     already declares. It still interpolates — a `none` transform is the
+     identity, so the engine tweens it against the closed offset. */
+  opacity: 1; transform: none;
+  transition: opacity var(--t-base) var(--ease-out),
+              transform var(--t-base) var(--ease-out),
+              display var(--t-base) allow-discrete;
+}
+/* The closed state carries the LEAVE. `display: none` is restated here because
+   these three selectors have to match the existing `[hidden]` rules exactly —
+   at (0,2,0) and (0,3,0) they are not reachable by a weaker one, and this
+   block sits after them so equal specificity resolves on order. */
+.ntf-panel[hidden],
+.user-anchor .user-menu[hidden],
+.prod-anchor .prod-menu[hidden] {
+  display: none;
+  opacity: 0; transform: translateY(-0.25rem);
+  /* For the 150ms it is fading out the panel is still `display: block`, which
+     is what makes the fade possible and also leaves it hittable. The library's
+     own closed `.menu` carries this for the same reason; without it a click
+     aimed at whatever the panel was covering lands on a panel that is visually
+     gone. The open rules restore `pointer-events: auto` where they need it. */
+  pointer-events: none;
+  transition: opacity var(--t-fast) var(--ease-out),
+              transform var(--t-fast) var(--ease-out),
+              display var(--t-fast) allow-discrete;
+}
+@starting-style {
+  .ntf-panel:not([hidden]),
+  .user-anchor .user-menu:not([hidden]),
+  .prod-anchor .prod-menu:not([hidden]) {
+    opacity: 0; transform: translateY(-0.25rem);
+  }
+}
+/* A panel that never animates is a panel that is simply there — this file's
+   own pattern for reduced motion, stated at .k-enter and at the drawers. The
+   discrete `display` step is kept, because without it the close would leave a
+   panel that has faded to nothing still occupying the tab order. */
+@media (prefers-reduced-motion: reduce) {
+  .ntf-panel,
+  .user-anchor .user-menu,
+  .prod-anchor .prod-menu,
+  .ntf-panel[hidden],
+  .user-anchor .user-menu[hidden],
+  .prod-anchor .prod-menu[hidden] {
+    transform: none;
+    transition: none;
+  }
+}
+
 .ntf-head { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem 0.75rem; }
 .ntf-head b {
   font-family: var(--font-display); font-size: var(--ty-meta);
@@ -1725,7 +2185,7 @@ span.topnav-tab:hover { background: none; }
   margin-left: auto; background: none; border: 0; padding: 0.125rem 0.25rem; cursor: pointer;
   font-family: inherit; font-size: var(--ty-micro); font-weight: var(--fw-semibold);
   color: var(--ink-faint); border-radius: var(--r-xs);
-  transition: color var(--t-fast);
+  transition: color var(--t-fast) var(--ease-out);
 }
 .ntf-clear:hover { color: var(--d100); }
 .ntf-clear:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.0625rem; }
@@ -1733,7 +2193,7 @@ span.topnav-tab:hover { background: none; }
 .ntf-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.125rem; }
 .ntf-row {
   display: flex; gap: 0.5rem; padding: 0.75rem; border-radius: var(--r-md);
-  transition: background-color var(--t-fast), opacity var(--t-fast);
+  transition: background-color var(--t-fast) var(--ease-out), opacity var(--t-fast) var(--ease-out);
 }
 .ntf-row:hover { background: rgba(255,255,255,0.04); }
 :root[data-theme="light"] .ntf-row:hover { background: rgba(16,24,40,0.04); }
@@ -1752,7 +2212,7 @@ span.topnav-tab:hover { background: none; }
   padding: 0.25rem 0.75rem; border-radius: var(--r-pill);
   background: var(--accent-dim); color: var(--ink-action);
   border: 0.0625rem solid rgba(var(--accent-rgb), 0.26);
-  transition: background-color var(--t-fast), border-color var(--t-fast);
+  transition: background-color var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out);
 }
 .ntf-row-cta:hover { background: rgba(var(--accent-rgb), 0.22); border-color: rgba(var(--accent-rgb), 0.40); }
 .ntf-row-cta:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
@@ -1763,7 +2223,7 @@ span.topnav-tab:hover { background: none; }
   font-size: var(--ty-meta); font-weight: var(--fw-bold);
   border-radius: var(--r-md); color: var(--ink-muted);
   background: rgba(255,255,255,0.04); border: 0.0625rem solid var(--glass-border);
-  transition: background-color var(--t-fast), color var(--t-fast);
+  transition: background-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
 }
 .ntf-foot-btn:hover { background: rgba(255,255,255,0.08); color: var(--d50); }
 .ntf-foot-btn:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
@@ -1798,7 +2258,7 @@ span.topnav-tab:hover { background: none; }
   background: rgba(255,255,255,0.04);
   border: 0.0625rem solid rgba(255,255,255,0.08);
   color: var(--ink-muted); cursor: pointer;
-  transition: background-color var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+  transition: background-color var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
 }
 .ds-theme-toggle:hover { border-color: var(--card-border-hover); color: var(--d50); }
 .ds-theme-toggle svg { width: 1rem; height: 1rem; display: block; }
@@ -2100,7 +2560,8 @@ span.topnav-tab:hover { background: none; }
 
 .ws-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(20.625rem, 1fr));
+  /* Same guard as the live copy further down; see the note there. */
+  grid-template-columns: repeat(auto-fill, minmax(min(20.625rem, 100%), 1fr));
   gap: 0.75rem;
   align-items: start;
 }
@@ -2114,7 +2575,7 @@ span.topnav-tab:hover { background: none; }
   font-size: var(--ty-meta); font-weight: var(--fw-semibold);
   color: var(--ink-muted); background: none; border: 0; cursor: pointer;
   padding: 0.25rem 0; margin-bottom: 0.75rem;
-  transition: color var(--t-fast);
+  transition: color var(--t-fast) var(--ease-out);
 }
 .wb-back:hover { color: var(--d50); }
 .wb-back svg { width: 0.8125rem; height: 0.8125rem; fill: none; stroke: currentColor; stroke-width: 2.2; }
@@ -2300,7 +2761,7 @@ span.topnav-tab:hover { background: none; }
   flex-shrink: 0; width: 1.75rem; height: 1.75rem;
   border: 0; border-radius: var(--r-sm);
   background: none; color: var(--ink-faint); cursor: pointer;
-  transition: background-color var(--t-fast), color var(--t-fast);
+  transition: background-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
 }
 .clip-btn:hover { background: var(--card-bg-raised); color: var(--ink-primary); }
 .clip-btn:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
@@ -2379,15 +2840,65 @@ span.topnav-tab:hover { background: none; }
 }
 .chat-msg.is-thinking .msg-avatar { opacity: 0; }
 
-/* Each block of the answer lands with a short rise. Transform and opacity
-   only, so the stream never costs a layout on top of the text it is already
-   reflowing. */
-.stream-in { animation: stream-in var(--t-base) var(--ease-out) both; }
+/* Each block of the answer RESOLVES rather than appears: it rises, settles out
+   of a hair of scale, and comes through a short blur. Transform and opacity
+   carry the motion, so the stream never costs a layout on top of the text it
+   is already reflowing.
+
+   THE BLUR IS A SEPARATE ANIMATION AND HAS NO `forwards`, for the reason
+   kEnterBlur states a few hundred lines up: a filter held by fill-mode leaves
+   the element on its own compositor layer permanently, for a blur of zero.
+   Running it unfilled lets the layer go the moment it lands.
+
+   Affordable here because a block is ONE element and they arrive one at a
+   time - see the beat in typeIn. The rule this codebase keeps is that a blur
+   never lands on a list. */
+.stream-in {
+  animation: stream-in var(--t-slow) var(--ease-out) backwards,
+             stream-in-blur var(--t-base) var(--ease-out);
+}
 @keyframes stream-in {
-  from { opacity: 0; transform: translate3d(0, 0.375rem, 0); }
+  from { opacity: 0; transform: translate3d(0, 0.5rem, 0) scale(0.994); }
   to   { opacity: 1; transform: none; }
 }
+@keyframes stream-in-blur { from { filter: blur(var(--blur-small)); } }
 @media (prefers-reduced-motion: reduce) { .stream-in { animation: none; } }
+
+/* ══ THE SOURCES ARRIVE AS A LIST, NOT AS A BLOCK ══════════════════
+   Breadth of evidence is the thing a reader cannot get from the prose, and a
+   source list that appears all at once reads as one object rather than as
+   several sources. The cascade is the count, made visible.
+
+   --i is set by nth-child rather than by the answer builder: these are
+   generated strings and the stagger is a property of the ROW's position, which
+   the stylesheet can already see. Capped at the eighth, past which a cascade
+   stops reading as rhythm and starts reading as a queue - the same cap
+   .k-stagger uses. */
+@media (prefers-reduced-motion: no-preference) {
+  .source-list > * {
+    animation: stream-in var(--t-base) var(--ease-out) backwards;
+    animation-delay: calc(min(var(--i, 8), 8) * var(--t-stagger));
+  }
+  .source-list > *:nth-child(1) { --i: 0; }
+  .source-list > *:nth-child(2) { --i: 1; }
+  .source-list > *:nth-child(3) { --i: 2; }
+  .source-list > *:nth-child(4) { --i: 3; }
+  .source-list > *:nth-child(5) { --i: 4; }
+  .source-list > *:nth-child(6) { --i: 5; }
+  .source-list > *:nth-child(7) { --i: 6; }
+  .source-list > *:nth-child(8) { --i: 7; }
+
+  /* ══ AND THE FOLLOW-UPS ARRIVE LAST ═════════════════════════
+     followUpsHtml has been writing `--i` on every chip since it was built and
+     nothing has ever read it. They are appended after the answer is complete -
+     which is the existing decision, made for the right reason: offering
+     somewhere to go next beside a paragraph nobody has read is asking the
+     question for them. The cascade just makes the ordering legible. */
+  .msg-follow .overlay-sugg-chip {
+    animation: stream-in var(--t-base) var(--ease-out) backwards;
+    animation-delay: calc(min(var(--i, 0), 8) * var(--t-stagger));
+  }
+}
 
 
 
@@ -2486,7 +2997,7 @@ span.topnav-tab:hover { background: none; }
   display: flex; align-items: center; gap: 0.25rem;
   margin-top: 0.375rem;
   opacity: 0;
-  transition: opacity var(--t-fast);
+  transition: opacity var(--t-fast) var(--ease-out);
 }
 .chat-msg:hover .msg-acts,
 .chat-msg:focus-within .msg-acts { opacity: 1; }
@@ -2503,7 +3014,7 @@ span.topnav-tab:hover { background: none; }
   background: none; cursor: pointer;
   color: var(--ink-faint);
   font-family: inherit; font-size: var(--ty-micro);
-  transition: background-color var(--t-fast), color var(--t-fast);
+  transition: background-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
 }
 .msg-act:hover { background: var(--card-bg-raised); color: var(--ink-primary); }
 .msg-act:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
@@ -2572,6 +3083,41 @@ span.topnav-tab:hover { background: none; }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .source-item .tc-kind { flex-shrink: 0; color: var(--ink-faint); font-weight: var(--fw-medium); }
+
+/* ══ AND BELOW 520 IT TAKES A SECOND LINE RATHER THAN DELETE ITS SUBJECT ══
+   The rule above makes the title the thing that gives way, which is right
+   while there is something left to give. There is not, on a phone. Measured
+   across the row's five cells — the number, the type, the title, the source
+   and the state:
+
+       768   title 290px
+       560   title 130px
+       480   title  50px      "Refu…"
+       400   title   0px      gone, and the state 19px past the row
+       360   title   0px      gone, and the state 59px past the row
+
+   So the first thing to disappear is the only cell that says WHICH document is
+   being cited, and once it has gone to zero there is nothing left to shrink:
+   `Confluence` and `Out of date` are both nowrap at their min-content, so the
+   badge simply runs out of the row. A citation reading "1 Article Confluence
+   Out of date" names no document at all.
+
+   Wrapping instead costs one line and keeps every word. Flex breaks a line
+   BEFORE it shrinks, so the title arrives at its content width and the source
+   and the state drop beneath it — which is also the right reading order: what
+   it is, then where it came from and what state it is in. No reordering, no
+   cell hidden, and the row cannot overflow because the line that would have
+   overflowed is now the next one.
+
+   520 is this file's own rung, and chat.css turns the gate chips into a
+   carousel at the same width. */
+@media (max-width: 520px) {
+  .source-item { flex-wrap: wrap; }
+  /* The state keeps its whole word. It is the reason the row is worth reading,
+     and it is the one cell that must never be half a sentence. */
+  .source-item .trust-state { flex-shrink: 0; }
+}
+
 .source-item .tc-kind svg { width: 0.75rem; height: 0.75rem; }
 .source-item .source-domain { margin-left: 0; }
 .cp-src .tc-kind { display: inline-flex; align-items: center; gap: 0.25rem; }
@@ -3163,7 +3709,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
   margin: 0 0 0.75rem; text-wrap: balance;
   border-radius: var(--r-sm); padding: 0.125rem 0.375rem; margin-left: -6px;
   outline: none; border: 0.0625rem solid transparent;
-  transition: border-color var(--t-fast), background var(--t-fast);
+  transition: border-color var(--t-fast) var(--ease-out), background var(--t-fast) var(--ease-out);
 }
 /* Nothing is armed. The affordance arrives under the pointer and leaves with
    it, so the thing reads as a document rather than as a form. The text cursor
@@ -3284,7 +3830,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
    6px of spread against a 16px block gap, so two adjacent tints never meet. */
 .doc-page #editBody > * {
   border-radius: var(--r-sm);
-  transition: background-color var(--t-fast), box-shadow var(--t-fast);
+  transition: background-color var(--t-fast) var(--ease-out), box-shadow var(--t-fast) var(--ease-out);
 }
 .doc-page #editBody > *:hover {
   background: rgba(255,255,255,0.04);
@@ -3334,6 +3880,82 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
 }
 .doc-page .dv-notice { margin-bottom: 1.25rem; }
 .doc-page .ai-suggestion { margin-top: 1.5rem; }
+
+/* ══════════════════════════════════════════════════
+   AIMY PUTS SOMETHING IN FRONT OF YOU
+
+   A proposal is the one thing on this surface that arrives without being asked
+   for, in the middle of a document somebody is already reading. Appearing
+   between two frames is how a rendering fault looks. Arriving is how an offer
+   looks, and the difference is most of what tells a reader which one it is.
+
+   ITS PARTS RESOLVE IN ORDER, AND THE ORDER IS THE ARGUMENT: what AiMY is
+   offering to do, then the words it would take out, then the words it would
+   put there, and the buttons last. The foot is last on purpose - Accept should
+   not be sitting under the pointer before the reader has seen the thing they
+   would be accepting.
+
+   `backwards`, never `both`: a part is hidden only while its own delay is
+   genuinely pending, so an animation that is cancelled or never starts leaves
+   the card fully readable rather than blank. knowledge.js strips the class on a
+   timer as well, for the case where the clock freezes mid-delay.
+   ══════════════════════════════════════════════════ */
+/* ══ AND WHILE IT IS STILL BEING WRITTEN ════════════════════════
+   The placeholder is the same box in the same place, holding a caption that
+   says what AiMY is doing and three lines where the draft will be. It is not a
+   spinner: a spinner says only that something is happening, and this surface
+   can say WHAT, which is the difference between waiting and being told.
+
+   The caption carries `.ai-thinking-label` so it is the same words in the same
+   treatment as the chat's thinking line - one state, described one way.
+   ════════════════════════════════════════════════════════════ */
+.ai-suggestion.is-pending .ai-suggestion-body {
+  display: flex; flex-direction: column; gap: 0.5rem;
+}
+.ai-suggestion-note { margin-bottom: 0.125rem; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .ai-suggestion.is-proposing {
+    animation: ai-propose var(--t-slow) var(--ease-out) backwards;
+  }
+  @keyframes ai-propose {
+    from { opacity: 0; transform: translate3d(0, 0.75rem, 0) scale(0.985); }
+  }
+
+  /* `is-proposing` is the box arriving; `is-resolving` is the draft landing
+     inside a box that is already there. They share the cascade and differ only
+     in whether the card itself moves. */
+  .ai-suggestion.is-proposing > *,
+  .ai-suggestion.is-resolving > * {
+    animation: ai-propose-part var(--t-base) var(--ease-out) backwards;
+  }
+  .ai-suggestion.is-proposing > :nth-child(1),
+  .ai-suggestion.is-resolving > :nth-child(1) { animation-delay: calc(var(--t-stagger) * 2); }
+  .ai-suggestion.is-proposing > :nth-child(2),
+  .ai-suggestion.is-resolving > :nth-child(2) { animation-delay: calc(var(--t-stagger) * 4); }
+  .ai-suggestion.is-proposing > :nth-child(3),
+  .ai-suggestion.is-resolving > :nth-child(3) { animation-delay: calc(var(--t-stagger) * 8); }
+  @keyframes ai-propose-part {
+    from { opacity: 0; transform: translate3d(0, 0.25rem, 0); }
+  }
+
+  /* Out, then in. The strike-through is the current wording being set aside;
+     the replacement follows it rather than landing beside it, so the swap
+     reads as an edit being proposed and not as two paragraphs appearing. */
+  .ai-suggestion.is-proposing .ai-suggestion-body del,
+  .ai-suggestion.is-resolving .ai-suggestion-body del {
+    animation: ai-propose-part var(--t-base) var(--ease-out) backwards;
+    animation-delay: calc(var(--t-stagger) * 5);
+  }
+  .ai-suggestion.is-proposing .ai-suggestion-body ins,
+  .ai-suggestion.is-resolving .ai-suggestion-body ins {
+    animation: ai-propose-ins var(--t-base) var(--ease-out) backwards;
+    animation-delay: calc(var(--t-stagger) * 7);
+  }
+  @keyframes ai-propose-ins {
+    from { opacity: 0; transform: translate3d(0, 0.375rem, 0); filter: blur(var(--blur-small)); }
+  }
+}
 
 /* ══ THE RAIL ══════════════════════════════════════
 
@@ -3571,7 +4193,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
   height: 2rem; padding: 0 0.75rem; border-radius: var(--r-md);
   cursor: pointer; white-space: nowrap;
   font-family: var(--font-sans); font-size: var(--ty-meta); font-weight: var(--fw-semibold);
-  transition: background-color var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+  transition: background-color var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
 }
 /* The assistant is the one thing here that is neither reading nor writing by
    hand, so it is the only one that takes the accent. */
@@ -3740,7 +4362,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
 .peek.is-open { opacity: 1; transform: translateY(0); }
 .peek[hidden] { display: none; }
 @media (prefers-reduced-motion: no-preference) {
-  .peek { transition: opacity var(--t-fast), transform var(--t-fast); }
+  .peek { transition: opacity var(--t-fast) var(--ease-out), transform var(--t-fast) var(--ease-out); }
 }
 
 .peek-head { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.375rem; }
@@ -3858,7 +4480,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
   font-family: var(--font-sans); font-size: var(--ty-micro); font-weight: var(--fw-bold);
   padding: 0.125rem 0.5rem; border-radius: var(--r-pill);
   background: none; border: 0.0625rem solid var(--card-border); color: var(--ink-muted);
-  transition: opacity var(--t-fast), color var(--t-fast);
+  transition: opacity var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
 }
 .ws-tree summary:hover .ws-tree-only,
 .ws-tree-only:focus-visible { opacity: 1; }
@@ -3952,7 +4574,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
   background: none; border: 0.0625rem solid var(--card-border); color: var(--ink-quiet);
   font-family: var(--font-sans); font-size: var(--ty-meta); font-weight: var(--fw-semibold);
   cursor: pointer; white-space: nowrap;
-  transition: color var(--t-fast), background-color var(--t-fast), border-color var(--t-fast);
+  transition: color var(--t-fast) var(--ease-out), background-color var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out);
 }
 .rm-sort svg { flex-shrink: 0; opacity: 0.6; }
 
@@ -4154,7 +4776,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
   padding: 1rem 1rem; margin: 0 -16px;
   border-radius: var(--r-md);
   border: 0.0625rem solid transparent;
-  transition: border-color var(--t-fast), background var(--t-fast);
+  transition: border-color var(--t-fast) var(--ease-out), background var(--t-fast) var(--ease-out);
 }
 #editBody:hover { border-color: var(--hairline); }
 #editBody:focus {
@@ -4213,7 +4835,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
   font-family: var(--font-sans); font-size: var(--ty-meta);
   font-weight: var(--fw-semibold); color: var(--ink-quiet);
   cursor: pointer; white-space: nowrap;
-  transition: border-color var(--t-fast), color var(--t-fast);
+  transition: border-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
 }
 .k-facet-btn:hover { border-color: var(--card-border-hover); color: var(--ink-primary); }
 .k-facet-btn svg { width: 0.5625rem; height: 0.5625rem; opacity: 0.7; }
@@ -4261,7 +4883,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
   padding: 0.375rem 0.625rem; border-radius: var(--r-sm);
   font-size: var(--ty-meta); font-weight: var(--fw-semibold); color: var(--d200);
   cursor: pointer; white-space: nowrap;
-  transition: background-color var(--t-fast), color var(--t-fast);
+  transition: background-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
 }
 .k-facet-opt:hover { background: rgba(255,255,255,0.06); color: var(--d50); }
 .k-facet-opt:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: -2px; }
@@ -4273,7 +4895,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
 .k-facet-check {
   width: 0.875rem; height: 0.875rem; flex-shrink: 0;
   border: 0.0938rem solid var(--card-border-hover); border-radius: var(--r-xs);
-  position: relative; transition: background-color var(--t-fast), border-color var(--t-fast);
+  position: relative; transition: background-color var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out);
 }
 .k-facet-opt.is-on .k-facet-check { background: var(--brand); border-color: var(--brand); }
 .k-facet-opt.is-on .k-facet-check::after {
@@ -4332,7 +4954,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
   border-radius: var(--r-sm); padding: 0.25rem 0.5rem 0.25rem 0.75rem;
   font-family: var(--font-sans); font-size: var(--ty-meta); font-weight: 600;
   color: var(--d200); cursor: pointer; white-space: nowrap;
-  transition: background-color var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+  transition: background-color var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
 }
 /* The filter row's own treatment: chrome until it carries a value. */
 .filter-row .k-date-btn {
@@ -4453,7 +5075,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
   border: 0.0625rem dashed var(--d600);
   color: var(--ink-muted); cursor: pointer;
   opacity: 0.45;
-  transition: opacity var(--t-fast), color var(--t-fast);
+  transition: opacity var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
 }
 .proto-toggle svg { width: 0.9375rem; height: 0.9375rem; }
 .proto-toggle:hover { opacity: 1; color: var(--d200); }
@@ -4535,7 +5157,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
   padding: 0.5rem 0.625rem;
   border-radius: var(--r-sm);
   color: var(--ink-quiet); text-decoration: none;
-  transition: background-color var(--t-fast), color var(--t-fast);
+  transition: background-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
 }
 .rail-back:hover { background: var(--card-bg-raised); color: var(--ink-primary); }
 .rail-back:active { transform: translateY(0.0625rem); }
@@ -4614,7 +5236,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
   padding: 0.375rem 0.5rem; margin-left: -8px; border-radius: var(--r-sm);
   background: none; border: 0; cursor: pointer; text-align: left;
   font-family: var(--font-sans); font-size: var(--ty-meta); color: var(--ink-quiet);
-  transition: background-color var(--t-fast), color var(--t-fast);
+  transition: background-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
 }
 .brief-recent:hover { background: rgba(255,255,255,0.05); color: var(--ink-primary); }
 :root[data-theme="light"] .brief-recent:hover { background: rgba(16,24,40,0.05); }
@@ -4633,6 +5255,41 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
 .filter-row.is-more { padding-top: 0.125rem; }
 .filter-row-end { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; }
 
+/* ══ AND WHEN THE ROW WRAPS, THE PUSHER HAS TO LET GO ══════════
+   `margin-left: auto` separates the field from the facets while they share a
+   line. It keeps doing it after they stop sharing one — an auto margin applies
+   per FLEX LINE, so once the search drops to a line of its own it is shoved to
+   the right end of that line with nothing beside it.
+
+   Measured: the search stays on the facets' line down to 740 and wraps at 730.
+   Below that the box sat hard right with dead space to its left — 331px of it
+   at 640, 251 at 480, 131 at 360 — a lone 160px control on a ragged edge while
+   every other thing on the page started at the same left margin.
+
+   So below the wrap the margin goes, and the field takes the line it has been
+   given rather than hovering at one end of it. A full-width search on a phone
+   is also the bigger target, and it is what the box already says it wants:
+   `max-width: 100%` was there for a line it never got.
+
+   735 IS MEASURED, NOT CHOSEN, and it is a function of the five facet labels
+   — change them and it moves. Walked a pixel at a time: the row still fits on
+   one line at 736 and has wrapped by 735. A rung would be wrong either way —
+   720 leaves a 15px band where the field has wrapped and is still pushed, and
+   768 takes the push away where the row is intact and the separation is doing
+   its job.
+
+   AND THE .98 IS NOT DECORATION. Written `max-width: 735px` this rule MISSED at
+   exactly the width it was written for: measured at a reported viewport of 730,
+   `matchMedia('(max-width: 730px)')` came back FALSE while the field was
+   already wrapped, because the real viewport is fractional — 730.x on a display
+   at non-integer scaling — and `innerWidth` rounds where the media query does
+   not. The fraction has to be cleared without reaching the next whole pixel.
+   AiMY Sales carries the same convention on every one of its breakpoints. */
+@media (max-width: 735.98px) {
+  .filter-row-end { margin-left: 0; flex: 1 1 100%; }
+  .k-search { width: 100%; }
+}
+
 /* ── The corpus search ──
    Same height, radius and border as the facet buttons beside it, because it
    belongs to the same row — but it is a FIELD, so it fills rather than hugs,
@@ -4646,7 +5303,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
   min-width: 8rem; width: 14rem; max-width: 100%;
   border: 0.0625rem solid var(--card-border); border-radius: var(--r-md);
   background: none; color: var(--ink-faint);
-  transition: border-color var(--t-fast), color var(--t-fast);
+  transition: border-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
 }
 .k-search:hover { border-color: var(--card-border-hover); }
 /* ── ONE FOCUS RING, ON THE WRAPPER ──
@@ -4699,7 +5356,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
   display: inline-flex; align-items: center; justify-content: center;
   width: 1.125rem; height: 1.125rem; margin-right: -0.1875rem;
   border-radius: var(--r-pill); color: var(--ink-faint);
-  transition: color var(--t-fast), background-color var(--t-fast);
+  transition: color var(--t-fast) var(--ease-out), background-color var(--t-fast) var(--ease-out);
 }
 .k-search-x:hover { color: var(--ink-primary); background: rgba(255,255,255,0.08); }
 :root[data-theme="light"] .k-search-x:hover { background: rgba(16,24,40,0.06); }
@@ -4723,7 +5380,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
   font-family: inherit; font-size: var(--ty-meta); font-weight: var(--fw-semibold);
   color: var(--ink-quiet);
   display: inline-flex; align-items: center; gap: 0.375rem;
-  transition: border-color var(--t-fast), color var(--t-fast), background-color var(--t-fast),
+  transition: border-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out), background-color var(--t-fast) var(--ease-out),
               transform var(--t-press) var(--ease-out);
 }
 .k-toggle:hover, .k-more:hover, .k-clear:hover { border-color: var(--card-border-hover); color: var(--ink-primary); }
@@ -4905,7 +5562,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
   text-decoration: underline;
   text-decoration-color: rgba(var(--accent-rgb), 0.45);
   text-underline-offset: 3px; text-decoration-thickness: 1px;
-  transition: color var(--t-fast), text-decoration-color var(--t-fast);
+  transition: color var(--t-fast) var(--ease-out), text-decoration-color var(--t-fast) var(--ease-out);
 }
 /* One gesture. The clause and its figure cannot light separately, because they
    were never two targets. */
@@ -4941,7 +5598,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
 .ins-n {
   font-weight: var(--fw-bold); color: var(--ink-primary);
   font-variant-numeric: tabular-nums;
-  transition: color var(--t-fast);
+  transition: color var(--t-fast) var(--ease-out);
 }
 /* A clause with nothing to land on — a coverage gap counts questions, not
    documents — gets no underline at all, from the [role="button"] rule it does
@@ -4960,7 +5617,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
   background: none; border: 0; padding: 0; cursor: pointer; white-space: nowrap;
   font-family: inherit; font-size: var(--ty-meta); font-weight: var(--fw-bold);
   color: var(--ink-action);
-  transition: opacity var(--t-fast);
+  transition: opacity var(--t-fast) var(--ease-out);
 }
 .ins-act:hover { opacity: 0.75; }
 .ins-act:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; border-radius: var(--r-xs); }
@@ -4987,7 +5644,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
   background: none; border: 0; padding: 0; cursor: pointer;
   font-family: inherit; font-size: var(--ty-meta); font-weight: var(--fw-bold);
   color: var(--ink-action);
-  transition: opacity var(--t-fast);
+  transition: opacity var(--t-fast) var(--ease-out);
 }
 .ins-row-act:hover { opacity: 0.75; }
 .ins-row-act:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; border-radius: var(--r-xs); }
@@ -5008,6 +5665,30 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
    280px wide it would start at the row's right end and run off the region. */
 .rm-end .menu-anchor { margin-left: auto; }
 .rm-end .menu-anchor .entry-action { margin-left: 0; }
+
+/* ══ AND WHEN IT WRAPS IT KEEPS THE RIGHT EDGE, WITH ROOM ABOVE IT ══
+   Measured a pixel at a time, New document holds the utilities' line at 522
+   and has wrapped by 521. `margin-left: auto` then puts it at the right end of
+   a line it is alone on — which is where it belongs, and is Nour's call: it
+   is the one control in this row that MAKES something, and a primary action
+   sitting under the thumb on the right is the shape a phone expects.
+
+   AN EARLIER PASS LEFT-ALIGNED IT, and that was solving the wrong half. What
+   read as stranded was never the alignment — it was a 4px row gap, which put a
+   filled blue button four pixels under a row of borderless text and made it
+   look like an item that had fallen off the end of that row rather than its
+   own line. The gap is the fix; the right edge was right all along.
+
+   0.75rem, which is this file's standing vertical step and three times the
+   4px the row uses BETWEEN its utilities. `row-gap` alone, so the horizontal
+   spacing inside the utilities row is untouched — they are still one group,
+   and only the line break gets the air.
+
+   The `.98` clears a fractional viewport, for the reason written out at the
+   search's own query above. */
+@media (max-width: 521.98px) {
+  .rm-end { row-gap: 0.75rem; }
+}
 .rm-end .new-menu { left: auto; right: 0; }
 /* ── Four kinds, and enough of the fifth to know there are more ──
 
@@ -5067,7 +5748,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
    mid-air. The delayed visibility keeps the close transition the library
    wrote. */
 .menu-item:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: -2px; }
-.menu { visibility: hidden; transition: opacity var(--t-fast), transform var(--t-fast), visibility 0s linear var(--t-fast); }
+.menu { visibility: hidden; transition: opacity var(--t-fast) var(--ease-out), transform var(--t-fast) var(--ease-out), visibility 0s linear var(--t-fast); }
 .menu-anchor.open .menu { visibility: visible; transition-delay: 0s; }
 /* The rest of the same finding, measured on the page rather than guessed at:
 
@@ -5117,7 +5798,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
 .tc-title-btn {
   display: block; width: 100%; text-align: left;
   background: none; border: 0; padding: 0; cursor: pointer; font-family: inherit;
-  transition: color var(--t-fast);
+  transition: color var(--t-fast) var(--ease-out);
 }
 .tc-title-btn:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; border-radius: var(--r-xs); }
 /* No hover of its own: the whole card is the target, and a second highlight
@@ -5125,7 +5806,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
    stays — the keyboard still needs one thing to land on. */
 .tc-tag {
   border: 0; cursor: pointer; font-family: inherit;
-  transition: color var(--t-fast), background-color var(--t-fast);
+  transition: color var(--t-fast) var(--ease-out), background-color var(--t-fast) var(--ease-out);
 }
 .tc-tag:hover { color: var(--ink-primary); }
 .tc-tag:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.0625rem; }
@@ -5473,9 +6154,65 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
    finding still puts its panel on the row's bottom line, where a reader
    scanning for what AiMY said finds all of them together. */
 .ws-grid {
-  grid-template-columns: repeat(auto-fill, minmax(18.75rem, 1fr));
+  /* ══ `min()` INSIDE THE `minmax()`, AND IT IS NOT BELT AND BRACES ══════
+     `minmax(18.75rem, 1fr)` reads as "at least 300px", and a grid track
+     honours that floor even when its CONTAINER is narrower — so the column
+     stays 300px and the card hangs out of the page instead of fitting it.
+     Measured on `.page-inner`, which is what the grid has to live inside:
+
+         390   container 322   track 322   fits
+         360   container 291   track 300   9px out
+         320   container 251   track 300   49px out
+
+     `min(18.75rem, 100%)` makes the floor "300px, or the whole container,
+     whichever is smaller", so the track can give up the minimum exactly when
+     the minimum is the thing that does not fit. Inert wherever the container
+     clears 300px — which is every width at and above 390, the 1536 reference
+     included, where `min()` resolves to the same 18.75rem it always did. */
+  grid-template-columns: repeat(auto-fill, minmax(min(18.75rem, 100%), 1fr));
   gap: 0.75rem;
   align-items: stretch;
+}
+
+/* ══ THE SHAPE OF WHAT IS COMING ══════════════════════════════
+   A placeholder is only worth showing if it is the same shape as the thing it
+   is standing in for. The title and the scope line are identical on every
+   settings module, so those two land exactly where the real ones will and do
+   not move when the page arrives; the rows are an approximation, which is what
+   the cross-blur on the reveal is for.
+
+   `--h` is the row's height in quarter-rem steps, so one class covers a
+   settings row, a paragraph of a document and the gap between them without a
+   second class per shape.
+═══════════════════════════════════════════════════════════════════════ */
+.sk-title { height: 2.125rem; width: 13rem; border-radius: var(--r-sm); }
+.sk-bar   { height: 1.625rem; width: 20rem; margin-top: 0.875rem; border-radius: var(--r-sm); }
+.sk-rows  { margin-top: 1.75rem; display: flex; flex-direction: column; gap: 0.75rem; }
+.sk-row   { height: calc(var(--h, 3) * 0.25rem * 4); border-radius: var(--r-md); }
+.sk-doc   { max-width: 46rem; margin: 0 auto; padding: 2.25rem 2rem 6rem;
+            display: flex; flex-direction: column; gap: 0.75rem; }
+.sk-doc .sk-row:first-of-type { margin-top: 1.25rem; }
+
+/* ══ AND THE ORDER IT RESOLVES IN ══════════════════════════════
+   `backwards` on the blur, and it matters. Each block waits its turn, and
+   without the backwards fill it would sit sharp through that wait and then
+   snap to blurred the instant its own animation began - a flash per block,
+   in sequence, which is a worse artefact than no motion at all.
+
+   No `forwards` on it either, for the reason kEnterBlur gives: a filter held
+   by fill-mode keeps the element on its own compositor layer for a blur of
+   zero. It runs, and then the element has no filter again. */
+@media (prefers-reduced-motion: no-preference) {
+  .k-resolve {
+    animation: k-resolve var(--t-base) var(--ease-out) backwards,
+               k-resolve-blur var(--t-fast) var(--ease-out) backwards;
+    animation-delay: calc(min(var(--i, 0), 8) * var(--t-stagger));
+  }
+  @keyframes k-resolve {
+    from { opacity: 0; transform: translate3d(0, 0.375rem, 0); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes k-resolve-blur { from { filter: blur(var(--blur-small)); } }
 }
 
 /* Skeletons resolve in place of cards, at card proportions, so the grid does
@@ -5646,7 +6383,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
   background: rgba(255,255,255,0.04);
   border: 0.0625rem solid rgba(255,255,255,0.08);
   color: var(--ink-quiet); cursor: pointer;
-  transition: background-color var(--t-fast), color var(--t-fast);
+  transition: background-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
 }
 :root[data-theme="light"] .rail-toggle {
   background: rgba(16,24,40,0.04); border-color: rgba(16,24,40,0.10);
@@ -5715,7 +6452,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
    which is this file's own pattern (.k-enter, .modal-sheet): a surface that
    never animates is a surface that is simply there. */
 @media (prefers-reduced-motion: no-preference) {
-  .app-sidebar { transition: transform var(--t-medium) var(--ease-out), visibility var(--t-medium); }
+  .app-sidebar { transition: transform var(--t-medium) var(--ease-out), visibility var(--t-medium) var(--ease-out); }
   .app-sidebar.is-open { transition: transform var(--t-slow) var(--ease-out), visibility 0s; }
   /* The scrim leaves with the rail, not on its own clock — a dimmed shell
      behind a rail that has gone is a room still darkened for nothing. */
@@ -5788,7 +6525,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
   display: inline-flex; align-items: center; justify-content: center;
   background: rgba(255,255,255,0.05); border: 0.0625rem solid rgba(255,255,255,0.09);
   color: var(--ink-muted); cursor: pointer;
-  transition: background-color var(--t-fast), color var(--t-fast);
+  transition: background-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
 }
 .doc-close:hover { background: rgba(255,255,255,0.1); color: var(--d50); }
 :root[data-theme="light"] .doc-close { background: rgba(16,24,40,0.04); border-color: rgba(16,24,40,0.10); }
@@ -5837,7 +6574,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
 .dv-ground-edit {
   margin-left: auto; background: none; border: 0; cursor: pointer; font-family: inherit;
   font-size: var(--ty-micro); font-weight: var(--fw-semibold); color: var(--ink-muted);
-  transition: color var(--t-fast);
+  transition: color var(--t-fast) var(--ease-out);
 }
 .dv-ground-edit:hover { color: var(--ink-action); }
 
@@ -5851,7 +6588,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
   display: inline-flex; align-items: stretch; overflow: hidden;
   border: 0.0625rem solid var(--card-border); border-radius: var(--r-sm);
   background: none; cursor: pointer; font-family: var(--font-mono);
-  transition: border-color var(--t-fast);
+  transition: border-color var(--t-fast) var(--ease-out);
 }
 .dv-prop:hover { border-color: var(--card-border-hover); }
 .dv-prop-k { padding: 0.25rem 0.5rem; font-size: var(--ty-micro); color: var(--ink-faint); background: rgba(255,255,255,0.04); }
@@ -5893,7 +6630,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
   display: inline-flex; align-items: center; justify-content: center;
   width: 1.75rem; height: 1.75rem; border-radius: var(--r-sm);
   background: none; border: 0; color: var(--ink-faint); cursor: pointer;
-  transition: color var(--t-fast), background-color var(--t-fast);
+  transition: color var(--t-fast) var(--ease-out), background-color var(--t-fast) var(--ease-out);
 }
 .comment-send:hover { color: var(--ink-action); background: rgba(255,255,255,0.06); }
 :root[data-theme="light"] .comment-send:hover { background: rgba(16,24,40,0.05); }
@@ -6035,7 +6772,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
 .k-prop.k-row .v2-dropdown-btn:hover .dd-label-text { color: var(--ink-action); }
 .k-prop.k-row .v2-dropdown-btn:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: -2px; }
 .k-prop.k-row .v2-dropdown-btn svg {
-  width: 0.5625rem; height: 0.5625rem; flex-shrink: 0; opacity: 0; transition: opacity var(--t-fast);
+  width: 0.5625rem; height: 0.5625rem; flex-shrink: 0; opacity: 0; transition: opacity var(--t-fast) var(--ease-out);
 }
 .k-prop.k-row .v2-dropdown-btn:hover svg,
 .k-prop.k-row .v2-dropdown-btn:focus-visible svg,
@@ -6103,7 +6840,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
    row is a fact, not a control with furniture on it. */
 .k-multi-btn svg {
   width: 0.5625rem; height: 0.5625rem; flex-shrink: 0; opacity: 0;
-  transition: opacity var(--t-fast), transform var(--t-fast);
+  transition: opacity var(--t-fast) var(--ease-out), transform var(--t-fast) var(--ease-out);
 }
 .k-multi-btn:hover svg,
 .k-multi-btn:focus-visible svg,
@@ -6129,7 +6866,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
 .k-multi-opt {
   display: flex; align-items: center; gap: 0.5rem; width: 100%;
   padding: 0.375rem 0.5rem; border-radius: var(--r-sm);
-  transition: background-color var(--t-fast), color var(--t-fast);
+  transition: background-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
 }
 .k-multi-opt:hover { background: rgba(255,255,255,0.06); }
 :root[data-theme="light"] .k-multi-opt:hover { background: rgba(16,24,40,0.05); }
@@ -6240,7 +6977,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
   display: inline-flex; align-items: center; justify-content: center;
   width: 1.5rem; height: 1.5rem; border: 0; border-radius: var(--r-sm);
   background: none; color: var(--ink-faint); cursor: pointer;
-  transition: color var(--t-fast), background-color var(--t-fast);
+  transition: color var(--t-fast) var(--ease-out), background-color var(--t-fast) var(--ease-out);
 }
 .prop-kv-x:hover { color: var(--ink-err); background: var(--err-bg); }
 .prop-add {
@@ -6254,7 +6991,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
 .ver-item.is-pickable {
   width: 100%; text-align: left; border: 0; background: none;
   font-family: inherit; cursor: pointer;
-  transition: background-color var(--t-fast);
+  transition: background-color var(--t-fast) var(--ease-out);
 }
 .ver-item.is-pickable:hover { background: rgba(255,255,255,0.05); }
 :root[data-theme="light"] .ver-item.is-pickable:hover { background: rgba(16,24,40,0.05); }
@@ -6491,4 +7228,99 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
 }
 @media (max-width: 720px) {
   #agentHost { left: 1rem; right: 1rem; max-width: none; }
+}
+
+/* ═══════════════════════════════════════════════
+   A TARGET BIG ENOUGH TO HIT, EVERYWHERE ELSE IT MATTERS
+
+   chat.css states this argument for the gate's two rail buttons, and it is
+   keyed to `pointer: coarse` rather than to a width because the question is
+   what is doing the pointing, not how wide the window is. This is that rule
+   applied to every control that was still cursor-sized.
+
+   MEASURED at a 390px viewport across both shells and the settings modules.
+   Forty-one controls came in under 44px; these are the ones that failed WCAG
+   2.5.8's 24px floor outright, plus the icon-only buttons that are the only
+   way into something:
+
+       .tc-who / .tc-src            60x17   x34 instances
+       .ins-act                     96x17
+       .set2-tip-b                  18x18   (in settings.css)
+       .entry-action.em-review      73x21
+       .entry-action.em-investigate 82x21
+       .clip-btn                    28x28
+       .prod-chev                   24x24
+       .ds-theme-toggle / bell      34x34
+       .ov-chats-toggle             32x32
+
+   NOTHING MOVES, AND THAT IS THE POINT. These sit in rows whose rhythm is the
+   design — 34 card bylines each growing to 44px would re-lay-out every card on
+   the surface. Verified rather than asserted: with a noise floor of 0 measured
+   across two identical snapshots, applying this block moves the treated
+   controls and NOTHING ELSE.
+
+   ── TWO TECHNIQUES, BECAUSE ONE OF THEM DOES NOT ALWAYS WORK ──────────────
+   The tidy way to grow a hit area without touching layout is a transparent
+   `::after` stretched past the box. It fails silently on `.tc-who`, which
+   carries `overflow: hidden` for its ellipsis — an absolutely positioned
+   pseudo inside a clipping box is clipped to the box, so the target stays 17px
+   and nothing says so. Measured: `.tc-src` answered on all four edges and
+   `.tc-who`, with identical rules, on one.
+
+   So the text buttons take PADDING instead, with a negative margin of the same
+   size cancelling it. The padding grows the border box — which is the hit area
+   — while the margin keeps the outer size the row lays out against, and both
+   parents here are `display: flex; align-items: center`, where that cancels
+   exactly. `z-index: 1` because the grown box now reaches over the line of
+   text beneath it, and without it that text, painting later, takes the tap.
+   Checked: no other control's centre resolves to one of these afterwards.
+
+   THE ONE THAT CANNOT HAVE 44. `.ins-act` sits in a wrapping row of actions
+   with 15px above and 8 below it — measured — so a 44px box would reach into
+   the next row of the same group and start taking its taps, which is worse
+   than a small target. It takes 32: past the 24px floor, clear of both
+   neighbours. 0.46875rem of padding each side is exactly that.
+
+   IT LIVES AT THE END OF THIS FILE, AND THAT IS LOAD-BEARING. `.tc-who`,
+   `.tc-src` and `.ins-act` each declare `padding: 0` in their own component
+   block, and a `padding` SHORTHAND beats a `padding-block` longhand of equal
+   specificity by source order alone. Written where these controls are
+   described, the margin applied and the padding did not — measured on a real
+   coarse pointer: `margin-block: -13.5px` with `padding: 0px`, which is the
+   box 27px SMALLER than it was rather than 27px bigger. Anything added here
+   has to come after every component it corrects.
+
+   Inside `pointer: coarse`, so a mouse never sees any of it and the 1536
+   reference cannot reach this block at all. */
+@media (pointer: coarse) {
+  /* Text buttons: padding grows the target, the negative margin hides it from
+     the layout. See the note above for why these cannot use a pseudo. */
+  .tc-who, .tc-src {
+    padding-block: 0.84375rem; margin-block: -0.84375rem;
+    position: relative; z-index: 1;
+  }
+  .ins-act {
+    padding-block: 0.46875rem; margin-block: -0.46875rem;
+    position: relative; z-index: 1;
+  }
+
+  /* Box and icon buttons: none of these clips, so the pseudo is free and
+     leaves the border box — which some of them draw — exactly as it was. */
+  .entry-action.em-review, .entry-action.em-investigate,
+  .clip-btn, .prod-chev, .ds-theme-toggle { position: relative; }
+  /* `.topnav-bell` is already `position: relative` (it carries `.bell-dot`),
+     and `.ov-chats-toggle` is `position: absolute` — restating `relative` on
+     that one tore it out of its own placement and moved it 179px across the
+     canvas. Measured. Neither gets a position here; both keep their pseudo. */
+  .entry-action.em-review::after, .entry-action.em-investigate::after,
+  .clip-btn::after, .prod-chev::after,
+  .ds-theme-toggle::after, .topnav-bell::after,
+  .ov-chats-toggle::after {
+    content: '';
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: max(100%, 2.75rem);
+    height: max(100%, 2.75rem);
+  }
 }

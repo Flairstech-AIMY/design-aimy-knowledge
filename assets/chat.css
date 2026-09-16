@@ -385,7 +385,35 @@ body[data-rail="collapsed"] .gate-rail-peek { display: inline-flex; }
 /* Empty: the composer sits on the optical centre with the greeting above it.
    Active: the thread takes the height and the composer falls to the floor.
    One flex container, two justifications — no measurement, no reflow work. */
-body[data-thread="empty"] .gate-stage { justify-content: center; }
+/* ══ `safe center`, AND THE WORD `safe` IS THE WHOLE FIX ═══════════
+   Plain `center` centres the column whatever its height — including when it is
+   TALLER than the stage, at which point it overflows equally at both ends and
+   `.gate-body`'s `overflow: hidden` clips both. Nothing here scrolls (that is
+   deliberate, and the reason is written at .gate-body), so whatever is cut off
+   is cut off permanently.
+
+   Which is what a phone in landscape is. Measured on the empty gate, the
+   column wanting ~342px against a stage of `100dvh - 60`:
+
+       844x390   composer bottom 396, 6px past the fold
+       740x360   composer bottom 381, 21px past the fold
+       667x375   greeting at y -14, behind the topbar
+
+   Three phone-landscape sizes where the surface loses either the thing it
+   greets you with or the thing it exists for, with no gesture that brings it
+   back. The overflow is not the defect — the unreachability is.
+
+   `safe` means: centre while it fits, fall back to flex-start the moment it
+   does not. Paired with `overflow-y: auto` the column then starts at the top
+   and scrolls, so the composer is always one flick away. Where the content
+   fits — every portrait phone, every laptop, the 1536 reference — `safe` is
+   `center` exactly and `auto` shows no scrollbar, so nothing moves.
+
+   No height breakpoint, on purpose: the column's height is a function of how
+   the greeting wraps, which is a function of width, so any number written here
+   would be right for one viewport and wrong for the next. This asks the
+   question the layout can actually answer — does it fit — every time. */
+body[data-thread="empty"] .gate-stage { justify-content: safe center; overflow-y: auto; }
 body[data-thread="empty"] .gate-stage .overlay-thread { flex: 0 0 auto; overflow: visible; }
 body[data-thread="active"] .gate-hero { display: none; }
 body[data-thread="active"] .gate-stage .overlay-thread {
@@ -731,7 +759,23 @@ body[data-thread="active"] .gate-chips { display: none; }
      that already fills the height, and end-alignment there would fight the
      thread for the same space. */
   body[data-thread="empty"] .gate-stage {
-    justify-content: flex-end;
+    /* `safe`, for the reason the unprefixed rule above gives, and it matters
+       MORE here than there. An end-aligned column that outgrows its stage
+       overflows the START edge — the top — and a scroll container cannot
+       scroll to block-start overflow, so the greeting does not go off the
+       bottom where a flick would find it, it goes behind the topbar where
+       nothing reaches it. Measured at 667x375, a phone in landscape with the
+       Console sub-line already dropped: the greeting sat at y -14 with the
+       stage reporting ZERO scrollable height.
+
+       The auto margins below are what make this the interesting case. They
+       outrank `justify-content` for the space they claim — which the comment
+       under them says — but an auto margin resolves to 0 when there is no free
+       space to split, and at that point the alignment is the only thing left
+       deciding which end the overflow happens at. `safe` makes that answer
+       flex-start whenever the column does not fit, so the overflow lands on
+       the scrollable side. Where it fits, this is `flex-end` exactly. */
+    justify-content: safe flex-end;
     padding-bottom: calc(3rem + env(safe-area-inset-bottom, 0px));
   }
 
@@ -789,8 +833,13 @@ body[data-thread="active"] .gate-chips { display: none; }
        over the chips rather than beside them. */
     scrollbar-width: none;
     -ms-overflow-style: none;
-    /* The same fade the product strip uses at this width, for the same reason:
-       a hard stop at the edge reads as "that is all of them". */
+    /* A hard stop at the edge reads as "that is all of them"; a fade reads as
+       "there is more". This was the product strip's own device, borrowed —
+       and the strip no longer has it: below 900 the products leave the
+       masthead for a menu on the mark rather than scrolling in place
+       (knowledge.css §THE LAST RUNG). The reasoning survives the strip,
+       because it was never about the strip: these chips ARE a scroller, and a
+       scroller has to say so. */
     -webkit-mask-image: linear-gradient(90deg, #000 0 90%, transparent 100%);
             mask-image: linear-gradient(90deg, #000 0 90%, transparent 100%);
   }

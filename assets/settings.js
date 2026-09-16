@@ -93,49 +93,84 @@
      is a client with nothing under it yet, which is the state most real
      clients are in and the one a picker most often gets wrong. AiMY's own
      agents sit last and are never scoped away. */
-  const TREE = [{
-    id: 'flairs', name: 'FlairsTech', type: 'Organisation', kids: [
-      { id: 'cxs', name: 'CXS', type: 'Client', kids: [
-        { id: 'cxs-ops', name: 'Customer Operations', type: 'Business Unit', kids: [
-          { id: 'cxs-copilot', name: 'Support Copilot', type: 'Product', kids: [
-            { id: 'cxs-kops', name: 'Knowledge Ops', type: 'Team', kids: [
-              { id: 'u-mahfouz', name: 'A. Mahfouz', type: 'User' },
-              { id: 'u-nour', name: 'Nour Wael', type: 'User' }
-            ]},
-            { id: 'cxs-senab', name: 'Support Enablement', type: 'Team', kids: [
-              { id: 'u-alex', name: 'Alex Smith', type: 'User' },
-              { id: 'u-saly', name: 'Saly Tarek', type: 'User' }
-            ]}
+  /* ════════════════════════════════════════════════════════════
+     THERE IS NO ORGANISATION
+
+     The tenancy used to hang off one - FlairsTech, with every client
+     beneath it. It described OUR org chart rather than the customer's, and
+     nothing in the product ever granted against it, scoped to it or
+     filtered by it. The one thing it did was print its own name on top of
+     every page, which is how a level with no behaviour stays in a model.
+
+     Clients are the roots. What is left of the old root is a POSITION and
+     not a level - "no client picked" - which People and the Scopes map both
+     need somewhere to stand; TENANCY below is that, and it is never drawn,
+     never granted against, and carries the empty id so the URL says nothing
+     rather than naming something that does not exist.
+     ════════════════════════════════════════════════════════════ */
+  const TREE = [
+    /* FlairsTech is a tenant like any other. It is the vendor — every person in
+       PEOPLE carries an @flairstech.com address — and it also runs on the
+       product, which is exactly what knowledge.js has always said: ORGS lists
+       it first, beside CXS, Upland and MedFar, and ORG_OF_CLIENT hangs Asteris
+       and Valsoft under it.
+
+       Its products are the AiMY suite, and they hang directly off the client
+       rather than under an invented Business Unit — nothing records one, and a
+       department made up to fill a level is worse than a level left out. The
+       map places by walk depth rather than by type, so they draw one step in
+       from the client exactly as a BU would.
+
+       Note the names that repeat: AiMY Sales and AiMY Voice are PRODUCTS here,
+       while Sales and Voice under “AiMY agents” are AGENTS. Those are two
+       different things wearing one word, and the agents branch is still the
+       stale Copilot/Sales/Voice fixture noted in GAPS. */
+    { id: 'flairs', name: 'FlairsTech', type: 'Client', kids: [
+      { id: 'aimy-qa',      name: 'AiMY QA',      type: 'Product', kids: [] },
+      { id: 'aimy-voice',   name: 'AiMY Voice',   type: 'Product', kids: [] },
+      { id: 'aimy-sales',   name: 'AiMY Sales',   type: 'Product', kids: [] },
+      { id: 'aimy-connect', name: 'AiMY Connect', type: 'Product', kids: [] }
+    ]},
+    { id: 'cxs', name: 'CXS', type: 'Client', kids: [
+      { id: 'cxs-ops', name: 'Customer Operations', type: 'Business Unit', kids: [
+        { id: 'cxs-copilot', name: 'Support Copilot', type: 'Product', kids: [
+          { id: 'cxs-kops', name: 'Knowledge Ops', type: 'Team', kids: [
+            { id: 'u-mahfouz', name: 'A. Mahfouz', type: 'User' },
+            { id: 'u-nour', name: 'Nour Wael', type: 'User' }
           ]},
-          { id: 'cxs-ksearch', name: 'Knowledge Search', type: 'Product', kids: [
-            { id: 'cxs-disc', name: 'Discovery', type: 'Team', kids: [
-              { id: 'u-ramy', name: 'Mohamed Ramy', type: 'User' }
-            ]}
+          { id: 'cxs-senab', name: 'Support Enablement', type: 'Team', kids: [
+            { id: 'u-alex', name: 'Alex Smith', type: 'User' },
+            { id: 'u-saly', name: 'Saly Tarek', type: 'User' }
           ]}
         ]},
-        { id: 'cxs-dx', name: 'Digital Experience', type: 'Business Unit', kids: [
-          { id: 'cxs-self', name: 'Self-Service', type: 'Product', kids: [] }
+        { id: 'cxs-ksearch', name: 'Knowledge Search', type: 'Product', kids: [
+          { id: 'cxs-disc', name: 'Discovery', type: 'Team', kids: [
+            { id: 'u-ramy', name: 'Mohamed Ramy', type: 'User' }
+          ]}
         ]}
       ]},
-      { id: 'upland', name: 'Upland', type: 'Client', kids: [
-        { id: 'upl-sup', name: 'Support Operations', type: 'Business Unit', kids: [
-          { id: 'interfax', name: 'InterFAX Support', type: 'Product', kids: [
-            { id: 'ifx-t1', name: 'Tier 1', type: 'Team', kids: [
-              { id: 'u-tarek', name: 'Tarek Ahmed', type: 'User' }
-            ]}
-          ]},
-          { id: 'kapost', name: 'Kapost Support', type: 'Product', kids: [] },
-          { id: 'filebound', name: 'FileBound Support', type: 'Product', kids: [] }
-        ]}
-      ]},
-      { id: 'medfar', name: 'MedFar', type: 'Client', kids: [] },
-      { id: 'aimy', name: 'AiMY agents', type: 'Ours', kids: [
-        { id: 'copilot', name: 'Copilot', type: 'Agent' },
-        { id: 'sales', name: 'Sales', type: 'Agent' },
-        { id: 'voice', name: 'Voice', type: 'Agent' }
+      { id: 'cxs-dx', name: 'Digital Experience', type: 'Business Unit', kids: [
+        { id: 'cxs-self', name: 'Self-Service', type: 'Product', kids: [] }
       ]}
-    ]
-  }];
+    ]},
+    { id: 'upland', name: 'Upland', type: 'Client', kids: [
+      { id: 'upl-sup', name: 'Support Operations', type: 'Business Unit', kids: [
+        { id: 'interfax', name: 'InterFAX Support', type: 'Product', kids: [
+          { id: 'ifx-t1', name: 'Tier 1', type: 'Team', kids: [
+            { id: 'u-tarek', name: 'Tarek Ahmed', type: 'User' }
+          ]}
+        ]},
+        { id: 'kapost', name: 'Kapost Support', type: 'Product', kids: [] },
+        { id: 'filebound', name: 'FileBound Support', type: 'Product', kids: [] }
+      ]}
+    ]},
+    { id: 'medfar', name: 'MedFar', type: 'Client', kids: [] },
+    { id: 'aimy', name: 'AiMY agents', type: 'Ours', kids: [
+      { id: 'copilot', name: 'Copilot', type: 'Agent' },
+      { id: 'sales', name: 'Sales', type: 'Agent' },
+      { id: 'voice', name: 'Voice', type: 'Agent' }
+    ]}
+  ];
 
   function leavesOf(node, out) {
     out = out || [];
@@ -869,20 +904,6 @@
       last: [null, 'is-mute', 'Never called', ''], calls: 0 }
   };
 
-  /* ── Enablement ──
-     Per data source, because that is the grain the enrichment actually runs
-     at. `n` is what it has produced, so turning one off has a stated cost. */
-  const ENABLE = [
-    { id: 'tickets', name: 'Tickets', on: true, n: 12840,
-      d: 'Every synced ticket is read for what it settles.' },
-    { id: 'macros', name: 'Macros and canned replies', on: true, n: 118,
-      d: 'The replies your team already trusts, promoted to drafts AiMY can offer.' },
-    { id: 'attach', name: 'Attachments', on: false, n: 0,
-      d: 'PDFs and documents on a ticket. Off: nothing attached has been read.' },
-    { id: 'notes', name: 'Internal notes', on: false, n: 0,
-      d: 'Agent-only notes — written for colleagues, not customers.' }
-  ];
-
   /* Everything already in a fixture was authored by a person, so it is
      confirmed. Every context field NOT yet mapped gets a proposal appended, so
      the table always shows the full vocabulary and never an empty page. */
@@ -1152,7 +1173,7 @@
   ];
   /* The scope pickers read the SAME tree the targeting picker does, so a grant
      can never name a scope the hierarchy does not have. */
-  const SCOPE_TYPES = ['Organisation', 'Client', 'Business Unit', 'Product', 'Team'];
+  const SCOPE_TYPES = ['Client', 'Business Unit', 'Product', 'Team'];
   function nodesOfType(t) {
     const out = [];
     (function walk(ns) { ns.forEach((n) => { if (n.type === t) out.push(n.name);
@@ -1222,11 +1243,39 @@
 
        Both ids still resolve, through ALIAS. */
     { g: 'Client', id: 'config',    name: 'Connections',          scope: 'prod' },
-    /* "Enablement", not "Knowledge enablement". It sits under CLIENT beside
-       Config and Sync, and the context makes the first word redundant — it was
-       also the one name in the rail long enough to truncate, which is a worse
-       cost than the word was worth. */
-    { g: 'Client', id: 'enable',    name: 'Enablement',           scope: 'prod' },
+    /* ── WEBHOOK SETTINGS, PROMOTED ────────────────────────────────────
+       "Webhooks", not "Webhook settings": measured in the rail, the longer
+       name wanted 125px of a 107px slot and ellipsised at every width — the
+       same defect that shortened "Knowledge enablement" to "Enablement" when
+       this row was a group. The settings ARE the page, so the noun alone says
+       it.
+
+       This was "Enablement", a group holding two pages. One of them was
+       Enrichment and it was removed; a heading over a single child is a level
+       of tree that answers nothing, so the group is dissolved and its one page
+       stands here beside Connections — which is where an endpoint belongs
+       anyway, since it is the client's connection to AiMY.
+
+       It carries its own `state`, which a grouped module never needed: the
+       parent derived its note from the pages under it. With no pages under it
+       the row IS the page, so the state comes with it, and navRow renders its
+       quick action the way a page row always has. `?m=enable` still resolves,
+       through ALIAS. */
+    { g: 'Client', id: 'webhooks',  name: 'Webhooks',             scope: 'prod',
+      state: function (st) {
+        var list = connsOf(prodOf(st)).filter(function (c) { return !!ENDPOINTS[c.id]; });
+        var cls = function (c) { return ENDPOINTS[c.id].last[1]; };
+        var bad = list.filter(function (c) { return cls(c) === 'is-err'; }).length;
+        var warn = list.filter(function (c) { return cls(c) === 'is-warn'; }).length;
+        if (bad) return { note: bad + ' endpoint' + (bad > 1 ? 's' : '') + ' down', s: 'err',
+          fix: fixTo('Reconnect ' + bad + ' endpoint' + (bad > 1 ? 's' : ''),
+                     '', '.set2-wh-grp.is-err') };
+        if (warn) return { note: warn + ' degraded', s: 'warn',
+          fix: fixTo('Check ' + warn + ' endpoint' + (warn > 1 ? 's' : ''),
+                     '', '.set2-wh-grp.is-warn') };
+        return { note: list.length ? list.length + ' live' : 'none set up',
+                 s: list.length ? 'ok' : '' };
+      } },
 
     { g: 'Admin',  id: 'access',    name: 'User & access', wide: true },
     /* `wide`, because the library and the document are two columns and the
@@ -1252,14 +1301,17 @@
      Sync, where the threshold sits beside the runs it prunes. Landing on the
      page that contains what you asked for beats landing on a page that no
      longer exists. */
-  const ALIAS = { connections: 'config', people: 'access', webhooks: 'enable',
-                  apis: 'enable', failures: 'config', sync: 'config',
+  const ALIAS = { connections: 'config', people: 'access', enable: 'webhooks',
+                  apis: 'webhooks', failures: 'config', sync: 'config',
                   retention: 'config', roles: 'access', hierarchy: 'access' };
   /* Several of those name a SECTION, and sections are pages now — so the ones
      that do land on the page holding them rather than on the module's first.
      `?m=retention` used to mean "Sync, scroll to find it"; it means the page
      the threshold is on. */
-  const ALIAS_SEC = { webhooks: 'webhooks', apis: 'webhooks', failures: 'sync',
+  /* `webhooks` and `apis` are gone from here: they used to name a SECTION
+     inside Enablement and now name the module itself, which has no sections to
+     choose between. */
+  const ALIAS_SEC = { failures: 'sync',
                       sync: 'sync', retention: 'relevance', people: 'people',
                       roles: 'roles', hierarchy: 'scopes' };
   const aliasOf = (id) => ALIAS[id] || id;
@@ -1340,7 +1392,18 @@
   const FALLBACK = { m: 'config', skill: '', sp: '', crm: '', f: '' };
   function readURL() { return API ? API.readURL() : FALLBACK; }
   function patch(changes) { if (API) API.patch(changes); }
-  function render() { if (API) API.render(); }
+  /* `then` runs once the repaint has actually landed. Most render() calls here
+     change module state rather than the URL, so knowledge.js paints them
+     synchronously and `then` is only a tidier way to write the next line - but
+     the five call sites that read back an element the repaint just built are
+     the ones that would break silently the day any of them starts moving
+     through a transition, and they should not have to know which. */
+  function render(then) {
+    if (API) API.render();
+    if (!then) return;
+    const M = window.AIMY_MOTION;
+    if (M && M.afterPaint) M.afterPaint(then); else setTimeout(then, 0);
+  }
 
   /* ═══ ATOMS ═══ */
   const pill = (k, t) => `<span class="set2-pill ${k}"><i></i>${esc(t)}</span>`;
@@ -2222,18 +2285,25 @@
     })(TREE, null);
     return m;
   })();
-  const ROOT_ID = TREE[0].id;
-  const nodeById = (id) => ((NODE_AT[id] || NODE_AT[ROOT_ID]).node);
+  /* Not a node, and deliberately not in TREE: nothing may select it, draw it
+     or grant against it. It is the answer to "which client" when the answer is
+     "none of them yet". The empty id keeps it out of the URL. */
+  const TENANCY = { id: '', name: 'All clients', type: 'Tenancy', kids: TREE };
+  const ROOT_ID = '';
+  const nodeById = (id) => (NODE_AT[id] ? NODE_AT[id].node : TENANCY);
   /* People can only ever stand at the root or on a CLIENT, because that is all
      a grant can name. A `?node=` pointing anywhere else — a stale link from
      when grants carried a scope type, or one copied out of Scopes, which still
      addresses all six levels — resolves to the root rather than to a page that
      would answer "nobody" for a reason it could not explain. */
-  const CLIENTS = () => (TREE[0].kids || []).filter((n) => n.type === 'Client');
+  const CLIENTS = () => TREE.filter((n) => n.type === 'Client');
   const clientOfSt = (st) => CLIENTS().filter((c) => c.id === st.node)[0] || null;
+  /* An id that names nothing has no path. It used to fall back to the root,
+     which returned the organisation - a breadcrumb for a place you were not
+     standing in. */
   function pathTo(id) {
     const out = [];
-    let e = NODE_AT[id] || NODE_AT[ROOT_ID];
+    let e = NODE_AT[id];
     while (e) { out.unshift(e.node); e = e.pid ? NODE_AT[e.pid] : null; }
     return out;
   }
@@ -2312,8 +2382,6 @@
     const n = searching ? 0 : peopleReach(client, st);
     return `
       <div class="set2-scope">
-        <span class="set2-scope-i">Org <b>${esc(TREE[0].name)}</b></span>
-        ${sep}
         ${scopePick('Client', client ? client.name : 'All', ROOT_ID)}
         ${sep}
         ${searching
@@ -3033,6 +3101,25 @@
   /* Geometry. In px at the drawn scale; the layer is transformed as a whole to
      fit, so these are never recomputed for zoom. */
   const SC = { w: 148, h: 30, gapX: 46, gapY: 12, padX: 20, padY: 20 };
+  /* ══ AND THEY ARE REM, NOT PIXELS ═════════════════════════════
+     The layout above is arithmetic in one unit space, and it does not matter
+     what that unit is called as long as everything uses the same one. It
+     matters enormously that it is the same unit the rest of the product uses.
+
+     `html { font-size: max(1rem, calc(100vw / 96)) }` is the shipped scaling
+     lever - 96 is 1536/16, so the root is the viewport expressed in the units
+     this layout was drawn in, and every rem on the page grows with the screen.
+     These numbers were written in CSS pixels, so the map alone did not grow
+     with it. At a 25% browser zoom, measured: the root computes to 63.67px,
+     a node's own label is set at 63.67px, and the node box is still 148px
+     wide. Two characters fit. A tenancy of real names renders as "C...",
+     "Di...", "S...", and the map reads as broken because it is the one thing
+     on the surface not scaling.
+
+     16 is the root these numbers were drawn against, which is the same 16 in
+     the lever. Converting here rather than rewriting the arithmetic keeps the
+     layout walk in whole units, where it is readable. */
+  const SC_U = (n) => (n / 16) + 'rem';
   const SC_STEP_X = SC.w + SC.gapX;
   const SC_STEP_Y = SC.h + SC.gapY;
   const SIB_CAP = 6;
@@ -3066,7 +3153,8 @@
       const here = path.concat([n.id]);
       if (n.name.toLowerCase().indexOf(q) > -1) here.forEach((id) => keep.add(id));
       (n.kids || []).forEach((k) => walk(k, here));
-    })(TREE[0], []);
+    })({ id: '', name: '', kids: TREE }, []);
+    keep.delete('');
     return keep;
   }
 
@@ -3116,7 +3204,10 @@
       }
       return y;
     }
-    place(TREE[0], 0);
+    /* Every client is a root of its own now. `slot` is shared across the whole
+       pass, so each subtree simply continues below the one before it and the
+       canvas is exactly as tall as what it drew. */
+    TREE.forEach((n) => place(n, 0));
     return { nodes: nodes, edges: edges,
              w: maxX + SC.padX, h: slot * SC_STEP_Y + SC.padY * 2 - SC.gapY };
   }
@@ -3167,9 +3258,17 @@
                style="--sc-w:${map.w};--sc-h:${map.h}">
             <div class="set2-sc-box"><div class="set2-sc-layer">
               <svg class="set2-sc-wires" viewBox="0 0 ${map.w} ${map.h}" aria-hidden="true">
-                ${map.edges.map((e) => {
+                ${map.edges.map((e, i) => {
                   const mx = e.x1 + SC.gapX / 2;
+                  /* `pathLength="1"` normalises every elbow, however long it
+                     actually is, to a length of one. That is what lets the
+                     draw-on be written as `stroke-dasharray: 1` in the
+                     stylesheet with no JavaScript measuring anything - and it
+                     means a short wire and a long one take the same time,
+                     which is what makes the tree look like it is growing
+                     rather than like the far branches are slower. */
                   return `<path d="M${e.x1} ${e.y1 + SC.h / 2} H${mx} V${e.y2 + SC.h / 2} H${e.x2}"
+                            pathLength="1" style="--i:${i}"
                             fill="none" stroke="currentColor" stroke-width="1.25"/>`;
                 }).join('')}
               </svg>
@@ -3182,7 +3281,7 @@
   };
 
   function scNode(o, here) {
-    const pos = `left:${o.x}px;top:${o.y}px;width:${SC.w}px;height:${SC.h}px`;
+    const pos = `left:${SC_U(o.x)};top:${SC_U(o.y)};width:${SC_U(SC.w)};height:${SC_U(SC.h)}`;
     if (o.more) {
       return `
         <button class="set2-sc-n is-more" type="button" style="${pos}"
@@ -3200,7 +3299,7 @@
        problem that does not exist. */
     const empty = !kids && !aimy;
     return `
-      <div class="set2-sc-w" style="${pos}">
+      <div class="set2-sc-w" data-sc-w="${esc(n.id)}" style="${pos}">
         <button class="set2-sc-n${here.id === n.id ? ' is-on' : ''}${empty ? ' is-empty' : ''}${
           aimy ? ' is-aimy' : ''}${o.dim ? ' is-dim' : ''}"
                 type="button" data-sc-node="${esc(n.id)}"
@@ -4010,7 +4109,6 @@
        names. */
     criteria:   (st) => secCriteria(crmOf(st), st),
     runs:       (st) => secRuns(st),
-    enrichment: (st) => secEnrichment(st),
     apis:       (st) => M.apis(st),
     people:     (st) => secPeople(st),
     roles:      (st) => M.roles(st),
@@ -4020,7 +4118,7 @@
   /* ── ONE SECTION, ONE TITLE ──
      Every page built from a single section said its own name twice: once as
      the page title and again, 40px below it, as the section head — "Dynamic
-     fields" over "FIELDS", "Enrichment" over "ENRICHMENT". The section head
+     fields" over "FIELDS". The section head
      earns its place on a page with two of them and is pure repetition on a
      page with one.
 
@@ -4376,33 +4474,22 @@
   /* ── Knowledge enablement ══════════════════════════════════════════════
      The workflow, not the credential. What the console puts under this
      heading is a URL and a token, which is an ENDPOINT — that is APIs, one
-     rail item down. What belongs under "enablement" is what enrichment is
-     allowed to read, at the grain it actually runs at, with what it has
-     produced beside it so that turning one off has a stated cost. */
-  M.enable = function (st) {
-    if (!prodOf(st)) return noProducts(st);
-    return pageBody(st);
-  };
+     rail item down.
 
-  function secEnrichment(st) {
-    const on = ENABLE.filter((e) => e.on).length;
-    return `
-      <section class="set2-sec" id="st-enrichment">
-        <div class="set2-sec-h"><h2 class="set2-sec-t">Enrichment</h2>
-          <span class="set2-sec-end set2-tally"><span class="set2-num"><b>${on}</b> of ${ENABLE.length} on</span></span></div>
-        <div class="set2-note">Enrichment runs when it is triggered from your side, against the endpoints below. Nothing here polls on its own.</div>
-        ${/* No icon. It was the same document glyph on all four rows —
-              decoration wearing an information's clothes, and it pushed every
-              name 1rem off the column the rest of the page aligns to. */ ''}
-        <div class="set2-rows set2-en" style="margin-top:0.75rem">
-          ${ENABLE.map((e) => row({
-            name: e.name, d: e.d, off: !e.on,
-            end: `<span class="set2-from">${e.n ? e.n.toLocaleString() + ' read' : 'nothing read'}</span>`
-               + toggle(e.on, e.name, `data-enable="${esc(e.id)}"`)
-          })).join('')}
-        </div>
-      </section>`;
-  }
+     THE ENRICHMENT PAGE STOOD HERE and was removed at Nour's request. It was
+     the other half of this module: four switches saying what enrichment was
+     allowed to read, with what each had produced beside it. Its fixture
+     (`ENABLE`), its section, its search entries and its toggle handler went
+     with it, so nothing is left addressing a page that no longer renders.
+     Enablement now carries one page, Webhook settings. */
+  /* `pageBody` walks the current SUB-page's sections and returns '' when the
+     module has none — which this one no longer does. It names its one section
+     directly, in the same `.set2-solo` wrapper pageBody gives a single-section
+     page, so the rendered result is what the sub-page produced. */
+  M.webhooks = function (st) {
+    if (!prodOf(st)) return noProducts(st);
+    return '<div class="set2-solo">' + SECTION.apis(st) + '</div>';
+  };
 
   /* ── APIs ══════════════════════════════════════════════════════════════
      The endpoint and the secret that reaches it. Split out of the console's
@@ -4449,7 +4536,7 @@
     const e0 = ENDPOINTS[list[0].id];
     return `
       <section class="set2-sec" id="st-webhooks">
-        <div class="set2-sec-h"><h2 class="set2-sec-t">Webhook settings</h2>
+        <div class="set2-sec-h"><h2 class="set2-sec-t">Webhooks</h2>
           ${/* A single connector has no group header, so its test sits beside
                 the pill that is already up here for the same reason. */ ''}
           ${one ? `<span class="set2-sec-end">${pill(e0.last[1], e0.last[2])}${
@@ -4733,8 +4820,18 @@
   /* Split out of `popover` so the same maths runs on open AND on every scroll
      that follows — two copies would drift the moment either was tuned. */
   let POP_TRACK = null;
-  function placePop(p, anchor) {
-    const r = anchor.getBoundingClientRect();
+  /* Registered once, for the panel rather than for a particular popover: there
+     is only ever one #setPop, so "is it open" is a question about the page. */
+  const POP_LAYER = (window.AIMY_LAYERS || { add: function (x) { return x; } }).add({
+    name: 'set2-pop',
+    isOpen: function () { return !!document.getElementById('setPop'); },
+    close: function () { closePop(); }
+  });
+  /* `rect` is optional and is how the scroll tracker avoids measuring the
+     anchor twice per frame - it has already read the rect to decide whether the
+     panel should still be open at all. */
+  function placePop(p, anchor, rect) {
+    const r = rect || anchor.getBoundingClientRect();
     const w = p.offsetWidth, h = p.offsetHeight;
     /* `documentElement.clientWidth/Height` is the layout viewport and is what
        `position: fixed` is measured against. `window.innerWidth` includes the
@@ -4748,7 +4845,8 @@
        above, so a tall panel in a short viewport does not jump somewhere worse
        than where it started. */
     let top = r.bottom + 6;
-    if (top + h > vh - 8 && r.top - h - 6 >= 8) top = r.top - h - 6;
+    let flipped = false;
+    if (top + h > vh - 8 && r.top - h - 6 >= 8) { top = r.top - h - 6; flipped = true; }
     p.style.top = Math.max(8, Math.min(top, vh - h - 8)) + 'px';
     /* ── RIGHT-ALIGN RATHER THAN SLIDE ──
        Left-aligned to the anchor and clamped, a menu opened from a control near
@@ -4757,13 +4855,35 @@
        the end of a row gets a panel whose RIGHT edge meets its own, which is
        what makes it read as belonging to that button. The clamps stay as the
        last resort for a panel wider than the space either way. */
-    const left = (r.left + w > vw - 8) ? r.right - w : r.left;
+    const alignRight = (r.left + w > vw - 8);
+    const left = alignRight ? r.right - w : r.left;
     p.style.left = Math.max(8, Math.min(left, vw - w - 8)) + 'px';
+    /* ══ THE CORNER IT GROWS OUT OF ═══════════════════════════
+       A panel that scales up from its own centre reads as arriving from
+       nowhere. One that grows from the corner nearest the control that opened
+       it reads as coming OUT of that control - which is the thing the panel is
+       about, and the thing the reader is already looking at.
+
+       The two decisions above have already worked out which corner that is;
+       this only writes it down where the stylesheet can see it. */
+    p.dataset.origin = (flipped ? 'bottom' : 'top') + '-' + (alignRight ? 'right' : 'left');
   }
 
   function popover(anchor, html, cls) {
     const old = document.getElementById('setPop');
-    if (old && old.contains(anchor)) anchor = POP_OPENER || anchor;
+    /* Whether this call comes from INSIDE the open panel decides everything
+       below, so it is read once, before the anchor is reassigned. */
+    const chained = !!(old && old.contains(anchor));
+
+    /* ══ THE TRIGGER THAT OPENED IT CLOSES IT ══════════════════════
+       Pressing a kebab twice used to close the panel and immediately build it
+       again, so it never appeared to shut at all - and the button you opened a
+       menu with is the first thing anybody presses to dismiss it.
+
+       Only for a trigger OUTSIDE the panel. A control within it is chaining to
+       the next step of the same decision, and that must still open. */
+    if (!chained && old && POP_OPENER === anchor) { closePop(); return null; }
+    if (chained) anchor = POP_OPENER || anchor;
     /* Placing against a node that is no longer in the document puts the panel
        in the corner, silently. Better to not open than to open somewhere that
        points at nothing — every caller reaches here through a control that is
@@ -4790,16 +4910,37 @@
        is nothing left to be attached to, and a menu pinned to the top edge
        pointing at something off-screen is worse than one that got out of the
        way. */
+    /* ONE MEASUREMENT PER FRAME, NOT ONE PER EVENT.
+       This listens in the capture phase on the window, so it fires for a scroll
+       in ANY container on the page, and it ran the whole placement - six layout
+       reads and two style writes - on every one of them. Worse, `p.offsetWidth`
+       inside placePop read layout that the previous event's `style.top` write
+       had just invalidated, forcing a synchronous reflow per event, during the
+       one interaction where frames are most visible.
+
+       Coalesced to a single run per frame, and the rect read here to decide
+       whether to close is handed to placePop rather than read again. Passive,
+       so the handler can never hold up the scroll it is following. */
+    let trackQ = 0;
     POP_TRACK = () => {
-      const a = POP_OPENER;
-      if (!a || !a.isConnected) { closePop(); return; }
-      const b = a.getBoundingClientRect();
-      const vh = document.documentElement.clientHeight || 0;
-      if (b.bottom < 0 || b.top > vh) { closePop(); return; }
-      placePop(p, a);
+      if (trackQ) return;
+      trackQ = requestAnimationFrame(() => {
+        trackQ = 0;
+        const a = POP_OPENER;
+        if (!a || !a.isConnected) { closePop(); return; }
+        const b = a.getBoundingClientRect();
+        const vh = document.documentElement.clientHeight || 0;
+        if (b.bottom < 0 || b.top > vh) { closePop(); return; }
+        placePop(p, a, b);
+      });
     };
-    window.addEventListener('scroll', POP_TRACK, true);
-    window.addEventListener('resize', POP_TRACK);
+    /* closePop calls this so a frame already queued cannot run against a panel
+       that has been removed. */
+    POP_TRACK.cancel = () => { if (trackQ) cancelAnimationFrame(trackQ); trackQ = 0; };
+    window.addEventListener('scroll', POP_TRACK, { capture: true, passive: true });
+    window.addEventListener('resize', POP_TRACK, { passive: true });
+    /* And it stands aside for anything else that opens. */
+    if (window.AIMY_LAYERS) window.AIMY_LAYERS.closeAll(POP_LAYER);
 
     const f = p.querySelector('input');
     if (f) f.focus();
@@ -4807,10 +4948,28 @@
   }
   function closePop() {
     const p = document.getElementById('setPop');
-    if (p) p.remove();
+    if (p) {
+      /* ══ THE ID GOES FIRST ═════════════════════════════════
+         A chained popover - the kebab's "Grant a role", say - builds the next
+         panel under the same id while this one is still leaving. Two nodes
+         answering to one id is how the wrong one gets measured, re-placed, or
+         removed. Dropping the id here makes the leaving panel unaddressable
+         the instant it stops being the live one.
+
+         Pointer events go with it: a panel on its way out must not be able to
+         swallow the click that is opening the next thing. */
+      p.removeAttribute('id');
+      p.style.pointerEvents = 'none';
+      const M = window.AIMY_MOTION;
+      if (M && !M.reduced()) {
+        p.classList.add('is-closing');
+        M.after(p, () => { if (p.parentNode) p.parentNode.removeChild(p); });
+      } else p.remove();
+    }
     /* Both listeners go with the panel. A tracker left running against a
        removed node is a scroll handler firing on every frame for nothing. */
     if (POP_TRACK) {
+      if (POP_TRACK.cancel) POP_TRACK.cancel();
       window.removeEventListener('scroll', POP_TRACK, true);
       window.removeEventListener('resize', POP_TRACK);
       POP_TRACK = null;
@@ -4851,7 +5010,23 @@
 
   /* ═══ MODALS ═══ */
   let MODAL = null;
-  function closeModal() { MODAL = null; paintModal(); }
+  /* ══ A DIALOG THAT VANISHES WAS NEVER THERE ═════════════════════
+     This emptied the host outright, so a modal - the surface this product uses
+     for every consequential write - disappeared between one frame and the
+     next, taking its scrim with it. Cancelling a delete looked identical to
+     the page breaking.
+
+     Out is faster than in, which is the asymmetry the token block argues for:
+     what you are leaving should get out of the way, and the dialog has already
+     said everything it had to say. */
+  function closeModal() {
+    const host = $('#setModal');
+    const scrim = host && $('.set2-scrim', host);
+    const M = window.AIMY_MOTION;
+    if (!scrim || !M || M.reduced()) { MODAL = null; paintModal(); return; }
+    scrim.classList.add('is-closing');
+    M.after(scrim, () => { MODAL = null; paintModal(); });
+  }
   function paintModal() {
     const host = $('#setModal');
     /* Guarded because the host is the shell's, not this file's. It was missing
@@ -4860,6 +5035,14 @@
        the guard is loud rather than lenient. */
     if (!host) { if (MODAL) console.warn('AiMY settings: no #setModal host on this page'); return; }
     if (!MODAL) { host.innerHTML = ''; return; }
+    /* ══ REPAINTING A DIALOG IS NOT OPENING ONE ════════════════════
+       Several things repaint an open modal without closing it - a failed
+       validation redrawing its own hints is the one that matters. The write
+       below builds a NEW scrim and a NEW dialog, so both would play their
+       entrance again: the backdrop would flash and the dialog would drop in,
+       every time somebody submitted an incomplete form. Marked as seated, they
+       simply are where they already were. */
+    const wasOpen = !!$('.set2-scrim', host);
     host.innerHTML = MODAL === 'new' ? newSkillModal()
                    : MODAL === 'upload' ? uploadModal()
                    : MODAL.kind === 'preview' ? previewModal(MODAL.c)
@@ -4867,6 +5050,10 @@
                    : MODAL.kind === 'rmpeople' ? removePeopleModal(MODAL)
                    : MODAL.kind === 'rotate' ? rotateModal(MODAL)
                    : deleteModal(MODAL);
+    if (wasOpen) {
+      const sc = $('.set2-scrim', host);
+      if (sc) sc.classList.add('is-seated');
+    }
     const f = $('.set2-modal input, .set2-modal textarea', host);
     if (f) f.focus();
   }
@@ -5297,8 +5484,8 @@
       add(at, 'How far back to read', { m: 'config', sec: 'relevance', sp: c.product, crm: c.crmId });
       add(at, 'Which records to pull', { m: 'config', sec: 'sync', sp: c.product });
       add(at, 'Recent runs', { m: 'config', sec: 'sync', sp: c.product });
-      add(at, 'Endpoint URL', { m: 'enable', sec: 'webhooks', sp: c.product });
-      add(at, 'Auth token', { m: 'enable', sec: 'webhooks', sp: c.product });
+      add(at, 'Endpoint URL', { m: 'webhooks', sp: c.product });
+      add(at, 'Auth token', { m: 'webhooks', sp: c.product });
       c.maps.filter((m) => m.state !== 'unmapped').forEach((m) =>
         add(at, m.ctx, { m: 'config', sec: 'fields', sp: c.product, crm: c.crmId }));
       failures(c.id).forEach((f) =>
@@ -5307,8 +5494,6 @@
     RETENTION.forEach((r) =>
       add(['Client', 'Connections', 'Data relevance'], r.name + ' retention threshold',
           { m: 'config', sec: 'relevance' }));
-    ENABLE.forEach((e) =>
-      add(['Client', 'Enablement', 'Enrichment'], e.name, { m: 'enable', sec: 'enrichment' }));
     return out;
   }
 
@@ -5367,12 +5552,14 @@
                  : [CONNECTIONS.length + ' connected', 'ok'];
       }
 
-      /* Enablement owns the endpoints, and a dead endpoint beats a count of
-         switches: the switches do nothing while it is down. */
-      case 'enable': {
+      /* Unreached while the module's own `state` answers — navRow asks that
+         first — but kept as the fallback for a paint with no scope set, where
+         `pageState` declines to run and this is what is left. */
+      case 'webhooks': {
         const bad = Object.keys(ENDPOINTS).filter((k) => ENDPOINTS[k].last[1] === 'is-err').length;
         if (bad) return [bad + ' endpoint down', 'err'];
-        return [ENABLE.filter((e) => e.on).length + ' of ' + ENABLE.length + ' on', 'ok'];
+        n = Object.keys(ENDPOINTS).length;
+        return n ? [n + ' live', 'ok'] : ['none set up', ''];
       }
       case 'retention':
         n = RETENTION.reduce((a, r) => a + wouldDelete(r), 0);
@@ -5437,7 +5624,7 @@
      same thing, as everywhere else in the product. */
   function quickFix(m, f) {
     return `<button class="rail-fix" type="button"
-        data-fix-m="${esc(m.id)}" data-fix-sec="${esc(f.sec)}"
+        data-fix-m="${esc(m.id)}"${f.sec ? ` data-fix-sec="${esc(f.sec)}"` : ''}
         ${f.node ? `data-fix-node="${esc(f.node)}"` : ''}
         ${f.find ? `data-fix-find="${esc(f.find)}"` : ''}>
         ${AIMY}<span class="rail-fix-l">${esc(f.label)}</span>
@@ -5462,7 +5649,13 @@
      from the pages rather than computed a second time, so a rail that says
      "1 broken" always has a page under it that says which. */
   function moduleNoteFrom(m, st, pages) {
-    if (!pages) return moduleNote(m.id);
+    if (!pages) {
+      /* A leaf that states its own condition is asked first; `moduleNote` is
+         the fallback for the leaves that do not, and for the paint where the
+         scope is unset and `pageState` returns null. */
+      const own = m.state ? pageState(st, m, m) : null;
+      return own && own.note ? [own.note, own.s] : moduleNote(m.id);
+    }
     const rank = { err: 3, warn: 2, ok: 1 };
     let worst = null;
     pages.forEach((pg) => {
@@ -5480,15 +5673,25 @@
     const dot = note && note[1] ? `<span class="status-dot ${DOT[note[1]]}"></span>`
                                 : '<span class="rail-cfg-nodot"></span>';
 
-    /* No pages: the row IS the page, and it keeps exactly the shape it had. */
+    /* No pages: the row IS the page, and it keeps exactly the shape it had.
+
+       WITH ONE ADDITION, for the module that was promoted out of a group. A
+       page row has always been able to offer the one action that ends what is
+       wrong with it; a leaf row could not, because no leaf had a `state` to
+       offer one from. Webhook settings does — it kept its state when it left
+       Enablement — and dropping the fix on the way up would have been a
+       working control lost to a change of address. Every other leaf has no
+       `state`, so `ps` stays null and this renders what it did before. */
     if (!pages) {
+      const ps = m.state ? pageState(st, m, m) : null;
       return `<button class="rail-set-row rail-cfg-row${on ? ' is-on' : ''}" type="button"
         data-m="${esc(m.id)}"${on ? ' aria-current="page"' : ''}>
         ${dot}
         <span class="rail-set-name">${esc(m.name)}</span>
         ${m.tier ? `<span class="rail-set-note">${esc(m.tier)}</span>`
                  : note ? `<span class="rail-set-note">${esc(note[0])}</span>` : ''}
-      </button>`;
+      </button>`
+      + (ps && ps.fix ? quickFix(m, ps.fix) : '');
     }
 
     /* ── THE HEADER IS A DISCLOSURE, NOT A DESTINATION ──
@@ -5603,12 +5806,14 @@
      underneath this one, which is how a surface ends up with two answers to
      "where am I" sitting 40px apart.
 
-     A page with no scope says the one true thing left — which organisation
-     you are in — and nothing more. */
+     A page with no scope now says NOTHING, because there is nothing true left
+     for it to say: it used to print the organisation, and there is no
+     organisation. An empty bar is better than a bar naming a level that does
+     not exist. */
   function scopeSlot(st, m, pg) {
     if (m.scope === 'prod') return prodScope(st);
     if (pg && pg.id === 'people') return peopleScope(st);
-    return `<div class="set2-scope"><span class="set2-scope-i">Org <b>FlairsTech</b></span></div>`;
+    return '';
   }
 
   /* ── The module column, as a string ──
@@ -5709,33 +5914,6 @@
           if (!runs) return { note: 'never run', s: 'warn',
             fix: fixTo('Run the first sync', 'sync', '#st-records') };
           return { note: runs + ' run' + (runs === 1 ? '' : 's'), s: 'ok' };
-        } }
-    ],
-
-    /* Two, and the split is the one the design already drew: what enrichment
-       may read, and the endpoints it runs against. */
-    enable: [
-      { id: 'enrichment', name: 'Enrichment', secs: ['enrichment'],
-        state: function () {
-          var on = ENABLE.filter(function (e) { return e.on; }).length;
-          if (!on) return { note: 'nothing enabled', s: 'warn',
-            fix: fixTo('Turn on enrichment', 'enrichment', '#st-enrichment') };
-          return { note: on + ' of ' + ENABLE.length + ' on', s: 'ok' };
-        } },
-      { id: 'webhooks', name: 'Webhook settings', secs: ['apis'],
-        state: function (st) {
-          var list = connsOf(prodOf(st)).filter(function (c) { return !!ENDPOINTS[c.id]; });
-          var cls = function (c) { return ENDPOINTS[c.id].last[1]; };
-          var bad = list.filter(function (c) { return cls(c) === 'is-err'; }).length;
-          var warn = list.filter(function (c) { return cls(c) === 'is-warn'; }).length;
-          if (bad) return { note: bad + ' endpoint' + (bad > 1 ? 's' : '') + ' down', s: 'err',
-            fix: fixTo('Reconnect ' + bad + ' endpoint' + (bad > 1 ? 's' : ''),
-                       'webhooks', '.set2-wh-grp.is-err') };
-          if (warn) return { note: warn + ' degraded', s: 'warn',
-            fix: fixTo('Check ' + warn + ' endpoint' + (warn > 1 ? 's' : ''),
-                       'webhooks', '.set2-wh-grp.is-warn') };
-          return { note: list.length ? list.length + ' live' : 'none set up',
-                   s: list.length ? 'ok' : '' };
         } }
     ],
 
@@ -5884,7 +6062,19 @@
     if (!bar) return;
     bar.hidden = !DIRTY.size;
     const n = $('.set2-num', bar);
-    if (n) n.textContent = DIRTY.size;
+    if (!n) return;
+    const now = String(DIRTY.size);
+    /* ══ THE COUNT RE-ENTERS WHEN IT CHANGES, AND ONLY THEN ═══════════
+       This runs from an `input` handler, so it is called on every keystroke
+       and the number is the same on almost all of them. Animating a digit that
+       did not change is a twitch under somebody's hands while they type. */
+    if (n.textContent === now) return;
+    n.textContent = now;
+    const M = window.AIMY_MOTION;
+    if (!M || M.reduced()) return;
+    n.classList.remove('is-bumped');
+    void n.offsetWidth;
+    n.classList.add('is-bumped');
   }
 
   /* The draft row is created by a render, so the caret has to be placed after
@@ -5921,7 +6111,135 @@
     return true;
   }
 
-  function painted() { seatTabindex(); focusDraft(); landFix(); }
+  /* ══ THE MAP MOVES RATHER THAN REDRAWING ═══════════════════════
+     Every gesture on this surface - opening a branch, taking the cap off a
+     row of siblings, changing the depth, typing into the tenancy search -
+     re-serialises the whole layer. So a node that merely MOVED was destroyed
+     at its old coordinates and built again at its new ones, and a tree that
+     rearranges itself by blinking is the hardest kind of change to follow:
+     the one thing a map is for is knowing where things went.
+
+     FLIP, and without a single layout read. Positions here are inline `left`
+     and `top` in the layer's own coordinate space, written by scNode - so the
+     delta between two paints is already known in exactly the units a
+     `translate()` needs, and reading a rect would be both slower and wrong
+     (the layer is scaled by --sc-k, so screen pixels are not these pixels).
+
+     `fill: 'none'` is the safety property. The DOM is already correct before
+     the animation starts; if no frame ever arrives - a hidden tab, a pane that
+     composites nothing - every node is simply where it belongs.
+
+     WHAT DOES NOT ANIMATE IS AS DELIBERATE AS WHAT DOES. Searching the tenancy
+     dims the nodes that do not match, and nothing moves. Twenty nodes fading
+     in step on every keystroke of a debounced search is the strobe this whole
+     pass exists to remove, so a paint where nothing moved and nothing arrived
+     produces no motion at all. */
+  let SC_PREV = null;
+  function seatMap() {
+    const layer = $('.set2-sc-layer');
+    /* Leaving the module forgets the layout, so coming back draws the tree
+       again rather than silently FLIPping from wherever it was last time. */
+    if (!layer) { SC_PREV = null; return; }
+
+    const nodes = $$('.set2-sc-w', layer);
+    const now = {};
+    nodes.forEach((n) => {
+      const b = n.querySelector('.set2-sc-n');
+      now[n.getAttribute('data-sc-w')] = {
+        x: parseFloat(n.style.left) || 0,
+        y: parseFloat(n.style.top) || 0,
+        on: !!(b && b.classList.contains('is-on'))
+      };
+    });
+    const prev = SC_PREV;
+    SC_PREV = now;
+
+    const M = window.AIMY_MOTION;
+    if (!M || M.reduced()) return;
+    const wires = $('.set2-sc-wires', layer);
+
+    /* No previous layout means the map is arriving, not changing. The wires
+       draw themselves and the nodes land along them. */
+    if (!prev) {
+      nodes.forEach((n, i) => n.style.setProperty('--i', String(Math.min(i, 8))));
+      layer.classList.add('is-arriving');
+      if (wires) wires.classList.add('is-drawing');
+      clearMapIntro(layer);
+      return;
+    }
+
+    const dur = M.ms('--t-base', 250);
+    const ease = M.token('--ease-out', 'ease-out');
+    let arrived = 0, moved = 0;
+    nodes.forEach((n) => {
+      const id = n.getAttribute('data-sc-w');
+      const was = prev[id], is = now[id];
+      if (!was) {
+        n.style.setProperty('--i', String(Math.min(arrived++, 8)));
+        n.classList.add('is-new');
+        return;
+      }
+      /* ══ THE ONE YOU JUST CHOSE ══════════════════════════════
+         Selection moves nothing, so there is no FLIP to carry it and the pill
+         simply changes colour under the cursor. One soft lift on the node that
+         just became current is enough to say which one answered - and it is
+         the node, not the map, so nothing around it shifts.
+
+         No overshoot: it settles at its own size rather than past it. */
+      const btn = n.querySelector('.set2-sc-n');
+      if (btn && btn.animate && is.on && !was.on) {
+        btn.animate(
+          [{ transform: 'scale(1)' }, { transform: 'scale(1.05)' }, { transform: 'scale(1)' }],
+          { duration: M.ms('--t-base', 250), easing: ease, fill: 'none' });
+      }
+      const dx = was.x - is.x, dy = was.y - is.y;
+      if ((!dx && !dy) || !n.animate) return;
+      moved++;
+      /* rem, because that is what scNode writes and what parseFloat just read
+         back. A px here would be right only at a root of 16 and wrong by the
+         zoom factor everywhere else. */
+      n.animate(
+        [{ transform: 'translate(' + dx + 'rem, ' + dy + 'rem)' }, { transform: 'none' }],
+        { duration: dur, easing: ease, fill: 'none' });
+    });
+
+    /* The elbows are recreated on every paint, so the class is always absent
+       here and adding it always starts a fresh draw - no reflow needed. They
+       redraw only when the tree actually changed shape. */
+    if (wires && (arrived || moved)) wires.classList.add('is-drawing');
+    if (arrived || moved) clearMapIntro(layer);
+  }
+
+  /* ══ AND THE CLASSES COME OFF AGAIN ══════════════════════════
+     Every entrance above hides its element first and reveals it by animating,
+     which is only safe while the animation is certain to run - and it is not.
+     A backgrounded tab freezes the clock mid-delay; this repo's review pane
+     never starts one. A node or a wire still waiting its turn when that
+     happens is invisible for as long as the page is open, and on this surface
+     that is the whole map.
+
+     The fill modes are the first defence and this is the second: the classes
+     that carry the animations are stripped on a TIMER. setTimeout is throttled
+     in a background tab but it still fires, which is the property being relied
+     on here and the same floor halaska-mounts keeps under its run and aimy-ds
+     keeps under the theme swap.
+
+     The floor covers the slowest thing it is waiting for: the wires, capped at
+     twelve steps of stagger plus their own duration. */
+  function clearMapIntro(layer) {
+    const M = window.AIMY_MOTION;
+    const off = () => {
+      if (!layer.isConnected) return;
+      layer.classList.remove('is-arriving');
+      const w = $('.set2-sc-wires', layer);
+      if (w) w.classList.remove('is-drawing');
+      $$('.set2-sc-w.is-new', layer).forEach((n) => n.classList.remove('is-new'));
+    };
+    const ms = (M ? M.ms('--t-slow', 400) + 12 * M.ms('--t-stagger', 40) : 900) + 120;
+    if (M) M.after(layer, off, { ms: ms }); else setTimeout(off, ms);
+  }
+
+  function painted() { seatTabindex(); focusDraft(); landFix(); seatMap(); }
 
   /* ── ARRIVING AT A FIX ──
      A quick action navigates and then has to finish the job: the page it asked
@@ -6667,7 +6985,52 @@
       const cl = ADDU.client ? findNode(ADDU.client) : null;
       if (cl && !ADDU.role) bad.role = 'Pick what they may do on ' + cl.name + '.';
 
-      if (Object.keys(bad).length) { ADDU.bad = bad; paintModal(); return; }
+      if (Object.keys(bad).length) {
+        ADDU.bad = bad;
+        paintModal();
+        /* ══ THE FORM SAYS NO, AND SAYS WHERE ═════════════════════
+           Colouring the bad fields and stopping was the whole of the answer.
+           Three of them can be wrong at once, the dialog scrolls, and the
+           submit button is at the bottom - so the reader could press Add, have
+           nothing happen anywhere they were looking, and press it again.
+
+           The shake is the refusal. The focus is where to fix it. Both are
+           needed: one says something went wrong, the other says what.
+
+           `.is-bad` and `.is-shaking` stay ORTHOGONAL, and that is the point
+           of two classes rather than one. Rolled together, replaying the shake
+           on a second failed submit would have to strip the error treatment
+           off every field and put it back, flickering the thing the reader is
+           trying to read. */
+        const M = window.AIMY_MOTION;
+        const host = $('#setModal');
+        const box = host && $('.set2-modal', host);
+        if (box && M && !M.reduced()) {
+          box.classList.remove('is-shaking');
+          /* Remove, reflow, re-add. Without the forced recalculation both
+             writes land in one style pass and there is nothing to replay. */
+          void box.offsetWidth;
+          box.classList.add('is-shaking');
+          M.after(box, () => box.classList.remove('is-shaking'));
+        }
+        /* paintModal has already focused the first field in the dialog. The
+           first field and the first BAD field are rarely the same one. */
+        /* `.set2-fld` is the CONTROL, not a wrapper around one - the input
+           itself carries `is-bad`. Both shapes are handled because the hint
+           and the field have worn that class in turn, and a selector that
+           assumes either one silently focuses nothing. */
+        const badEl = host && $('.is-bad', host);
+        const first = !badEl ? null
+          : (badEl.matches('input, textarea, select, button, [tabindex]')
+              ? badEl
+              : $('input, textarea, select, button, [tabindex]', badEl));
+        if (first) {
+          first.scrollIntoView({ block: 'center',
+            behavior: (M && M.reduced()) ? 'auto' : 'smooth' });
+          first.focus({ preventScroll: true });
+        }
+        return;
+      }
 
       PEOPLE.push({
         id: 'p' + Date.now().toString(36),
@@ -6854,13 +7217,6 @@
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(val).then(() => done(true), () => done(false));
       } else { done(false); }
-      return;
-    }
-
-    const en = e.target.closest('[data-enable]');
-    if (en) {
-      const row = ENABLE.filter((x) => x.id === en.getAttribute('data-enable'))[0];
-      if (row) { row.on = !row.on; DIRTY.add('enable:' + row.id); render(); }
       return;
     }
 

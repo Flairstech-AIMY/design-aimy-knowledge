@@ -2,7 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- viewport-fit=cover is what makes env(safe-area-inset-*) report anything
+       other than 0 on iOS. Four places in this build already write
+       `env(safe-area-inset-bottom, 0px)` and chat.css says in as many words
+       that it returns "0 today as well since the viewport meta does not opt
+       into viewport-fit=cover" — so the composer could not clear a home
+       indicator, because the page was never told there was one. The rules were
+       correct and inert; this is the line that switches them on.
+
+       interactive-widget=resizes-content makes the soft keyboard shrink the
+       LAYOUT viewport rather than only the visual one, so the fixed composer
+       is lifted by the browser instead of being left underneath the keyboard.
+
+       Neither changes anything on a desktop, where every inset is 0 and there
+       is no soft keyboard — the 1536 reference is untouched. Matches AiMY
+       Sales and AiMY QA. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
   <title>AiMY</title>
 
   <link rel="icon" type="image/svg+xml" href="assets/Aimy-full.svg" />
@@ -12,9 +27,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Poppins:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="assets/aimy-ds.css?v=7" />
-  <link rel="stylesheet" href="assets/knowledge.css?v=231" />
-  <link rel="stylesheet" href="assets/chat.css?v=21" />
+  <link rel="stylesheet" href="assets/aimy-ds.css?v=37" />
+  <link rel="stylesheet" href="assets/knowledge.css?v=274" />
+  <link rel="stylesheet" href="assets/chat.css?v=55" />
 
   <script>
     /* Apply saved theme before paint to avoid flash. Default = dark. */
@@ -90,6 +105,31 @@
     <div class="topnav-logo-mark">
       <svg width="140" height="43" viewBox="0 0 418.18 147.66" aria-label="AiMY"><use href="#aimy-logo-full"/></svg>
     </div>
+
+    <!-- ══ THE PRODUCTS, WHERE THE STRIP CANNOT STAND ═══════════════════
+         Below 900 — where the briefing rail and the canvas's conversation
+         column both become drawers — the products leave the bar too, and hang
+         from the mark instead: one chevron, the list behind it, the one you
+         are on marked. One narrow mode, entered once. The strip itself would
+         have fitted to 637; why the rung and not the measurement is argued in
+         knowledge.css §WHY THE MENU IS NOT KEYED TO THE STRIP'S OWN LIMIT.
+
+         FILLED FROM THE STRIP ITSELF, in knowledge.js, and that is the point:
+         the ecosystem list is shared chrome and a second copy of it in this
+         file is the copy that goes stale. The strip is the source; this is a
+         second view of it.
+
+         Inside .topnav-logo rather than beside it, so the flank the topnav
+         ladder is arithmetic on does not gain a sibling — the same reason the
+         account menu anchors the way it does. -->
+    <span class="prod-anchor">
+      <button class="prod-chev" id="prodChev" type="button"
+              aria-haspopup="menu" aria-expanded="false" aria-controls="prodMenu"
+              aria-label="Switch product" title="Products">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div class="menu prod-menu" id="prodMenu" role="menu" aria-label="AiMY products" hidden></div>
+    </span>
   </div>
 
   <div class="topnav-tabs">
@@ -339,14 +379,15 @@
 <div id="agentHost" hidden></div>
 
 
-<script src="assets/aimy-ds.js?v=1"></script>
-<script src="assets/chat.js?v=10"></script>
+<script src="assets/motion.js?v=31"></script>
+<script src="assets/aimy-ds.js?v=31"></script>
+<script src="assets/chat.js?v=41"></script>
 <!-- The four patterns AiMY does not already have. Optional: every call site in
      knowledge.js is guarded, so the console runs without them. -->
-<script src="assets/halaska-kit.bundle.js?v=7"></script>
-<script src="assets/halaska-bridge.js?v=2"></script>
-<script src="assets/halaska-mounts.js?v=2"></script>
+<script src="assets/halaska-kit.bundle.js?v=37"></script>
+<script src="assets/halaska-bridge.js?v=32"></script>
+<script src="assets/halaska-mounts.js?v=32"></script>
 
-<script src="assets/knowledge.js?v=340"></script>
+<script src="assets/knowledge.js?v=376"></script>
 </body>
 </html>

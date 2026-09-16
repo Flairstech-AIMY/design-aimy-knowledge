@@ -434,8 +434,11 @@
      thing that is a data-entry artifact and worth confirming.
   ═══════════════════════════════ */
   const CLIENTS = {
-    asteris: 'Asteris', upland: 'Upland', valsoft: 'Valsoft',
-    connect: 'Connect', cxs: 'CXS', flighthub: 'FlightHub',
+    /* The four tenancies first, named exactly as the console's TREE names them,
+       so the two halves of the product are talking about the same clients. */
+    flairs: 'FlairsTech', cxs: 'CXS', upland: 'Upland', medfar: 'MedFar',
+    asteris: 'Asteris', valsoft: 'Valsoft',
+    connect: 'Connect', flighthub: 'FlightHub',
     nordwind: 'Nordwind GmbH', tavola: 'Tavola Retail',
     meridian: 'Meridian Health', orbit: 'Orbit BPO'
   };
@@ -485,23 +488,21 @@
 
   /* ── The tenancy, above the content ──
 
-     `client` names the account a document is ABOUT. `org` names whose tenancy
-     it lives IN, which is the level above it: FlairsTech runs the desk, and
-     CXS, Upland and MedFar log in to their own. Two axes because they answer
-     two questions — a FlairsTech playbook can be about Nordwind, and a
-     document sitting in MedFar's tenancy is not ours to rewrite.
+     `client` names the account a document is about, and it is the only axis
+     there is: FlairsTech, CXS, Upland and MedFar are clients, and so are the
+     accounts they in turn serve. There used to be an `org` above it — a level
+     this product does not have — and it held nothing a client did not
+     already say.
 
-     Derivable, so it is derived. A client belongs to exactly one organisation,
-     which is what "above it in the tree" means, and a field re-stated on
-     forty-two records is a field that will disagree with itself by Friday. */
-  const ORGS = { flairs: 'FlairsTech', cxs: 'CXS', upland: 'Upland', medfar: 'MedFar' };
-  const ORG_OF_CLIENT = { nordwind: 'cxs', tavola: 'cxs', meridian: 'medfar', orbit: 'upland',
-    /* The console's clients carry the same names as two of the orgs above,
-       because they ARE those tenancies — CXS and Upland log in to their own.
-       The rest sit in FlairsTech's, which is the default below anyway; they are
-       written out so the mapping can be read rather than inferred. */
-    cxs: 'cxs', upland: 'upland', asteris: 'flairs', valsoft: 'flairs',
-    connect: 'flairs', flighthub: 'flairs' };
+     THE ORGANISATION AXIS IS GONE, and it was never a second fact. `o.org` was
+     derived — `ORG_OF_CLIENT[o.client] || 'flairs'` — so a document's
+     "Organisation" was its client rolled up one level, and a document with no
+     client read "FlairsTech" because that was the fallback rather than because
+     anyone had said so.
+
+     There is no level above a client to roll up to any more, and CLIENTS above
+     already carries the tenancies themselves: Upland and CXS sit in it beside
+     Nordwind and Tavola. One axis, one name, one value. */
 
   /* Who works with it. A SET, not a choice — a residency policy is read by the
      reviewers who check it and the managers who quote it, and a control that
@@ -1130,10 +1131,6 @@
         : (o.tags.indexOf('eu') > -1 || o.tags.indexOf('emea') > -1) ? 'emea' : 'global';
     }
     o.services = o.services || [];
-    /* The organisation follows the client, and everything with no client is
-       ours. Overridable in EXTRA where a document sits in a tenancy its
-       subject does not — a FlairsTech runbook about Nordwind stays ours. */
-    o.org = o.org || ORG_OF_CLIENT[o.client] || 'flairs';
     o.groups = o.groups || (GROUPS_OF_COL[o.col] || []).slice();
     o.props = o.props || {};
     o.arch = !!o.arch;
@@ -1208,7 +1205,6 @@
     owner:      { kind: 'Person or team', filter: 'ids',       label: (id) => id },
     collection: { kind: 'Collection',    filter: 'collection', label: (id) => COLLECTIONS[id] || id },
     source:     { kind: 'Source',        filter: 'source',     label: (id) => (SRC[id] || {}).label || id },
-    org:        { kind: 'Organisation',  filter: 'org',        label: (id) => ORGS[id] || id },
     client:     { kind: 'Client',        filter: 'client',     label: (id) => CLIENTS[id] || id },
     group:      { kind: 'Group',         filter: 'group',      label: (id) => GROUPS[id] || id },
     product:    { kind: 'Product',       filter: 'product',    label: (id) => PRODUCTS[id] || id },
@@ -1225,7 +1221,6 @@
     { type: 'ownedBy',   to: 'owner',      phrase: 'Owned by',      get: (o) => responsible(o) ? [responsible(o)] : [] },
     { type: 'in',        to: 'collection', phrase: 'Filed in',      get: (o) => [o.col] },
     { type: 'from',      to: 'source',     phrase: 'Came from',     get: (o) => [o.src] },
-    { type: 'within',    to: 'org',        phrase: 'Belongs to',    get: (o) => o.org ? [o.org] : [] },
     { type: 'about',     to: 'client',     phrase: 'About',         get: (o) => o.client ? [o.client] : [] },
     { type: 'sharedWith',to: 'group',      phrase: 'Shared with',   get: (o) => o.groups || [] },
     { type: 'serves',    to: 'product',    phrase: 'Answers for',   get: (o) => o.prod ? [o.prod] : [] },
@@ -1464,7 +1459,7 @@
      is what makes the surface drivable by an agent: to change what a person
      is looking at, write a URL.
   ═══════════════════════════════════════════════ */
-  const LIST_KEYS = ['type', 'tag', 'source', 'org', 'client', 'group', 'product', 'collection',
+  const LIST_KEYS = ['type', 'tag', 'source', 'client', 'group', 'product', 'collection',
                      'status', 'region', 'service', 'audience', 'ids'];
   const DATE_KEYS = ['updated', 'ingested', 'extCreated', 'extUpdated'];
   const FLAG_KEYS = ['mine', 'archived'];
@@ -1776,7 +1771,7 @@
      FILTERING
   ═══════════════════════════════════════════════ */
   /* Scalar axes — one value per object. */
-  const FIELD_OF = { type: 't', source: 'src', org: 'org', client: 'client', product: 'prod',
+  const FIELD_OF = { type: 't', source: 'src', client: 'client', product: 'prod',
                      collection: 'col', status: 'status', region: 'region' };
   /* Multi-value axes — a set per object, matched on any overlap. */
   const MULTI_OF = { tag: 'tags', service: 'services', audience: 'aud', group: 'groups' };
@@ -1977,11 +1972,11 @@
     [/\btavola\b/i,                       { client: 'tavola' }],
     [/\bmeridian\b/i,                     { client: 'meridian' }],
     [/\borbit\b/i,                        { client: 'orbit' }],
-    // organisations — the tenancy above the client
-    [/\bflairstech\b|\bflairs\b/i,        { org: 'flairs' }],
-    [/\bcxs\b/i,                          { org: 'cxs' }],
-    [/\bupland\b/i,                       { org: 'upland' }],
-    [/\bmedfar\b/i,                        { org: 'medfar' }],
+    // the tenancies, which are clients like any other
+    [/\bflairstech\b|\bflairs\b/i,        { client: 'flairs' }],
+    [/\bcxs\b/i,                          { client: 'cxs' }],
+    [/\bupland\b/i,                       { client: 'upland' }],
+    [/\bmedfar\b/i,                        { client: 'medfar' }],
     /* Named in full, and read BEFORE the collections below — the lexicon eats
        what it matches, so "support leads" has to be spent as a group before
        the bare word support is spent as a collection. */
@@ -2163,7 +2158,7 @@
   const READ_LABEL = {
     type: 'Type', tag: 'Tag', source: 'Source', client: 'Client', product: 'Product',
     collection: 'Collection', trust: 'Trust', work: 'Work state', q: 'Text',
-    org: 'Organisation', group: 'Group',
+    group: 'Group',
     region: 'Region', service: 'Service', audience: 'Audience', prop: 'Property',
     updated: 'Updated', ingested: 'Ingested', extCreated: 'Created at source',
     extUpdated: 'Changed at source', mine: 'Owner', ids: 'Documents',
@@ -2172,7 +2167,6 @@
   const VALUE_LABEL = {
     type: (v) => TYPES[v] ? TYPES[v].label : v,
     source: (v) => SRC[v] ? SRC[v].label : v,
-    org: (v) => ORGS[v] || v,
     client: (v) => CLIENTS[v] || v,
     group: (v) => GROUPS[v] || v,
     product: (v) => PRODUCTS[v] || v,
@@ -3173,6 +3167,11 @@
       this.count = $('#ntfCount');
 
       this.btn.addEventListener('click', (e) => { e.stopPropagation(); this.toggle(); });
+      this._layer = (window.AIMY_LAYERS || { add: (x) => x, closeAll: () => {} }).add({
+        name: 'bell',
+        isOpen: () => this.open,
+        close: () => this.close()
+      });
 
       const clear = $('#ntfClear');
       if (clear) clear.addEventListener('click', () => {
@@ -3271,6 +3270,7 @@
     toggle() { if (this.open) this.close(true); else this.show(); },
 
     show() {
+      (window.AIMY_LAYERS || { add: (x) => x, closeAll: () => {} }).closeAll(this._layer);
       this.paint();
       this.panel.hidden = false;
       this.open = true;
@@ -3315,6 +3315,11 @@
       if (!this.btn || !this.panel) return;
 
       this.btn.addEventListener('click', (e) => { e.stopPropagation(); this.toggle(); });
+      this._layer = (window.AIMY_LAYERS || { add: (x) => x, closeAll: () => {} }).add({
+        name: 'account',
+        isOpen: () => this.open,
+        close: () => this.close()
+      });
 
       /* The identity guard, not the registration order, is what stops the
          trigger press from also reading as a click-off. Registering this before
@@ -3332,10 +3337,148 @@
     toggle() { if (this.open) this.close(true); else this.show(); },
 
     show() {
+      (window.AIMY_LAYERS || { add: (x) => x, closeAll: () => {} }).closeAll(this._layer);
       this.panel.hidden = false;
       this.open = true;
       this.btn.setAttribute('aria-expanded', 'true');
       const first = $('.menu-item', this.panel);
+      if (first) first.focus();
+    },
+
+    close(returnFocus) {
+      if (!this.panel || !this.open) return;
+      this.panel.hidden = true;
+      this.open = false;
+      this.btn.setAttribute('aria-expanded', 'false');
+      if (returnFocus) this.btn.focus();
+    }
+  };
+
+  /* ══ THE PRODUCT MENU IS THE STRIP, READ BACK ══════════════════════
+     Below 900 the ecosystem strip comes off the masthead and hangs from the
+     mark as a menu (knowledge.css §THE LAST RUNG). What is in it is
+     not typed out again here: the tabs are shared chrome that the three
+     products carry identically, and a second list of them in this file is the
+     list that drifts the first time one is added or renamed. The strip in the
+     markup is the source and this is a second view of it.
+
+     Once, at boot: the strip is static markup and nothing repaints it. Both
+     shells run it, and each reads its OWN strip — which is how console.html's
+     AiMY tab stays a link back to the gate while index.html's stays inert.
+
+     WHERE THIS DEPARTS FROM SALES' fillProdMenu(), WHICH IT IS OTHERWISE A
+     PORT OF: Sales makes the active entry `disabled` unconditionally, because
+     its active tab is a <button> with nowhere to go. Here the active tab is a
+     <span> on index.html but a REAL <a href="index.html"> on console.html —
+     the way back to the gate. Disabling it on the strength of `active` would
+     have deleted that exit on the one shell that has it. So `is-on` marks
+     where you are and the href, not the class, decides whether it presses. */
+  function fillProdMenu() {
+    const menu = $('#prodMenu');
+    const strip = $('.topnav-tabs-inner');
+    if (!menu || !strip) return;
+    /* NO CAPTION. A menu hanging off the AiMY mark, listing the AiMY products,
+       does not also need a line saying Products — a label for what the next
+       line already is. */
+    menu.innerHTML = Array.prototype.map.call(strip.children, (tab) => {
+      const on = tab.classList.contains('active');
+      const href = tab.getAttribute('href');
+      /* THE TAB'S OWN MARK COMES WITH IT. The strip draws the product you are
+         on as the AiMY glyph and its name in the action ink; this list is a
+         second view of that strip, so it carries whatever mark the tab
+         carries rather than deciding for itself which entries have one. The
+         size is CSS's, next to .prod-menu. */
+      const mark = tab.querySelector('svg');
+      const label = (mark ? mark.outerHTML : '') +
+        '<span>' + esc(tab.textContent.trim()) + '</span>';
+      const cls = 'menu-item' + (on ? ' is-on' : '');
+      const cur = on ? ' aria-current="page"' : '';
+      /* The ones with nowhere to go say so by not being pressable. A menu item
+         that answers a press with nothing teaches you to stop pressing. */
+      if (!href) {
+        return '<button class="' + cls + '" type="button" role="menuitem"' + cur +
+               ' disabled>' + label + '</button>';
+      }
+      return '<a class="' + cls + '" role="menuitem"' + cur +
+             ' href="' + esc(href) + '">' + label + '</a>';
+    }).join('');
+  }
+
+  /* Shaped like `userMenu` on purpose — same [hidden] language, same layer
+     registration, same click-off guard. A second dropdown mechanism in one
+     masthead is one too many, and this one sits eight pixels from the first. */
+  const prodMenu = {
+    btn: null, panel: null, open: false,
+
+    init() {
+      this.btn = $('#prodChev');
+      this.panel = $('#prodMenu');
+      if (!this.btn || !this.panel) return;
+      fillProdMenu();
+
+      this.btn.addEventListener('click', (e) => { e.stopPropagation(); this.toggle(); });
+      this._layer = (window.AIMY_LAYERS || { add: (x) => x, closeAll: () => {} }).add({
+        name: 'products',
+        isOpen: () => this.open,
+        close: () => this.close()
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!this.open || this.panel.contains(e.target) || this.btn.contains(e.target)) return;
+        this.close();
+      });
+
+      /* Following a row is the end of the menu's job — the same rule the
+         account menu and the rail drawer both state for themselves. */
+      this.panel.addEventListener('click', (e) => { if (e.target.closest('a')) this.close(); });
+
+      /* ══ AND ON THE GATE IT CLOSES ITSELF ════════════════════════════
+         Escape is handled in the canvas's chain, where every dismissable layer
+         on the two console shells is ordered once — which is where the two
+         entries for this menu live, and why it does not carry a listener of
+         its own there.
+
+         THE GATE HAS NO SUCH CHAIN. `canvas.init()` returns at `this.inline`
+         before that listener is ever registered (:8520), and the gate's own
+         handler in chat.js deliberately closes one thing — the rail drawer —
+         on the grounds that "Escape on the gate must never dismiss the surface
+         the page is made of". Measured before this existed: on index.html at
+         400px the panel stayed open on Escape with aria-expanded still true,
+         while the same press closed it on console.html.
+
+         So the fallback is registered only where the chain is absent. Guarded
+         on `open`, so it cannot eat an Escape meant for anything else, and
+         `canvas.init()` has already run by the time this does, which is what
+         makes `inline` readable here. */
+      if (canvas.inline) {
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && this.open) { e.stopPropagation(); this.close(true); }
+        });
+      }
+
+      /* A menu behind a chevron is a narrow-screen shape. Above the breakpoint
+         the strip is back on the bar and the chevron is `display: none`, so an
+         `open` left behind would be a panel hanging off an invisible button
+         with its aria-expanded still claiming true. The CSS cannot leak it;
+         this keeps the STATE honest, which is the same reason makeDrawer()
+         carries the identical listener. */
+      const mq = matchMedia('(max-width: 900px)');
+      const onChange = () => { if (!mq.matches) this.close(); };
+      if (mq.addEventListener) mq.addEventListener('change', onChange);
+      else mq.addListener(onChange);
+    },
+
+    toggle() { if (this.open) this.close(true); else this.show(); },
+
+    show() {
+      (window.AIMY_LAYERS || { add: (x) => x, closeAll: () => {} }).closeAll(this._layer);
+      this.panel.hidden = false;
+      this.open = true;
+      this.btn.setAttribute('aria-expanded', 'true');
+      /* The first row that can take focus. `.menu-item` alone would land on a
+         disabled button — the product you are already on, on index.html — and
+         focus falls through it to nothing. */
+      const first = this.panel.querySelector('.menu-item:not([disabled])');
       if (first) first.focus();
     },
 
@@ -4110,7 +4253,6 @@
   const AXES = {
     col:    { label: 'Collection', kind: 'collection', of: (o) => o.col,
               none: 'Not filed anywhere', order: () => USER.collections },
-    org:    { label: 'Organisation', kind: 'org',      of: (o) => o.org,    none: 'In no organisation' },
     client: { label: 'Client',     kind: 'client',     of: (o) => o.client, none: 'Not about any client' },
     prod:   { label: 'Product',    kind: 'product',    of: (o) => o.prod,   none: 'Answers for no product' },
     owner:  { label: 'Owner',      kind: 'owner',      of: (o) => responsible(o),  none: 'Nobody owns it' },
@@ -5096,14 +5238,13 @@
      than nine copies of it in the copy. */
   const artic = (s) => (/^[aeiou]/i.test(s) ? 'an ' : 'a ') + s;
 
-  /* Ordered as the tenancy is: whose it is, who owns it, what it is, then the
-     tree above the content — Organisation, then the client inside it — then
-     the filing. `lead` is gone; a field whose lead is its own name does not
-     need to say it twice. */
+  /* Ordered as the tenancy is: who owns it, what it is, then the tree above
+     the content — the client, then the product inside it — then the filing.
+     `lead` is gone; a field whose lead is its own name does not need to say it
+     twice. */
   const PROP_FIELDS = [
     { key: 'owner',  label: 'Owner',        map: () => OWNERS.map((x) => [x, x]) },
     { key: 't',      label: 'Type',         map: () => opts(TYPES) },
-    { key: 'org',    label: 'Organisation', map: () => opts(ORGS),        blank: 'None' },
     { key: 'client', label: 'Client',       map: () => opts(CLIENTS),     blank: 'None' },
     { key: 'col',    label: 'Collection',   map: () => opts(COLLECTIONS), blank: 'None' },
     { key: 'prod',   label: 'Product',      map: () => opts(PRODUCTS),    blank: 'None' },
@@ -7104,6 +7245,31 @@
        a draft, not a revision of something, and drawing a diff against "(empty)"
        said the opposite. */
     const isNew = !aiDraft.was;
+
+    /* ══ WHILE IT IS STILL BEING WRITTEN ══════════════════════════
+       The same box, in the same place, at roughly the same size - so the
+       proposal resolves INTO the shape the reader is already looking at rather
+       than pushing the document around when it arrives.
+
+       No foot. There is nothing to accept yet, and a disabled Accept under a
+       draft that does not exist is a control that lies about what it can do.
+
+       The caption reuses `.ai-thinking-label` deliberately: this is the same
+       state as the chat's thinking line - AiMY is working and has said what on
+       - so it should be the same words in the same treatment, and swapLabel
+       already knows how to change it without a repaint. */
+    if (aiDraft.pending) {
+      return `<div class="ai-suggestion is-pending" id="aiSuggest" aria-busy="true">
+        <div class="ai-suggestion-head">${AIMY_MARK(12, 13)}${esc(aiDraft.label)}</div>
+        <div class="ai-suggestion-body">
+          <div class="ai-thinking-label ai-suggestion-note">${esc(aiDraft.note || 'Working')}</div>
+          <div class="skeleton" style="height:0.75rem"></div>
+          <div class="skeleton" style="height:0.75rem"></div>
+          <div class="skeleton" style="height:0.75rem;width:62%"></div>
+        </div>
+      </div>`;
+    }
+
     return `<div class="ai-suggestion" id="aiSuggest">
       <div class="ai-suggestion-head">${AIMY_MARK(12, 13)}${esc(isNew ? 'AiMY drafted this' : aiDraft.label)}</div>
       <div class="ai-suggestion-body">
@@ -7132,23 +7298,97 @@
        says selection and document scope must never do. It collects, and the
        badge on the input says how much is waiting. */
     canvas.push('user', esc(label + ' — ' + o.title));
-    canvas.push('aimy', `<div class="answer-surface"><div class="answer-body">${proposed}</div>
+
+    /* ══ AIMY IS SEEN TO WORK ══════════════════════════════════
+       The proposal used to be in the document in the same frame as the click
+       that asked for it, which reads as a thing that was already there rather
+       than as a thing that was written for you. There is no model behind this
+       to be slow, so the wait is a reading decision - the same kind the chat's
+       three seconds is - and it is spent SAYING what is happening rather than
+       spinning.
+
+       The canvas gets the question now and the answer when there is one. A
+       completed reply sitting in the record while the document is still
+       drafting would be the surface disagreeing with itself.
+
+       AIMY_LATENCY owns the pace, so `?latency=instant` collapses all three
+       beats and the proposal lands in the click, exactly as before. */
+    if (aiHold) { aiHold(); aiHold = null; }
+    aiDraft = { doc: o.id, label: label, was: wasText || '', proposed: proposed,
+                msg: '', editing: false, pending: true, note: 'Reading the document' };
+    renderDoc(readURL());
+    const waiting = $('#aiSuggest');
+    if (waiting) {
+      /* The BOX arrives here, once. What happens when the draft is ready is
+         its contents resolving inside a box the reader is already looking at -
+         see `is-resolving` below. A second box-level entrance there would
+         announce the same card twice. */
+      const M1 = window.AIMY_MOTION;
+      waiting.classList.add('is-proposing');
+      if (M1) M1.after(waiting, () => waiting.classList.remove('is-proposing'), { ms: 900 });
+      waiting.scrollIntoView({ block: 'nearest' });
+    }
+
+    const land = () => {
+      aiHold = null;
+      /* Navigated away, or a second proposal superseded this one. */
+      if (!aiDraft || aiDraft.doc !== o.id || !aiDraft.pending) return;
+      aiDraft.pending = false;
+      canvas.push('aimy', `<div class="answer-surface"><div class="answer-body">${proposed}</div>
       <div class="answer-scope">${ICO.pen.replace('<svg', '<svg style="width:12px;height:12px"')}
       <span>Proposed in the document. Not applied.</span></div></div>`, 'ai-' + (++aiSeq));
-    bumpCanvasBadge();
+      aiDraft.msg = 'ai-' + aiSeq;
+      bumpCanvasBadge();
+      renderDoc(readURL());
+      markAfter('#aiSuggest', $('#docCanvas'));
+      landProposal();
+    };
 
-    aiDraft = { doc: o.id, label: label, was: wasText || '', proposed: proposed,
-                msg: 'ai-' + aiSeq, editing: false };
-    renderDoc(readURL());
-    markAfter('#aiSuggest', $('#docCanvas'));
+    const M0 = window.AIMY_MOTION;
+    if (!M0) { land(); return; }
+    aiHold = M0.latency.steps([
+      { label: 'Reading the document', ms: 700 },
+      { label: 'Drafting the change', ms: 900 },
+      { label: 'Checking it against the sources', ms: 600 }
+    ], (text) => {
+      /* Banked on the draft as well as written to the node, because a repaint
+         of the document rebuilds this card and would otherwise redraw it
+         holding the first beat. */
+      if (aiDraft) aiDraft.note = text;
+      const note = $('#aiSuggest .ai-suggestion-note');
+      if (note) swapLabel(note, text);
+    }, land);
+  }
+
+  /* Split out so the pending path and the no-motion path arm the entrance the
+     same way rather than each keeping its own copy. */
+  function landProposal() {
     const card = $('#aiSuggest');
-    if (card) card.scrollIntoView({ block: 'nearest' });
+    if (card) {
+      /* ══ THE ENTRANCE IS ARMED HERE, NOT IN THE TEMPLATE ════════════
+         renderDoc rebuilds this card on every repaint for as long as the draft
+         is live - every keystroke in the document under it, every status
+         change, every comment. An entrance written into the markup would
+         replay on all of them, which is the strobe rather than the arrival.
+
+         Added at the one moment a proposal is actually made. The node is
+         destroyed by the next repaint and the class goes with it, so there is
+         nothing to clean up - the timer below is only for the case where the
+         animation never runs at all. */
+      const M = window.AIMY_MOTION;
+      card.classList.add('is-resolving');
+      if (M) M.after(card, () => card.classList.remove('is-resolving'), { ms: 900 });
+      card.scrollIntoView({ block: 'nearest' });
+    }
   }
 
   /* What you did with a proposal is part of the record. Written back into the
      message it belongs to, so the thread reads as request → response → outcome
      rather than a list of things AiMY offered and no sign of what happened. */
   let aiSeq = 0;
+  /* The beats of a proposal still being drafted. Cancelled when another
+     proposal starts, so two cannot narrate over each other. */
+  let aiHold = null;
   function aiOutcome(msgId, verdict) {
     const el = msgId && document.getElementById(msgId);
     if (!el) return;
@@ -7171,14 +7411,47 @@
   /* Mark by selector after the repaint that produced the element — the node the
      caller was holding is gone by then, which is why this takes a selector. */
   function markAfter(sel, root) {
-    setTimeout(() => {
+    const go = () => {
       const el = (root || document).querySelector(sel);
       if (el) markChanged(el);
-    }, 30);
+    };
+    /* The repaint that produces this element may be running inside a view
+       transition, which lands on the browser's schedule rather than ours. The
+       30ms this used to wait was a guess that was longer than a frame; where
+       there is a real event to wait for, afterPaint waits for it, and where
+       there is not it still waits 30ms. */
+    const M = window.AIMY_MOTION;
+    if (M && M.afterPaint) M.afterPaint(go);
+    else setTimeout(go, 30);
   }
 
   /* The card for a document, wherever it is on the grid. */
   function markCard(id) { markAfter(`#wbStage [data-card-open="${id}"]`); }
+
+  /* Replace a word in place while the thing it names is still happening. Used
+     by the thinking state, where the mark keeps turning and only the caption
+     resolves into the next true statement.
+
+     The reflow between removing the class and adding it back is what
+     guarantees the entrance replays - without it both writes land in one style
+     recalculation and the browser sees no change to animate. The same idiom
+     markChanged uses, for the same reason.
+
+     `after` rather than a hardcoded wait: the out duration lives in the
+     stylesheet, and a number repeated here would be a number that drifts. */
+  function swapLabel(el, text) {
+    if (!el || el.textContent === text) return;
+    const M = window.AIMY_MOTION;
+    if (!M || M.reduced()) { el.textContent = text; return; }
+    el.classList.remove('is-in');
+    el.classList.add('is-out');
+    M.after(el, () => {
+      el.textContent = text;
+      el.classList.remove('is-out');
+      void el.offsetWidth;
+      el.classList.add('is-in');
+    });
+  }
 
   /* One writer for the body. o.sum is the plain-text projection the cards,
      the search, the Publish gate and the version bodies all read; o.html is
@@ -8247,7 +8520,7 @@
       if (this.inline) {
         this.open = true;
         if (this.thread) {
-          this.thread.addEventListener('scroll', () => this.syncEdge(), { passive: true });
+          this.thread.addEventListener('scroll', () => this.queueEdge(), { passive: true });
           this.syncEdge();
         }
         return;
@@ -8269,6 +8542,10 @@
            here rather than owning a listener of its own. */
         if (bell.open) { bell.close(true); return; }
         if (userMenu.open) { userMenu.close(true); return; }
+        /* And the product menu is the third of the same kind of thing on the
+           same row — a dropdown off the masthead. It joins its two neighbours
+           here rather than growing a listener of its own. */
+        if (prodMenu.open) { prodMenu.close(true); return; }
         if (peekStack.length) { closePeek(); return; }
         if (calOpen) { calOpen = null; calPick = null; renderFilters(readURL()); return; }
         if (facetOpen) {
@@ -8291,7 +8568,7 @@
         if (e.target === this.overlay || e.target.classList.contains('overlay-main')) this.close();
       });
       if (this.thread) {
-        this.thread.addEventListener('scroll', () => this.syncEdge(), { passive: true });
+        this.thread.addEventListener('scroll', () => this.queueEdge(), { passive: true });
         this.syncEdge();
       }
     },
@@ -8356,16 +8633,32 @@
       th.classList.toggle('is-at-end', th.scrollHeight - th.clientHeight - th.scrollTop < 4);
     },
 
+    /* The scroll path goes through here instead. syncEdge is three layout reads
+       followed by a class write, and the write invalidates style, so the next
+       event's read forced a fresh layout - once per event, on the most scrolled
+       surface in the product. Coalesced, a scroll burst measures once a frame.
+
+       Callers that need the answer now still call syncEdge directly; this only
+       fronts the listener. */
+    queueEdge() {
+      if (this._edgeQ) return;
+      this._edgeQ = requestAnimationFrame(() => { this._edgeQ = 0; this.syncEdge(); });
+    },
+
     reveal(el) {
       const th = this.thread;
       if (!th || !el) { this.syncEdge(); return; }
-      if (th.scrollHeight <= th.clientHeight) return;
-      const msg = el.closest('.chat-msg') || el;
-      if (msg.getBoundingClientRect().height > th.clientHeight * 0.7) {
-        th.scrollTop += msg.getBoundingClientRect().top - th.getBoundingClientRect().top - 12;
-      } else {
-        th.scrollTop = th.scrollHeight;
-      }
+      const msg = (el.closest && el.closest('.chat-msg')) || el;
+      /* Every read first, then the write. `msg` was measured twice for one
+         value, and the second measurement sat on the right-hand side of a `+=`
+         that writes scrollTop - so it forced a layout in the middle of its own
+         statement, on every message appended during a stream. */
+      const sh = th.scrollHeight, ch = th.clientHeight;
+      if (sh <= ch) return;
+      const m = msg.getBoundingClientRect();
+      const t = th.getBoundingClientRect();
+      if (m.height > ch * 0.7) th.scrollTop += m.top - t.top - 12;
+      else th.scrollTop = sh;
       this.syncEdge();
     },
 
@@ -8471,7 +8764,7 @@
          One field, and it is what lets an answer show its sources, be
          retried, and hand its documents to the Console. */
       if (turn) turn.q = text;
-      const timer = setTimeout(() => {
+      const land = () => {
         /* THE TURN IS UPDATED BEFORE THE ELEMENT, and whether or not the
            element is still there. Switching conversations mid-answer removes
            the bubble from the DOM, and returning to that conversation rebuilds
@@ -8540,12 +8833,42 @@
            dropped the `q` that the sources panel and retry depend on. The
            turn is only complete here. */
         saveChats();
-      /* Three seconds, not the original 900ms. The mark's cycle is 2.56s, so
-         under a second showed a fragment of a gesture and cut it off. This is
-         long enough to complete one and start the next. It is a fixed wait
-         either way — there is no backend to be slow — so the number is a
-         reading decision rather than a measurement. */
-      }, 3000);
+      };
+
+      /* ══ THE WAIT IS A SEQUENCE, NOT A HOLD ═══════════════════════
+         Still three seconds, and for the original reason: the mark's cycle is
+         2.56s, so under a second shows a fragment of a gesture and cuts it
+         off. It is a fixed wait either way — there is no backend to be slow —
+         so the number is a reading decision rather than a measurement.
+
+         What changed is that the three seconds now have three moments in them.
+         One unchanging caption for that long is a spinner with a word on it:
+         it says the machine is busy, says nothing else, and says it for long
+         enough that a reader starts wondering whether it is stuck.
+
+         EVERY BEAT IS TRUE OF THIS QUESTION. `answerIds` is the same function
+         the sources panel and Retry read, so the count is the real one rather
+         than a number picked to look busy — and when nothing matched, the
+         caption says that instead of pretending otherwise.
+
+         AIMY_LATENCY owns the pace, so `?latency=instant` collapses all three
+         beats and the answer lands synchronously. That is the shape this has
+         to take the day a model is actually behind it, and it is better to be
+         in that shape now than to discover the branch later. */
+      const M = window.AIMY_MOTION;
+      /* A HOLDER, FILLED IN AT THE BOTTOM OF THIS FUNCTION.
+         The beats cannot be armed here. At `latency=instant` every wait
+         collapses to nothing and latency.steps runs all three beats AND `land`
+         synchronously, inside the arming call - which would put the entire
+         answer, and its call to generating.finish, above the `const run` that
+         finish is given. That is a temporal dead zone on a const; and without
+         the throw it would be worse, because finishing a run before starting
+         it leaves the beam lit with nothing left to turn it off.
+
+         So the run is created first and the beats are armed under it. Nothing
+         can cancel in between: cancelling takes a click, and a click cannot
+         arrive in the middle of this function. */
+      let timer = () => {};
 
       /* ══ AND IT CAN BE CALLED OFF ═════════════════════════════════
          Three seconds of thinking and then a stream is long enough to change
@@ -8561,7 +8884,7 @@
          is its turns: an element left ahead of them comes back whole on the
          next repaint, which is the answer you stopped returning by itself. */
       const run = generating.start(() => {
-        clearTimeout(timer);
+        timer();
         stopStream();
         stopThinking();
         const el = document.getElementById(id);
@@ -8588,6 +8911,43 @@
         }
         saveChats();
       });
+
+      /* ══ AND NOW THE WAIT CAN START ════════════════════════════
+         Still three seconds, and for the original reason: the mark's cycle is
+         2.56s, so under a second shows a fragment of a gesture and cuts it
+         off. It is a fixed wait either way — there is no backend to be slow —
+         so the number is a reading decision rather than a measurement.
+
+         What changed is that the three seconds now have three moments in them.
+         One unchanging caption for that long is a spinner with a word on it:
+         it says the machine is busy, says nothing else, and says it for long
+         enough that a reader starts wondering whether it is stuck.
+
+         EVERY BEAT IS TRUE OF THIS QUESTION. `answerIds` is the same function
+         the sources panel and Retry read, so the count is the real one rather
+         than a number picked to look busy — and when nothing matched, the
+         caption says that instead of pretending otherwise. */
+      if (M) {
+        const found = answerIds(text).length;
+        const beats = [
+          { label: 'Searching the corpus', ms: 1000 },
+          { label: found === 1 ? 'Reading 1 document'
+                 : found ? 'Reading ' + found + ' documents'
+                 : 'Nothing matched yet — widening', ms: 1000 },
+          { label: found > 1 ? 'Checking them against each other'
+                 : 'Composing the answer', ms: 1000 }
+        ];
+        timer = M.latency.steps(beats, (label) => {
+          /* The bubble is gone when the reader switched conversations
+             mid-answer. The beats keep running and `land` still fires, because
+             the TURN is what holds the answer — only the caption is missing. */
+          const host = document.getElementById(id);
+          if (host) swapLabel(host.querySelector('.ai-thinking-label'), label);
+        }, land);
+      } else {
+        const t = setTimeout(land, 3000);
+        timer = () => clearTimeout(t);
+      }
     },
 
     /* Appends, and RECORDS. The turn is what a conversation is made of — the
@@ -9880,6 +10240,146 @@
     document.title = sub ? base + ' \u2014 ' + sub : base;
   }
 
+  /* ══ IS THIS A NEW PLACE, OR THE SAME PLACE ASKED A NARROWER QUESTION? ══
+     The whole difference between motion and a strobe is this one answer.
+
+     ALL_KEYS are FILTERS, and `f` is the same thing for a settings module:
+     changing one narrows the set you are already looking at, once per 260ms of
+     debounce. Dissolving the screen on each of those would be the blink, not
+     the cure. Everything else - a module, a document, a tab, a view mode, a
+     sort - is a PLACE, and moving between places is exactly what a transition
+     is for.
+
+     Built by deleting the filter keys out of the URL the existing serializer
+     writes, rather than by listing the place keys here. A second list would
+     have to be remembered every time a key is added, and the one that is
+     forgotten is the one that silently stops animating. */
+  /* ══ SELECTING IS NOT TRAVELLING ═════════════════════════════
+     `node`, `role`, `vs` and `who` all name WHICH ONE is chosen on a surface
+     that stays exactly where it is: the map, the roles list, the directory.
+     Treating them as places meant choosing a node cross-dissolved the entire
+     stage in order to move one highlight - a repaint dressed as a transition,
+     and disproportionate enough that it reads as the page reloading.
+
+     The test that separates the two is whether the thing you are choosing FROM
+     survives the change. It does here. It does not when a skill replaces the
+     list with a document, or when the module or the scope changes and the page
+     is composed again from different material - those stay places. */
+  const QUIET_KEYS = ALL_KEYS.concat(['f', 'node', 'role', 'vs', 'who']);
+  let LAST_PLACE = null;
+  function placeOf(st) {
+    const p = new URLSearchParams(serialize(st));
+    QUIET_KEYS.forEach((k) => p.delete(k));
+    return p.toString();
+  }
+
+  /* ══ ARRIVING SOMEWHERE IS NOT THE SAME AS BEING THERE ═════════════
+     There is no network here, so a loading state cannot be observed - it has
+     to be DESIGNED, and the two decisions that make it honest rather than
+     decorative are both about when NOT to show one.
+
+     Not on a narrowing. A filter change is the set you are already holding,
+     asked a smaller question; a skeleton there would claim to be fetching
+     something that is already in the room, once per keystroke.
+
+     Not on a return. A place you have been to is a place whose data you have,
+     and it is the repeat visits rather than the first that turn a loading
+     state into a tax. SEEN is the cache this product would have if it had a
+     network to cache against.
+
+     The doctrine this answers to is already written down, in
+     AiMY_Knowledge_v2_Design_Direction.md:429 - "Block skeletons render in
+     priority order. Blocks appear as they resolve rather than waiting for the
+     slowest." The content still arrives in one write, so the ORDER is what
+     carries it: each top-level block resolves a beat after the one above,
+     which is the priority order the page was already composed in. */
+  const SEEN = new Set();
+  const LOAD_MS = 420;
+  let loadHold = null;
+
+  function skRow(h) { return '<div class="skeleton sk-row" style="--h:' + h + '"></div>'; }
+
+  /* Shaped like the page that is coming, not like a generic box. The chrome -
+     a title, a scope line - is identical on every settings module, so that
+     half lands exactly where the real one will and does not move when it
+     arrives. The rows below it are an approximation, which is what the
+     cross-blur on the reveal is for. */
+  function stageSkeleton(inSet, isDoc) {
+    if (isDoc) {
+      return '<div class="sk-doc" aria-hidden="true">'
+        + '<div class="skeleton sk-title"></div>'
+        + '<div class="skeleton sk-bar"></div>'
+        + skRow(7) + skRow(7) + skRow(7) + skRow(4) + '</div>';
+    }
+    if (inSet) {
+      return '<div class="set2-col" aria-hidden="true">'
+        + '<div class="skeleton sk-title"></div>'
+        + '<div class="skeleton sk-bar"></div>'
+        + '<div class="sk-rows">'
+        + skRow(3) + skRow(3) + skRow(3) + skRow(3) + skRow(3) + '</div></div>';
+    }
+    /* The grid already had a skeleton, built at card proportions so the layout
+       does not reflow when the real cards land. It has only ever been
+       reachable by typing ?state=loading into the address bar. */
+    return '<div class="ws-grid" aria-hidden="true">'
+      + Array.from({ length: 6 }).map(() =>
+        '<div class="skeleton-card"><div class="skeleton skeleton-line" style="width:38%"></div>'
+        + '<div class="skeleton skeleton-line" style="width:80%;height:15px"></div>'
+        + '<div class="skeleton skeleton-line" style="width:64%"></div>'
+        + '<div class="skeleton skeleton-line" style="width:52%"></div></div>').join('')
+      + '</div>';
+  }
+
+  /* One beat per block, top down. Capped at nine because past that a cascade
+     stops being an order and becomes a queue. */
+  function resolveBlocks(stage) {
+    const col = stage.firstElementChild;
+    const list = (col && col.children.length > 1)
+      ? Array.prototype.slice.call(col.children)
+      : Array.prototype.slice.call(stage.children);
+    list.forEach((b, i) => {
+      if (i > 8) return;
+      b.style.setProperty('--i', String(i));
+      b.classList.add('k-resolve');
+    });
+    /* Second defence, the same one the map keeps. `backwards` already means a
+       cancelled or never-started animation leaves the block alone - but a
+       clock that FREEZES mid-delay holds it at the first keyframe, six pixels
+       low and invisible, for as long as the page is open. setTimeout is
+       throttled in a background tab and still fires, so the class comes off
+       either way. */
+    const M = window.AIMY_MOTION;
+    const off = () => list.forEach((b) => b.classList.remove('k-resolve'));
+    const ms = (M ? M.ms('--t-base', 250) + 8 * M.ms('--t-stagger', 40) : 570) + 120;
+    if (M) M.after(stage, off, { ms: ms }); else setTimeout(off, ms);
+  }
+
+  function stageIn(st, inSet, isDoc, paint) {
+    const M = window.AIMY_MOTION;
+    const stage = $('#wbStage');
+    /* A navigation made while one of these is still resolving abandons it.
+       Waiting the rest of a fabricated delay for a page nobody is on any more
+       is the only thing worse than the delay itself. */
+    if (loadHold) { loadHold(); loadHold = null; }
+    if (!stage) { paint(); return; }
+
+    const where = placeOf(st);
+    const fresh = !SEEN.has(where);
+    SEEN.add(where);
+
+    if (!M || !fresh || M.reduced() || M.latency.profile === 'instant') { paint(); return; }
+
+    stage.removeAttribute('data-doc');
+    stage.innerHTML = stageSkeleton(inSet, isDoc);
+    stage.setAttribute('aria-busy', 'true');
+    loadHold = M.latency.hold(LOAD_MS, () => {
+      loadHold = null;
+      paint();
+      stage.removeAttribute('aria-busy');
+      resolveBlocks(stage);
+    });
+  }
+
   function render() {
     const st = readURL();
     syncTitle();
@@ -9901,6 +10401,22 @@
        follows the URL. */
     if (canvas.inline) { canvas.repaint(); paintChats(); return; }
 
+    const place = placeOf(st);
+    /* The first paint of a session is an arrival, not a move. Dissolving into
+       it would mean dissolving out of a blank page. */
+    const moved = LAST_PLACE !== null && LAST_PLACE !== place;
+    LAST_PLACE = place;
+
+    /* The mutation runs INSIDE the callback, asynchronously, which is the one
+       thing a caller of render() has to know: anything that must read the DOM
+       afterwards belongs in paintStage, not after this line. There is nothing
+       after this line for exactly that reason. */
+    const M = window.AIMY_MOTION;
+    if (M && moved) M.swap(() => paintStage(st));
+    else paintStage(st);
+  }
+
+  function paintStage(st) {
     /* Before anything reads them. The corpus cannot move during a paint, so the
        findings are computed once and every card, the rail and the bell read the
        same answer. */
@@ -9942,13 +10458,19 @@
        over it would be presenting a surface the layout has withdrawn — and its
        toggle goes with it, leaving nothing on screen to close it with. */
     if (isDoc && drawers.rail) drawers.rail.close();
-    if (inSet) {
-      $('#wbStage').removeAttribute('data-doc');
-      $('#wbStage').innerHTML = SET.body(st);
-      SET.painted();
-    }
-    else if (isDoc) { renderDoc(st); }
-    else { $('#wbStage').removeAttribute('data-doc'); renderGrid(st); }
+    /* The three stages, unchanged - and behind stageIn, which decides whether
+       this paint is an arrival worth showing a skeleton for or a surface you
+       are already standing on. */
+    const paintNow = () => {
+      if (inSet) {
+        $('#wbStage').removeAttribute('data-doc');
+        $('#wbStage').innerHTML = SET.body(st);
+        SET.painted();
+      }
+      else if (isDoc) { renderDoc(st); }
+      else { $('#wbStage').removeAttribute('data-doc'); renderGrid(st); }
+    };
+    stageIn(st, inSet, isDoc, paintNow);
 
     if (st.settings) renderSettings(st);
     else if (setModal.open) setModal.close();
@@ -10548,8 +11070,16 @@
         media: '(max-width: 900px)',
         labelOpen: 'Show conversations',
         labelClose: 'Hide conversations',
+        /* One class on the overlay still drives both the column and its scrim
+           — `.aimy-overlay.chats-open` is what the CSS keys off for each — so
+           this stays a single toggle rather than growing a second handle the
+           way the rail needed. */
         apply(on) { $('#aimyOverlay').classList.toggle('chats-open', on); }
       });
+      /* And pressing the dimmed thread shuts it, which is the gesture the rail
+         drawer's scrim already answers. */
+      const ovScrim = $('#ovChatsScrim');
+      if (ovScrim && this.chats) ovScrim.addEventListener('click', () => drawers.chats.close());
     },
     /* Opening a document hides the rail at every width, so a drawer left open
        over it would be showing a surface the layout has already withdrawn. */
@@ -11226,6 +11756,29 @@
       if (!d.matches || !d.matches('.rail-block[data-rail-block]')) return;
       const k = d.getAttribute('data-rail-block');
       if (d.open) delete railShut[k]; else railShut[k] = true;
+    }, true);
+
+    /* ══ THE VERSION LIST IS A MENU, NOT A DISCLOSURE ═══════════════
+       It floats over the document and is dismissed by looking away, which is
+       what makes it a layer - unlike the rail block above it, or the answer's
+       trace, which sit in the flow and must keep their state when a menu opens
+       somewhere else.
+
+       Being a <details>, pressing its own summary again already closes it.
+       What it never did was take part: it would sit open behind the bell, or
+       stay open while an account menu opened over the top of it. Registered
+       here rather than at its render site because the element is rebuilt on
+       every repaint and the registration must outlive it - so the layer is
+       described by a SELECTOR, not by a node. */
+    const verLayer = (window.AIMY_LAYERS || { add: (x) => x, closeAll: () => {} }).add({
+      name: 'versions',
+      isOpen: () => !!$('details.doc-versions[open]'),
+      close: () => { const d = $('details.doc-versions[open]'); if (d) d.open = false; }
+    });
+    document.addEventListener('toggle', (e) => {
+      const d = e.target;
+      if (!d.matches || !d.matches('details.doc-versions') || !d.open) return;
+      (window.AIMY_LAYERS || { add: (x) => x, closeAll: () => {} }).closeAll(verLayer);
     }, true);
 
     /* Put the pointer in the text and the text becomes writable, at the point
@@ -13588,22 +14141,93 @@
   const STREAM_CPS = 1100;
   let streamRAF = 0;
 
+  /* ══ A BLOCK IS A BEAT ════════════════════════════════════
+     A block with no prose in it - a source list, a card, the trust disclosure,
+     the trace - used to advance on the very NEXT FRAME. Three of them
+     therefore landed inside about 50ms, which is to say simultaneously, which
+     is to say the answer arrived as a slab with an entrance animation on it
+     rather than as an answer being assembled.
+
+     140ms is roughly the gap that reads as one thing following another rather
+     than as a stall. Four blocks is half a second of assembly, under the
+     stream that is already running beside it.
+
+     Held through AIMY_LATENCY like every other fabricated wait in the product,
+     so `?latency=instant` drops the beat and the answer lands whole. */
+  const BLOCK_BEAT = 140;
+  let streamHold = null;
+
+  /* ══ WHAT MAY BE TYPED OUT, AND WHAT MUST SIMPLY LAND ══════════════
+     Structure lands; sentences arrive. A card, a source list, a table or a
+     disclosure typed character by character reads as a rendering bug.
+
+     THE SELF TEST IS THE FIX. This only ever looked at a block's DESCENDANTS,
+     and a trace contains no trace - so `.act-log`, the "How this was answered"
+     disclosure, passed as prose and was the one thing in the whole answer that
+     streamed. Meanwhile the answer itself did not: see the wrapper note in
+     typeIn. The two faults were each other's mirror image.
+
+     `.rs-head` joins the list on the same principle: it is a heading, and a
+     heading that types itself out is a heading nobody can read yet. */
+  const NOT_PROSE = '.type-card, .source-item, .trust-disclosure, .answer-apply,'
+    + ' .rs-list, .rs-head, .act-log, .greet-next, table';
   const isProse = (b) =>
-    !b.querySelector('.type-card, .source-item, .trust-disclosure, .answer-apply, .rs-list, .act-log, .greet-next, table')
+    !b.matches(NOT_PROSE) && !b.querySelector(NOT_PROSE)
     && !b.classList.contains('greet-next');
 
   function stopStream() {
     if (streamRAF) cancelAnimationFrame(streamRAF);
     streamRAF = 0;
+    /* The beat between blocks is a timer, not a frame, so cancelling frames
+       alone would leave a stopped answer still assembling itself. */
+    if (streamHold) { streamHold(); streamHold = null; }
   }
 
   function typeIn(el, html, done) {
     stopStream();
-    const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    /* Two reasons to put the answer down whole.
+
+       Reduced motion is the reader's own setting and always was.
+
+        is the second, and it belongs here for the same reason
+       it governs the thinking beats and the gap between blocks: a typewriter
+       IS fabricated time. A profile that means "no invented waiting" and then
+       spends a second and a half spelling the answer out is not honouring its
+       own name - and that profile is the shape this product takes the day a
+       real model is behind it, where the words arrive when they arrive. */
+    const M = window.AIMY_MOTION;
+    const still = (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+      || !!(M && M.latency.profile === 'instant');
     const src = document.createElement('div');
     src.innerHTML = html;
-    const blocks = Array.from(src.children);
-    if (still || blocks.length < 2) { el.innerHTML = html; if (done) done(); return; }
+
+    /* ══ A WRAPPER IS NOT A BLOCK ══════════════════════════════
+       `.answer-surface` holds the ENTIRE answer - the results row, the prose,
+       the sources, the disclosure and the apply bar. Taken as one block it
+       arrived as one object, and the prose inside it never streamed at all:
+       the surface contains `.source-item`, so isProse rejected the whole thing
+       and revealed it whole.
+
+       So the surface is put down EMPTY and its children become the blocks. It
+       is a flex column with a gap and nothing else - no background, no border,
+       no padding - so an empty one is invisible and costs nothing to place
+       first. The wrapper stays in the DOM because the gap and the margin
+       reset it owns are what keep the answer's parts evenly spaced.
+
+       One level, deliberately. Flattening further would start reaching into
+       components that own their own internal layout. */
+    const plan = [];
+    Array.from(src.children).forEach((b) => {
+      if (b.classList.contains('answer-surface')) {
+        /* Shallow clone: same tag, same classes, no children. */
+        plan.push({ node: b.cloneNode(false), shell: true });
+        const shell = plan[plan.length - 1].node;
+        Array.from(b.children).forEach((c) => plan.push({ node: c, into: shell }));
+      } else {
+        plan.push({ node: b });
+      }
+    });
+    if (still || plan.length < 2) { el.innerHTML = html; if (done) done(); return; }
 
     el.innerHTML = '';
     let bi = 0;
@@ -13631,12 +14255,28 @@
          timer, so returning without it left the caller waiting on a completion
          nothing would ever send. */
       if (!el.isConnected) { stopStream(); clearTimeout(bail); if (done) done(); return; }
-      if (bi >= blocks.length) { stopStream(); finish(done); return; }
-      const b = blocks[bi++];
-      el.appendChild(b);
+      if (bi >= plan.length) { stopStream(); finish(done); return; }
+      const item = plan[bi++];
+      const b = item.node;
+      (item.into || el).appendChild(b);
+      /* The shell is an empty, invisible container. Animating it would fade the
+         answer twice - once as the box and again as everything in it - and
+         holding a beat for it would be a beat with nothing to see. */
+      /* Straight on, with no frame and no beat. The shell is empty and
+         invisible, so there is nothing to wait for and nothing to look at -
+         and waiting on a FRAME here is worse than pointless: requestAnimationFrame
+         does not fire in a backgrounded tab or in a pane that never composites,
+         so a frame spent on an invisible box was enough to stall the chain
+         until the bail timer gave up and dumped the whole answer at once. */
+      if (item.shell) { nextBlock(); return; }
       b.classList.add('stream-in');
 
-      if (!isProse(b)) { streamRAF = requestAnimationFrame(nextBlock); return; }
+      if (!isProse(b)) {
+        const M = window.AIMY_MOTION;
+        if (M) streamHold = M.latency.hold(BLOCK_BEAT, nextBlock);
+        else streamRAF = requestAnimationFrame(nextBlock);
+        return;
+      }
 
       /* Emptied here and refilled below. Whitespace-only nodes are left alone:
          blanking them collapses the spacing between words and the line reflows
@@ -13652,6 +14292,28 @@
         node.nodeValue = '';
       }
       if (!total) { streamRAF = requestAnimationFrame(nextBlock); return; }
+
+      /* ══ THE EDGE OF WHAT HAS ARRIVED ═════════════════════════
+         `.stream-cursor` has been in the design system since it was written and
+         has never once been rendered by this product. It belongs here: it is
+         the difference between text that is still arriving and text that has
+         stopped short.
+
+         Appended AFTER the tree walker has collected its nodes, so the walker
+         never sees it - and it is empty in any case, so even if it did it
+         would contribute nothing to the character count.
+
+         One small element with a stepped blink, rather than the alternative
+         that was considered and rejected: wrapping the last few words in
+         blurred spans. At 1100 characters a second that is span surgery on
+         every frame, it tears the markup the refill loop is careful not to
+         tear, and it is a per-frame repaint on text that is already
+         reflowing - all three of which are the lag this pass exists to
+         remove. */
+      const caret = document.createElement('span');
+      caret.className = 'stream-cursor';
+      caret.setAttribute('aria-hidden', 'true');
+      b.appendChild(caret);
 
       let t0 = 0, cut = 0;
       const step = (ts) => {
@@ -13671,6 +14333,8 @@
         }
         cut = want;
         if (want < total) { streamRAF = requestAnimationFrame(step); return; }
+        /* The block is complete, so the edge is no longer an edge. */
+        if (caret.parentNode) caret.parentNode.removeChild(caret);
         streamRAF = requestAnimationFrame(nextBlock);
       };
       streamRAF = requestAnimationFrame(step);
@@ -13729,7 +14393,7 @@
       push('Go', 'Connectors and sync', 'Connectors and their health', () => { location.href = 'settings.html?m=sync'; });
       push('Go', 'People', 'Who exists, and what they reach', () => { location.href = 'settings.html?m=people'; });
       push('Go', 'Roles and permissions', 'What each role may do', () => { location.href = 'settings.html?m=roles'; });
-      push('Go', 'Hierarchy', 'Organisation, client, unit, product, team, user', () => { location.href = 'settings.html?m=hierarchy'; });
+      push('Go', 'Hierarchy', 'Clients, units, products, teams and users', () => { location.href = 'settings.html?m=hierarchy'; });
 
       return q
         ? out.filter((i) => (i.label + ' ' + i.group).toLowerCase().indexOf(q) > -1
@@ -14141,7 +14805,11 @@
     if (!ctx || !pts.length) return false;
 
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const css = cv.clientWidth || 26;
+    /* Cached on the element. This is a layout read at the top of a 60fps loop
+       that runs for the whole of every answer, for a value that can only change
+       on a resize - and startThinking re-reads it each time the loop starts,
+       which is the only moment the mark can have been laid out differently. */
+    const css = cv._thinkCSS || (cv._thinkCSS = cv.clientWidth || 26);
     if (cv.width !== Math.round(css * dpr)) {
       cv.width = Math.round(css * dpr); cv.height = Math.round(css * dpr);
     }
@@ -14217,6 +14885,16 @@
         }
         bar.classList.toggle('is-generating', on);
       });
+      /* AND IT STAYS ON THE BAR. This briefly also wrote the class onto
+         <body>, so the ground behind the composer could answer to a run in
+         progress. That was wrong, for a reason worth keeping written down:
+         `.is-generating .overlay-send` and `.is-generating .aimy-float-send`
+         are DESCENDANT selectors, so a copy of the class on the body matched
+         EVERY send button on the page rather than the one belonging to the
+         bar that is actually generating.
+
+         A state class that descendant selectors read belongs on the element
+         it is a state OF, and nowhere above it. */
       /* The one part of the swap that is not CSS, and the part a screen reader
          is actually given. A button that has become Stop while still
          announcing Send is worse than one that never changed. */
@@ -14262,6 +14940,8 @@
     const cv = $('.think-mark');
     if (!cv) return;
     const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    /* The one layout read, here rather than in the frame loop. */
+    cv._thinkCSS = cv.clientWidth || 26;
     const ctx = cv.getContext && cv.getContext('2d');
     /* Only a floor. Every dot sets its own fill from the mark's gradient; this
        is what paints them if that could not be read. */
@@ -14319,14 +14999,16 @@
       if (rl) rl.textContent = USER.role;
       if (av) av.textContent = USER.initials;
       userMenu.init();
+      prodMenu.init();
       bell.init();
       /* The other two shells order Escape once, inside the canvas's chain of
-         dismissable layers. There is no canvas here, so the two layers that do
-         exist order themselves — shallowest first, same as there. */
+         dismissable layers. There is no canvas here, so the three layers that
+         do exist order themselves — shallowest first, same as there. */
       document.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
         if (bell.open) { bell.close(true); return; }
         if (userMenu.open) { userMenu.close(true); return; }
+        if (prodMenu.open) { prodMenu.close(true); return; }
       });
       return;
     }
@@ -14340,6 +15022,7 @@
        the same ids, so a renamed or deleted seed stays renamed or deleted. */
     loadChats();
     userMenu.init();
+    prodMenu.init();
     wire();
 
     /* ══ THE FOUR PATTERNS ══════════════════════════════════════

@@ -2,7 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- viewport-fit=cover is what makes env(safe-area-inset-*) report anything
+       other than 0 on iOS. Four places in this build already write
+       `env(safe-area-inset-bottom, 0px)` and chat.css says in as many words
+       that it returns "0 today as well since the viewport meta does not opt
+       into viewport-fit=cover" — so the composer could not clear a home
+       indicator, because the page was never told there was one. The rules were
+       correct and inert; this is the line that switches them on.
+
+       interactive-widget=resizes-content makes the soft keyboard shrink the
+       LAYOUT viewport rather than only the visual one, so the fixed composer
+       is lifted by the browser instead of being left underneath the keyboard.
+
+       Neither changes anything on a desktop, where every inset is 0 and there
+       is no soft keyboard — the 1536 reference is untouched. Matches AiMY
+       Sales and AiMY QA. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
   <title>AiMY Console</title>
 
   <link rel="icon" type="image/svg+xml" href="assets/Aimy-full.svg" />
@@ -12,13 +27,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Poppins:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="assets/aimy-ds.css?v=7" />
-  <link rel="stylesheet" href="assets/knowledge.css?v=235" />
+  <link rel="stylesheet" href="assets/aimy-ds.css?v=37" />
+  <link rel="stylesheet" href="assets/knowledge.css?v=278" />
   <!-- The settings modules render into this page's stage now, so their
        stylesheet loads with it. Nothing in it paints console markup: every
        rule is namespaced `.set2-`, apart from `kbd` and `.w-lock`, neither of
        which the console renders. -->
-  <link rel="stylesheet" href="assets/settings.css?v=444" />
+  <link rel="stylesheet" href="assets/settings.css?v=477" />
 
   <script>
     /* Apply saved theme before paint to avoid flash. Default = dark. */
@@ -80,6 +95,25 @@
     <div class="topnav-logo-mark">
       <svg width="140" height="43" viewBox="0 0 418.18 147.66" aria-label="AiMY"><use href="#aimy-logo-full"/></svg>
     </div>
+
+    <!-- ══ THE PRODUCTS, WHERE THE STRIP CANNOT STAND ═══════════════════
+         Below 900 — the rung where this page's rail and its canvas column
+         both become drawers — the products leave the bar and hang from the
+         mark instead. Identical to index.html's, filled by the same function
+         off this page's own strip, so the two shells cannot drift. Argued in
+         knowledge.css §WHY THE MENU IS NOT KEYED TO THE STRIP'S OWN LIMIT.
+
+         It sits after the mark and after the rail toggle, which is the order
+         the masthead already reads in: the way into this page's panel, the
+         page's identity, then the way to a different product. -->
+    <span class="prod-anchor">
+      <button class="prod-chev" id="prodChev" type="button"
+              aria-haspopup="menu" aria-expanded="false" aria-controls="prodMenu"
+              aria-label="Switch product" title="Products">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div class="menu prod-menu" id="prodMenu" role="menu" aria-label="AiMY products" hidden></div>
+    </span>
   </div>
 
   <div class="topnav-tabs">
@@ -319,7 +353,6 @@
         <span class="aimy-float-hint">Enter to run</span>
         <button class="aimy-float-send" id="floatSend" aria-label="Run">
           <svg class="send-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
-          <div class="think-spinner"></div>
         </button>
       </div>
     </div>
@@ -339,6 +372,24 @@
            the ecosystem that had it; the deviation is declared in README.md.
       ══════════════════════════════════════════════════════════════════ -->
       <aside class="overlay-chats" id="overlayChats" aria-label="Conversations"></aside>
+
+      <!-- ══ AND THE THREAD BEHIND IT IS DISMISSABLE ══════════════════════
+           The briefing rail has had a scrim since it became a drawer, and the
+           gate has one; this drawer was the only one of the three without. It
+           cost two things. A drawer over a thread that does not dim reads as a
+           column that has appeared BESIDE the thread rather than over it, and
+           — the real defect — pressing the thread was the one gesture that
+           obviously ought to shut it and did nothing, leaving the toggle in
+           the drawer's own top-left corner as the only way out.
+
+           Inside `.aimy-overlay` and `position: absolute`, not `fixed`: the
+           canvas is itself fixed and, below 720, inset to the top of the
+           window — a scrim against the VIEWPORT would start above the surface
+           it belongs to. Against its own overlay it cannot.
+
+           Present at every width, painted at none of them until the drawer
+           exists, which is `.rail-scrim`'s own pattern in this file. -->
+      <div class="ov-chats-scrim" id="ovChatsScrim"></div>
 
       <div class="overlay-main">
         <!-- Below 900px the conversations column is a drawer rather than a
@@ -450,19 +501,20 @@
 </div>
 
 
-<script src="assets/aimy-ds.js?v=1"></script>
+<script src="assets/motion.js?v=31"></script>
+<script src="assets/aimy-ds.js?v=31"></script>
 <!-- BEFORE knowledge.js, the way chat.js loads before it on the gate. Two
      reasons, both about order: this file registers its Escape handler at parse
      time and the settings modal is the shallowest layer on the page, so it has
      to answer first; and knowledge.js hands it `patch` and `readURL` from
      inside its own `init`, which waits for DOMContentLoaded either way. -->
-<script src="assets/settings.js?v=445"></script>
+<script src="assets/settings.js?v=479"></script>
 <!-- The four patterns AiMY does not already have. Optional: every call site in
      knowledge.js is guarded, so the console runs without them. -->
-<script src="assets/halaska-kit.bundle.js?v=7"></script>
-<script src="assets/halaska-bridge.js?v=2"></script>
-<script src="assets/halaska-mounts.js?v=2"></script>
+<script src="assets/halaska-kit.bundle.js?v=37"></script>
+<script src="assets/halaska-bridge.js?v=32"></script>
+<script src="assets/halaska-mounts.js?v=32"></script>
 
-<script src="assets/knowledge.js?v=355"></script>
+<script src="assets/knowledge.js?v=391"></script>
 </body>
 </html>

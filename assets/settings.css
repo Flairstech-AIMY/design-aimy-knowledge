@@ -567,6 +567,63 @@ textarea.set2-fld { resize: vertical; min-height: 6rem; line-height: var(--lh-ba
    BLOCK -- it sits in the layout instead of over it. `.set2-save-n` survives
    because the preview modal's footer still uses it for a count line. */
 .set2-save-n { font-size: var(--ty-micro); color: var(--ink-quiet); }
+/* ══════════════════════════════════════════════════════════════════════════
+   SAYING NO, AND SAYING WHERE
+
+   The one moment in this console that had no motion at all and most needed it.
+   A modal repainted in place does not re-enter - see `is-seated` in paintModal
+   - so what the reader sees is the dialog they are already looking at refusing
+   the thing they just asked for.
+
+   Restrained on purpose, and decaying. This is a refusal, not a tantrum: 6px
+   at the widest, which is `--distance-small` in the shared scale, and each
+   swing smaller than the last so it reads as settling rather than vibrating.
+   Transform only, so a dialog with a scrolling body and a backdrop filter
+   behind it repaints on none of it.
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: no-preference) {
+  /* A dialog that was already open stays where it is. */
+  .set2-scrim.is-seated,
+  .set2-scrim.is-seated .set2-modal { animation: none; }
+
+  .set2-scrim .set2-modal.is-shaking {
+    animation: set2-shake var(--t-slow) var(--ease-out) both;
+  }
+  @keyframes set2-shake {
+    0%, 100% { transform: translateX(0); }
+    12%      { transform: translateX(-0.375rem); }
+    28%      { transform: translateX(0.375rem); }
+    46%      { transform: translateX(-0.25rem); }
+    64%      { transform: translateX(0.25rem); }
+    82%      { transform: translateX(-0.0625rem); }
+  }
+
+  /* ════════════════════════════════════════════════════════════
+     THE SAVE BOUNDARY ARRIVES
+
+     It was an attribute flip: the bar that tells you there is something
+     uncommitted appeared and disappeared between frames, which on a page you
+     are typing into reads as the layout glitching rather than as a state
+     changing. Coming out of `display: none` restarts a CSS animation, so the
+     rise fires every time it returns and needs no JavaScript to arm it. */
+  [data-save]:not([hidden]) {
+    animation: set2-save-in var(--t-base) var(--ease-out) backwards;
+  }
+  @keyframes set2-save-in {
+    from { opacity: 0; transform: translateY(0.5rem); }
+  }
+
+  /* And the figure itself, when it is a different figure. One short run of
+     digits, so the blur is affordable here on the same terms as the thinking
+     label: never a list, never more than one at a time. */
+  .set2-num.is-bumped {
+    animation: set2-num-in var(--t-base) var(--ease-out);
+  }
+  @keyframes set2-num-in {
+    from { opacity: 0; transform: translateY(-0.375rem); filter: blur(var(--blur-small)); }
+  }
+}
+
 
 /* ══ DETAIL ══════════════════════════════════════════════════════════════ */
 
@@ -1120,6 +1177,43 @@ kbd {
   scrollbar-width: thin;
   box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.22);
 }
+/* ══ A PANEL ARRIVES FROM THE THING IT BELONGS TO ═══════════════════
+   `.set2-pop` declared no entry of any kind: every menu, role picker and kebab
+   in this console appeared and disappeared between frames. The corner it grows
+   from is written onto the element by placePop, which has already decided
+   whether the panel sits above or below its anchor and whether it is left- or
+   right-aligned - so the origin is not a guess made here, it is the placement
+   decision restated.
+
+   Scale and opacity only. A panel is a box with a shadow and a border radius;
+   moving it costs a composite, and anything else costs a paint.
+═══════════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: no-preference) {
+  .set2-pop {
+    transform-origin: left top;
+    animation: set2-pop-in var(--t-base) var(--ease-out) backwards;
+  }
+  .set2-pop[data-origin="top-right"]    { transform-origin: right top; }
+  .set2-pop[data-origin="bottom-left"]  { transform-origin: left bottom; }
+  .set2-pop[data-origin="bottom-right"] { transform-origin: right bottom; }
+  .set2-pop.is-closing { animation: set2-pop-out var(--t-fast) var(--ease-out) both; }
+  @keyframes set2-pop-in  { from { opacity: 0; transform: scale(0.97); } }
+  @keyframes set2-pop-out { to   { opacity: 0; transform: scale(0.99); } }
+
+  /* ══ AND A DIALOG ARRIVES OVER EVERYTHING ══════════════════════
+     The scrim fades and the dialog rises into it, slightly behind - the ground
+     goes dark first and the thing you have to answer arrives on top of it.
+     Both leave faster than they came. */
+  .set2-scrim { animation: set2-scrim-in var(--t-fast) var(--ease-out) backwards; }
+  .set2-scrim .set2-modal { animation: set2-modal-in var(--t-base) var(--ease-out) backwards; }
+  .set2-scrim.is-closing { animation: set2-scrim-out var(--t-fast) var(--ease-out) both; }
+  .set2-scrim.is-closing .set2-modal { animation: set2-modal-out var(--t-fast) var(--ease-out) both; }
+  @keyframes set2-scrim-in  { from { opacity: 0; } }
+  @keyframes set2-scrim-out { to   { opacity: 0; } }
+  @keyframes set2-modal-in  { from { opacity: 0; transform: scale(0.96) translateY(0.5rem); } }
+  @keyframes set2-modal-out { to   { opacity: 0; transform: scale(0.98); } }
+}
+
 /* ── THE PANEL'S TITLE, SET AS ONE ──
    "Grant to Alex Smith" was micro and faint: the same size and colour as the
    CAPTIONS under the rows beneath it, so the one line naming what the whole
@@ -2128,26 +2222,6 @@ body.is-settings .set2-col { padding-bottom: 5rem; }
 .set2-lede b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
 
 
-/* ══════════════════════════════════════════════════════════════════════════
-   ENABLEMENT
-
-   Four rows each carrying an identical placeholder glyph — a document icon
-   repeated four times, distinguishing nothing and costing 1rem of the row's
-   left edge. An icon that is the same on every row is decoration wearing an
-   information's clothes. Gone; the names line up with everything else on the
-   page instead.
-
-   What each source has produced moves next to the switch that governs it, so
-   turning something off states its own cost.
-   ══════════════════════════════════════════════════════════════════════════ */
-.set2-en .set2-row-ico { display: none; }
-.set2-en .set2-row-end { gap: 1rem; }
-.set2-en .set2-from { font-variant-numeric: tabular-nums; min-width: 6.5rem; text-align: right; }
-/* A source that reads nothing is not an error, but it is not neutral either —
-   it is the only row where the number and the switch disagree about intent.
-   It sat at `--ink-rule`, 4.02:1, under the floor: the one row whose state you
-   most need to read was the one below the contrast minimum. */
-.set2-en .set2-row.is-off .set2-from { color: var(--ink-quiet); font-style: italic; }
 
 
 /* The scope pickers name what they choose. Two adjacent dropdowns showing only
@@ -2313,6 +2387,50 @@ body.is-settings .set2-col { padding-bottom: 5rem; }
    fact about the NAME; the key column stays a column. */
 .set2-map-ctx { padding-left: calc(var(--d, 0) * var(--step)); }
 .set2-adv-bd  { padding-left: calc(0.25rem + (var(--d, 0) + 1) * var(--step)); }
+
+/* ══ THE MAP KEEPS ITS KEY COLUMN, AND BELOW 46rem THAT MEANS SCROLLING ══
+   The middle track is `minmax(0, 1fr)`, so it is the one that absorbs every
+   pixel the other two do not want — and the other two do not shrink at all:
+   the name column is a flat `12rem` and `.set2-map-end` is `flex-shrink: 0`
+   around two text-labelled buttons and a bin. Measured, the three tracks and
+   what the key column was left with:
+
+       viewport   name   KEY   actions
+       1536       192    243     209
+        768       192    235     209
+        560       192     22     209
+        480       192      0     209     + 1px past the viewport
+        400       192      0     209     + 81px past the viewport
+
+   Two defects, and the smaller one is the overflow. At every width from 520
+   down the TEAMSUPPORT KEY column is ZERO PIXELS WIDE — a column head standing
+   over nothing, on the surface whose entire job is checking which source key a
+   field is mapped to. The row then cannot honour its own third track either,
+   so the actions run out past the right edge with no scrollbar to reach them:
+   at 400 the bin sits 81px off-screen and cannot be pressed at all.
+
+   A TABLE THAT GENUINELY NEEDS THE WIDTH SCROLLS; it does not delete a column
+   and pretend. 35rem is the floor the three tracks add up to with a key column
+   worth reading — 0.25 padding + 12 name + 0.75 gap + ~8 key + 0.75 gap + 13
+   actions — and it is set on the HEAD AND THE ROWS TOGETHER, inside one
+   scroller, so the heading never parts company with the column it names.
+
+   46rem is settings.css's own narrow rung rather than a number invented for
+   this: above it the key column already clears 190px and nothing here applies.
+   `overflow-y: hidden` because a box that scrolls on one axis is given `auto`
+   on the other by default, and an `.set2-adv-bd` opening inside would then
+   grow a second scrollbar around a panel that is simply taller. */
+@media (max-width: 46rem) {
+  .set2-map { overflow-x: auto; overflow-y: hidden; }
+  .set2-map-hd,
+  .set2-map-row,
+  .set2-adv-bd { min-width: 35rem; }
+  /* The scrollbar is chrome on a table you are reading across; the fade at the
+     edge is what says the row continues. Both are this build's own devices —
+     the gate's chip carousel states the argument. */
+  .set2-map { scrollbar-width: none; -ms-overflow-style: none; }
+  .set2-map::-webkit-scrollbar { display: none; }
+}
 
 /* ── The actions stop competing with the data ──
    Four identical "Advanced" links down the column read as content. They step
@@ -2904,6 +3022,25 @@ body.is-settings .set2-pop .btn-sm { font-size: var(--ty-meta); }
               background var(--t-fast) var(--ease-out);
 }
 .set2-map-row:hover .set2-x, .set2-map-row:focus-within .set2-x { opacity: 1; }
+/* ══ A TARGET BIG ENOUGH TO HIT ════════════════════════════════════
+   The settings modules' own two undersized controls, on the pattern
+   knowledge.css states in full at §A TARGET BIG ENOUGH TO HIT: the box stays
+   where the layout put it and a transparent `::after` carries a 44px hit area,
+   so the map rows keep their rhythm and nothing reflows. Measured at 390px —
+   `.set2-tip-b` is 18x18 and `.set2-x` is 28x28, and both have room to spare
+   on every side. `pointer: coarse` only, so a mouse never sees it. */
+@media (pointer: coarse) {
+  .set2-tip-b, .set2-x { position: relative; }
+  .set2-tip-b::after, .set2-x::after {
+    content: '';
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: max(100%, 2.75rem);
+    height: max(100%, 2.75rem);
+  }
+}
+
 @media (hover: none) {
   .set2-map-row .set2-x { opacity: 1; }
 }
@@ -2955,12 +3092,22 @@ body.is-settings .set2-pop .btn-sm { font-size: var(--ty-meta); }
 /* ══════════════════════════════════════════════════════════════════════════
    PRESS FEEDBACK
 
-   The library's buttons change colour on hover and nothing on press. One
-   pixel down on the click is the whole of the physical cue, and it stays off
-   disabled controls, which have nothing to press.
+   knowledge.css owns the press, and console.html loads it: `--t-press` (90ms,
+   deliberately below the scale's smallest step) with
+   `.btn:active { transform: scale(0.97) }` already reaches every button on
+   this page.
+
+   Two selectors used to stand below pressing those same buttons 1px DOWN
+   instead - a second press system on one control, and the more specific of the
+   two, so it would have won. It never ran. The list ended in a comma, so the
+   parser read the @media that follows as its third selector, found it invalid,
+   and discarded everything up to the closing brace: the press never existed,
+   and neither did the guard it swallowed.
+
+   The guard is kept and now parses. It is redundant with the global
+   reduced-motion reset in aimy-ds.css and harmless - it states the intent for
+   these two controls where a reader of this file will look for it.
    ══════════════════════════════════════════════════════════════════════════ */
-.set2-col .btn:active:not(:disabled),
-.set2-scrim .btn:active:not(:disabled),
 @media (prefers-reduced-motion: reduce) {
   .set2-map-row .set2-map-plus, .set2-map-row .set2-x { transition-duration: 0.01ms !important; }
 }
@@ -3189,7 +3336,7 @@ input.set2-fld[type="password"] {
 .set2-sc-canvas { container-type: inline-size; --sc-k: 1; }
 .set2-sc-canvas.is-fit {
   overflow: hidden;
-  --sc-k: min(1, calc((100cqw - 1rem) / (var(--sc-w) * 1px)));
+  --sc-k: min(1, calc((100cqw - 1rem) / (var(--sc-w) * 0.0625rem)));
 }
 /* Two elements because one cannot do both jobs: a transform scales what is
    PAINTED and leaves the layout box alone, so putting the scale and the
@@ -3198,15 +3345,70 @@ input.set2-fld[type="password"] {
    `size × k` and the inner layer stays at full size and is painted down into
    it. At `--sc-k: 1` the two are identical and the transform is a no-op. */
 .set2-sc-box {
-  width: calc(var(--sc-w) * 1px * var(--sc-k));
-  height: calc(var(--sc-h) * 1px * var(--sc-k));
+  /* 0.0625rem is one pixel at the root this geometry was drawn against, so
+     --sc-w and --sc-h stay the plain numbers scLayout produces while the box
+     they describe scales with the page. See SC_U in settings.js. */
+  width: calc(var(--sc-w) * 0.0625rem * var(--sc-k));
+  height: calc(var(--sc-h) * 0.0625rem * var(--sc-k));
 }
 .set2-sc-layer {
   position: relative;
-  width: calc(var(--sc-w) * 1px);
-  height: calc(var(--sc-h) * 1px);
+  width: calc(var(--sc-w) * 0.0625rem);
+  height: calc(var(--sc-h) * 0.0625rem);
   transform: scale(var(--sc-k));
   transform-origin: 0 0;
+}
+
+/* ══ THE TREE DRAWS ITSELF ═════════════════════════════════
+   Arriving, and whenever a branch opens, the wires trace themselves outward
+   and the nodes land along them. Every elbow carries `pathLength="1"`, so a
+   dash array of 1 is its whole length whatever its real geometry - no
+   measuring, no JavaScript, and the far branches take exactly as long as the
+   near ones, which is what makes it read as growth.
+
+   `stroke-dashoffset` IS a paint property, and this is the one place in the
+   build that gets to use it. There is no compositor equivalent for drawing a
+   stroke, it runs once per shape change rather than continuously, and it is
+   bounded by the sibling cap. seatMap keeps it off every paint where the tree
+   did not actually change - which is all of them, while somebody is typing.
+═══════════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: no-preference) {
+  /* THE RESTING STATE IS THE DRAWN STATE, and that ordering is the whole
+     safety property. Declaring `stroke-dashoffset: 1` on the rule and
+     animating TO zero means a wire is hidden until its animation completes -
+     so a clock that never starts, or freezes mid-delay, leaves the tree
+     invisible for as long as the page is open. A backgrounded tab does
+     exactly that, and this repo's review pane never starts one at all.
+
+     Offset zero is the default, so a path here is fully drawn unless an
+     animation is actively taking it apart. `backwards` rather than `forwards`
+     for the same reason: it hides the wire only while its own animation is
+     genuinely pending, and an animation that is cancelled or never begins
+     leaves the element at its own values. seatMap then strips the class on a
+     timer, so even a frozen clock resolves to a drawn tree. */
+  .set2-sc-wires.is-drawing path {
+    stroke-dasharray: 1;
+    animation: set2-wire-draw var(--t-slow) var(--ease-out) backwards;
+    animation-delay: calc(min(var(--i, 0), 12) * var(--t-stagger));
+  }
+  @keyframes set2-wire-draw {
+    from { stroke-dashoffset: 1; }
+    to   { stroke-dashoffset: 0; }
+  }
+
+  /* A node that was not on the map a moment ago, and the whole map on the
+     paint it arrives. Scale and opacity, from just under full size - the node
+     resolves into place rather than being dropped onto it. */
+  /* `backwards`, never `both` - see the wires above. A node waiting its turn
+     is hidden; a node whose animation was cancelled or never ran is not. */
+  .set2-sc-w.is-new,
+  .set2-sc-layer.is-arriving .set2-sc-w {
+    animation: set2-node-in var(--t-base) var(--ease-out) backwards;
+    animation-delay: calc(min(var(--i, 0), 8) * var(--t-stagger));
+  }
+  @keyframes set2-node-in {
+    from { opacity: 0; transform: scale(0.94); }
+  }
 }
 .set2-sc-wires {
   position: absolute; left: 0; top: 0; width: 100%; height: 100%;

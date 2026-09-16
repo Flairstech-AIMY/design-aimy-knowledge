@@ -80,6 +80,47 @@ function dsTab(btn, panelId) {
   });
 }
 
+/* ═══════════════════════════════════════════════════
+   ONE LAYER AT A TIME
+
+   Every transient surface on this page opened without knowing the others were
+   there: the bell, the account menu, a document's version list, a dropdown, a
+   settings popover. Two could therefore stand at once, each waiting for a
+   click SOMEWHERE ELSE to dismiss it - and the click that opened the second
+   was never the one that dismissed the first. So opening a menu while another
+   was open left both on screen, overlapping, and the only way out was a third
+   click on the page behind them.
+
+   A layer announces itself here and says two things about itself: whether it
+   is open, and how to close. Opening any one closes the rest.
+
+   WHAT COUNTS AS A LAYER. A surface that FLOATS over the page and is dismissed
+   by looking away from it. A disclosure that lives in the document flow - a
+   rail section, the answer's trace, a tree branch - is not one, and must not
+   be closed by this: collapsing the section somebody was reading because they
+   opened the bell throws away their place for nothing.
+   ═══════════════════════════════════════════════════ */
+window.AIMY_LAYERS = (function () {
+  var reg = [];
+  function closeAll(except) {
+    for (var i = 0; i < reg.length; i++) {
+      var l = reg[i];
+      if (l === except) continue;
+      /* One layer that throws on close must not strand the others open. */
+      try { if (l.isOpen()) l.close(); } catch (e) {}
+    }
+  }
+  return {
+    add: function (layer) { reg.push(layer); return layer; },
+    closeAll: closeAll,
+    openCount: function () {
+      var n = 0;
+      reg.forEach(function (l) { try { if (l.isOpen()) n++; } catch (e) {} });
+      return n;
+    }
+  };
+})();
+
 /* Close open menus / popovers on outside click or Escape */
 document.addEventListener('click', function (e) {
   document.querySelectorAll('.menu-anchor.open, .pop.open').forEach(function (el) {
@@ -257,8 +298,18 @@ document.addEventListener('keydown', function (e) {
     else if (or.top < pr.top)  panel.scrollTop -= pr.top - or.top;
   }
 
+  var ddLayer = window.AIMY_LAYERS.add({
+    name: 'dropdown',
+    isOpen: function () { return !!openDD; },
+    close: function () { if (openDD) close(openDD, false); }
+  });
+
   function open(dd) {
     if (openDD && openDD !== dd) close(openDD, false);
+    /* Dropdowns already stood aside for each other. This is the rest of the
+       page: a bell, an account menu and a version list are just as much in the
+       way as a second dropdown would be. */
+    window.AIMY_LAYERS.closeAll(ddLayer);
     ensureIds(dd);
     const { btn, panel, opts } = parts(dd);
     panel.classList.add('open');
