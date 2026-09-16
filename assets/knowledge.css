@@ -4163,8 +4163,20 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
 }
 .rail-conn-drop:hover { background: var(--err-bg); color: var(--err); }
 .rail-conn-drop:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: -2px; }
+/* ── The attribution goes UNDER the title, not beside it ──
+
+   Side by side, *A. Mahfouz, 20 Jun* is a 98px `flex-shrink: 0` block, so a
+   320px rail spent a third of every row on the smallest type in the column and
+   ellipsised the document's NAME to pay for it — the one thing on the row you
+   are reading it for. Stacking costs ~17px of height per row and buys back
+   every one of those pixels for the title.
+
+   It is also the shape this product already uses one block up: the document's
+   own byline is a title with who-and-when beneath it, not a title with
+   who-and-when tucked against the right margin. */
 .rail-conn-item {
-  display: flex; align-items: baseline; gap: 0.5rem; flex: 1; min-width: 0;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 0.0625rem;
+  flex: 1; min-width: 0;
   padding: 0.25rem 0.5rem; border-radius: var(--r-sm);
   background: none; border: 0; cursor: pointer; text-align: left;
   font-family: var(--font-sans); font-size: var(--ty-body); font-weight: var(--fw-semibold); color: var(--ink-primary);
@@ -4172,9 +4184,15 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
 .rail-conn-item:hover { background: rgba(255,255,255,0.05); }
 :root[data-theme="light"] .rail-conn-item:hover { background: rgba(16,24,40,0.04); }
 .rail-conn-item:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: -2px; }
-.rail-conn-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* `width`, not `flex: 1`. In a column the main axis is vertical, so `flex: 1`
+   would stretch the line's HEIGHT and leave it free to overflow sideways —
+   which is the ellipsis silently not happening. */
+.rail-conn-label { width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Who asserted it, and when. An implicit edge has no author, so it shows none. */
-.rail-conn-by { font-size: var(--ty-micro); font-weight: 400; color: var(--ink-faint); flex-shrink: 0; }
+.rail-conn-by {
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: var(--ty-micro); font-weight: 400; color: var(--ink-faint);
+}
 
 /* ── Version history, in the line that states the date ──
 
