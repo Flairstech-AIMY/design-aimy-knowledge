@@ -630,7 +630,31 @@ body[data-thread="active"] .gate-chips { display: none; }
    bloom is still there, it just has less to do when the page is already
    bright.
 ═══════════════════════════════════════════════ */
-:root[data-theme="light"] .gate-bloom { opacity: 0.55; }
+/* ══ LIGHT NEEDS MORE OF THE BLOOM, NOT LESS ═══════════════════
+   This held the bloom at 0.55 in light, which is the instinct you get from
+   reading the alphas rather than the screen: 36% blue looks like a lot, so
+   halve it. But a translucent colour over near-black is high contrast and
+   the same colour over near-white is low, so the halving landed it under
+   the threshold where anything reads — a grey page with a hint of blue in
+   one corner, and none of the drift between the two layers visible at all.
+   The thing this surface is FOR is the colour moving.
+
+   Full opacity in both themes now, and the gradients are unchanged: on this
+   ground they come out as a blue-to-lavender-to-mint wash rather than the
+   glow they are in dark, which is what the same hues do on white and is
+   right. Judged on screen at both, not computed. */
+
+/* ══ AND THE MOTES WERE WHITE ON WHITE ═══════════════════════
+   `.gate-mote` is `rgba(226,238,255,0.85)` — very nearly white, which is
+   correct against #171a1c and completely invisible against #eef1f6. Twenty-
+   eight of them have been drifting up the light gate since it was built,
+   animating on the compositor, seen by nobody.
+
+   A slate at 0.75 reads on this ground at the sizes the field actually
+   uses — 1.1px to 2.8px, from the fixed table in chat.js. The size is left
+   alone on purpose: it is what gives the field its depth, and a single
+   value for all twenty-eight would trade an invisible field for a flat one. */
+:root[data-theme="light"] .gate-mote { background: rgba(52, 74, 110, 0.75); }
 
 /* ═══════════════════════════════════════════════
    RESPONSIVE — the existing ladder: 1240 · 1040 · 900 · 720 · 520
