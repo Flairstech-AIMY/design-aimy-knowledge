@@ -142,16 +142,39 @@
   --shadow-lg: 0 0.5rem 2rem rgba(16,24,40,0.12);
   --shadow-xl: 0 1rem 3rem rgba(16,24,40,0.16);
 
-  --ink-ok:   #0a6d41;   /* 6.41 / 6.08 / 5.92 / 5.57 / 5.18 — was 3.22 */
-  --ink-warn: #9c5504;   /* 5.65 / 5.36 / 5.22 / 5.01 / 4.68 — was 3.74 */
-  --ink-err:  #b81f14;   /* 6.47 / 6.14 / 5.98 / 5.39 / 5.00 — was 3.73 */
-  --ink-info: #056ba7;   /* 5.73 / 5.43 / 5.29 / 4.96 / 4.64 — was 3.61 */
+  /* ── AND THE WORST GROUND IS NOT THE CARD ──
+
+     These four were derived against a status tint over a WHITE CARD. Three
+     of them fall under 4.5 on the tint over the PAGE, which is two shades
+     darker — and a status banner sits directly on the page, with no card
+     under it. Found on the webhooks panel: "These webhooks are called when
+     knowledge enrichment is triggered from your side" at 4.45.
+
+                       tint on a card    tint on the page
+       --ink-ok             5.58              4.99   ok
+       --ink-warn           5.02              4.49   under
+       --ink-err            5.39              4.80   ok
+       --ink-info           4.97              4.45   under
+       --ink-cyan           4.67              4.17   under
+
+     Re-derived against the page tint, which is the worse of the two, so the
+     value holds wherever the component lands. The nudges are one to three
+     points a channel — this is the same colour, measured against the ground
+     it is actually printed on.
+
+     --ink-cyan is mine, from the pass two commits ago, and it has the same
+     fault for the same reason: I walked it darker until it cleared the card
+     and stopped there. */
+  --ink-ok:   #0a6d41;   /* 6.41 white / 5.58 card tint / 4.99 page tint */
+  --ink-warn: #9b5403;   /* 5.73 / 5.09 / 4.55 — was 4.49 on the page tint */
+  --ink-err:  #b81f14;   /* 6.47 / 5.39 / 4.80 */
+  --ink-info: #0569a5;   /* 5.88 / 5.11 / 4.57 — was 4.45 on the page tint */
   /* The family was four of five. --cyan is #0d8f95, which measures 3.90 on a
      card and 3.29 on its own tint — the worst of the set — and had no text
      variant at all, so .tag-ai and .tag-teal had nothing to fall back to.
      Derived the same way as the other four: walk the hue darker until it
      clears 4.5 on the tint it is printed on, then stop. */
-  --ink-cyan: #0a747a;   /* 5.54 on the card, 4.67 on its own tint — was 3.90 */
+  --ink-cyan: #0a6d73;   /* 6.09 / 5.14 / 4.59 — was 4.17 on the page tint */
 }
 :root[data-theme="light"] { --ink-action: #7a34e8; }
 

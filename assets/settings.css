@@ -113,7 +113,19 @@
 .set2-scope { display: flex; align-items: center; gap: 0.375rem; flex-wrap: wrap; min-width: 0; }
 .set2-scope-i { font-size: var(--ty-micro); color: var(--ink-quiet); white-space: nowrap; }
 .set2-scope-i b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
-.set2-scope-s { color: var(--ink-rule); font-size: var(--ty-micro); }
+/* --ink-rule says "NON-TEXT. Hairlines and dots. Never type." in aimy-ds.css,
+   and this is a glyph: the › between the two halves of the scope line. It
+   measured 4.02:1 in dark on --d600.
+
+   --d500 was the first answer, on knowledge.css's note that it is "the step
+   this ramp uses for punctuation" — and css-audit.js rejected it: this
+   product's ink floor for anything that is TEXT is the --ink-* set, and
+   --d500 and below are non-text only. The note it cites is about a ::before
+   marker, which the audit does not scan, so the two never met before now.
+
+   --ink-faint is the quietest token the floor allows, and it measures 6.72.
+   The › is still the least of the three things on the line. */
+.set2-scope-s { color: var(--ink-faint); font-size: var(--ty-micro); }
 .set2-bar-end { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; }
 
 /* The library's `.seg-btn.active` pairs `--accent` as TEXT with `--accent-dim`
