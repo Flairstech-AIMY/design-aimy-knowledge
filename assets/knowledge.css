@@ -221,7 +221,18 @@
    and the measure would break — a line of body text is bounded by how far the
    eye tracks, not by how much glass is available.
 ═══════════════════════════════════════════════ */
-html { font-size: max(1rem, calc(100vw / 96)); }
+html {
+  font-size: max(1rem, calc(100vw / 96));
+  /* macOS renders text heavier than the design intends, and neither this
+     product nor the design system had ever turned that off. It matters more
+     after the ladder re-cut than it did before: the whole point of dropping
+     every rank one step was to land on a measured ink density, and a Mac
+     was quietly adding some of it back. Once, on the root, never per
+     component. A no-op on Windows and Linux, correct on a Mac — which is
+     also why it cannot be verified from here. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
 /* ── The library's own scales, re-pointed to the lever ──────────────
    These are declared in aimy-ds.css in px, so nothing that reads them can
