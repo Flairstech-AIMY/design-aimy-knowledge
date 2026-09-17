@@ -362,6 +362,83 @@ html { font-size: max(1rem, calc(100vw / 96)); }
    tints the card's own border, and actions. Nothing else earns a hue. */
 
 /* ═══════════════════════════════════════════════
+   AND THE LIBRARY’S WEIGHTS NEVER RODE THE LADDER DOWN
+
+   Same fault as the section below, on the other axis. aimy-ds.css sets
+   font-weight as a bare number 188 times, so when the ladder was re-cut
+   for Poppins every one of those sat outside it — and the design system
+   went on rendering at weights chosen for Urbanist, which in Poppins run a
+   fifth to a quarter heavier.
+
+   MEASURED, not guessed, and measured the same way that section was: 188
+   rules carry a raw weight, 34 of them land on an element this product
+   actually renders. Walked the grid, the folder tree, the notifications,
+   the user menu, the light theme, a document with its rail and versions
+   and comments, the report and archive dialogs, both settings pages, the
+   gate and an answered question.
+
+   Three of the 34 render ONLY inside the assistant — .aimy-float-hint,
+   .filter-chip and .overlay-badge, every instance of them inside
+   .aimy-float-wrap or .aimy-overlay. THE CANVAS KEEPS THE LIBRARY’S TYPE.
+   That surface is the same component in all three agents, and re-scaling
+   it from here makes the assistant look different depending on which
+   product you opened it from. Sales settled that one and it settles the
+   same way here. The test is where an instance RENDERS, not which banner
+   it is filed under: .overlay-sugg-chip is declared in the canvas section
+   and every instance of it on the gate sits outside the overlay, so it is
+   this product’s.
+
+   The rest move one step down, exactly as the tokens did, so they land on
+   the colour they always meant:
+
+     800 -> --fw-extrabold (700)      600 -> --fw-semibold (500)
+     700 -> --fw-bold      (600)      500 -> --fw-medium   (400)
+
+   Listed beyond the 31 confirmed are the library components this product
+   mounts but whose surfaces the tour could not reach — the toast, the
+   calendar, the memory panel, the change preview, the empty and error
+   states. They are the same components under the same ladder; leaving them
+   out would mean the first person to open one finds the only block on the
+   surface still set for the old face.
+
+   Overridden here rather than edited there, which is the rule the section
+   below already states for sizes. Load order makes it work: aimy-ds.css,
+   then this.
+
+   .tc-title is NOT here. knowledge.css already sets its weight at § the
+   card block, so an override would fork it; it moves there instead.
+═══════════════════════════════════════════════ */
+.modal-title { font-weight: var(--fw-extrabold); }
+
+.ai-suggestion-head, .aimy-toast-title, .aimy-toast-undo, .avatar, .btn,
+.cal-dow, .cal-title, .cite, .cite-action, .comment-author, .conf-badge,
+.cp-title, .dv-body h4, .dv-notice .dv-notice-link,
+.dv-notice .dv-notice-text strong, .empty-state-title, .entry-action,
+.error-state-title, .field-label, .gov-cr-label, .gov-cr-rationale strong,
+.mem-head, .mem-who, .menu-label, .ss-effect strong, .ss-preview-head, .tag,
+.tc-approval, .tc-type, .td-action, .td-row .td-text strong, .trust-state,
+.ver-author strong, .ver-mark, .ver-tag {
+  font-weight: var(--fw-bold);
+}
+
+.ai-menu button, .ai-thinking-label, .cp-passage mark, .ctx-chip, .ds-tab,
+.ds-field .field-label, .gov-cr-val, .mem-head .mem-age, .msg-stopped,
+.overlay-sugg-chip, .seg-btn, .source-item, .stepper input, .tag-token,
+.tree summary, .tree .tree-leaf.selected, .v2-dropdown-btn,
+.v2-dropdown-option, .ver-label {
+  font-weight: var(--fw-semibold);
+}
+
+.ds-choice, .source-domain, .tree .tree-leaf { font-weight: var(--fw-medium); }
+
+/* ONE OF THEM IS MIXED, and the carve-out above has to survive that.
+   .btn renders 40 times on this product and once inside the overlay, so
+   the blanket override would have re-scaled a canvas control on its way
+   past. The canvas copy is put back to the library value, in tokens
+   rather than the numeral, so it still reads as a decision. */
+.aimy-overlay .btn, .aimy-float-wrap .btn { font-weight: var(--fw-extrabold); }
+
+/* ═══════════════════════════════════════════════
    THE LIBRARY, RE-POINTED TO THE LEVER
 
    aimy-ds.css states every one of its own sizes as an absolute pixel, and it
