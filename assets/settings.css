@@ -1883,47 +1883,98 @@ kbd {
    Claude ships: a back link, the name over its author, tabs, and the file.
    ══════════════════════════════════════════════════════════════════════════ */
 
-/* ── The list ──
-   Grid rather than <table> so the row can be one <button>: the whole row is
-   the destination, and a cell wrapping a link puts the target on the words. */
-.set2-tbl { margin-top: 1.25rem; border-top: 0.0625rem solid var(--hairline); }
-.set2-tbl-hd { border-bottom: 0.0625rem solid var(--hairline); }
-.set2-tbl-hd,
-.set2-tbl-r {
-  display: grid;
-  grid-template-columns: minmax(14rem, 1.2fr) minmax(0, 1.4fr) 9.5rem;
-  align-items: center; gap: 0.75rem;
-  padding: 0.6875rem 0.5rem;
-}
-/* Every row is the height of a two-line description, so a short one does not
-   make its row shorter than its neighbours. */
-.set2-tbl-r { min-height: 3.5rem; }
-.set2-tbl-r {
-  width: 100%; appearance: none; border: 0; background: none; cursor: pointer;
-  text-align: left; font: inherit;
+/* ── THE LIST IS ROWS, NOT A TABLE ──
+
+   The note here used to say "grid rather than <table> so the row can be one
+   <button>: the whole row is the destination". Both halves have changed.
+
+   The COLUMNS went because the description was a cell: clamped to two lines
+   and sharing its width with a name that had to fit on one. Under the name
+   it has the row, and the row is as tall as what is in it.
+
+   The BUTTON went because the row carries a switch, and a control cannot be
+   nested inside a button — invalid markup, and the outer button would take
+   every click aimed at the switch. The whole row is still the destination:
+   .set2-sk-go::after is stretched over it and the end cap sits above it on
+   z-index, which is the one arrangement that gives a full-row target AND a
+   switch that works. */
+.set2-sk-sort {
+  display: flex; align-items: center; gap: 0.5rem;
+  margin-top: 1.25rem; padding: 0 0.5rem 0.5rem;
   border-bottom: 0.0625rem solid var(--hairline);
 }
-.set2-tbl-r:hover { background: var(--card-bg); }
-.set2-tbl-r:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: -0.125rem; }
-/* A disabled or overridden skill keeps its row at FULL STRENGTH: one you
-   cannot see is one you re-create by accident, and one you can barely read is
-   one you misread. It carried `opacity: 0.55`, which dimmed its name, its
-   description and the pill explaining why it is idle — the pill being the one
-   thing on the row that says which of the two it is. The Status column already
-   says Disabled or Overridden in words and colour; the row does not need to be
-   made harder to read to say it twice. */
-.set2-tbl-n { display: flex; align-items: center; gap: 0.4375rem; min-width: 0; }
-.set2-tbl-n b {
-  font-size: var(--ty-meta); font-weight: var(--fw-semibold); color: var(--ink-primary);
+.set2-sk-sort-l { font-size: var(--ty-micro); color: var(--ink-faint); }
+
+.set2-sk-r {
+  position: relative;
+  display: flex; align-items: flex-start; gap: 0.5rem;
+  padding: 0.75rem 0.5rem;
+  border-bottom: 0.0625rem solid var(--hairline);
+}
+/* Keyed to the LINK, not to the row: passing over the switch should not light
+   the row and promise that pressing it opens something. */
+.set2-sk-r:has(.set2-sk-go:hover) { background: var(--card-bg); }
+.set2-sk-ico { flex: none; display: flex; margin-top: 0.125rem; color: var(--ink-quiet); }
+.set2-sk-main {
+  flex: 1 1 auto; min-width: 0;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem;
+}
+
+/* The stretched link. `inset: 0` on the PSEUDO-element, not on the button, so
+   the words keep their own box and stay selectable while the row is the hit
+   area. z-index 0 puts it under .set2-sk-end without leaving the stack. */
+.set2-sk-go {
+  appearance: none; border: 0; background: none; padding: 0; margin: 0;
+  font-family: var(--font-sans); font-size: var(--ty-meta);
+  font-weight: var(--fw-semibold); color: var(--ink-primary);
+  text-align: left; cursor: pointer; max-width: 100%;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.set2-tbl-n .set2-row-ico { flex-shrink: 0; color: var(--ink-quiet); }
-.set2-tbl-d {
-  font-size: var(--ty-micro); color: var(--ink-quiet); line-height: var(--lh-snug);
-  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+.set2-sk-go::after { content: ""; position: absolute; inset: 0; z-index: 0; }
+.set2-sk-go:focus-visible {
+  outline: 0.125rem solid var(--brand); outline-offset: 0.125rem;
+  border-radius: var(--r-xs);
 }
-.set2-tbl-s { display: flex; align-items: center; gap: 0.5rem; justify-content: space-between; }
-.set2-tbl-s .set2-pill { white-space: normal; text-align: left; min-width: 0; }
+.set2-sk-d {
+  font-size: var(--ty-micro); color: var(--ink-quiet);
+  line-height: var(--lh-snug); max-width: 62ch;
+}
+
+/* Above the stretched link, so the switch takes its own clicks. Centred on
+   the ROW rather than on the first line: it is a control for the whole row,
+   not a mark on the name. */
+.set2-sk-end {
+  position: relative; z-index: 1;
+  flex: none; align-self: center;
+  display: flex; align-items: center; gap: 0.625rem;
+}
+.set2-sk-end > svg { color: var(--ink-faint); flex: none; }
+
+/* A disabled or overridden skill keeps its row at FULL STRENGTH: one you
+   cannot see is one you re-create by accident, and one you can barely read is
+   one you misread. The switch says which it is, and where the switch cannot —
+   Overridden, No agent, No product — the pill is still there to. */
+
+/* ── A SWITCH THAT IS NOT YOURS TO THROW ──
+
+   aimy-ds.css ships .toggle with no disabled state, so a locked one would be
+   indistinguishable from a live one — the worst possible reading, since the
+   difference is whether pressing does anything.
+
+   It stays legible rather than dimmed: you still need to see whether the org
+   left the skill on. What changes is that it reads as inert — the thumb drops
+   to the ramp instead of white, the lit track loses half its saturation, and
+   the cursor says so. Stated in color-mix against --ink-primary so it holds in
+   both themes; the library’s own track is a flat rgba(255,255,255,…) and works
+   in dark alone. */
+.toggle.is-locked { cursor: not-allowed; }
+.toggle.is-locked .toggle-track {
+  background: color-mix(in srgb, var(--ink-primary) 12%, transparent);
+}
+.toggle.is-locked input:checked ~ .toggle-track {
+  background: color-mix(in srgb, var(--brand) 45%, transparent);
+}
+.toggle.is-locked .toggle-thumb { background: var(--d300); box-shadow: none; }
 
 .set2-th {
   display: inline-flex; align-items: center; gap: 0.3125rem;
@@ -1941,11 +1992,9 @@ kbd {
 .set2-th-a svg { width: 0.75rem; height: 0.75rem; display: block; }
 .set2-th-a.is-on { color: var(--ink-action); }
 
-@media (max-width: 52rem) {
-  .set2-tbl-hd { display: none; }
-  .set2-tbl-r { grid-template-columns: 1fr auto; row-gap: 0.25rem; }
-  .set2-tbl-d { grid-column: 1 / -1; }
-}
+/* The narrow-width block that stood here hid the header and re-flowed the
+   three columns into two. There are no columns now and the row stacks by
+   construction, so it had nothing left to do. */
 
 /* ── The document ──
    Claude's header: the name with its author beneath, and the controls that act
@@ -3122,12 +3171,24 @@ body.is-settings .set2-pop {
   --ty-title:   1.25rem;    /* 20 - section head                   */
 }
 
-/* `.btn-sm` ships at 10.5px from the shared chrome and settings uses it for
-   Test sync, Run sync, Save, Confirm and Delete now -- the most consequential
-   controls on the surface were the smallest text on it. */
+/* ── THE COMPENSATION OUTLIVED WHAT IT COMPENSATED FOR ──
+
+   This lifted .btn-sm to --ty-meta because "`.btn-sm` ships at 10.5px from
+   the shared chrome and settings uses it for Test sync, Run sync, Save,
+   Confirm and Delete — the most consequential controls on the surface were
+   the smallest text on it".
+
+   It does not ship at 10.5px any more. knowledge.css puts .btn-sm on the meta
+   step, so it is 14 everywhere else in the product — and because THIS surface
+   re-points --ty-meta to 16, the old compensation was lifting it a second
+   time. "Download example" and "New skill" rendered 16/600, the body step, on
+   a row of 14px controls.
+
+   --ty-micro is 14 here, which is this surface’s floor and the product’s meta
+   step at once: the same size .btn-sm takes on every other screen. */
 body.is-settings .set2-col .btn-sm,
 body.is-settings .set2-scrim .btn-sm,
-body.is-settings .set2-pop .btn-sm { font-size: var(--ty-meta); }
+body.is-settings .set2-pop .btn-sm { font-size: var(--ty-micro); }
 
 /* This compensated for mono running visually small. Nothing here uses mono, so
    it went with it — everything sits on the one scale now. */

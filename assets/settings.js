@@ -328,6 +328,19 @@
 
   const ownerName = (s) => (isOrg(s) ? ORG : 'You');
 
+  /* ── WHOSE IT IS DECIDES WHETHER YOU MAY SWITCH IT ──
+
+     An org skill is the tenancy’s and not yours: the overview says
+     "Everyone on the tenancy has this one" and the editor already warns
+     that "Saving changes it for everyone". The switch had no such guard,
+     so a list row could turn a skill off for the whole company in one
+     click, silently.
+
+     It returns the SENTENCE rather than a boolean, so every caller shows
+     the same reason and none of them has to compose one. */
+  const lockedReason = (s) =>
+    (isOrg(s) ? ORG + '’s skill — only ' + ORG + ' can switch it on or off.' : '');
+
   /* `standing()` and `reachOf()` stood here, reading `SEL` — the tree-based
      target set. Reach is agents and products now, so the one that survived
      moved into the Skills block as `standing2`, where the fields it reads
@@ -1409,9 +1422,14 @@
   const pill = (k, t) => `<span class="set2-pill ${k}"><i></i>${esc(t)}</span>`;
   const ck = (st, label) =>
     `<button class="set2-ck" role="checkbox" aria-checked="${st}" aria-label="${esc(label)}" type="button" tabindex="-1">${st === 'mixed' ? I.dash : I.tick}</button>`;
-  const toggle = (on, label, data) => `
-    <label class="toggle" title="${esc(label)}">
-      <input type="checkbox" ${on ? 'checked' : ''} aria-label="${esc(label)}" ${data || ''}>
+  /* `locked` is a REASON, not a boolean: a control you cannot use has to say
+     why, and the sentence becomes the title so it reaches a pointer and a
+     screen reader. A disabled input fires no change event, so the handler
+     below needs no guard of its own. */
+  const toggle = (on, label, data, locked) => `
+    <label class="toggle${locked ? ' is-locked' : ''}" title="${esc(locked || label)}">
+      <input type="checkbox" ${on ? 'checked' : ''} ${locked ? 'disabled' : ''}
+             aria-label="${esc(label)}" ${data || ''}>
       <span class="toggle-track"></span><span class="toggle-thumb"></span>
     </label>`;
 
@@ -1589,21 +1607,65 @@
       <span class="set2-tip is-below" role="tooltip" id="${esc(id)}">${esc(text)}</span>
     </span>`;
 
+  /* ── THE ROW STOPPED BEING ONE BUTTON ──
+
+     The note in settings.css says this list is "grid rather than <table> so
+     the row can be one <button>: the whole row is the destination". That held
+     while the row was only a destination. It carries a CONTROL now, and a
+     control cannot live inside a button — nested interactive content is
+     invalid, and the outer button would take the click and drill down while
+     you were trying to flip the switch.
+
+     So the target moves onto the words, which is the alternative that same
+     note names. Nothing is lost by eye: .set2-tbl-r:has(.set2-tbl-go:hover)
+     lights the whole row, so it still reads as one object.
+
+     ── AND THE PILL SAYS ONLY WHAT THE SWITCH CANNOT ──
+
+     standing2 returns five states and the switch carries two of them.
+     Disabled and Enabled ARE the switch, so a pill beside it repeating them
+     is the same fact twice. The other three — Overridden, No agent, No
+     product — are reasons a skill you switched ON still is not running, and
+     no switch can say those. They keep the pill, and it appears only where
+     it is the only thing that can speak.
+
+     The chevron goes with the whole-row button that used to justify it. */
+  /* ── A ROW, NOT A TABLE ROW ──
+
+     Three columns meant the description was a CELL, capped at two lines and
+     sharing its width with a name that had to fit on one. Under the name it
+     has the row, and the row is as tall as what is in it.
+
+     THE WHOLE ROW OPENS THE SKILL AGAIN, and the switch is the one thing in
+     it that does not. A control cannot be nested inside a button, so the
+     target is a stretched link: .set2-sk-go::after covers the row, and the
+     end cap sits above it on z-index. That gives a full-row hit area with no
+     nested interactive content, and it is the only arrangement that gives
+     both. Hover is keyed to :has(.set2-sk-go:hover) rather than to the row,
+     so passing over the switch does not promise that pressing opens.
+
+     THE PILL STILL SAYS ONLY WHAT THE SWITCH CANNOT. Disabled and Enabled
+     ARE the switch; Overridden, No agent and No product are reasons a skill
+     you switched ON is still not running, and no switch can say those. */
   function skillRow(s) {
     const [k, t] = standing2(s);
-    /* Dimmed for the same reason in both cases: the row is on the page and is
-       not doing anything. Which of the two it is, the pill says. */
     const idle = !s.on || !!shadowedBy(s);
     return `
-      <button class="set2-tbl-r${idle ? ' is-off' : ''}" type="button" role="row"
-              data-go="skill:${esc(s.id)}">
-        <span class="set2-tbl-n" role="cell">
-          ${s.trigger === 'always' ? I.bolt : s.trigger === 'manual' ? I.hand : I.doc}
-          <b>${esc(s.name)}</b>
+      <div class="set2-sk-r${idle ? ' is-off' : ''}">
+        <span class="set2-sk-ico">${s.trigger === 'always' ? I.bolt
+          : s.trigger === 'manual' ? I.hand : I.doc}</span>
+        <span class="set2-sk-main">
+          <button class="set2-sk-go" type="button"
+                  data-go="skill:${esc(s.id)}">${esc(s.name)}</button>
+          <span class="set2-sk-d">${esc(s.desc)}</span>
+          ${s.on && k !== 'is-ok' ? pill(k, t) : ''}
         </span>
-        <span class="set2-tbl-d" role="cell">${esc(s.desc)}</span>
-        <span class="set2-tbl-s" role="cell">${pill(k, t)}${I.chev}</span>
-      </button>`;
+        <span class="set2-sk-end">
+          ${toggle(s.on, (s.on ? 'Disable ' : 'Enable ') + s.name,
+                   `data-skill-on="${esc(s.id)}"`, lockedReason(s))}
+          ${I.chev}
+        </span>
+      </div>`;
   }
 
   function skillList(st) {
@@ -1671,14 +1733,20 @@
         </div>
 
         ${list.length ? `
-        <div class="set2-tbl" role="table">
-          <div class="set2-tbl-hd" role="row">
-            ${sortTh(st, 'name', 'Name')}
-            ${sortTh(st, 'desc', 'Description')}
-            ${sortTh(st, 'status', 'Status')}
-          </div>
-          ${list.map(skillRow).join('')}
-        </div>` : `
+        <!-- The sortable header went with the columns, and the SORT did not.
+             A control removed is a capability removed, and this one still
+             has a job at twenty skills even if it has none at six.
+
+             Description is gone from it, though: it was sortable because it
+             was a column, and alphabetical order on a sentence nobody wrote
+             alphabetically was never an answer to a question. Name and
+             status are, and both survive the columns. -->
+        <div class="set2-sk-sort">
+          <span class="set2-sk-sort-l">Sort</span>
+          ${sortTh(st, 'name', 'Name')}
+          ${sortTh(st, 'status', 'Status')}
+        </div>
+        ${list.map(skillRow).join('')}` : `
           <div class="set2-empty">
             <b>${narrowed ? 'No skill matches'
                  : own === 'you' ? 'You have not written one yet' : 'No skills yet'}</b>
@@ -1735,7 +1803,12 @@
           </span>
           <span class="set2-doc-end">
             ${pill(k, t)}
-            ${toggle(s.on, 'Enable ' + s.name, `data-skill-on="${esc(s.id)}"`)}
+            <!-- Same lock as the list. Stopping it in one place and allowing
+                 it in the other would be worse than either, and this page is
+                 exactly where somebody stopped in the list would go looking
+                 for the way round. -->
+            ${toggle(s.on, (s.on ? 'Disable ' : 'Enable ') + s.name,
+                     `data-skill-on="${esc(s.id)}"`, lockedReason(s))}
             <button class="set2-kebab" type="button" data-skill-menu="${esc(s.id)}"
                     aria-haspopup="menu" aria-label="More for ${esc(s.name)}">
               <span></span><span></span><span></span>
