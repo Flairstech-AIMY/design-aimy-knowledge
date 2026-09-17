@@ -277,7 +277,7 @@ body[data-rail="collapsed"] .gate-rail { visibility: hidden; }
 }
 .gate-rail-title {
   font-size: var(--ty-micro);
-  font-weight: var(--fw-semibold);
+  font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wider);
   text-transform: uppercase;
   color: var(--ink-faint);

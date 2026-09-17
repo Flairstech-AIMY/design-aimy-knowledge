@@ -859,7 +859,7 @@ textarea.set2-fld { resize: vertical; min-height: 6rem; line-height: var(--lh-ba
 .set2-rl-bar-l b { color: var(--ink-primary); font-weight: var(--fw-semibold); font-variant-numeric: tabular-nums; }
 .set2-rl-cmp { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; }
 .set2-rl-cmp-k {
-  font-size: var(--ty-micro); font-weight: var(--fw-semibold);
+  font-size: var(--ty-micro); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-quiet);
 }
 
@@ -881,7 +881,7 @@ textarea.set2-fld { resize: vertical; min-height: 6rem; line-height: var(--lh-ba
 }
 .set2-rl-heads {
   padding: 0.625rem 0 0;
-  font-size: var(--ty-micro); font-weight: var(--fw-semibold);
+  font-size: var(--ty-micro); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-quiet);
 }
 .set2-rl-h1 { grid-column: 2; }
@@ -896,7 +896,7 @@ textarea.set2-fld { resize: vertical; min-height: 6rem; line-height: var(--lh-ba
 
 .set2-rl-g { margin-top: 1.5rem; }
 .set2-rl-gt {
-  font-size: var(--ty-micro); font-weight: var(--fw-semibold);
+  font-size: var(--ty-micro); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-quiet);
   padding-bottom: 0.375rem;
 }
@@ -971,7 +971,7 @@ textarea.set2-fld { resize: vertical; min-height: 6rem; line-height: var(--lh-ba
    into it, which is the part people do not predict. */
 .set2-cascade { background: var(--card-bg); border-radius: var(--r-md); padding: 0.75rem 0.875rem; margin-bottom: 1rem; }
 .set2-cascade-t {
-  font-size: var(--ty-micro); font-weight: var(--fw-semibold);
+  font-size: var(--ty-micro); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
   color: var(--ink-quiet); margin-bottom: 0.5rem;
 }
@@ -1357,7 +1357,7 @@ kbd {
    hierarchy it was added to create. */
 .set2-pop-t {
   padding: 0.375rem 0.5rem 0.25rem;
-  font-size: var(--ty-micro); font-weight: var(--fw-semibold);
+  font-size: var(--ty-micro); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
   color: var(--ink-rule);
 }
@@ -1670,7 +1670,7 @@ kbd {
   display: flex; align-items: center; gap: 0.5rem;
   padding-bottom: 0.4375rem; margin-bottom: 0.375rem;
   border-bottom: 0.0625rem solid var(--hairline);
-  font-size: var(--ty-micro); font-weight: var(--fw-semibold);
+  font-size: var(--ty-micro); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-quiet);
 }
 .set2-sp-gt.is-ok   { color: var(--ink-ok); }
@@ -1916,7 +1916,7 @@ kbd {
 .set2-th {
   display: inline-flex; align-items: center; gap: 0.3125rem;
   appearance: none; border: 0; background: none; cursor: pointer; padding: 0;
-  font: inherit; font-size: var(--ty-micro); font-weight: var(--fw-semibold);
+  font: inherit; font-size: var(--ty-micro); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-quiet);
 }
 .set2-th:hover { color: var(--ink-primary); }
@@ -3790,7 +3790,7 @@ input.set2-fld[type="password"] {
 
 .set2-sc-inh { margin-top: 0.875rem; padding-top: 0.625rem; border-top: 0.0625rem solid var(--hairline); }
 .set2-sc-ih {
-  font-size: var(--ty-micro); font-weight: var(--fw-semibold);
+  font-size: var(--ty-micro); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-quiet);
   margin-bottom: 0.375rem;
 }
@@ -3831,7 +3831,7 @@ input.set2-fld[type="password"] {
   display: inline-flex; align-items: center; flex-shrink: 0;
   height: 1.125rem; padding: 0 0.375rem;
   border-radius: var(--r-xs);
-  font-size: var(--ty-meta); font-weight: var(--fw-semibold);
+  font-size: var(--ty-micro); font-weight: var(--fw-medium);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
   white-space: nowrap;
 }
