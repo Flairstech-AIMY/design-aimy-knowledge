@@ -1418,6 +1418,36 @@
     if (M && M.afterPaint) M.afterPaint(then); else setTimeout(then, 0);
   }
 
+  /* ── A SWITCH HAS TO SURVIVE ITS OWN ANIMATION ──
+
+     .toggle-thumb has carried `transition: transform var(--t-fast)` since the
+     library shipped it, and it had never once run. render() rewrites the
+     markup, so the thumb that would have travelled is destroyed and a new one
+     appears already at the far end — a transition from nothing to nothing.
+     Measured before this: one frame after the click, the input, the thumb and
+     the row are all different nodes.
+
+     The model is written immediately; the PAINT waits for the thumb to
+     arrive. transitionend is the real signal and the timeout is the fallback,
+     because a paint that never comes is a list that never updates — worse
+     than one that updates late. Reduced motion skips the wait outright: there
+     is no animation to wait for, and AIMY_MOTION already owns that question
+     for the rest of the build. */
+  function afterSwitch(input, then) {
+    const M = window.AIMY_MOTION;
+    const thumb = input.parentElement && input.parentElement.querySelector('.toggle-thumb');
+    if (!thumb || (M && M.reduced && M.reduced())) { then(); return; }
+    let done = false;
+    const go = () => {
+      if (done) return;
+      done = true;
+      thumb.removeEventListener('transitionend', go);
+      then();
+    };
+    thumb.addEventListener('transitionend', go);
+    setTimeout(go, 320);   /* --t-fast is 150ms; this is it doubled and rounded */
+  }
+
   /* ═══ ATOMS ═══ */
   const pill = (k, t) => `<span class="set2-pill ${k}"><i></i>${esc(t)}</span>`;
   const ck = (st, label) =>
@@ -1655,10 +1685,15 @@
         <span class="set2-sk-ico">${s.trigger === 'always' ? I.bolt
           : s.trigger === 'manual' ? I.hand : I.doc}</span>
         <span class="set2-sk-main">
-          <button class="set2-sk-go" type="button"
-                  data-go="skill:${esc(s.id)}">${esc(s.name)}</button>
+          <!-- The tag belongs WITH the name, not under the description: it
+               qualifies what the thing is, and a reader who has gone past the
+               description to find it has already decided the row is fine. -->
+          <span class="set2-sk-top">
+            <button class="set2-sk-go" type="button"
+                    data-go="skill:${esc(s.id)}">${esc(s.name)}</button>
+            ${s.on && k !== 'is-ok' ? pill(k, t) : ''}
+          </span>
           <span class="set2-sk-d">${esc(s.desc)}</span>
-          ${s.on && k !== 'is-ok' ? pill(k, t) : ''}
         </span>
         <span class="set2-sk-end">
           ${toggle(s.on, (s.on ? 'Disable ' : 'Enable ') + s.name,
@@ -7802,7 +7837,14 @@
        the pair changes. */
 
     const t = e.target.closest('[data-skill-on]');
-    if (t) { const s = skillById(t.dataset.skillOn); s.on = t.checked; render(); return; }
+    if (t) {
+      const s = skillById(t.dataset.skillOn);
+      s.on = t.checked;
+      /* See afterSwitch: the repaint waits for the thumb, or the transition
+         never runs at all. */
+      afterSwitch(t, render);
+      return;
+    }
     const f = e.target.closest('[data-file]');
     if (f && f.files && f.files[0]) readSkillFile(f.files[0]);
   });

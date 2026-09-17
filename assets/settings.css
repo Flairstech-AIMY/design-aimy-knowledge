@@ -1919,6 +1919,14 @@ kbd {
   flex: 1 1 auto; min-width: 0;
   display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem;
 }
+/* The name shrinks and ellipses; the tag beside it never does. min-width: 0
+   on both the row and the name, or a long name pushes the tag off the end
+   instead of truncating. */
+.set2-sk-top {
+  display: flex; align-items: center; gap: 0.5rem;
+  min-width: 0; max-width: 100%;
+}
+.set2-sk-top .set2-pill { flex: none; }
 
 /* The stretched link. `inset: 0` on the PSEUDO-element, not on the button, so
    the words keep their own box and stay selectable while the row is the hit
@@ -1927,7 +1935,7 @@ kbd {
   appearance: none; border: 0; background: none; padding: 0; margin: 0;
   font-family: var(--font-sans); font-size: var(--ty-meta);
   font-weight: var(--fw-semibold); color: var(--ink-primary);
-  text-align: left; cursor: pointer; max-width: 100%;
+  text-align: left; cursor: pointer; min-width: 0; max-width: 100%;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .set2-sk-go::after { content: ""; position: absolute; inset: 0; z-index: 0; }
