@@ -999,7 +999,7 @@ textarea.set2-fld { resize: vertical; min-height: 6rem; line-height: var(--lh-ba
   color: var(--ink-primary); font-weight: var(--fw-semibold);
 }
 .set2-pv th span {
-  display: block; font-family: var(--font-sans); font-weight: var(--fw-regular);
+  display: block; font-family: var(--font-sans); font-weight: var(--fw-medium);
   color: var(--ink-quiet); margin-top: 0.125rem;
 }
 .set2-pv td {
@@ -1677,11 +1677,11 @@ kbd {
 .set2-sp-gt.is-warn { color: var(--ink-warn); }
 .set2-sp-gt.is-err  { color: var(--ink-err); }
 .set2-sp-gt .set2-num {
-  color: var(--ink-quiet); font-weight: var(--fw-regular); letter-spacing: normal;
+  color: var(--ink-quiet); font-weight: var(--fw-medium); letter-spacing: normal;
 }
 .set2-sp-ge {
   margin-left: auto; text-transform: none; letter-spacing: normal;
-  font-weight: var(--fw-regular); color: var(--ink-quiet);
+  font-weight: var(--fw-medium); color: var(--ink-quiet);
 }
 
 /* ── A row ── */
@@ -2344,7 +2344,7 @@ body.is-settings .set2-col { padding-bottom: 5rem; }
    the client and which is the product until you already know the answer. */
 .set2-scope-k {
   font-size: var(--ty-micro); color: var(--ink-quiet);
-  font-weight: var(--fw-regular); margin-right: 0.3125rem;
+  font-weight: var(--fw-medium); margin-right: 0.3125rem;
 }
 
 
@@ -2456,7 +2456,7 @@ body.is-settings .set2-col { padding-bottom: 5rem; }
    make it: the leading segments are the ROUTE and recede, the last segment is
    the VALUE the field actually reads and takes the weight. That is the same
    ladder the rest of the surface uses, in the same face. */
-.set2-key-s { color: var(--ink-quiet); font-weight: var(--fw-regular); }
+.set2-key-s { color: var(--ink-quiet); font-weight: var(--fw-medium); }
 .set2-key-s:last-of-type { color: var(--ink-primary); font-weight: var(--fw-bold); }
 .set2-key-dot { color: var(--ink-quiet); margin: 0 0.0625rem; }
 .set2-map-row.is-broken .set2-key-s:last-of-type { color: var(--ink-err); }
@@ -3784,7 +3784,7 @@ input.set2-fld[type="password"] {
 .set2-sc-fact.is-flat:hover { background: none; }
 .set2-sc-fn { flex: 1 1 auto; font-size: var(--ty-micro); }
 .set2-sc-fv { font-size: var(--ty-meta); font-weight: var(--fw-semibold); color: var(--ink-primary); }
-.set2-sc-fv.is-zero { color: var(--ink-quiet); font-weight: var(--fw-regular); }
+.set2-sc-fv.is-zero { color: var(--ink-quiet); font-weight: var(--fw-medium); }
 .set2-sc-fact .set2-chev { width: 0.75rem; height: 0.75rem; }
 .set2-sc-fact.is-flat .set2-chev { display: none; }
 
