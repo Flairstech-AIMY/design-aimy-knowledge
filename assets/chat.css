@@ -650,11 +650,30 @@ body[data-thread="active"] .gate-chips { display: none; }
    eight of them have been drifting up the light gate since it was built,
    animating on the compositor, seen by nobody.
 
-   A slate at 0.75 reads on this ground at the sizes the field actually
-   uses — 1.1px to 2.8px, from the fixed table in chat.js. The size is left
-   alone on purpose: it is what gives the field its depth, and a single
-   value for all twenty-eight would trade an invisible field for a flat one. */
-:root[data-theme="light"] .gate-mote { background: rgba(52, 74, 110, 0.75); }
+   The first fix here was a slate dot at 0.75, which solved VISIBLE and not
+   much else: twenty-eight specks of grit on a pale wash. A mote in the dark
+   theme is not a dark dot inverted, it is a point of LIGHT — that is the
+   whole effect — and the light theme has to make light read on a ground
+   that is already bright.
+
+   Which a flat fill cannot do at two pixels: white on near-white is the
+   original bug and any colour dark enough to show is a hole rather than a
+   spark. So the core stays white and the GLOW carries it — a half-pixel ring
+   to give the core an edge, and 7px of soft blue around it. The ring is what
+   stops it dissolving; the glow is what makes it shine.
+
+   Static shadows, so they rasterise once: the animation is still transform
+   and opacity only, which is the promise the block above this makes about
+   why this is CSS and not a canvas.
+
+   The SIZE is left alone — 1.1px to 2.8px, from the fixed table in chat.js.
+   It is what gives the field its depth, and one value for all twenty-eight
+   would trade an invisible field for a flat one. */
+:root[data-theme="light"] .gate-mote {
+  background: #ffffff;
+  box-shadow: 0 0 0 0.5px rgba(60, 100, 225, 0.55),
+              0 0 7px 2px rgba(110, 145, 255, 0.85);
+}
 
 /* ═══════════════════════════════════════════════
    RESPONSIVE — the existing ladder: 1240 · 1040 · 900 · 720 · 520
