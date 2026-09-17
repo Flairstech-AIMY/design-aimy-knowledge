@@ -136,15 +136,32 @@
       --sp-15: 60px;
 
       /* ── Typography ── */
-      /* ══ THE PAIR SWAPPED ═════════════════════════════════
-         Poppins carries the body and Urbanist the headings. Measured before
-         the swap so the cost is on the record rather than discovered later:
-         the same body sentence sets 13% wider in Poppins than in Urbanist
-         (439px against 389px at 14px/400), so every measure wraps sooner and
-         every dense row grows. Watch the queue cards and the call log, which
-         are the tightest things in this build. */
-      --font-sans:    "Poppins", system-ui, sans-serif;   /* primary / body */
-      --font-display: "Urbanist", system-ui, sans-serif;  /* pairing / headings */
+      /* ══ ONE FACE, EVERYWHERE ══════════════════════════
+         Poppins sets every word in this product, body and titles alike. That
+         is a decision rather than a default, so both tokens name it and there
+         is no pairing left — nothing remains for a second face to do.
+
+         ── What this costs, so nobody has to rediscover it ──
+
+         Poppins has no tabular figures. Every `font-variant-numeric:
+         tabular-nums` declaration in this build is therefore inert, and each
+         count, duration and money column sets on proportional digits: a
+         figure changes width when its value changes. Measured against
+         controls that DO support the feature, so this is the font and not
+         the test — digit-width spread at 100px, tabular-nums requested:
+
+           Poppins   63.00     Urbanist  66.11     DM Sans  74.41   (inert)
+           Figtree    0.00     Inter      0.00     Jakarta   0.00   (works)
+
+         Figtree held this slot for exactly one commit and set those figures
+         correctly. It was replaced deliberately. If aligned figures are ever
+         wanted back without giving up this face, the cheap fix is a third
+         token for numerals only, applied to elements that are PURELY a
+         number and never to a sentence with one in it — a stray digit from
+         another face inside running text shows. */
+      --font-sans:    "Poppins", system-ui, sans-serif;   /* body AND titles */
+      --font-display: "Poppins", system-ui, sans-serif;   /* the same face; the
+                                    token stays so its callers keep working */
       --font-mono: "JetBrains Mono", monospace;
 
       /* ── Motion ──
