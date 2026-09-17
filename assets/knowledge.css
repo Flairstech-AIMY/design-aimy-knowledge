@@ -1215,6 +1215,35 @@ button {
           mask-image: none;
 }
 
+/* ══ THE CANVAS SCROLLS ON THE WINDOW, NOT ON THE COLUMN ══════════
+   `.overlay-thread` is the scroller AND the measure — 45rem wide, centred by
+   its flex parent — so its scrollbar was drawn against the right edge of the
+   prose, a quarter of the surface in from the window with empty canvas either
+   side of it. It read as a rule down the middle rather than as the edge of a
+   scrolling region, and it had no relationship to the close button it should
+   sit under.
+
+   THE MEASURE MOVES TO THE PADDING AND NOTHING ELSE CHANGES. The obvious
+   version — drop the max-width, centre the children with `align-items` —
+   rewrites how every child of this thread is laid out, and the thread holds
+   rows that set their own `align-self`. Padding leaves all of that alone: the
+   element is full width, so the bar is at the window's edge, and the content
+   box is the same column in the middle of it.
+
+   42rem, not 45. The rule above is `max-width: 45rem` on a border-box element
+   already carrying 1.5rem of side padding, so the measure the prose actually
+   has is 42 — a calc written off 45 gives it 3rem more and moves every line.
+
+   SCOPED TO THE CONSOLE. The gate draws the same thread inside `.gate-stage`,
+   which is its own centred column holding the composer as well, and the same
+   two lines there would put a full-width thread inside a 48rem box. chat.css
+   does that half. */
+.overlay-main .overlay-thread {
+  max-width: none;
+  padding-left: max(1.5rem, calc((100% - 42rem) / 2));
+  padding-right: max(1.5rem, calc((100% - 42rem) / 2));
+}
+
 /* ══ THE BADGE AND THE BASIS BELONG TO THE TOP OF THE THREAD ═════════════
    Both float over the conversation. At the top that is what they are for —
    what this surface is, and what it answered from. Scrolled, they are two

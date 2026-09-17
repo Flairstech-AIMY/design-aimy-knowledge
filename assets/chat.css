@@ -414,13 +414,28 @@ body[data-rail="collapsed"] .gate-rail-peek { display: inline-flex; }
    STAGE
 ═══════════════════════════════════════════════ */
 .gate-stage {
+  /* ══ THE MEASURE AND THE GUTTER ARE NAMED ══════════════════
+     They were literals here and in two breakpoints below, which was fine
+     while the stage was the only thing that read them. The active state now
+     hands the measure to the stage's CHILDREN (see the foot of this file), so
+     a second copy of `48rem` and `1.5rem` would be a pair that silently stops
+     agreeing the next time either breakpoint moves — and it would have
+     already: the 720 breakpoint drops the gutter to 1rem, and a hardcoded
+     1.5 in the active rules made the composer jump 16px on the first send.
+
+     `--gate-column` is what the PROSE gets, which is not the same number: the
+     thread is capped at 45rem by knowledge.css, and below 1240 the stage is
+     narrower than that, so the column is whichever binds first. */
+  --gate-measure: 48rem;
+  --gate-gutter: 1.5rem;
+  --gate-column: min(45rem, calc(var(--gate-measure) - 2 * var(--gate-gutter)));
   position: relative;
   z-index: 1;
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 48rem;
-  padding: 0 1.5rem;
+  max-width: var(--gate-measure);
+  padding: 0 var(--gate-gutter);
   height: 100%;
   /* Same reason as the grid items above: the last link in the chain from a
      fixed-height body down to a scrolling thread. */
@@ -621,7 +636,7 @@ body[data-thread="active"] .gate-chips { display: none; }
    RESPONSIVE — the existing ladder: 1240 · 1040 · 900 · 720 · 520
 ═══════════════════════════════════════════════ */
 @media (max-width: 77.5rem) {   /* 1240 */
-  .gate-stage { max-width: 44rem; }
+  .gate-stage { --gate-measure: 44rem; }
 }
 
 @media (max-width: 65rem) {     /* 1040 */
@@ -768,7 +783,9 @@ body[data-thread="active"] .gate-chips { display: none; }
      `env()` returns 0 everywhere else, and 0 today as well since the viewport
      meta does not opt into `viewport-fit=cover` -- written the way the float
      composer already writes it, so both are correct the moment it does. */
-  .gate-stage { padding: 0 1rem calc(env(safe-area-inset-bottom, 0px)); }
+  /* The gutter, not the padding: the active state reads it too. The bottom
+     is still set outright, since nothing else wants it. */
+  .gate-stage { --gate-gutter: 1rem; padding-bottom: calc(env(safe-area-inset-bottom, 0px)); }
   .gate-console-sub { display: none; }
 
   /* ══ THE GREETING KEEPS ITS SIZE ═══════════════════════════════════════
@@ -918,4 +935,51 @@ body[data-thread="active"] .gate-chips { display: none; }
   .gate-dust { display: none; }
   .gate-rail,
   .gate-body { transition: none; }
+}
+
+/* ══ THE THREAD SCROLLS ON THE WINDOW, NOT ON THE COLUMN ══════════
+   The console's canvas had the same defect and a two-line fix: its thread is
+   the scroller AND the measure, so widening it to the surface and putting the
+   measure in padding moves the bar to the window and changes nothing else.
+
+   The gate cannot be fixed in the same two lines, because here the thread is
+   not the column — `.gate-stage` is, and it holds the composer too. Widening
+   only the thread would leave a full-width scroller inside a 48rem box, which
+   is the same bar in the same wrong place.
+
+   SO THE STAGE GIVES UP THE MEASURE AND ITS CHILDREN TAKE IT. The stage runs
+   the width of the surface; the hero and the composer carry the 48rem and the
+   1.5rem gutter the stage used to carry, so they land exactly where they
+   landed before; and the thread — the one child that is a scroller — takes
+   the measure as padding instead, so its bar is at the window's edge and its
+   prose is still 45rem in the middle of it.
+
+   ACTIVE ONLY. The empty state centres the greeting and the composer on the
+   optical middle and scrolls the STAGE in phone landscape — the `safe center`
+   argument above — and none of that involves a thread that scrolls. Left
+   alone. The composer sits at the same x in both states, so crossing between
+   them still moves nothing.
+
+   EVERY NUMBER HERE IS THE STAGE'S OWN. Written as literals first, and two
+   breakpoints immediately disagreed with them — the composer lost 16px of
+   width the moment a thread opened on a phone, because the 720 rule drops the
+   gutter to 1rem and this did not hear it. They are variables at the top of
+   the file now and this reads them, so a breakpoint moves one number and both
+   states follow. */
+body[data-thread="active"] .gate-stage {
+  max-width: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+body[data-thread="active"] .gate-stage > * {
+  width: 100%;
+  max-width: var(--gate-measure);
+  margin-inline: auto;
+  padding-inline: var(--gate-gutter);
+}
+body[data-thread="active"] .gate-stage .overlay-thread {
+  max-width: none;
+  margin-inline: 0;
+  padding-left: max(var(--gate-gutter), calc((100% - var(--gate-column)) / 2));
+  padding-right: max(var(--gate-gutter), calc((100% - var(--gate-column)) / 2));
 }
