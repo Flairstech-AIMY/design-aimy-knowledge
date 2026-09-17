@@ -129,6 +129,7 @@
   --ink-warn: var(--warn);        /* dark 7.38 / 6.53 / 6.13 / 5.37                 */
   --ink-info: var(--info);        /* dark 6.25 / 5.53 / 5.21 / 4.62                 */
   --ink-err:  #f4736a;            /* dark 6.19 / 5.48 / 5.56 / 4.90 — was 4.08      */
+  --ink-cyan: var(--cyan);        /* dark 9.66 on the card, 7.57 on its own tint   */
 }
 :root[data-theme="light"] {
   /* Just over half the dark alphas, judged against the page it sits on
@@ -145,6 +146,12 @@
   --ink-warn: #9c5504;   /* 5.65 / 5.36 / 5.22 / 5.01 / 4.68 — was 3.74 */
   --ink-err:  #b81f14;   /* 6.47 / 6.14 / 5.98 / 5.39 / 5.00 — was 3.73 */
   --ink-info: #056ba7;   /* 5.73 / 5.43 / 5.29 / 4.96 / 4.64 — was 3.61 */
+  /* The family was four of five. --cyan is #0d8f95, which measures 3.90 on a
+     card and 3.29 on its own tint — the worst of the set — and had no text
+     variant at all, so .tag-ai and .tag-teal had nothing to fall back to.
+     Derived the same way as the other four: walk the hue darker until it
+     clears 4.5 on the tint it is printed on, then stop. */
+  --ink-cyan: #0a747a;   /* 5.54 on the card, 4.67 on its own tint — was 3.90 */
 }
 :root[data-theme="light"] { --ink-action: #7a34e8; }
 
@@ -454,6 +461,90 @@ html { font-size: max(1rem, calc(100vw / 96)); }
    past. The canvas copy is put back to the library value, in tokens
    rather than the numeral, so it still reads as a decision. */
 .aimy-overlay .btn, .aimy-float-wrap .btn { font-weight: var(--fw-extrabold); }
+
+/* ═══════════════════════════════════════════════
+   SIX FAILURES AA HAD BEEN CARRYING QUIETLY
+
+   The block above these tokens already made this argument and stopped one
+   component short. It fixed the four filter-chip words. It did not fix the
+   tags, the confidence badges, the approval marks, the governance labels or
+   the danger button, and every one of those prints a status hue as TEXT.
+
+   aimy-ds.css says it in as many words: "these are grounds and marks, not
+   sentences. Where a sentence needs the hue, the ink is --ok-text /
+   --warn-text / --err-text". This product spells those --ink-*. The rule was
+   written down and the components never read it.
+
+   MEASURED in light, on the ground each one is actually painted on — its own
+   tinted pill over a white card, not the card:
+
+     .tag.tag-ok             3.47 : 1   needs 4.5
+     .conf-badge.conf-high   3.47
+     .conf-val               3.47
+     .tc-approval.is-approved 3.47
+     .gov-cr-proposed .gov-cr-label  3.47
+     .btn.btn-err            4.02
+
+   And the whole family fails the same way, not just the instances that
+   happened to be on screen: on its own tint --ok is 3.47, --warn 4.02,
+   --err 4.02, --info 3.86 and --cyan 3.29. Every --ink-* clears it — 5.58,
+   5.02, 5.39, 4.97, 4.67. So the sibling states move with the ones that
+   were caught, or the next status to render is the next failure.
+
+   DARK WAS ALREADY CLEAN, which is why this survived: the tour reports zero
+   failures there and eight in light. Only the light theme darkens the hues
+   for "text on white", and a tint is not white.
+
+   These mirror the library’s own selectors so the specificity matches and
+   load order decides — including the :root[data-theme="light"] copies, which
+   sit at (0,4,0) and would otherwise beat anything simpler written here.
+   Grounds, borders, dots and icons keep the bold hues. Only text moves.
+═══════════════════════════════════════════════ */
+.tag-ok   { color: var(--ink-ok); }
+.tag-err  { color: var(--ink-err); }
+.tag-warn { color: var(--ink-warn); }
+.tag-info { color: var(--ink-info); }
+.tag-ai, .tag-teal { color: var(--ink-cyan); }
+.conf-medium { color: var(--ink-warn); }
+.conf-low { color: var(--ink-err); }
+.tc-approval.is-approved { color: var(--ink-ok); }
+.tc-approval.is-pending  { color: var(--ink-warn); }
+.gov-cr-current .gov-cr-label  { color: var(--ink-err); }
+.gov-cr-proposed .gov-cr-label { color: var(--ink-ok); }
+.btn-err  { color: var(--ink-err); }
+.btn-warn { color: var(--ink-warn); }
+.btn-ok   { color: var(--ink-ok); }
+.ws-detected { color: var(--ink-info); }
+.ws-staged   { color: var(--ink-warn); }
+.ws-completed { color: var(--ink-ok); }
+.ws-failed   { color: var(--ink-err); }
+.ts-verified { color: var(--ink-ok); }
+.ts-due      { color: var(--ink-warn); }
+.ts-expired  { color: var(--ink-err); }
+.ts-superseded { color: var(--ink-info); }
+.td-row.is-ok   { color: var(--ink-ok); }
+.td-row.is-warn { color: var(--ink-warn); }
+.td-row.is-err  { color: var(--ink-err); }
+
+/* the light theme’s own copies, at the specificity they are written with */
+:root[data-theme="light"] .ws-completed,
+:root[data-theme="light"] .conf-high    { color: var(--ink-ok); }
+:root[data-theme="light"] .ws-staged,
+:root[data-theme="light"] .conf-medium  { color: var(--ink-warn); }
+:root[data-theme="light"] .ws-failed,
+:root[data-theme="light"] .conf-low     { color: var(--ink-err); }
+:root[data-theme="light"] .ws-detected  { color: var(--ink-info); }
+:root[data-theme="light"] .gov-cr-current .gov-cr-label  { color: var(--ink-err); }
+:root[data-theme="light"] .gov-cr-proposed .gov-cr-label { color: var(--ink-ok); }
+:root[data-theme="light"] .ts-verified   { color: var(--ink-ok); }
+:root[data-theme="light"] .ts-due        { color: var(--ink-warn); }
+:root[data-theme="light"] .ts-expired    { color: var(--ink-err); }
+:root[data-theme="light"] .ts-superseded { color: var(--ink-info); }
+:root[data-theme="light"] .td-row.is-ok   { color: var(--ink-ok); }
+:root[data-theme="light"] .td-row.is-warn { color: var(--ink-warn); }
+:root[data-theme="light"] .td-row.is-err  { color: var(--ink-err); }
+:root[data-theme="light"] .tc-approval.is-approved { color: var(--ink-ok); }
+:root[data-theme="light"] .tc-approval.is-pending  { color: var(--ink-warn); }
 
 /* ═══════════════════════════════════════════════
    THE LIBRARY, RE-POINTED TO THE LEVER
