@@ -415,12 +415,12 @@ body[data-rail="collapsed"] .gate-rail-peek { display: inline-flex; }
 .gate-console:active { transform: translateY(0.0625rem); }
 .gate-console svg { flex-shrink: 0; opacity: 0.75; }
 
-.gate-console-lines { display: flex; flex-direction: column; gap: 0.0625rem; min-width: 0; }
-.gate-console-name { font-size: var(--ty-meta); font-weight: var(--fw-semibold); }
-.gate-console-sub {
-  font-size: var(--ty-micro);
-  color: var(--ink-faint);
-  line-height: var(--lh-snug);
+/* One line, not two. The button named the destination and then described it,
+   and the description is the page you are about to be standing on. The
+   wrapper went with the subline: a column of one is a row. */
+.gate-console-name {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: var(--ty-meta); font-weight: var(--fw-semibold);
 }
 
 /* ═══════════════════════════════════════════════
@@ -849,7 +849,7 @@ body[data-thread="active"] .gate-chips { display: none; }
   /* The gutter, not the padding: the active state reads it too. The bottom
      is still set outright, since nothing else wants it. */
   .gate-stage { --gate-gutter: 1rem; padding-bottom: calc(env(safe-area-inset-bottom, 0px)); }
-  .gate-console-sub { display: none; }
+  /* .gate-console-sub used to be hidden here. It is gone from every width now. */
 
   /* ══ THE GREETING KEEPS ITS SIZE ═══════════════════════════════════════
      This used to drop to `--ty-title`, 17px against the 28px it has on a

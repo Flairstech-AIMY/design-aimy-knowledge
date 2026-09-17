@@ -3598,7 +3598,7 @@ span.topnav-tab:hover { background: none; }
 .rail-set-row {
   display: flex; align-items: center; gap: 0.5rem; width: 100%;
   padding: 0.375rem 0.5rem; border-radius: var(--r-sm);
-  font-size: var(--ty-body); color: var(--ink-secondary);
+  font-size: var(--ty-meta); color: var(--ink-secondary);   /* see § THE SIDEBAR IS NOT PROSE */
 }
 .rail-set-row:hover { background: rgba(255,255,255,0.04); }
 :root[data-theme="light"] .rail-set-row:hover { background: rgba(16,24,40,0.04); }
@@ -3807,7 +3807,10 @@ button.rail-set-row:focus-visible {
   padding: 0.375rem 0.5rem 0.375rem 0;
   border-radius: var(--r-sm);
   background: none; border: 0; cursor: pointer; text-align: left;
-  font-family: var(--font-sans); font-size: var(--ty-body);
+  /* The group leads its own children on weight, since it cannot on size:
+     both are at the meta step and the floor is one step below that. */
+  font-family: var(--font-sans); font-size: var(--ty-meta);
+  font-weight: var(--fw-semibold);
   color: var(--ink-secondary);
 }
 .rail-grp-h:hover { background: rgba(255,255,255,0.04); }
@@ -3887,7 +3890,7 @@ button.rail-set-row:focus-visible {
   display: flex; flex-direction: column; gap: 0.0625rem; width: 100%;
   padding: 0.3125rem 0.5rem 0.3125rem 0.4375rem; border-radius: var(--r-sm);
   background: none; border: 0; cursor: pointer; text-align: left;
-  font-family: var(--font-sans); font-size: var(--ty-body);
+  font-family: var(--font-sans); font-size: var(--ty-meta);
   color: var(--ink-secondary);
 }
 .rail-pg:hover { background: rgba(255,255,255,0.04); }
@@ -4138,6 +4141,27 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
    one internal gap and one gap to the title beneath. */
 .doc-head { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
 .doc-head .dv-notice { margin-bottom: 0; }
+/* THE ICON SITS ON THE LINE IT MARKS. aimy-ds.css aligns the notice to
+   flex-start and nudges the icon down 1px, which was measured for something
+   — it lands the 14px glyph 3.2px ABOVE the middle of the 22.4px line box
+   beside it. A fixed nudge cannot do this job, because the answer depends on
+   the line-height, and this notice wraps to two lines on a narrow document.
+
+   So the icon gets a box one line tall and lets the viewBox centre itself in
+   it: preserveAspectRatio defaults to xMidYMid meet, so a 24x24 viewBox in a
+   14 x 22.4 box draws 14x14 centred, and the glyph does not change size.
+   Measured after: 0.00px from the first line’s middle, single-line and
+   wrapped alike — an icon that marks a paragraph belongs on its first line,
+   not floating between two of them.
+
+   1lh is the honest unit and it is stated second so it wins where it is
+   supported; 1.6em above it is the same number, restating the line-height
+   the library sets three declarations up. */
+.doc-head .dv-notice > svg {
+  height: 1.6em;
+  height: 1lh;
+  margin-top: 0;
+}
 .doc-head .doc-note { margin: 0; }
 .doc-byline {
   display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
@@ -5612,12 +5636,11 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
 .rail-back:active { transform: translateY(0.0625rem); }
 .rail-back:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
 .rail-back svg { flex-shrink: 0; opacity: 0.75; }
-.rail-back-lines { display: flex; flex-direction: column; gap: 0.0625rem; min-width: 0; }
-.rail-back-name { font-size: var(--ty-meta); font-weight: var(--fw-semibold); }
-.rail-back-sub {
-  font-size: var(--ty-micro); color: var(--ink-faint);
-  line-height: var(--lh-snug);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+/* One line, not two — see the note at .gate-console-name in chat.css. The
+   truncation moves onto the name, which is what is left to truncate. */
+.rail-back-name {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: var(--ty-meta); font-weight: var(--fw-semibold);
 }
 .brief::-webkit-scrollbar { width: 0.25rem; }
 .brief::-webkit-scrollbar-track { background: transparent; }

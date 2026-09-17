@@ -5846,10 +5846,13 @@
 
   /* The byline. Everything a masthead would say, as one line of phrases, each
      entity in it openable. */
-  function docByline(o) {
+  /* `hushStatus` is set by renderDoc when the notice above this line already
+     names the status. The note where it is computed says which states those
+     are, and which two deliberately are not. */
+  function docByline(o, hushStatus) {
     const src = SRC[o.src];
     return `<div class="doc-byline">
-      ${statusBadge(o.status, o.statusSet ? 'Set by ' + esc(o.statusBy || USER.owner) : '')}
+      ${hushStatus ? '' : statusBadge(o.status, o.statusSet ? 'Set by ' + esc(o.statusBy || USER.owner) : '')}
       <!-- What kind of thing it is, first. The byline said status, owner, date,
            source and collection and never once said whether you were looking at
            a ticket or a policy — the most basic fact about an object, and the
@@ -6940,7 +6943,39 @@
     const regions = view.regions;
     const rail = view.rail;
 
-    const notice = (STATUS[o.status].excluded || o.arch || o.status === 'outdated') ? `
+    /* ── ONE FACT, SAID ONCE ──
+
+       The notice below and the trust chip in the byline are the same fact
+       twice, forty pixels apart, under the same icon. The notice is the one
+       that earns its place: it carries the REASON ("Confluence changed after
+       our copy"), the CONSEQUENCE ("Still used in answers, and answers say
+       so") and, on two of the three states, the button out of it. The chip
+       carries the word and its own tone, and the word is the notice’s first
+       word. So the chip goes — and the byline gets to lead with the kind of
+       thing you are looking at, which is what the comment inside docByline
+       argues it should have led with all along.
+
+       TWO CASES WHERE IT IS NOT THE SAME FACT, checked against the corpus
+       rather than reasoned about:
+
+         ARCHIVED. The notice says "Archived." and the chip says the computed
+         status, which is something else. article-refund-2024 is archived AND
+         superseded: banner "Archived.", chip "Superseded". Two facts, and
+         dropping the chip would lose the second one.
+
+         SET BY HAND. The chip carries a pin and a title saying who set it.
+         Nothing else on the page does, and this file argues a few hundred
+         lines up that "an override you cannot see is indistinguishable from
+         a fact, which is the whole failure of the attestation model this
+         replaced". So a hand-set status keeps its chip.
+
+       What is left is outdated and superseded computed from the facts, where
+       the notice says "Out of date." over a chip saying "Out of date", and
+       "Replaced." over a chip saying "Superseded". */
+    const noticeShows = STATUS[o.status].excluded || o.arch || o.status === 'outdated';
+    const hushStatus = noticeShows && !o.arch && !o.statusSet &&
+      (o.status === 'outdated' || o.status === 'superseded');
+    const notice = noticeShows ? `
       <div class="dv-notice is-${o.arch || o.status === 'superseded' ? 'superseded' : 'expired'}">
         ${o.arch ? ICO.box : o.status === 'superseded' ? ICO.arrow : ICO.refresh}
         <span class="dv-notice-text"><strong>${o.arch ? 'Archived.' : o.status === 'superseded' ? 'Replaced.' : 'Out of date.'}</strong>
@@ -6988,14 +7023,26 @@
                  title and body are neighbours. -->
             ${(notice || docByline(o) || (!preview && !owns)) ? `<header class="doc-head">
               ${notice}
-              ${docByline(o)}
+              ${docByline(o, hushStatus)}
               <!-- The type's own content used to render HERE, as a read-only
                    replay of the card's body — the one type-aware run on the
                    page, describing fields you then had to open a rail to
                    change. It is the record region now: same facts, in the
                    order the type reads, with the fields as the controls. The
                    head keeps what §6.4 calls constant and nothing else. -->
-              ${!preview && !owns ? `<p class="doc-note">Owned by ${esc(responsible(o))}, not you. Your edit is recorded against your name.</p>` : ''}
+              <!-- It said "Owned by A. Mahfouz, not you" directly under a
+                   byline that had just said "Owned by A. Mahfouz" — four words
+                   repeated at twenty pixels’ distance, and the only new thing
+                   in the sentence was the warning. The warning is what it is
+                   for, so the warning is what it says.
+
+                   It also stops lying on an unowned document. The owns flag is
+                   comparison against USER.owner, so this rendered for an
+                   unassigned one too — "Owned by Unassigned, not you", which
+                   is the exact defect ownerPhrase was written to prevent,
+                   reintroduced two hundred lines below it. The byline says
+                   "Nobody owns it" there and this no longer contradicts it. -->
+              ${!preview && !owns ? `<p class="doc-note">Not your document. Your edit is recorded against your name.</p>` : ''}
             </header>` : ''}
 
             <!-- No contenteditable at rest. See armEditable: the attribute
@@ -13377,7 +13424,7 @@
           undoStack = () => { Object.assign(o, before); recompute(); render(); };
           render();
           markAfter('.rail-facts', $('#docCanvas'));
-          markAfter('.doc-byline .trust-state', $('#docCanvas'));
+          markAfter('.doc-head .dv-notice, .doc-byline .trust-state', $('#docCanvas'));
           markCard(o.id);
           toast('Re-synced from ' + src.label, 'Undo', 'Our copy now matches the source');
           return true;
@@ -13723,7 +13770,7 @@
       recompute();
       render();
       markCard(o.id);
-      markAfter('.doc-byline .trust-state', $('#docCanvas'));
+      markAfter('.doc-head .dv-notice, .doc-byline .trust-state', $('#docCanvas'));
       toast(to && to !== 'auto' ? 'Status set to ' + STATUS[to].label : 'Status back to automatic',
         'Undo', to && to !== 'auto' ? 'Set by you, and marked as such' : 'Computed from the facts again');
       return;
