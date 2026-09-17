@@ -293,6 +293,36 @@ html { font-size: max(1rem, calc(100vw / 96)); }
                                 nothing changes; above it, the line length stops
                                 climbing with the monitor. */
   --measure-bar:  47.5rem;   /*  760 — the input band */
+
+  /* ── AND A `ch` IS NOT A CHARACTER ──
+
+     Every prose cap in this file is written in `ch`, and `ch` is the width
+     of the digit ZERO, which is one of the widest glyphs a face has. Prose
+     averages far narrower. Measured in Poppins against 2,178 characters of
+     this product’s own document copy:
+
+       one `ch`  10.05px        average prose character  7.88px
+       so  N ch  renders  N × 1.274  actual characters
+
+     Which means the caps were all about a quarter wider than the numbers
+     they were written as:
+
+       80ch = 102 characters     72ch = 92     66ch = 84
+
+     The note at .doc-scroll .dv-body proves the intent was real characters:
+     "at 620px and 13px the body ran to ~95 characters, which is where the
+     eye starts losing the line it is on". It then set 66ch, which today
+     renders 84 — the author asked for 66 and the unit gave them 84.
+
+     It got worse when the face changed. A `ch` is per-face, so moving the
+     product to Poppins re-scaled every one of these caps at once, silently,
+     in a commit that was about the typeface.
+
+     One number, stated in `ch` because that is what CSS gives, and labelled
+     with what it actually renders. 75 characters is the top of the
+     comfortable band rather than the middle — this is a correction of a
+     measure that was past the ceiling, not a re-layout of the document. */
+  --measure-prose: 59ch;     /* 75 characters in Poppins, at any size */
 }
 
 /* ═══════════════════════════════════════════════
@@ -331,6 +361,32 @@ html { font-size: max(1rem, calc(100vw / 96)); }
   --ty-body:    1rem;      /* 16 — prose, snippet, a value you read for */
   --ty-meta:    0.875rem;  /* 14 — block title, label, attribution      */
   --ty-micro:   0.75rem;   /* 12 — FLOOR: separator, count, timestamp   */
+
+  /* ── LEADING, AND IT WAS INVERTED ──
+
+     The library ships --lh-base 1.55 and --lh-relaxed 1.75, both above the
+     1.2–1.45 range the print references give, while the SMALLEST text on
+     this surface carries the TIGHTEST leading. That is backwards in both
+     directions at once: small text needs proportionally MORE leading, not
+     less, because the eye has less glyph to track along.
+
+     The correction to the print range is the ground. That range is dark type
+     on white and this product is the inverse — light type on a dark ground
+     blooms, the glyphs spread slightly into the space around them, and lines
+     that measure the same sit visually closer. The standing advice is to pay
+     it back on leading, tracking and weight. Only leading is available here:
+     tracking on lowercase body is wrong at reading sizes whatever the
+     ground, and the weight axis is at its floor already.
+
+     So body takes 1.5, the bottom of the 1.5–1.6 band rather than the top of
+     a range computed for the opposite polarity, and the relaxed step — which
+     the document body reads — takes 1.6 rather than 1.75. Headings take 1.25
+     rather than 1.2, because 1.2 is set solid at 20px and above.
+
+     Identical to Sales, for the same reason the weight ladder is. */
+  --lh-tight:   1.25;
+  --lh-base:    1.5;
+  --lh-relaxed: 1.6;
 }
 .doc-rail, .app-sidebar, .peek, .props {
   --ty-title: 1.125rem;   /* 18 — block title, region head */
@@ -4085,7 +4141,12 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
      heading separated from its body by weight alone. Prose is what --ty-body
      is for; the token says so. The sheet reads 28 / 20 / 16 now, and h3 has a
      step of its own again. */
-  font-size: var(--ty-body); line-height: 1.72; color: var(--ink-secondary);
+  /* 1.72 WAS PAYING FOR THE MEASURE. Long lines need more leading, because
+     the eye has further to travel to find the next one; at 102 characters
+     1.72 was the compensation. The line is 75 characters now and the
+     compensation is no longer owed. --lh-relaxed is 1.6, which is what a
+     column of this width takes on a dark ground. */
+  font-size: var(--ty-body); line-height: var(--lh-relaxed); color: var(--ink-secondary);
   padding: 0.5rem; margin: 0 0 0 -8px;
   border-radius: var(--r-sm); border: 0.0625rem solid transparent;
   min-height: 10rem;
@@ -4157,7 +4218,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
 .doc-page #editBody > ul,
 .doc-page #editBody > ol,
 .doc-page #editBody > h3,
-.doc-page #editBody > h4 { max-width: 80ch; }
+.doc-page #editBody > h4 { max-width: var(--measure-prose); }
 .doc-page #editBody p { margin: 0 0 1rem; }
 .doc-page #editBody h3 {
   font-family: var(--font-display); font-size: var(--ty-title); font-weight: var(--fw-bold);
@@ -4558,9 +4619,9 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
 }
 .doc-page .comment-thread { margin: 0; padding: 0; border: 0; background: none; }
 .doc-page .comment-thread-head { display: none; }
-.doc-page .comment { max-width: 80ch; }
+.doc-page .comment { max-width: var(--measure-prose); }
 .doc-page .comment-text { font-size: var(--ty-meta); }
-.doc-page .comment-compose { max-width: 80ch; }
+.doc-page .comment-compose { max-width: var(--measure-prose); }
 .doc-page .props { gap: 0.75rem; }
 /* `.prop-facts` stood here: the type's fields, read aloud as phrases above the
    rows. They became controls, and a value printed above the field that holds
@@ -4997,11 +5058,14 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
 
 .doc-scroll .dv-body {
   font-size: var(--ty-body);
-  line-height: 1.72;
+  line-height: var(--lh-relaxed);
   color: var(--ink-secondary);
   /* Prose wants a measure. At 620px and 13px the body ran to ~95 characters,
-     which is where the eye starts losing the line it is on. */
-  max-width: 66ch;
+     which is where the eye starts losing the line it is on.
+
+     AND 66ch WAS NOT 66 CHARACTERS — it renders 84 in Poppins. See the
+     --measure-prose note beside the other measures. */
+  max-width: var(--measure-prose);
 }
 .doc-scroll .dv-body p { margin: 0 0 1rem; }
 .doc-scroll .dv-body p:first-child { color: var(--ink-primary); font-size: var(--ty-title); line-height: 1.5; }
@@ -5104,7 +5168,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
 
 /* The editor's body is the same document, so it reads the same. Its own
    affordances — the contenteditable outline, the placeholder — sit on top. */
-.wb-editor-split .dv-body { font-size: var(--ty-body); line-height: 1.72; max-width: 66ch; }
+.wb-editor-split .dv-body { font-size: var(--ty-body); line-height: var(--lh-relaxed); max-width: var(--measure-prose); }
 .wb-editor-split .dv-body p:first-child { font-size: var(--ty-body); color: inherit; }
 .wb-editor-split .dv-title { font-size: var(--ty-display); }
 /* Editing needs to look like editing: the body carries a faint frame so its
@@ -5857,7 +5921,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
 /* Named only when the set is one you chose. On the landing set the result line
    directly above already reads "12 documents of 36". */
 .ins-scope { margin-left: auto; font-size: var(--ty-meta); color: var(--ink-quiet); }
-.ins-body { min-width: 0; max-width: 72ch; }
+.ins-body { min-width: 0; max-width: var(--measure-prose); }
 /* Full ink. The figures were the only runs in the paragraph at --ink-primary,
    so the sentence read as grey packaging around three numbers — and the
    sentence is the insight. The figures keep their accent underline, which is
@@ -6654,7 +6718,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
    stops being scannable. Same rows, two columns, and the measure capped at
    80ch for the same reason the paragraphs are — a line you cannot track back
    to is not more readable for being wider. */
-.dv-record { display: flex; flex-direction: column; gap: 0.75rem; max-width: 80ch; margin: 0 0 2rem; }
+.dv-record { display: flex; flex-direction: column; gap: 0.75rem; max-width: var(--measure-prose); margin: 0 0 2rem; }
 .dv-record .dv-typed { margin: 0; }
 .dv-record .prop-rows { gap: 0.25rem; }
 .dv-record .prop-kv-read {
@@ -6681,7 +6745,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
 .dv-record[data-type="story"] .prop-kv-val .tc-quote { margin: 0; font-size: var(--ty-body); }
 
 /* ── The subject: the file, or the live page ── */
-.dv-subject { display: flex; flex-direction: column; gap: 0.5rem; max-width: 80ch; margin: 0 0 1.5rem; }
+.dv-subject { display: flex; flex-direction: column; gap: 0.5rem; max-width: var(--measure-prose); margin: 0 0 1.5rem; }
 .dv-subject .tc-mono { margin: 0; font-size: var(--ty-body); word-break: break-all; }
 .dv-subject-state { margin: 0; font-size: var(--ty-meta); line-height: 1.5; color: var(--ink-muted); }
 .dv-subject .rail-act { margin-top: 0; }
