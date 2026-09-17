@@ -181,11 +181,24 @@ body[data-rail="collapsed"] .gate-body { grid-template-columns: 0rem minmax(0, 1
 }
 
 /* One cycle: rise by `--t`, with a slow fade up and back down so a mote is
-   never seen appearing or vanishing at a hard edge. */
+   never seen appearing or vanishing at a hard edge.
+
+   ══ AND THE PEAK IS SCALEABLE PER THEME ═══════════════════════
+   `--o` comes off the fixed table in chat.js and runs 0.13 to 0.35, so even
+   at the top of its cycle a mote is a third opaque at most. That is right
+   against #171a1c, where a third of near-white still reads. It is most of
+   why the light field looked empty whatever colour was tried on it — the
+   treatment was being judged at a quarter strength.
+
+   A multiplier rather than a second table: the table is one field, shared,
+   and the relative brightness between motes is the thing that makes it look
+   like depth rather than a grid. This scales all of them and keeps that.
+
+   Defaults to 1, so dark does not move. */
 @keyframes gate-mote-drift {
   0%   { transform: translate3d(0, 0, 0);                    opacity: 0; }
-  18%  { opacity: var(--o); }
-  76%  { opacity: var(--o); }
+  18%  { opacity: calc(var(--o) * var(--o-mul, 1)); }
+  76%  { opacity: calc(var(--o) * var(--o-mul, 1)); }
   100% { transform: translate3d(var(--dx), var(--t), 0);     opacity: 0; }
 }
 
@@ -650,17 +663,23 @@ body[data-thread="active"] .gate-chips { display: none; }
    eight of them have been drifting up the light gate since it was built,
    animating on the compositor, seen by nobody.
 
-   The first fix here was a slate dot at 0.75, which solved VISIBLE and not
-   much else: twenty-eight specks of grit on a pale wash. A mote in the dark
-   theme is not a dark dot inverted, it is a point of LIGHT — that is the
-   whole effect — and the light theme has to make light read on a ground
-   that is already bright.
+   FOUR TREATMENTS WERE TRIED and the last of them is here, so the three that
+   are not are worth a line each: a slate dot read as grit, a flat black dot
+   read as dirt, and a violet spark read well but as decoration rather than
+   as light. This one is a white core with a ring and a blue glow — the ring
+   is what stops the core dissolving into a near-white ground, the glow is
+   what makes it shine, and together they read as a point of light rather
+   than as a mark ON the surface, which is what the dark theme's motes are.
 
-   Which a flat fill cannot do at two pixels: white on near-white is the
-   original bug and any colour dark enough to show is a hole rather than a
-   spark. So the core stays white and the GLOW carries it — a half-pixel ring
-   to give the core an edge, and 7px of soft blue around it. The ring is what
-   stops it dissolving; the glow is what makes it shine.
+   AND THE REASON THE FIRST THREE WERE HARD TO JUDGE is in the keyframes
+   above, not here: every one of them was being looked at through `--o`, which
+   tops out at 0.35. The colour was never the whole problem. `--o-mul` turns
+   the field up in light only; peaks land at 0.72 to 0.86 measured, against
+   0.13 to 0.35 before.
+
+   Settled by putting five treatments on this exact background side by side.
+   It is a judgement about what the eye picks up off a gradient and there is
+   no number for that.
 
    Static shadows, so they rasterise once: the animation is still transform
    and opacity only, which is the promise the block above this makes about
@@ -669,6 +688,7 @@ body[data-thread="active"] .gate-chips { display: none; }
    The SIZE is left alone — 1.1px to 2.8px, from the fixed table in chat.js.
    It is what gives the field its depth, and one value for all twenty-eight
    would trade an invisible field for a flat one. */
+:root[data-theme="light"] .gate-dust { --o-mul: 2.4; }
 :root[data-theme="light"] .gate-mote {
   background: #ffffff;
   box-shadow: 0 0 0 0.5px rgba(60, 100, 225, 0.55),
