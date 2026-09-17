@@ -559,12 +559,17 @@ html {
 
 .ds-choice, .source-domain, .tree .tree-leaf { font-weight: var(--fw-medium); }
 
-/* ONE OF THEM IS MIXED, and the carve-out above has to survive that.
-   .btn renders 40 times on this product and once inside the overlay, so
-   the blanket override would have re-scaled a canvas control on its way
-   past. The canvas copy is put back to the library value, in tokens
-   rather than the numeral, so it still reads as a decision. */
-.aimy-overlay .btn, .aimy-float-wrap .btn { font-weight: var(--fw-extrabold); }
+/* THE CARVE-OUT I PUT HERE IS GONE, and it was wrong on its own terms.
+
+   It held .btn inside the overlay at --fw-extrabold, on the rule that the
+   canvas keeps the library’s type. Nour looked at "New conversation" in the
+   overlay and read it as extrabold, which it was — 700 in Poppins.
+
+   Checked in Sales before changing it: sales.css puts .btn in its own
+   --fw-bold group with no canvas exception, so Sales has rendered that
+   button at 600 since its own sweep. The carve-out was written to keep the
+   assistant identical between the products and had achieved the opposite —
+   the one component it protected was the one they disagreed about. */
 
 /* ═══════════════════════════════════════════════
    SIX FAILURES AA HAD BEEN CARRYING QUIETLY
@@ -743,7 +748,19 @@ svg[height="43"] { height: 2.6875rem; }
 .btn svg { width: 0.875rem; height: 0.875rem; }
 .btn-sm  { font-size: var(--ty-meta); padding: 0.3125rem 0.6875rem; }
 .btn-lg  { font-size: var(--ty-meta);  padding: 0.625rem 1.25rem; }
-.entry-action { gap: 0.4375rem; }
+/* THE BASE, not just the call sites. aimy-ds.css sets .entry-action at 1rem
+   with 0.5rem/0.875rem padding, and this file brought every instance it
+   renders down to the meta step ONE CALL SITE AT A TIME — .tc-foot-act,
+   .rail-act, .rm-end, .type-card.is-compact. The answer surface never got a
+   patch, so the apply button was the one place the library default showed
+   through: 16px and 42px tall next to 14px ones everywhere else.
+
+   The note at § THE LIBRARY, RE-POINTED says .entry-action padding and font
+   size are "NOT restated, because knowledge.css already owns them (verified
+   against computed style, not by reading)". That was true of every instance
+   the verification could see. It was not true of the base rule, and the one
+   surface that inherits it was not on screen when the check ran. */
+.entry-action { gap: 0.4375rem; font-size: var(--ty-meta); padding: 0.375rem 0.75rem; }
 .entry-action .em-ico { width: 0.875rem; height: 0.875rem; }
 .type-card.is-compact .tc-action .entry-action { font-size: var(--ty-meta); padding: 0.375rem 0.75rem; }
 
@@ -4163,8 +4180,26 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
   margin-top: 0;
 }
 .doc-head .doc-note { margin: 0; }
+/* ── A SEPARATOR THAT COULD NOT SURVIVE A WRAP ──
+
+   The middots were flex items of their own, so a wrap could leave one
+   stranded at the end of a line — which is what it did at 1180px: the row
+   ended "… Came from Confluence ·" and put "Filed in Policies" underneath.
+   Moving them into ::before or ::after only moves the stranding to the other
+   end of the line; there is no CSS that knows where a line broke.
+
+   So they go, and the gap separates instead. That works HERE because every
+   item in this byline is a phrase rather than a value — "Owned by A.
+   Mahfouz", "Updated 14 Jan 2026", "Came from Confluence", "Filed in
+   Policies". Grammar is doing the separating already and the dot was
+   repeating it. A middot earns its place in a run of bare values, which is
+   what the card’s meta line is and why that one keeps them.
+
+   It also fixes a second fault at the same time: .doc-versions is taller
+   than the phrases around it and centres 4px higher, so the two dots
+   bracketing it sat on a different baseline from the one after "Article". */
 .doc-byline {
-  display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+  display: flex; align-items: center; gap: 0.375rem 1rem; flex-wrap: wrap;
   font-size: var(--ty-meta); color: var(--ink-quiet);
   margin: 0;
 }
@@ -4172,7 +4207,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
    type, source, collection, owner and date all at one rank, so the two that
    can put the document in somebody's queue read no louder than the two that
    never change. The line is L4; the type glyph and the separators are L5. */
-.doc-by-sep { color: var(--ink-faint); }
+/* .doc-by-sep is gone — see the note at .doc-byline. */
 .doc-by-kind { color: var(--ink-faint); }
 /* Not a button: every other entity on this line opens a peek, and there is no
    peek for a type — the filter for it is the grid's own dropdown. So it reads
@@ -6840,12 +6875,11 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
   display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
   padding-top: 0.75rem; border-top: 0.0625rem solid var(--hairline);
 }
-.answer-apply-note { font-size: var(--ty-micro); color: var(--ink-faint); flex: 1; min-width: 11.25rem; }
-.answer-apply-note code {
-  font-family: var(--font-mono); font-size: var(--ty-micro);
-  background: rgba(255,255,255,0.06); border-radius: var(--r-xs); padding: 0.125rem 0.25rem;
-}
-:root[data-theme="light"] .answer-apply-note code { background: rgba(16,24,40,0.06); }
+/* .answer-apply-note is gone. The button said "Show these 3 on the surface"
+   and the note beside it said "The grid becomes exactly these documents" — a
+   gloss on a label that was already a sentence. Six other .answer-apply
+   blocks in this build carry no note at all, so this was the odd one out
+   rather than the pattern. */
 
 /* ═══════════════════════════════════════════════
    THE INPUT — degraded state

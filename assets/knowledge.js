@@ -5859,9 +5859,7 @@
            only masthead in the product that left it out. Icon AND label, never
            colour, which is the library's rule for type everywhere. -->
       <span class="doc-by-kind">${TYPES[o.t].ico}${esc(TYPES[o.t].label)}</span>
-      <span class="doc-by-sep">·</span>
       <button class="doc-by-ent" data-peek="owner:${esc(responsible(o))}">${ownerPhrase(o)}</button>
-      <span class="doc-by-sep">·</span>
       <!-- ── When it changed, and every time it changed ──
 
            This lived in the topbar behind the word "3 versions", beside the
@@ -5880,7 +5878,6 @@
       /* A document written a minute ago has no history, and "0 versions" over
          an empty panel is a control that opens onto nothing. */
       : `<span>Updated ${esc(fmtDate(o.upd))}</span>`}
-      <span class="doc-by-sep">·</span>
       <!-- "Came from Manual upload" is not where a document you typed came
            from. It came from you, here. -->
       <!-- ── The one run on this line that names a place you can go ──
@@ -5901,7 +5898,6 @@
              rel="noopener noreferrer" title="Opens ${esc(src.label)} in a new tab"
              >Came from ${esc(src.label)}${ICO.external.replace('<svg', '<svg class="doc-by-out-ico"')}</a>`
         : `<button class="doc-by-ent" data-peek="source:${o.src}">Came from ${esc(src.label)}</button>`}
-      <span class="doc-by-sep">·</span>
       <button class="doc-by-ent" data-peek="collection:${o.col}">Filed in ${esc(COLLECTIONS[o.col])}</button>
     </div>`;
   }
@@ -9227,9 +9223,6 @@
       label || (canvas.inline ? `Open these ${ids.length} in the Console`
                               : `Show these ${ids.length} on the surface`),
       `data-apply-ids="${ids.join(',')}"`)}
-      <span class="answer-apply-note">${canvas.inline
-        ? 'The Console opens filtered to exactly these.'
-        : 'The grid becomes exactly these documents.'}</span>
     </div>`;
 
   const ANSWERS = [
