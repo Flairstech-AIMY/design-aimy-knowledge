@@ -517,7 +517,7 @@ html {
 .cp-title, .dv-body h4, .dv-notice .dv-notice-link,
 .empty-state-title, .entry-action,
 .error-state-title, .field-label,
-.mem-who, .tag, .tc-approval, .tc-type, .td-action, .trust-state, .ver-mark,
+.mem-who, .tag, .tc-approval, .tc-type, .trust-state, .ver-mark,
 .ver-tag {
   font-weight: var(--fw-bold);
 }
@@ -529,12 +529,12 @@ html {
    third was making a footnote control read as loud as the block heading
    above it.
 
-   .td-action sits beside it in the group above and is the same kind of
-   object — a small outlined action in a panel. It is left at 600 because it
-   was not on the surface being looked at, and a weight I cannot see is a
-   weight I should not change. If it reads loud in the trust panel, it takes
-   this rule too. */
-.cite-action { font-weight: var(--fw-semibold); }
+   .td-action joins it. It is the same kind of object in the trust panel, and
+   it was held back one commit only because it was not on the surface being
+   looked at — Nour confirmed it should move, so the family is settled in one
+   rule rather than split across two weights by which one happened to be on
+   screen. */
+.cite-action, .td-action { font-weight: var(--fw-semibold); }
 
 /* AND FIVE OF THEM ARE UPPERCASE LABELS, which the caps rule governs: an
    uppercase run is 1.273x the ink height of the same nominal size in
