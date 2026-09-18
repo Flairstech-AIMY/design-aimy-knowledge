@@ -513,7 +513,7 @@ html {
 .modal-title { font-weight: var(--fw-bold); }
 
 .aimy-toast-title, .aimy-toast-undo, .avatar, .btn,
-.cal-dow, .cal-title, .cite, .cite-action, .comment-author, .conf-badge,
+.cal-dow, .cal-title, .cite, .comment-author, .conf-badge,
 .cp-title, .dv-body h4, .dv-notice .dv-notice-link,
 .empty-state-title, .entry-action,
 .error-state-title, .field-label,
@@ -521,6 +521,20 @@ html {
 .ver-tag {
   font-weight: var(--fw-bold);
 }
+
+/* A SMALL OUTLINED ACTION IS NOT AN EMPHATIC ONE. .cite-action is "Report a
+   problem" and "Archive" in the rail foot, and the ladder drop had left the
+   pair at --fw-bold — 600, the weight this product gives a card title. They
+   already carry a ground and an edge, which is two axes of their own; the
+   third was making a footnote control read as loud as the block heading
+   above it.
+
+   .td-action sits beside it in the group above and is the same kind of
+   object — a small outlined action in a panel. It is left at 600 because it
+   was not on the surface being looked at, and a weight I cannot see is a
+   weight I should not change. If it reads loud in the trust panel, it takes
+   this rule too. */
+.cite-action { font-weight: var(--fw-semibold); }
 
 /* AND FIVE OF THEM ARE UPPERCASE LABELS, which the caps rule governs: an
    uppercase run is 1.273x the ink height of the same nominal size in
