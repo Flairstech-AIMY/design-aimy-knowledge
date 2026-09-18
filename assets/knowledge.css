@@ -4478,23 +4478,28 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
 .rail-block-body { padding: 0 0.25rem 1rem; }
 
 .rail-facts { display: flex; flex-direction: column; gap: 0.25rem; }
-.rail-facts p { margin: 0; font-size: var(--ty-body); line-height: 1.5; color: var(--ink-secondary); }
+.rail-facts p { margin: 0; font-size: var(--ty-meta); line-height: 1.5; color: var(--ink-secondary); }
 .rail-facts p.is-overdue { color: var(--ink-err); }
 
 /* ── The ingestion date is the block's headline, not its first item ──
 
    Four facts set in one grey at one size, so "how old is the copy I am
    reading" — the question the block is opened to answer — ranked level with
-   the three that qualify it. It is L2 now against their L4: 15/14, 600/400,
-   primary/secondary. Three axes of difference where the scale asks for two,
-   because this one has to be readable from across the column.
+   the three that qualify it. It leads them on three axes where the scale
+   asks for two, because this one has to be readable from across the column.
+
+   THE NUMBERS IN THIS NOTE HAVE BEEN WRONG TWICE. It said "15/14, 600/400"
+   — true when --ty-title was 15, and the scale pass moved that step to 20
+   and then the rail’s dense variant to 18, without the note following. It is
+   16/500 over 14/400 now, and the note says so rather than saying a ratio
+   that stops being true the next time a token moves.
 
    The duration sits beside the date rather than replacing it. A date alone
    makes the reader subtract; a duration alone loses the thing they would
    quote in a ticket. Both, and neither has to be looked up. */
 .rail-facts p.rail-lead-fact {
   display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 0.5rem;
-  font-size: var(--ty-title); font-weight: var(--fw-semibold);
+  font-size: var(--ty-body); font-weight: var(--fw-semibold);
   color: var(--ink-primary); line-height: var(--lh-snug);
   margin-bottom: 0.25rem;
 }
