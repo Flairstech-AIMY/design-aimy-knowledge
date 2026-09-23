@@ -1184,6 +1184,41 @@
       s: ['is-ok', 'Active'],
       grants: [{ r: 'QA Manager', t: 'Client', v: ['Upland'] }] }
   ];
+  /* ── WHO IS SIGNED IN ──
+     The header's face says NW, so the console is being read as Nour Wael.
+     "What you sell" is this person's list and nobody else's: a seller chooses
+     what they sell, and no page here sets it for somebody else. Kept on the
+     person, because it is a fact about them the way their grants are. */
+  const ME_ID = 'p4';
+  const me = () => PEOPLE.filter((p) => p.id === ME_ID)[0];
+  const mySells = () => { const p = me(); if (p && !p.sells) p.sells = []; return p ? p.sells : []; };
+
+  /* ══ WHAT WE SELL ══════════════════════════════════════════════════════
+     The catalogue a seller chooses from, and the only thing they can choose:
+     nothing on the Selling page is typed, because every entry is a node the
+     knowledge graph points at and a free-written "QA stuff" would be an edge
+     to nowhere. The eight AiMY Sales sells, with its ids (`SELLS` in
+     Sales/assets/bdr.js), so a choice made here names the same thing there.
+     A demo: nothing carries it across yet. */
+  const OFFERINGS = [
+    { id: 'voice',   name: 'AiMY Voice',               kind: 'Product',
+      d: 'an AI voice agent that answers, qualifies and books' },
+    { id: 'qa',      name: 'AiMY QA',                  kind: 'Product',
+      d: 'quality scored on every conversation, not on a sample' },
+    { id: 'know',    name: 'AiMY Knowledge',           kind: 'Product',
+      d: 'one answer surface over documentation nobody can find' },
+    { id: 'support', name: 'Managed customer support', kind: 'Service',
+      d: 'a support team we run for you, in your tone of voice' },
+    { id: 'test',    name: 'QA and test automation',   kind: 'Service',
+      d: 'a test suite, and the engineers who keep it green' },
+    { id: 'eng',     name: 'Engineering teams',        kind: 'Service',
+      d: 'engineers embedded in your team, on EU hours' },
+    { id: 'data',    name: 'Data annotation',          kind: 'Service',
+      d: 'labelled data at volume, with an accuracy guarantee' },
+    { id: 'back',    name: 'Finance and back office',  kind: 'Service',
+      d: 'invoicing, reconciliation and reporting, run for you' }
+  ];
+  const offeringById = (id) => OFFERINGS.filter((o) => o.id === id)[0];
   /* The scope pickers read the SAME tree the targeting picker does, so a grant
      can never name a scope the hierarchy does not have. */
   const SCOPE_TYPES = ['Client', 'Business Unit', 'Product', 'Team'];
@@ -2340,6 +2375,102 @@
     popover(anchor, html, RPICK.step === 'role' ? 'is-roles' : '');
     const f = $('[data-rp-q]');
     if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); }
+  }
+
+  /* ══ WHAT YOU SELL ═════════════════════════════════════════════════════
+     Your list, and one way to add to it. Only yours: the page never shows
+     or sets what anybody else sells.
+
+     The line at the top says why the page is here at all. It belongs to
+     AiMY Sales, and a console reader who does not use that product should
+     not have to wonder what it is for. */
+  const sellItem = (o) => `
+    <div class="set2-sp-row set2-sell-row">
+      <span class="set2-sp-lines set2-sell-lines">
+        <span class="set2-sp-n2">${esc(o.name)}</span>
+        <span class="set2-sell-d">${esc(o.kind)} &middot; ${esc(o.d)}</span>
+      </span>
+      <span class="set2-sp-act">
+        <button class="set2-lnk is-err" type="button" data-sell-rm="${esc(o.id)}">Remove</button>
+      </span>
+    </div>`;
+
+  /* The list alone, so the menu can repaint it behind itself on every press
+     without rebuilding the page and taking its own anchor away. */
+  function sellMine() {
+    const mine = mySells().map(offeringById).filter(Boolean);
+    return group('You sell', mine.length ? 'is-ok' : '', mine.length,
+      mine.length ? mine.map(sellItem).join('')
+        : `<div class="set2-sell-none">Nothing yet. Add the products and services you sell.</div>`);
+  }
+
+  function secSelling() {
+    return `
+      <section class="set2-sec is-headless" id="st-selling">
+        <p class="set2-sell-lede">You see this because you have access to <b>AiMY Sales</b>.
+          What you choose here is what AiMY Sales offers you when you build a campaign.</p>
+        <div data-sell-mine>${sellMine()}</div>
+      </section>`;
+  }
+
+  /* ── THE MENU ──
+     A search over the catalogue with the catalogue under it, split into
+     Products and Services and ticked where you already sell it. It can only
+     find what is in the catalogue, which is the point: nothing here is typed
+     into existence. Multi-select, and it stays open, the way the role
+     picker's client step does — choosing three things you sell is one
+     decision. Each row is the NAME alone; the description made every row two
+     or three lines tall and turned eight choices into a scroll. It is still
+     searched, and it is still on the row's tooltip and on the page. */
+  function paintSellPick(anchor) {
+    const mine = mySells();
+    const rows = (q) => {
+      const hits = OFFERINGS.filter((o) => !q ||
+        (o.name + ' ' + o.kind + ' ' + o.d).toLowerCase().indexOf(q) >= 0);
+      if (!hits.length) return `<div class="set2-pal-empty">Nothing we sell matches <b>${esc(q)}</b>.</div>`;
+      return ['Product', 'Service'].map((kind) => {
+        const of = hits.filter((o) => o.kind === kind);
+        if (!of.length) return '';
+        return `<div class="set2-pop-t">${kind}s</div>` + of.map((o) => {
+          const on = mine.indexOf(o.id) > -1;
+          return `
+            <button class="set2-pop-i is-val${on ? ' is-on' : ''}" type="button"
+                    data-sell-t="${esc(o.id)}" aria-pressed="${on}" title="${esc(o.d)}">
+              <span class="set2-pop-n">${esc(o.name)}</span>
+              <span class="set2-pop-k">${I.tick}</span>
+            </button>`;
+        }).join('');
+      }).join('');
+    };
+    const pop = popover(anchor, `
+      <div class="set2-pop-hd">Add what you sell</div>
+      <input class="set2-pop-f" type="search" placeholder="Search products and services…"
+             data-sell-q autocomplete="off" aria-label="Search products and services">
+      <div class="set2-pop-bd" data-sell-list>${rows('')}</div>`, 'is-sell');
+    if (!pop) return;
+    const f = $('[data-sell-q]', pop); if (f) f.focus();
+    pop.addEventListener('input', (e) => {
+      if (!e.target.closest('[data-sell-q]')) return;
+      $('[data-sell-list]', pop).innerHTML = rows(e.target.value.toLowerCase().trim());
+    });
+    pop.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-sell-t]');
+      if (!b) return;
+      const id = b.getAttribute('data-sell-t');
+      const at = mine.indexOf(id);
+      if (at > -1) mine.splice(at, 1); else mine.push(id);
+      b.classList.toggle('is-on', at < 0);
+      b.setAttribute('aria-pressed', String(at < 0));
+      const list = $('[data-sell-mine]');
+      if (list) list.innerHTML = sellMine();
+      DIRTY.add('sell');
+      markDirtyStage('selling');
+      /* `markDirtyStage` only writes a note that exists, and an emptied list
+         has none — so the count would stay at "1 chosen" after the last one
+         went. Said here, from the same list. */
+      const note = $('.rail-pg[data-sec="selling"] .rail-pg-s');
+      if (note) note.textContent = mine.length ? mine.length + ' chosen' : '';
+    });
   }
 
   /* ══ PEOPLE ════════════════════════════════════════════════════════════
@@ -4266,7 +4397,8 @@
     apis:       (st) => M.apis(st),
     people:     (st) => secPeople(st),
     roles:      (st) => M.roles(st),
-    scopes:     (st) => M.hierarchy(st)
+    scopes:     (st) => M.hierarchy(st),
+    selling:    () => secSelling()
   };
 
   /* ── ONE SECTION, ONE TITLE ──
@@ -5922,6 +6054,15 @@
     }
   };
 
+  /* ── A PAGE'S ONE ACTION, ON ITS TITLE ROW ──
+     For a page whose whole job is one verb, the verb sits at the right edge of
+     the title rather than under the list it adds to, where it moved down the
+     page every time the list grew. Keyed by page id; a page without one keeps
+     the bare title. */
+  const PAGE_ACT = {
+    selling: () => `<button class="btn btn-brand btn-sm" type="button" data-sell-open>Add what you sell</button>`
+  };
+
   function head(st) {
     const m = moduleById(st.m);
     const scoped = m.scope === 'prod';
@@ -5938,8 +6079,11 @@
        the left. The module still says where you are — it is the parent row,
        marked, directly above the child. */
     const pg = pageOf(st);
+    const act = pg && PAGE_ACT[pg.id] ? PAGE_ACT[pg.id](st) : '';
     return `
-      <h1 class="set2-title">${esc(pg ? pg.name : m.name)}</h1>
+      ${act
+        ? `<div class="set2-title-row"><h1 class="set2-title">${esc(pg.name)}</h1>${act}</div>`
+        : `<h1 class="set2-title">${esc(pg ? pg.name : m.name)}</h1>`}
       <div class="set2-bar">
         ${scopeSlot(st, m, pg)}
         <div class="set2-bar-end set2-tally">${
@@ -6090,7 +6234,22 @@
       { id: 'roles', name: 'Roles', secs: ['roles'],
         state: function () { return { note: ROLES.length + ' roles', s: '' }; } },
       { id: 'scopes', name: 'Scopes', secs: ['scopes'],
-        state: function () { return { note: LEAF_TOTAL + ' scopes', s: '' }; } }
+        state: function () { return { note: LEAF_TOTAL + ' scopes', s: '' }; } },
+      /* ── WHAT YOU SELL ──
+         A fact about you, like your roles, so it lives with the people rather
+         than as a module of its own — and only yours: nobody chooses what
+         somebody else sells.
+
+         No warning and no quick action when the list is empty. Choosing what
+         you sell is a preference, not a fault, and a rail that shouts about it
+         in the warning colour ranks it beside a broken connector. The note is
+         a plain count, the way Roles and Scopes carry theirs, and it says
+         nothing until there is something to count. */
+      { id: 'selling', name: 'What you sell', secs: ['selling'],
+        state: function () {
+          var n = mySells().length;
+          return n ? { note: n + ' chosen', s: '' } : null;
+        } }
     ]
   };
 
@@ -6977,6 +7136,19 @@
       render();
       const anchor = rpAnchor();
       if (anchor) paintRPick(anchor); else closePop();
+      return;
+    }
+
+    /* ── What you sell ── */
+    const sellOpen = e.target.closest('[data-sell-open]');
+    if (sellOpen) { paintSellPick(sellOpen); return; }
+    const sellRm = e.target.closest('[data-sell-rm]');
+    if (sellRm) {
+      const list = mySells();
+      const at = list.indexOf(sellRm.getAttribute('data-sell-rm'));
+      if (at > -1) list.splice(at, 1);
+      DIRTY.add('sell');
+      render();
       return;
     }
 
