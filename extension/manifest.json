@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "AiMY",
+  "version": "0.1.0",
+  "description": "Ask AiMY about the knowledge your team already has.",
+  "action": {
+    "default_title": "Open AiMY"
+  },
+  "side_panel": {
+    "default_path": "panel.html"
+  },
+  "permissions": ["sidePanel", "storage", "tabs"],
+  "host_permissions": ["https://fonts.googleapis.com/*", "https://fonts.gstatic.com/*"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://aimy-knowledge-assets.s3.us-east-1.amazonaws.com data:;"
+  },
+  "background": {
+    "service_worker": "service-worker.js",
+    "type": "module"
+  }
+}

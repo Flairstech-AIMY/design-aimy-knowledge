@@ -1,0 +1,489 @@
+:root {
+  color-scheme: dark;
+  --bg: #0f1215;
+  --surface: #141b24;
+  --surface-raised: #1c2630;
+  --line: rgba(255,255,255,.07);
+  --line-strong: rgba(255,255,255,.14);
+  --text: #eef2f6;
+  --muted: #c8d2dc;
+  --quiet: #b0bcca;
+  --brand: #3369ff;
+  --violet: #8b4ff4;
+  --green: #17b26a;
+  --shadow: 0 18px 50px rgba(0,0,0,.34);
+  --teal: #6fdfe2;
+  /* Brand blue as text: #3369ff is a fill colour and too light to read at
+     12px on a tinted ground, so text uses its own step. */
+  --brand-ink: #7d9dff;
+  --hover: rgba(255,255,255,.06);
+  --bubble: #1c2630;
+  --gutter: 16px;
+  --panel-max: 560px;
+  --ease-out: cubic-bezier(.22,1,.36,1);
+  --ease-spring: cubic-bezier(.34,1.56,.64,1);
+  /* One family. Poppins sets optically larger than Urbanist did (taller
+     x-height, wider set), so the scale below keeps the old pixel sizes and
+     carries hierarchy in weight and colour instead: body drops to 400 and
+     headings to 600, or a 380px column reads as shouting. */
+  --font-sans: "Poppins", system-ui, sans-serif;
+  --fs-meta: 11px;   /* kinds, statuses, demo scaffolding */
+  --fs-ui: 12px;     /* labels, buttons, chips, captions */
+  --fs-body: 13px;   /* answers, composer, messages */
+  --fs-lead: 14px;   /* the lead field, answer headings, the primary CTA */
+  --fs-brand: 16px;
+  --fs-title: 26px;
+  --font-display: "Poppins", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --surface-raised: #f7f9fc;
+  --line: rgba(22, 37, 53, .11);
+  --line-strong: rgba(22, 37, 53, .2);
+  /* Judged against the bloom, not the flat --bg: the wash stays at full
+     strength in light, and where it is bluest the old #526274 body fell to
+     about 4.2:1. These are the design system's own light-ramp values
+     (--d50 / --d300) and hold AA across the whole wash. */
+  --text: #10151b;
+  --muted: #3a4653;
+  --quiet: #424f5e;
+  --brand-ink: #1f4fcf;
+  --hover: rgba(22, 37, 53, .06);
+  --bubble: #e4eaf0;
+  --brand: #3369ff;
+  --violet: #7a34e8;
+  --green: #0a6d41;
+  --shadow: 0 18px 50px rgba(21, 40, 64, .12);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body:not(.panel-page) { min-width: 380px; min-height: 600px; }
+body { background: var(--bg); color: var(--text); font: 400 var(--fs-body)/1.55 var(--font-sans); letter-spacing: 0; -webkit-font-smoothing: antialiased; }
+button, textarea { font: inherit; }
+button { color: inherit; cursor: pointer; }
+.app-shell { min-height: 600px; padding: 20px 20px 14px; background: radial-gradient(circle at 88% -4%, rgba(90,140,255,.14), transparent 30%), var(--bg); }
+.topbar { display: flex; align-items: center; justify-content: space-between; min-height: 34px; }
+.brand { display: inline-flex; align-items: center; gap: 8px; color: var(--text); font-family: var(--font-display); font-size: 16px; font-weight: 700; text-decoration: none; letter-spacing: 0; }
+.brand-mark { display: grid; place-items: center; width: 24px; height: 24px; color: #fff; background: transparent; border-radius: 0; font-size: 14px; }
+.brand-mark svg { width: 24px; height: 24px; }
+.brand-mark.small { width: 18px; height: 18px; border-radius: 5px 5px 5px 2px; font-size: 11px; }
+.topbar-actions { display: flex; gap: 5px; }
+.icon-button { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 1px solid transparent; border-radius: 8px; color: var(--muted); background: transparent; font-size: 17px; }
+.icon-button:hover { border-color: var(--line); background: var(--surface); color: var(--text); }
+.topbar-context { margin-left: auto; margin-right: 12px; color: var(--quiet); font-size: 11px; }
+.welcome { padding: 46px 4px 24px; }
+.eyebrow, .section-heading { color: var(--quiet); font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.eyebrow { margin: 0 0 12px; }
+h1 { max-width: 320px; margin: 0; font-size: 31px; font-weight: 700; line-height: 1.04; letter-spacing: -.035em; }
+h1 em { color: var(--brand); font-style: normal; }
+.welcome-copy { max-width: 310px; margin: 14px 0 0; color: var(--muted); line-height: 1.55; }
+.panel-welcome { padding-top: 54px; }
+.ask-form { padding: 5px; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); transition: border-color .2s ease, box-shadow .2s ease; }
+.ask-form:focus-within { border-color: rgba(90,140,255,.7); box-shadow: 0 0 0 3px rgba(90,140,255,.12), var(--shadow); }
+textarea { display: block; width: 100%; min-height: 50px; padding: 11px 12px 4px; resize: vertical; border: 0; outline: 0; color: var(--text); background: transparent; line-height: 1.45; }
+textarea::placeholder { color: var(--quiet); }
+.composer-foot { display: flex; align-items: center; justify-content: space-between; padding: 2px 2px 1px 12px; }
+.composer-hint { color: var(--quiet); font-size: 10px; }
+.send-button { display: grid; place-items: center; width: 31px; height: 31px; border: 0; border-radius: 8px; color: #fff; background: var(--brand); font-size: 19px; line-height: 1; }
+.send-button svg { width: 16px; height: 16px; }
+.send-button:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.prompt-section, .recent-section { margin-top: 27px; }
+.section-heading { display: flex; align-items: center; gap: 10px; }
+.section-rule { height: 1px; flex: 1; background: var(--line); }
+.prompt-grid { display: grid; gap: 7px; margin-top: 10px; }
+.prompt-card, .conversation { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 10px; border: 1px solid var(--line); border-radius: 9px; color: var(--muted); background: var(--surface); text-align: left; transition: border-color .18s ease, transform .18s ease, background .18s ease; }
+.prompt-card:hover, .conversation:hover { border-color: var(--line-strong); background: var(--surface-raised); transform: translateX(2px); }
+.prompt-icon { display: grid; place-items: center; width: 24px; height: 24px; color: var(--violet); border: 1px solid rgba(154,107,250,.25); border-radius: 7px; font-size: 16px; }
+.prompt-card span:nth-child(2) { flex: 1; font-size: 12px; }
+.prompt-arrow, .conversation-arrow { color: var(--quiet); font-size: 17px; }
+.conversation-list { display: grid; gap: 4px; margin-top: 9px; }
+.conversation { padding: 9px 8px; border-color: transparent; background: transparent; }
+.conversation-dot { width: 7px; height: 7px; flex: 0 0 auto; border-radius: 50%; }
+.is-blue { background: var(--brand); box-shadow: 0 0 0 3px rgba(90,140,255,.12); }
+.is-purple { background: var(--violet); box-shadow: 0 0 0 3px rgba(154,107,250,.12); }
+.conversation-copy { display: grid; flex: 1; gap: 2px; }
+.conversation-copy strong { color: var(--text); font-size: 12px; font-weight: 600; }
+.conversation-copy small { color: var(--quiet); font-size: 10px; }
+.answer-preview { margin-top: 12px; padding: 14px; border: 1px solid rgba(90,140,255,.28); border-radius: 10px; background: linear-gradient(135deg, rgba(90,140,255,.1), rgba(154,107,250,.06)); }
+.answer-label { display: flex; align-items: center; gap: 7px; color: var(--brand); font-size: 11px; font-weight: 700; }
+.answer-preview p { margin: 10px 0 12px; color: var(--text); line-height: 1.55; }
+.source-row { display: flex; justify-content: space-between; color: var(--quiet); font-size: 10px; }
+.source-row button { padding: 0; border: 0; color: var(--brand); background: none; }
+.footer-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 28px; padding-top: 13px; border-top: 1px solid var(--line); }
+.workspace-link { padding: 0; border: 0; color: var(--muted); background: transparent; font-size: 11px; }
+.workspace-link:hover { color: var(--brand); }
+.workspace-link span { margin-right: 4px; color: var(--brand); }
+.sync-status, .keyboard-hint { color: var(--quiet); font-size: 10px; white-space: nowrap; }
+.sync-status i { display: inline-block; width: 6px; height: 6px; margin-right: 5px; border-radius: 50%; background: var(--green); }
+.toast { position: fixed; right: 16px; bottom: 14px; left: 16px; padding: 9px 12px; border: 1px solid var(--line-strong); border-radius: 8px; color: var(--text); background: var(--surface-raised); box-shadow: var(--shadow); opacity: 0; pointer-events: none; transform: translateY(6px); transition: .2s ease; }
+.toast.is-visible { opacity: 1; transform: translateY(0); }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+@media (min-width: 520px) { html, body { min-width: 0; } .app-shell { max-width: 680px; margin: 0 auto; padding: 28px 34px 20px; } .panel-page .app-shell { max-width: 780px; } .prompt-grid { grid-template-columns: repeat(3, 1fr); } .prompt-card { align-items: flex-start; flex-direction: column; min-height: 112px; } .prompt-card span:nth-child(2) { min-height: 36px; } .prompt-arrow { margin-top: auto; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
+
+/* Quick popup: the question is the first and only primary task. */
+.quick-topbar { margin-bottom: 4px; }
+.quick-welcome { padding: 48px 4px 22px; }
+.quick-welcome h1 { margin: 0; font-family: var(--font-display); font-size: 30px; letter-spacing: 0; }
+.quick-welcome .welcome-copy { max-width: 280px; margin-top: 10px; }
+.quick-welcome .eyebrow { margin-bottom: 9px; color: var(--brand); }
+.app-shell:has(.quick-welcome) { min-height: 0; padding-bottom: 18px; }
+.app-shell:has(.quick-welcome) .ask-form { box-shadow: 0 12px 28px rgba(0,0,0,.2); }
+.app-shell:has(.quick-welcome) .footer-bar { margin-top: 20px; }
+.icon-button svg, .workspace-link svg { width: 16px; height: 16px; }
+.icon-button:focus-visible, .workspace-link:focus-visible, .send-button:focus-visible, .message-actions button:focus-visible, .utility-actions button:focus-visible, .reopen-button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.icon-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* ══ SIDE PANEL ════════════════════════════════════════════════════════
+   Chrome/Edge side panels run 320-500px wide at any height, so this is one
+   column with no desktop breakpoint. Opened in a full tab for a demo, the
+   column stops at --panel-max instead of stretching into a web app. */
+.gate-page { min-width: 0; min-height: 100vh; overflow: hidden; background: var(--bg); color: var(--text); }
+.gate-shell { position: relative; display: flex; flex-direction: column; height: 100vh; height: 100dvh; min-height: 0; background: var(--bg); }
+.gate-main { position: relative; z-index: 1; flex: 1 1 auto; min-height: 0; overflow: hidden; background: transparent; }
+.gate-content { position: relative; display: flex; flex-direction: column; justify-content: flex-start; width: 100%; max-width: var(--panel-max); height: 100%; margin: 0 auto; padding: 7% var(--gutter) 12px; overflow-y: auto; }
+.gate-page :is(button, input):focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* ══ AMBIENT FIELD ═════════════════════════════════════════════════════
+   Two blooms drifting on 29s and 37s (coprime, so they take 17 minutes to
+   realign and never fall into a visible beat) over a field of dust rising on
+   its own cycles. Transform and opacity only, so it stays on the compositor,
+   and it sits outside the scrolling thread so it never repaints on scroll.
+   Gradients, drift and the light-theme treatment match Knowledge's gate
+   (Knowledge/assets/chat.css), so the panel and the app share one ground. */
+.gate-bloom { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; transition: opacity .8s var(--ease-out); }
+.gate-bloom-a, .gate-bloom-b { position: absolute; inset: -20%; will-change: transform, opacity; }
+.gate-bloom-a { background: radial-gradient(ellipse at 30% 50%, rgba(0,102,255,.36) 0%, rgba(97,173,241,.20) 28%, transparent 60%); animation: gate-drift-a 29s var(--ease-out) infinite alternate; }
+.gate-bloom-b { background: radial-gradient(ellipse at 75% 70%, rgba(111,223,226,.20) 0%, rgba(139,79,244,.14) 38%, transparent 60%); animation: gate-drift-b 37s var(--ease-out) infinite alternate; }
+@keyframes gate-drift-a { from { transform: translate3d(-9%,-5%,0) scale(1); opacity: .72; } to { transform: translate3d(10%,6%,0) scale(1.32); opacity: 1; } }
+@keyframes gate-drift-b { from { transform: translate3d(7%,8%,0) scale(1.26); opacity: .55; } to { transform: translate3d(-10%,-6%,0) scale(1); opacity: .95; } }
+.gate-dust { position: absolute; inset: 0; transition: opacity .8s var(--ease-out); }
+.gate-mote { position: absolute; left: var(--x); top: var(--y); width: var(--s); height: var(--s); border-radius: 50%; background: rgba(226,238,255,.85); opacity: 0; will-change: transform, opacity; animation: gate-mote-drift var(--d) linear infinite; animation-delay: calc(var(--i) * -1.7s); }
+/* Fades up and back down, so a mote is never seen appearing at a hard edge.
+   --o-mul scales the whole field per theme and keeps the relative brightness
+   between motes, which is what reads as depth. Defaults to 1, so dark does
+   not move. */
+@keyframes gate-mote-drift { 0% { transform: translate3d(0,0,0); opacity: 0; } 18% { opacity: calc(var(--o) * var(--o-mul, 1)); } 76% { opacity: calc(var(--o) * var(--o-mul, 1)); } 100% { transform: translate3d(var(--dx), var(--t), 0); opacity: 0; } }
+
+/* ══ HEADER LOCKUP ═════════════════════════════════════════════════════
+   The anchor is an empty box while the mark is still on the start screen. The
+   flying mark lands exactly on it and the static image takes over. */
+.brand { position: relative; z-index: 6; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0; width: 100%; max-width: var(--panel-max); min-height: 48px; margin: 0 auto; padding: 0 10px 0 var(--gutter); }
+.brand-lockup { display: inline-flex; align-items: center; gap: 7px; min-width: 0; color: var(--brand); font-family: var(--font-display); font-size: var(--fs-brand); font-weight: 800; line-height: 1; }
+.brand-anchor { display: block; width: 24px; height: 24px; flex-shrink: 0; }
+.brand-anchor img { display: block; width: 24px; height: 24px; object-fit: contain; }
+.brand-anchor.is-landing img { animation: mark-land .26s var(--ease-spring); }
+@keyframes mark-land { from { transform: scale(1.14); } to { transform: scale(1); } }
+/* Wipes out from behind the mark rather than fading in place. */
+.brand-word { display: inline-block; clip-path: inset(0 100% 0 0); animation: word-reveal .38s ease-out .06s forwards; }
+@keyframes word-reveal { from { clip-path: inset(0 100% 0 0); transform: translateX(-6px); opacity: .35; } to { clip-path: inset(0 -2px 0 0); transform: none; opacity: 1; } }
+/* Context, not a heading: it rides along with the logo instead of taking a row. */
+.brand-ticket { margin-left: 6px; padding: 5px 9px; overflow: hidden; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--muted); font-family: var(--font-sans); font-size: var(--fs-meta); font-weight: 500; line-height: 1; white-space: nowrap; text-overflow: ellipsis; font-variant-numeric: tabular-nums; animation: fade-in .3s var(--ease-out) .18s both; }
+.brand-actions { display: flex; align-items: center; gap: 4px; }
+.round-action { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; color: var(--quiet); background: transparent; transition: color .15s ease, background-color .15s ease; }
+.round-action:hover { color: var(--text); background: var(--hover); }
+.round-action svg { width: 16px; height: 16px; }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* ══ THE START SCREEN ══════════════════════════════════════════════════
+   Always an overlay, never in flow: the conversation is mounted underneath by
+   the time the mark flies, so the gate has to sit above it rather than share
+   the column. Absolute at all times, so its position cannot shift between
+   being measured and being animated away. */
+.gate { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; padding: 0 var(--gutter) 48px; text-align: center; background: transparent; }
+/* Holds the mark's place; the mark itself is drawn by the shell. The halo
+   sits behind it and goes out as soon as the mark leaves. */
+.gate-orbit { position: relative; display: block; width: 64px; height: 64px; flex-shrink: 0; }
+.gate-orbit::before { content: ''; position: absolute; inset: -30px; border-radius: 50%; background: radial-gradient(closest-side, rgba(76,90,249,.3), transparent); transition: opacity .3s ease; }
+.gate-page:is([data-phase="leaving"], [data-phase="flying"]) .gate-orbit::before { opacity: 0; }
+/* The container rises in; its children carry the exit, so the two never
+   fight over the same property. */
+.gate-copy { display: flex; flex-direction: column; align-items: center; animation: fade-up .5s var(--ease-out) .08s both; }
+.gate-copy.is-leaving { pointer-events: none; }
+.gate-copy > * { transition: opacity .26s ease, transform .26s ease; }
+.gate-copy.is-leaving > * { opacity: 0; transform: translateY(6px); }
+.gate-copy.is-leaving > :nth-child(2) { transition-delay: .04s; }
+.gate-copy.is-leaving > :nth-child(3) { transition-delay: .08s; }
+.gate-ticket { display: flex; flex-direction: column; gap: 6px; }
+.gate-ticket span { color: var(--quiet); font-size: var(--fs-meta); font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }
+.gate-ticket strong { color: var(--text); font-family: var(--font-display); font-size: var(--fs-title); font-weight: 800; line-height: 1.15; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.gate-hint { max-width: 260px; margin: 10px 0 24px; color: var(--muted); font-size: var(--fs-body); line-height: 1.55; }
+.gate-start { position: relative; display: inline-flex; align-items: center; justify-content: center; min-width: 148px; height: 42px; padding: 0 24px; border: 0; border-radius: 999px; color: #fff; background: linear-gradient(135deg, var(--violet), var(--brand)); font: inherit; font-size: var(--fs-lead); font-weight: 600; box-shadow: 0 10px 24px -10px rgba(76,90,249,.75), inset 0 1px 0 rgba(255,255,255,.18); transition: transform .15s var(--ease-out), filter .15s ease; }
+.gate-start:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.gate-start:active { transform: scale(.98); }
+.gate-start.is-loading { cursor: default; }
+.gate-start.is-loading:hover { filter: none; transform: none; }
+.gate-start.is-loading > span { visibility: hidden; }
+.gate-start.is-loading::after { content: ''; position: absolute; inset: 0; width: 14px; height: 14px; margin: auto; border: 2px solid rgba(255,255,255,.28); border-top-color: #fff; border-radius: 50%; animation: flow-spin .6s linear infinite; }
+/* These three set a display of their own, so hidden has to be said louder. */
+.gate[hidden], .brand-word[hidden], .brand-ticket[hidden] { display: none; }
+
+/* Positioned by the panel, moved by the Web Animations API: the arc, the
+   wind-up and the spin's timing are reasoned about as numbers in popup.js.
+   Opacity only on entry, so it never competes with the flight's transform. */
+.logo-flight { position: absolute; z-index: 10; object-fit: contain; pointer-events: none; transform-origin: center center; will-change: transform; animation: fade-in .45s ease both; }
+
+/* The conversation waits behind the gate until the mark has landed. */
+.gate-page:not([data-phase="settled"]) .gate-content { opacity: 0; visibility: hidden; }
+.gate-page[data-phase="settled"] .gate-content { animation: stage-in .34s var(--ease-out); }
+@keyframes stage-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* ══ EMPTY STATE ═══════════════════════════════════════════════════════ */
+.gate-hero { margin-bottom: 18px; text-align: center; }
+.gate-hero h1 { max-width: none; margin: 0; color: var(--text); font-family: var(--font-display); font-size: 22px; letter-spacing: -.02em; }
+.gate-hero p { margin: 6px 0 0; color: var(--muted); font-size: var(--fs-body); }
+.suggestions { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 10px; }
+.suggestions button { padding: 7px 11px; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--muted); background: color-mix(in srgb, var(--surface) 55%, transparent); font: inherit; font-size: var(--fs-ui); font-weight: 500; transition: color .15s ease, border-color .15s ease, background-color .15s ease; }
+.suggestions button:hover { color: var(--text); border-color: var(--brand); background: rgba(51,105,255,.12); }
+
+/* ══ THREAD ════════════════════════════════════════════════════════════
+   The thread bleeds to the panel edge so its scrollbar sits there, and fades
+   at both ends so lines slide under the header and composer instead of
+   being cut. */
+.gate-thread { flex: 0 1 auto; min-height: 0; overflow-y: auto; }
+.gate-main.has-flow .gate-content { gap: 0; padding: 0 var(--gutter) 12px; overflow: hidden; }
+.gate-main.has-flow .gate-hero, .gate-main.has-flow .suggestions { display: none; }
+.gate-main.has-flow .gate-thread { flex: 1 1 auto; width: auto; margin: 0 calc(var(--gutter) * -1); padding: 4px var(--gutter) 20px; scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; -webkit-mask-image: linear-gradient(to bottom, transparent, #000 12px, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(to bottom, transparent, #000 12px, #000 calc(100% - 24px), transparent); }
+
+/* One answer per turn, separated by a hairline rather than boxed: in a
+   380px column, card chrome costs more width than it earns. */
+.flow-answer { position: relative; padding: 14px 0 10px; color: var(--muted); font-size: var(--fs-body); line-height: 1.6; overflow-wrap: break-word; animation: fade-in .2s ease; }
+.flow-answer + .flow-answer { border-top: 1px solid var(--line); }
+.flow-answer h2 { margin: 0 0 10px; color: var(--text); font-family: var(--font-display); font-size: var(--fs-lead); font-weight: 600; line-height: 1.35; letter-spacing: -.01em; }
+.flow-answer p, .markdown-body p { margin: 0 0 10px; }
+.markdown-body strong, .flow-answer strong { color: var(--text); font-weight: 600; }
+/* ══ FIELDS ═══════════════════════════════════════════════════════════
+   Every field stacks the same way: label above, value below, hairline
+   between. The field that opens an answer is its lead, so its value is set
+   in full text colour a step up; the rest stay in body colour, so weight
+   still says what to read first. */
+.markdown-body .field { display: grid; grid-template-columns: minmax(0, 1fr); row-gap: 3px; margin: 0; padding: 10px 0; }
+.markdown-body .field + .field { border-top: 1px solid var(--line); }
+.markdown-body .field-label { color: var(--quiet); font-size: var(--fs-ui); font-weight: 500; line-height: 1.45; }
+.markdown-body .field-value { color: var(--muted); }
+.markdown-body .field:first-child { padding-top: 0; }
+.markdown-body .field:first-child .field-value { color: var(--text); font-size: var(--fs-lead); line-height: 1.55; }
+/* A status is a state, not a sentence, so it reads as one. */
+.markdown-body [data-field="status"] .field-value { justify-self: start; padding: 2px 9px; border: 1px solid var(--line-strong); border-radius: 999px; font-size: var(--fs-ui); font-weight: 500; line-height: 1.5; }
+/* The one thing to go and do. Tinted, so it is found at a glance from
+   anywhere in the thread. */
+.markdown-body [data-field="clarify"], .markdown-body .field + [data-field="clarify"] { margin: 4px 0 12px; padding: 10px 12px; border: 1px solid rgba(51,105,255,.28); border-radius: 12px; background: rgba(51,105,255,.1); }
+.markdown-body [data-field="clarify"] .field-label { color: var(--brand-ink); font-weight: 600; }
+.markdown-body [data-field="clarify"] .field-value { color: var(--text); }
+.markdown-body ul { margin: 0 0 10px; padding-left: 18px; }
+.markdown-body li { margin-bottom: 4px; }
+.markdown-body li::marker { color: var(--quiet); }
+.is-streaming > :last-child:not(ul):not(.field)::after, .is-streaming > .field:last-child .field-value::after, .is-streaming > ul:last-child > li:last-child::after { content: ''; display: inline-block; width: 2px; height: 1.05em; margin-left: 2px; border-radius: 1px; vertical-align: -.18em; background: var(--violet); animation: flow-caret .9s steps(1) infinite; }
+@keyframes flow-caret { 50% { opacity: 0; } }
+
+/* Sources read as sources: one card holding the set, a row per document
+   with a tinted file tile, its title, and what kind of document it is. */
+.flow-doc-list { margin: 0 0 10px; padding: 4px; overflow: hidden; border: 1px solid var(--line-strong); border-radius: 14px; background: color-mix(in srgb, var(--surface) 72%, transparent); list-style: none; }
+.flow-doc-list li { animation: fade-up .24s var(--ease-out) both; }
+.flow-doc-list li:nth-child(2) { animation-delay: .05s; }
+.flow-doc-list li:nth-child(3) { animation-delay: .1s; }
+.flow-doc-list li + li { position: relative; }
+.flow-doc-list li + li::before { content: ''; position: absolute; top: 0; right: 10px; left: 50px; height: 1px; background: var(--line); }
+.doc-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px; border: 0; border-radius: 10px; color: inherit; background: transparent; font: inherit; text-align: left; transition: background-color .15s ease, transform .15s var(--ease-out); }
+.doc-row:hover { background: var(--hover); }
+.doc-row:active { transform: scale(.99); }
+.doc-tile { display: grid; place-items: center; width: 30px; height: 30px; flex: 0 0 auto; border: 1px solid rgba(51,105,255,.22); border-radius: 8px; color: var(--brand-ink); background: rgba(51,105,255,.14); }
+.doc-tile svg { width: 15px; height: 15px; }
+.doc-text { display: grid; gap: 1px; min-width: 0; }
+.doc-title { overflow: hidden; color: var(--text); font-size: var(--fs-body); font-weight: 500; line-height: 1.4; white-space: nowrap; text-overflow: ellipsis; transition: color .15s ease; }
+.doc-kind { color: var(--quiet); font-size: var(--fs-meta); font-weight: 400; }
+.doc-row:hover .doc-title { color: var(--brand-ink); }
+
+.gate-user-message { width: fit-content; max-width: 85%; margin: 16px 0 2px auto; padding: 8px 12px; border-radius: 14px 14px 4px 14px; color: var(--text); background: var(--bubble); font-size: var(--fs-body); line-height: 1.5; overflow-wrap: anywhere; animation: fade-up .22s var(--ease-out); }
+.gate-user-message + .flow-answer { padding-top: 10px; border-top: 0; }
+
+/* ══ THINKING ══════════════════════════════════════════════════════════
+   Knowledge's thinking state (knowledge.css: .think-mark, .ai-thinking-label),
+   drawn by popup.js. No frame around it: there is nothing to put in one until
+   the answer arrives, and the answer takes the same place when it does. */
+.ai-thinking { display: inline-flex; align-items: center; gap: 10px; min-height: 30px; }
+.think-mark { display: block; width: 26px; height: 26px; flex-shrink: 0; }
+.ai-thinking-label { display: inline-block; color: var(--muted); font-size: var(--fs-ui); font-weight: 500; }
+/* Blurred on the way out and in: affordable here because it is one short
+   line, a few times per answer, and never a list. */
+@media (prefers-reduced-motion: no-preference) {
+  .ai-thinking-label.is-out { animation: think-label-out .15s var(--ease-out) forwards; }
+  .ai-thinking-label.is-in { animation: think-label-in .2s var(--ease-out) backwards; }
+}
+@keyframes think-label-out { to { opacity: 0; transform: translateY(-4px); filter: blur(2px); } }
+@keyframes think-label-in { from { opacity: 0; transform: translateY(4px); filter: blur(2px); } }
+@keyframes flow-spin { to { transform: rotate(360deg); } }
+
+/* ══ ANSWER ACTIONS ════════════════════════════════════════════════════
+   The brand's own glyphs, drawn as masks so they take currentColor: they
+   follow the theme and can show hover and active state. */
+.flow-meta { position: relative; }
+.flow-actions { display: flex; align-items: center; gap: 2px; margin: 8px 0 0 -7px; }
+.flow-actions button { position: relative; display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 8px; color: var(--quiet); background: transparent; transition: color .15s ease, background-color .15s ease, transform .15s var(--ease-out); }
+.flow-actions button:hover { color: var(--text); background: var(--hover); }
+.flow-actions button:active { transform: scale(.94); }
+.flow-actions button.is-active { color: var(--violet); }
+.action-icon { display: block; width: 15px; height: 15px; background: currentColor; -webkit-mask: var(--icon) center / contain no-repeat; mask: var(--icon) center / contain no-repeat; }
+.flow-actions button.is-loading .action-icon { visibility: hidden; }
+.flow-actions button.is-loading::after { content: ''; position: absolute; inset: 0; width: 12px; height: 12px; margin: auto; border: 2px solid var(--line-strong); border-top-color: var(--violet); border-radius: 50%; animation: flow-spin .6s linear infinite; }
+.flow-actions .tone-toggle { display: inline-flex; gap: 6px; width: auto; margin-left: 6px; padding: 0 10px 0 8px; border: 1px solid var(--line-strong); border-radius: 999px; font-size: var(--fs-ui); font-weight: 500; }
+.flow-actions .tone-toggle svg { width: 14px; height: 14px; }
+.flow-actions .tone-toggle[aria-expanded="true"] { color: var(--text); border-color: var(--brand); background: rgba(51,105,255,.12); }
+
+/* Inline, not a floating menu: it pushes the thread down instead of
+   covering the next message, and it stays open until a tone is picked. */
+.tone-menu { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px; animation: fade-up .18s var(--ease-out); }
+.tone-menu[hidden] { display: none; }
+.tone-menu button { height: 30px; padding: 0 13px; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--muted); background: transparent; font: inherit; font-size: var(--fs-ui); font-weight: 500; transition: color .15s ease, border-color .15s ease, background-color .15s ease, transform .15s var(--ease-out); }
+.tone-menu button:hover { color: var(--text); border-color: var(--brand); background: rgba(51,105,255,.12); }
+.tone-menu button:active { transform: scale(.97); }
+.tone-menu button[aria-pressed="true"] { color: #fff; border-color: transparent; background: var(--brand); }
+.tone-status { margin-top: 8px; }
+.tone-status[hidden] { display: none; }
+/* A rewrite is a draft of the answer above it, so it hangs off that answer. */
+.tone-result { margin-top: 12px; padding-left: 12px; border-left: 2px solid var(--violet); animation: fade-in .2s ease; }
+.tone-result h2 { margin: 0 0 6px; font-size: var(--fs-body); }
+.tone-result p { white-space: pre-line; }
+
+/* ══ COMPOSER ══════════════════════════════════════════════════════════ */
+.inline-status { align-self: center; min-height: 0; max-width: 100%; overflow: hidden; color: var(--quiet); font-size: var(--fs-meta); font-weight: 500; line-height: 1.3; opacity: 0; transform: translateY(3px); transition: opacity .15s ease, transform .15s ease, min-height .15s ease, margin .15s ease; }
+.inline-status.is-visible { min-height: 14px; margin-top: 6px; opacity: 1; transform: translateY(0); }
+.chat-actions { position: relative; z-index: 3; display: flex; justify-content: space-between; align-items: center; min-height: 28px; margin: 6px 0; }
+.new-chat-button { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px; border: 0; border-radius: 8px; color: var(--quiet); background: transparent; font: inherit; font-size: var(--fs-ui); font-weight: 500; transition: color .15s ease, background-color .15s ease; }
+.new-chat-button:hover { color: var(--text); background: var(--hover); }
+.new-chat-button svg { width: 14px; height: 14px; }
+/* ══ THE COMPOSER ══════════════════════════════════════════════════════
+   Knowledge's composer (aimy-ds.css .overlay-input-bar, .aimy-float-icon,
+   .overlay-send and the beam; chat.css for the gate's focus glow), so the
+   panel asks the way the app does. Values are the design system's; only the
+   type follows this panel's scale. */
+.gate-composer { position: relative; isolation: isolate; display: flex; align-items: center; gap: 10px; flex: 0 0 auto; padding: 8px; border: 1px solid rgba(255,255,255,.1); border-radius: 40px; background: #1e2428; cursor: text; transition: border-color .2s var(--ease-out), box-shadow .2s var(--ease-out); }
+.gate-composer:focus-within { border-color: rgba(139,79,244,.45); box-shadow: 0 0 0 3px rgba(139,79,244,.12); }
+/* The gate's glow is pre-rendered and revealed by opacity, so focusing costs a
+   compositor property rather than a repaint of a large blurred shadow. */
+.gate-composer::after { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 0 1px rgba(51,105,255,.4), 0 8px 32px rgba(51,105,255,.25); opacity: 0; pointer-events: none; transition: opacity .2s var(--ease-out); }
+.gate-composer:focus-within::after { opacity: 1; }
+.gate-composer > :not(textarea) { cursor: default; }
+.aimy-float-icon { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 36px; height: 36px; border: 1px solid rgba(139,79,244,.3); border-radius: 50%; background: linear-gradient(135deg, #3d1f6b 0%, #1a3a6e 50%, #163b5e 100%); box-shadow: 0 0 12px rgba(100,60,200,.25); }
+.aimy-float-icon img { display: block; width: 18px; height: 18px; object-fit: contain; }
+.gate-composer textarea { flex: 1 1 auto; width: auto; min-height: 21px; max-height: 120px; padding: 0 4px; overflow-y: auto; border: 0; color: var(--text); background: none; font-size: var(--fs-body); font-weight: 500; line-height: 1.5; caret-color: var(--violet); resize: none; scrollbar-width: none; }
+.gate-composer textarea::-webkit-scrollbar { display: none; }
+.gate-composer textarea:focus { outline: none; }
+.gate-composer textarea::placeholder { color: var(--quiet); font-weight: 400; }
+.overlay-send { position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: var(--violet); box-shadow: 0 2px 10px rgba(139,79,244,.4); transition: transform .15s var(--ease-out), box-shadow .15s var(--ease-out), background-color .15s var(--ease-out); }
+.overlay-send:hover { transform: translateY(-1px); box-shadow: 0 4px 18px rgba(139,79,244,.55); }
+.overlay-send:active { transform: scale(.94); }
+.overlay-send svg { width: 14px; height: 14px; stroke: #fff; }
+
+/* ── THE BEAM: the composer while AiMY is answering ──
+   Seven blobs pinned to the border in the order of the AI gradient; a conic
+   mask sweeps over them, so the light appears to travel and change colour
+   while nothing coloured moves. Three layers: the inner glow (::before), the
+   stroke cut to the border (::after), and the blurred bloom (> i). It sits at
+   z-index -1 in the bar's stacking context: above the bar's background,
+   below everything in it. */
+@property --beam-angle { syntax: "<angle>"; inherits: true; initial-value: 0deg; }
+.beam { position: absolute; inset: -1px; z-index: -1; overflow: hidden; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .3s var(--ease-out);
+  --beam-blobs:
+    radial-gradient(ellipse 130px 30px at  16%  -8%, rgb(139, 79,244), transparent),
+    radial-gradient(ellipse 104px 26px at  41%  -5%, rgb( 51,105,255), transparent),
+    radial-gradient(ellipse  84px 26px at  87%  -4%, rgb(106, 91,245), transparent),
+    radial-gradient(ellipse  30px 42px at   1%  60%, rgb( 97,173,241), transparent),
+    radial-gradient(ellipse  28px 40px at 100%  32%, rgb( 76,203,224), transparent),
+    radial-gradient(ellipse 168px 28px at  68% 104%, rgb(  0,102,255), transparent),
+    radial-gradient(ellipse  96px 24px at  31% 104%, rgb(111,223,226), transparent); }
+.is-generating > .beam { opacity: 1; animation: beam-spin 4.2s linear infinite; }
+.beam::before, .beam::after, .beam > i { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; }
+.beam::before { z-index: 1; background: var(--beam-blobs); box-shadow: inset 0 0 9px 1px rgba(255,255,255,.22); opacity: .42;
+  -webkit-mask-image: conic-gradient(from var(--beam-angle), transparent 0%, transparent 30%, rgba(255,255,255,.1) 36%, rgba(255,255,255,.35) 44%, #fff 52%, #fff 80%, rgba(255,255,255,.35) 86%, rgba(255,255,255,.1) 92%, transparent 95%, transparent 100%), linear-gradient(#fff, transparent 14px, transparent calc(100% - 14px), #fff), linear-gradient(to right, #fff, transparent 28px, transparent calc(100% - 28px), #fff);
+  -webkit-mask-composite: source-in, source-over;
+  mask-image: conic-gradient(from var(--beam-angle), transparent 0%, transparent 30%, rgba(255,255,255,.1) 36%, rgba(255,255,255,.35) 44%, #fff 52%, #fff 80%, rgba(255,255,255,.35) 86%, rgba(255,255,255,.1) 92%, transparent 95%, transparent 100%), linear-gradient(#fff, transparent 14px, transparent calc(100% - 14px), #fff), linear-gradient(to right, #fff, transparent 28px, transparent calc(100% - 28px), #fff);
+  mask-composite: intersect, add; }
+.beam::after { z-index: 2; padding: 1px; opacity: .26;
+  background: conic-gradient(from var(--beam-angle), transparent 0%, transparent 42%, rgba(255,255,255,.06) 48%, rgba(255,255,255,.20) 54%, rgba(255,255,255,.42) 60%, rgba(255,255,255,.62) 66%, rgba(255,255,255,.42) 72%, rgba(255,255,255,.20) 78%, rgba(255,255,255,.06) 84%, transparent 90%, transparent 100%), var(--beam-blobs);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); mask-composite: exclude; }
+.beam > i { z-index: 3; padding: 1px; opacity: .24; filter: blur(8px) brightness(1.3) saturate(1.2);
+  background: conic-gradient(from var(--beam-angle), transparent 0%, transparent 50%, rgba(255,255,255,.03) 56%, rgba(255,255,255,.10) 61%, rgba(255,255,255,.24) 65%, rgba(255,255,255,.46) 68%, rgba(255,255,255,.70) 71%, rgba(255,255,255,.70) 74%, rgba(255,255,255,.46) 77%, rgba(255,255,255,.24) 80%, rgba(255,255,255,.10) 84%, rgba(255,255,255,.03) 88%, transparent 94%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); mask-composite: exclude; }
+.is-generating > .beam::before, .is-generating > .beam::after { animation: beam-hue 18s ease-in-out infinite; }
+@keyframes beam-spin { to { --beam-angle: 360deg; } }
+@keyframes beam-hue { 0%, 100% { filter: hue-rotate(-30deg) brightness(1.3) saturate(1.2); } 50% { filter: hue-rotate(30deg) brightness(1.3) saturate(1.2); } }
+/* The send button becomes the stop button: while an answer is coming, the
+   only thing to do with the composer is call it off. */
+.is-generating .overlay-send, .is-generating .overlay-send:hover { background: rgba(139,79,244,.22); box-shadow: none; transform: none; }
+.is-generating .overlay-send:hover { background: rgba(139,79,244,.34); }
+.is-generating .overlay-send > svg { display: none; }
+.is-generating .overlay-send::after { content: ''; width: 9px; height: 9px; border-radius: 2px; background: var(--text); }
+/* A turn that was called off: under whatever had already been said. */
+.msg-stopped { display: flex; align-items: center; gap: 6px; margin-top: 6px; color: var(--quiet); font-size: var(--fs-ui); font-weight: 500; }
+
+/* ══ DEMO CONTROLS ═════════════════════════════════════════════════════
+   Dashed on purpose: it is scaffolding for the demo, not part of the panel. */
+.demo-tools { position: relative; z-index: 4; }
+.demo-tools-toggle { display: grid; place-items: center; height: 24px; padding: 0 9px; border: 1px dashed var(--line-strong); border-radius: 6px; color: var(--quiet); background: transparent; font: inherit; font-size: var(--fs-meta); font-weight: 500; line-height: 1; transition: color .15s ease, border-color .15s ease; }
+.demo-tools-toggle:hover, .demo-tools-toggle[aria-expanded="true"] { color: var(--text); border-color: var(--quiet); }
+.demo-controls { position: absolute; left: 0; bottom: 32px; display: flex; align-items: center; gap: 4px; padding: 4px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); box-shadow: var(--shadow); animation: fade-up .16s var(--ease-out); }
+.demo-controls[hidden] { display: none; }
+.demo-controls button { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 7px; color: var(--quiet); background: transparent; font-size: 16px; }
+.demo-controls button:hover { color: var(--text); background: var(--hover); }
+.demo-speed { display: flex; align-items: center; gap: 6px; padding: 4px 7px; color: var(--quiet); font-size: var(--fs-meta); white-space: nowrap; }
+.demo-speed:hover, .demo-speed:focus-within { color: var(--text); }
+.demo-speed output { min-width: 28px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.demo-speed input { width: 72px; accent-color: var(--violet); }
+
+/* ══ LIGHT ═════════════════════════════════════════════════════════════
+   Most of the panel is drawn from tokens and follows the theme on its own.
+   These are the surfaces whose alpha or shadow is tuned for a dark field.
+
+   The bloom stays at full strength in light, as it does in Knowledge: a
+   translucent colour over near-white is low contrast, so halving it left a
+   grey page with no visible drift. On white the same hues come out as a
+   blue-to-lavender-to-mint wash. The motes were near-white on white; here
+   they are a white core with a ring and a blue glow, read as points of
+   light, with the field turned up so their peaks register. Static shadows,
+   so the animation is still transform and opacity only. */
+:root[data-theme="light"] .gate-dust { --o-mul: 2.4; }
+:root[data-theme="light"] .gate-mote { background: #fff; box-shadow: 0 0 0 .5px rgba(60,100,225,.55), 0 0 7px 2px rgba(110,145,255,.85); }
+/* The bar sits between --bg and white, the one band where a raised control
+   can rise off the page without going stark. */
+:root[data-theme="light"] .gate-composer { border-color: rgba(16,24,40,.14); background: #fafcfe; box-shadow: 0 8px 32px rgba(16,24,40,.14), 0 0 0 1px rgba(16,24,40,.03); }
+:root[data-theme="light"] .gate-composer:focus-within { border-color: rgba(139,79,244,.45); box-shadow: 0 0 0 3px rgba(139,79,244,.12), 0 8px 32px rgba(16,24,40,.14); }
+:root[data-theme="light"] .gate-composer::after { box-shadow: 0 0 0 1px rgba(29,78,216,.45), 0 8px 32px rgba(29,78,216,.18); }
+/* The dark navy tile sits too close to the mark's own blues on white. */
+:root[data-theme="light"] .aimy-float-icon { border-color: rgba(110,70,220,.28); background: linear-gradient(135deg, #f2ecff, #e6efff); box-shadow: 0 0 12px rgba(110,70,220,.15); }
+/* On white the beam can only darken, so it goes to saturated mid-tones and
+   every layer roughly doubles. */
+:root[data-theme="light"] .beam {
+  --beam-blobs:
+    radial-gradient(ellipse 130px 30px at  16%  -8%, rgb(109, 40,217), transparent),
+    radial-gradient(ellipse 104px 26px at  41%  -5%, rgb( 29, 78,216), transparent),
+    radial-gradient(ellipse  84px 26px at  87%  -4%, rgb( 76, 50,224), transparent),
+    radial-gradient(ellipse  30px 42px at   1%  60%, rgb( 14,116,180), transparent),
+    radial-gradient(ellipse  28px 40px at 100%  32%, rgb( 13,148,160), transparent),
+    radial-gradient(ellipse 168px 28px at  68% 104%, rgb(  0, 88,200), transparent),
+    radial-gradient(ellipse  96px 24px at  31% 104%, rgb( 16,168,170), transparent); }
+:root[data-theme="light"] .beam::before { opacity: .8; box-shadow: inset 0 0 9px 1px rgba(16,24,40,.10); }
+:root[data-theme="light"] .beam::after { opacity: .7; }
+:root[data-theme="light"] .beam > i { opacity: .4; }
+:root[data-theme="light"] .flow-doc-list { border-color: var(--line); background: rgba(255,255,255,.78); box-shadow: 0 1px 2px rgba(21,40,64,.05), 0 8px 20px -14px rgba(21,40,64,.22); }
+:root[data-theme="light"] .markdown-body [data-field="clarify"] { border-color: rgba(51,105,255,.3); background: rgba(255,255,255,.62); }
+:root[data-theme="light"] .doc-tile { background: rgba(51,105,255,.09); border-color: rgba(51,105,255,.16); }
+
+@media (max-height: 520px) { .gate-content { padding-top: 6%; } .gate-hero { margin-bottom: 14px; } .gate-hero h1 { font-size: 20px; } .suggestions { display: none; } .gate { gap: 16px; } }
+/* Not "no motion": the bloom is the panel's only decoration, so it holds a
+   single still frame. The motes are motion and nothing else, so they go. */
+@media (prefers-reduced-motion: reduce) {
+  .gate-bloom-a, .gate-bloom-b { animation: none !important; opacity: .85; will-change: auto; }
+  .gate-bloom-a { transform: scale(1.08); }
+  .gate-bloom-b { transform: scale(1.06); }
+  .gate-dust { display: none; }
+  .brand-word { clip-path: none; animation: none; }
+  /* The beam holds still at the top of the bar: the state still shows. */
+  .is-generating > .beam, .is-generating > .beam::before, .is-generating > .beam::after { animation: none !important; }
+}
