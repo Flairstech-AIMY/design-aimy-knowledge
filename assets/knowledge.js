@@ -11176,15 +11176,69 @@
           this.returnTo = null;
         }
       },
-      close() { this.set(false); }
+      /* `returnFocus: false` for the one caller that must not take focus back
+         — an outside click, where the browser is already moving focus to
+         whatever was pressed and pulling it to the toggle would fight it. */
+      close(returnFocus) {
+        if (returnFocus === false) this.returnTo = null;
+        this.set(false);
+      }
     };
 
     btn.addEventListener('click', (e) => { e.stopPropagation(); d.set(); });
 
-    /* Acting on a row is the end of the drawer's job. */
+    /* Acting on a row is the end of the drawer's job — but only ACTING.
+
+       A control carrying `aria-expanded` is a DISCLOSURE: it reveals more of
+       this panel rather than doing something to the page behind it. The rule
+       used to be "any button closes it", and the settings rail's module
+       headers are precisely the counter-example — `data-rail-x` opens a group
+       and changes no page — so on a phone the drawer shut in the same frame
+       the group expanded. You tapped People, its pages appeared, and the panel
+       slid away over them before you could reach one. Reopening showed the
+       group correctly open, which is why it read as the drawer closing *too
+       early* rather than as a broken toggle.
+
+       Stated on `aria-expanded` and not on `[data-rail-x]`, because it is the
+       general fact: a disclosure inside a drawer is never a reason to leave
+       it, and the next one somebody adds gets this for free. It also covers a
+       menu button, where closing the drawer would shut the menu the tap just
+       opened. */
     panel.addEventListener('click', (e) => {
-      if (e.target.closest('button, a[href]')) d.close();
+      const hit = e.target.closest('button, a[href]');
+      if (!hit) return;
+      if (hit.hasAttribute('aria-expanded')) return;
+      d.close();
     });
+
+    /* ── Pressing the page closes it ──
+
+       The scrim answered this for the area it covers, and it deliberately does
+       NOT cover the topbar — the toggle lives up there and has to stay live.
+       So the top 60px of a phone screen was the one place you could press with
+       the drawer open and have nothing happen, and it is the strip a thumb
+       reaches for first.
+
+       CAPTURE phase, and that is the whole of the rule. In the bubble phase the
+       surface's own handler has already run, and several of them re-render the
+       panel — the settings rail replaces its innerHTML on every click — so
+       `e.target` is detached by the time this sees it, `panel.contains` says
+       false, and the drawer would close on exactly the taps it must survive.
+       Capture runs before any of that, while the DOM still says where the
+       click landed.
+
+       The toggle is exempt explicitly rather than by its `stopPropagation`,
+       which is a bubble-phase fact and has not happened yet down here. */
+    document.addEventListener('click', (e) => {
+      if (!d.open) return;
+      if (panel.contains(e.target) || btn.contains(e.target)) return;
+      /* If the press landed on something focusable the browser has already put
+         focus there, so the drawer leaves it alone. A scrim is not focusable,
+         and there the toggle is still the right place to come back to. */
+      const onControl = e.target.closest &&
+        e.target.closest('button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      d.close(!onControl);
+    }, true);
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && d.open) { e.stopPropagation(); d.close(); }

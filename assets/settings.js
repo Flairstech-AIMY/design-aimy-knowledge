@@ -1219,6 +1219,66 @@
       d: 'invoicing, reconciliation and reporting, run for you' }
   ];
   const offeringById = (id) => OFFERINGS.filter((o) => o.id === id)[0];
+
+  /* ══ WHAT YOU SELL SURVIVES THE RELOAD ══════════════════════════════
+
+     Everything else on these pages is fixture data that resets, and for a
+     prototype that is honest — nobody expects a role granted to a demo person
+     to still be there tomorrow. This one is different in kind. It is not a
+     change to the workspace, it is a preference of the person reading, the
+     same category as the theme, which already lives in localStorage. Re-picking
+     your products on every visit is the prototype teaching you that the
+     feature does not work.
+
+     Stored under the person and read back only for that person. `ME_ID` is a
+     constant today; the day it is not, one reader's list restored onto another
+     would be this page's one unforgivable bug, and the owner check costs a
+     line.
+
+     Stale ids are dropped on the way IN, not on the way out. `sellMine` already
+     does `.map(offeringById).filter(Boolean)`, so a catalogue entry that has
+     gone would vanish from the list — but the array would still hold it, and
+     `mySells().length` is what the rail counts, so the page would say three
+     chosen and show two. Deduped for the same reason: a repeated id renders one
+     row and counts two.
+
+     An absent record and an empty one are NOT the same. Nothing stored means a
+     first visit and the fixture stands; `ids: []` means you took the last one
+     off and that has to survive, which is why the guard is on the record's
+     shape rather than on the list being non-empty. */
+  const SELL_STORE = 'aimy-k-sells';
+
+  function loadSells() {
+    const p = me();
+    if (!p) return;
+    let raw = null;
+    /* A locked-down browser throws on ACCESS rather than returning null, so
+       the read is inside the try as well as the parse. */
+    try { raw = localStorage.getItem(SELL_STORE); } catch (e) { return; }
+    if (!raw) return;
+    let d;
+    try { d = JSON.parse(raw); } catch (e) { return; }
+    if (!d || d.v !== 1 || d.who !== ME_ID || !Array.isArray(d.ids)) return;
+    const seen = {};
+    p.sells = d.ids.filter((id) => {
+      if (seen[id] || !offeringById(id)) return false;
+      seen[id] = 1;
+      return true;
+    });
+  }
+
+  /* Called at both places the list changes, beside the `DIRTY.add('sell')`
+     that already marks them. A full quota throws on write; that is not worth
+     taking the page down for — the list still works, it just will not be there
+     tomorrow. */
+  function saveSells() {
+    try {
+      localStorage.setItem(SELL_STORE,
+        JSON.stringify({ v: 1, who: ME_ID, ids: mySells() }));
+    } catch (e) {}
+  }
+
+  loadSells();
   /* The scope pickers read the SAME tree the targeting picker does, so a grant
      can never name a scope the hierarchy does not have. */
   const SCOPE_TYPES = ['Client', 'Business Unit', 'Product', 'Team'];
@@ -2383,7 +2443,13 @@
 
      The line at the top says why the page is here at all. It belongs to
      AiMY Sales, and a console reader who does not use that product should
-     not have to wonder what it is for. */
+     not have to wonder what it is for — the page is in everybody's rail, so
+     that sentence cannot be dropped on the grounds that only sellers read it.
+
+     It CAN be short. It was two sentences that named the product twice and
+     spent the first of them on "you see this because you have access to",
+     which is a preamble to the fact rather than the fact. One sentence now:
+     whose page this is, then what picking something does. */
   const sellItem = (o) => `
     <div class="set2-sp-row set2-sell-row">
       <span class="set2-sp-lines set2-sell-lines">
@@ -2407,8 +2473,6 @@
   function secSelling() {
     return `
       <section class="set2-sec is-headless" id="st-selling">
-        <p class="set2-sell-lede">You see this because you have access to <b>AiMY Sales</b>.
-          What you choose here is what AiMY Sales offers you when you build a campaign.</p>
         <div data-sell-mine>${sellMine()}</div>
       </section>`;
   }
@@ -2464,6 +2528,7 @@
       const list = $('[data-sell-mine]');
       if (list) list.innerHTML = sellMine();
       DIRTY.add('sell');
+      saveSells();
       markDirtyStage('selling');
       /* `markDirtyStage` only writes a note that exists, and an emptied list
          has none — so the count would stay at "1 chosen" after the last one
@@ -6063,6 +6128,17 @@
     selling: () => `<button class="btn btn-brand btn-sm" type="button" data-sell-open>Add what you sell</button>`
   };
 
+  /* ── AND A PAGE'S ONE LINE, UNDER IT ──
+     Same shape as PAGE_ACT and for the same reason. This lived inside
+     `secSelling`, which put `.set2-bar` between the title and the sentence
+     that explains it — an empty scope bar on this page, but still its own
+     margin, so the line read as the first thing in the CONTENT rather than as
+     part of the heading. A description belongs to its title. */
+  const PAGE_LEDE = {
+    selling: () => `From <b>AiMY Sales</b> — what you pick here is what it
+      offers you when you build a campaign.`
+  };
+
   function head(st) {
     const m = moduleById(st.m);
     const scoped = m.scope === 'prod';
@@ -6084,6 +6160,7 @@
       ${act
         ? `<div class="set2-title-row"><h1 class="set2-title">${esc(pg.name)}</h1>${act}</div>`
         : `<h1 class="set2-title">${esc(pg ? pg.name : m.name)}</h1>`}
+      ${pg && PAGE_LEDE[pg.id] ? `<p class="set2-page-lede">${PAGE_LEDE[pg.id](st)}</p>` : ''}
       <div class="set2-bar">
         ${scopeSlot(st, m, pg)}
         <div class="set2-bar-end set2-tally">${
@@ -6235,17 +6312,23 @@
         state: function () { return { note: ROLES.length + ' roles', s: '' }; } },
       { id: 'scopes', name: 'Scopes', secs: ['scopes'],
         state: function () { return { note: LEAF_TOTAL + ' scopes', s: '' }; } },
-      /* ── WHAT YOU SELL ──
+      /* ── SALES ──
          A fact about you, like your roles, so it lives with the people rather
          than as a module of its own — and only yours: nobody chooses what
          somebody else sells.
+
+         The row says *Sales*, not *What you sell*. Every one of its siblings is
+         a noun for the thing the page is about — People, Roles, Scopes — and a
+         second-person sentence among them reads as an instruction rather than a
+         destination. The page's own lede still says who it is for and why the
+         list is yours, which is where that sentence belongs.
 
          No warning and no quick action when the list is empty. Choosing what
          you sell is a preference, not a fault, and a rail that shouts about it
          in the warning colour ranks it beside a broken connector. The note is
          a plain count, the way Roles and Scopes carry theirs, and it says
          nothing until there is something to count. */
-      { id: 'selling', name: 'What you sell', secs: ['selling'],
+      { id: 'selling', name: 'Sales', secs: ['selling'],
         state: function () {
           var n = mySells().length;
           return n ? { note: n + ' chosen', s: '' } : null;
@@ -7148,6 +7231,7 @@
       const at = list.indexOf(sellRm.getAttribute('data-sell-rm'));
       if (at > -1) list.splice(at, 1);
       DIRTY.add('sell');
+      saveSells();
       render();
       return;
     }

@@ -1755,12 +1755,45 @@ kbd {
    The line that says why the page is here: it belongs to AiMY Sales, and a
    reader who does not use that product is told so before anything else. In
    the prose ink rather than the quiet one, because it is the page's first
-   sentence, not a caption on something. */
-.set2-sell-lede {
-  margin: 0 0 1rem; max-width: 40rem;
-  font-size: var(--ty-meta); line-height: 1.5; color: var(--ink-secondary);
+   sentence, not a caption on something.
+
+   Two things were making it a paragraph to scroll past rather than a line to
+   glance at: it was two sentences, and it rendered at the size of the prose it
+   introduces. The words are one sentence now, and the step below follows.
+
+   It belongs to the TITLE, so it is rendered with the title (see PAGE_LEDE)
+   and spaced against it. Left in the content it sat under an empty scope bar
+   and read as the page's first paragraph instead of as the title's second
+   line.
+
+   ── NOT `.set2-lede`, AND THE NAME MATTERS ──
+
+   That class was taken: it is the count line under a filter row, 900px down
+   this file, in `--ink-quiet` with a `b.is-warn` variant. Borrowing it put two
+   unrelated components on one selector, and the OTHER one won on source order
+   — which is why the top margin here read 14px when this rule plainly said
+   -4. Nothing looked broken; the number was just somebody else's.
+
+   `--ty-micro` — which is 14 here, not 12, because `.set2-col` shifts the
+   scale up a step. That IS the surface's floor, so this needs no exception to
+   it, and `--ink-secondary` keeps the contrast the small step spends nothing
+   on.
+
+   40rem, not 34: at 14px the one sentence measures ~570px, so a tighter
+   measure buys a second line back after the words have just paid for one. */
+.set2-page-lede {
+  margin: 0.5rem 0 0; max-width: 40rem;
+  font-size: var(--ty-micro); line-height: 1.5; color: var(--ink-secondary);
 }
-.set2-sell-lede b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
+.set2-page-lede b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
+/* 46rem is this surface's own narrow rung — the one `.set2-col` and the title
+   row already turn on — not a limit measured off this sentence. The gap opens
+   rather than closes on the way down: the title and the line stop sharing a
+   row with anything else, so they need their own separation instead of
+   borrowing the page's. */
+@media (max-width: 46rem) {
+  .set2-page-lede { margin-top: 0.75rem; }
+}
 /* A row is the thing and what it is: the name, then its kind and the line
    that says what it does. The line takes the row's width — it is the only
    long text here — and Remove sits at the far edge. */
