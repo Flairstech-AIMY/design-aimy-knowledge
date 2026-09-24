@@ -2351,10 +2351,12 @@
        which is the card's rule everywhere: opening it gets you the document,
        and Delete is in the document's own footer, behind the typed
        confirmation it has always been behind. */
+    /* The lede is NOT here — it is in PAGE_LEDE, under the title, because that
+       is what it is a line about. Left in the section it sat below the empty
+       scope bar and read as the page's first paragraph rather than as the
+       title's second line, which is the same mistake the Sales page made. */
     return `
       <section class="set2-sec">
-        <p class="set2-page-lede">Out of the library and out of every answer — kept,
-          not deleted. Restoring one puts it back exactly as it was.</p>
         ${(API && API.archiveCards) ? API.archiveCards() : ''}
       </section>`;
   };
@@ -6259,7 +6261,9 @@
      part of the heading. A description belongs to its title. */
   const PAGE_LEDE = {
     selling: () => `From <b>AiMY Sales</b> — what you pick here is what it
-      offers you when you build a campaign.`
+      offers you when you build a campaign.`,
+    archive: () => `Out of the library and out of every answer — kept, not deleted.
+      Restoring one puts it back exactly as it was.`
   };
 
   function head(st) {
@@ -6283,7 +6287,15 @@
       ${act
         ? `<div class="set2-title-row"><h1 class="set2-title">${esc(pg.name)}</h1>${act}</div>`
         : `<h1 class="set2-title">${esc(pg ? pg.name : m.name)}</h1>`}
-      ${pg && PAGE_LEDE[pg.id] ? `<p class="set2-page-lede">${PAGE_LEDE[pg.id](st)}</p>` : ''}
+      ${(() => {
+        /* Keyed by PAGE, falling back to MODULE. Sales is a page inside User &
+           access; Archive is a module with no pages at all, so `pageOf` returns
+           null for it and a page-only lookup could never give it a lede. Both
+           are the same thing to a reader — the line under the title of what
+           they are looking at. */
+        const key = (pg && pg.id) || m.id;
+        return PAGE_LEDE[key] ? `<p class="set2-page-lede">${PAGE_LEDE[key](st)}</p>` : '';
+      })()}
       <div class="set2-bar">
         ${scopeSlot(st, m, pg)}
         <div class="set2-bar-end set2-tally">${

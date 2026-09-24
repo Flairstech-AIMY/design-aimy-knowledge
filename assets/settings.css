@@ -1786,11 +1786,7 @@ kbd {
   font-size: var(--ty-micro); line-height: 1.5; color: var(--ink-secondary);
 }
 .set2-page-lede b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
-/* In the HEADER the lede is the title's second line and the gap below it is
-   carried by `.set2-bar`. Inside a section there is no bar under it — on the
-   Archive page it sat flush against the first row of cards — so it pays for
-   its own. */
-.set2-sec > .set2-page-lede { margin-bottom: 1.25rem; }
+
 /* 46rem is this surface's own narrow rung — the one `.set2-col` and the title
    row already turn on — not a limit measured off this sentence. The gap opens
    rather than closes on the way down: the title and the line stop sharing a
