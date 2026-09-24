@@ -1786,6 +1786,11 @@ kbd {
   font-size: var(--ty-micro); line-height: 1.5; color: var(--ink-secondary);
 }
 .set2-page-lede b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
+/* In the HEADER the lede is the title's second line and the gap below it is
+   carried by `.set2-bar`. Inside a section there is no bar under it — on the
+   Archive page it sat flush against the first row of cards — so it pays for
+   its own. */
+.set2-sec > .set2-page-lede { margin-bottom: 1.25rem; }
 /* 46rem is this surface's own narrow rung — the one `.set2-col` and the title
    row already turn on — not a limit measured off this sentence. The gap opens
    rather than closes on the way down: the title and the line stop sharing a
@@ -1806,6 +1811,14 @@ kbd {
 .set2-title-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .set2-title-row .set2-title { min-width: 0; }
 .set2-title-row .btn { flex: none; }
+/* The page's verb, and under it the way out to the thing the verb cannot
+   reach. Right-aligned with the button rather than centred under it, so the
+   two read as one control and its footnote rather than as a stack. */
+.set2-act-stack {
+  display: flex; flex-direction: column; align-items: flex-end;
+  gap: 0.25rem; flex: none;
+}
+.set2-act-sub { font-size: var(--ty-micro); }
 
 /* ── THE MENU ──
    Wider than the default panel so no name wraps. Capped in height and it
@@ -1829,6 +1842,29 @@ kbd {
 /* Air between rows, because a row here is picked several times over: two
    ticked rows flush against each other read as one block of highlight. */
 .set2-pop.is-sell .set2-pop-i + .set2-pop-i { margin-top: 0.25rem; }
+
+/* ── THE DESCRIPTION WRAPS HERE, AND DOES NOT TRUNCATE ──
+
+   Same call the trigger menu makes a few hundred lines up, for a weaker
+   version of the same reason. Elsewhere a caption is a detail beside a name
+   you already know and an ellipsis costs nothing; here half these rows are
+   AiMY products and half are services the company runs for you, and *AiMY QA*
+   against *QA and test automation* is exactly the pair a reader cannot tell
+   apart from the names.
+
+   Wrapping does not make the list ragged, which is the usual price: measured,
+   the eight descriptions run 43–52 characters, so every one of them takes the
+   same two lines at this width and the rhythm survives. If a much shorter or
+   much longer one is ever added, THAT is when this needs looking at again.
+
+   The tick goes to `flex-start` so it sits on the NAME. Centred against a
+   two-line block it floats between the lines, pointing at neither. */
+.set2-pop.is-sell .set2-pop-i { align-items: flex-start; }
+.set2-pop.is-sell .set2-pop-p {
+  white-space: normal; overflow: visible; text-overflow: clip;
+  line-height: var(--lh-snug); color: var(--ink-quiet);
+}
+.set2-pop.is-sell .set2-pop-k { margin-top: 0.1875rem; flex: 0 0 auto; }
 
 .set2-chip.is-role {
   background: var(--brand-dim); color: var(--ink-primary);

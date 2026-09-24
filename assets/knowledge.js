@@ -108,6 +108,15 @@
        else", which is the only reason a link out needs a picture at all. */
     external: svg('<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>'),
     box:      svg('<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>'),
+    /* Lucide `package` and `concierge-bell`, for the two types that name a
+       thing the company SELLS. Not `box`, which is three lines above and is an
+       archive crate — at 14px on a menu the two would be the same picture, and
+       these two rows are the only ones whose choice has an effect outside the
+       library. A sealed carton and a service bell: goods and people. */
+    pkg:      svg('<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/>'
+              + '<path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/>'),
+    bell:     svg('<path d="M3 20a1 1 0 0 1-1-1v-1a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v1a1 1 0 0 1-1 1Z"/>'
+              + '<path d="M20 16a8 8 0 1 0-16 0"/><path d="M12 4v4"/><path d="M10 4h4"/>'),
     send:     svg('<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/>'),
     /* The same picture the drop layer draws, so choosing a file and dropping
        one read as the same capability rather than two. */
@@ -119,6 +128,11 @@
        list of one kind. */
     copy:     svg('<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>'),
     pin:      svg('<path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>'),
+    /* Lucide `archive-restore`. `box` is the archive crate and already means
+       "put this away"; this is the same crate with the arrow coming back out,
+       so the pair reads as one verb and its undo rather than as two boxes. */
+    unarchive: svg('<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h2"/>'
+              + '<path d="M20 8v11a2 2 0 0 1-2 2h-2"/><path d="m9 15 3-3 3 3"/><path d="M12 12v9"/>'),
     trash:    svg('<path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>'),
     more:     svg('<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>'),
     chevron:  svg('<path d="m6 9 6 6 6-6"/>'),
@@ -314,8 +328,19 @@
     pptx:     { label: 'Presentation',    ico: ICO.deck },
     story:    { label: 'Success Story',   ico: ICO.trophy },
     blog:     { label: 'Blog',            ico: ICO.book },
-    webpage:  { label: 'Web Page',        ico: ICO.globe }
+    webpage:  { label: 'Web Page',        ico: ICO.globe },
+    /* ── THE TWO THAT LEAVE THE LIBRARY ──
+       Every type above describes something the company HAS. These two describe
+       something it SELLS, and that is not a shade of the same thing: a Product
+       document is the record AiMY Sales reads its catalogue from, so writing
+       one here is how a new offering comes into existence. See SELLABLE. */
+    product:  { label: 'Product',         ico: ICO.pkg },
+    service:  { label: 'Service',         ico: ICO.bell }
   };
+
+  /* Which types are an offering. Named once so the settings bridge, the blank
+     record and the menu note cannot disagree about it. */
+  const SELLABLE = { product: 'Product', service: 'Service' };
 
   /* Sources carry their own operational state, because there is nowhere else
      for it to live: the mind map's Updates branch — trigger sync for a source,
@@ -404,6 +429,25 @@
      you are about to open, and nobody has ever opened a crawl. */
   const originLabel = (o) => o.src === 'web'
     ? 'Open the live page' : 'Open in ' + SRC[o.src].label;
+
+  /* ══ THE CAMPAIGN THIS BRIEF IS FOR ═══════════════════════════════════
+
+     The record here is deliberately the brief and nothing else — who has been
+     called and how far it has got live in AiMY Sales. A reader who wants the
+     half this page does not hold should not have to go and find it by name.
+
+     GATED ON `camp`, and that is the point. A campaign document is a document:
+     somebody can write one for a push that was never set up in Sales, and most
+     of the time the honest answer to "open it in Sales" is that there is
+     nothing there to open. A button that always shows and sometimes lands on a
+     campaign that is not this one is worse than no button. So the id is data
+     on the document, and the link exists only where the id does.
+
+     Same origin as the top bar's Sales tab. Hard-coded in one place rather than
+     read from that <a>, because a link's href is markup and this is a fact
+     about where the product lives. */
+  const SALES_ORIGIN = 'https://aimy-sales.nour-ali.workers.dev/';
+  const salesHref = (o) => o.camp ? SALES_ORIGIN + '?camp=' + encodeURIComponent(o.camp) : '';
 
   /* An entry-mode affordance for the fifth thing a control can do: none of the
      four modes fits, because direct completes in place, investigate and prompt
@@ -717,23 +761,70 @@
           fit:['Seasonal peaks above 3× baseline','Existing IVR'],
           dis:['Flat annual volume','No voice channel'] } },
 
-    { id:'campaign-q3', t:'campaign', work:'completed', owner:'Marketing',
+    /* `camp` is the campaign's id in AiMY Sales, and the brief below is this
+       campaign's own definition read off that page — see salesHref. The two
+       have to agree: a link that opens a campaign saying something else makes
+       the reader trust neither. */
+    { id:'campaign-q3', t:'campaign', work:'completed', owner:'Marketing', camp:'c6',
       title:'Q3 — Quality at scale', col:'marketing', src:'teamsupport', prod:'asterisImaging', client:'asteris',
       tags:['emea','qa','campaign'], upd:32, ing:120, xc:140, xu:32,
       sum:'Pipeline generation against the mid-market BPO segment.',
-      x:{ objective:'Pipeline from mid-market BPO', window:'1 Jul – 30 Sep · active', assets:'6 assets · 3 landing pages' } },
+      x:{ goal:'Our first software account in MENA for AiMY QA.',
+          sells:'AiMY QA · Product, and Finance and back office · Service',
+          persona:'Head of Quality, QA Manager, Service Delivery Manager',
+          sector:'Software',
+          size:'200 to 1,000 staff',
+          window:'5 Jul to 22 Oct',
+          pitch:'They are in MENA, and they are running this with people rather than with a system. AiMY QA is quality scored on every conversation, not on a sample. Open on what it costs them today, not on what we do.' } },
 
     { id:'campaign-q4-voice', t:'campaign', work:'recommended', owner:'Marketing',
       title:'Q4 — Voice that does not drop', col:'marketing', src:'teamsupport', prod:'voice', client:'',
       tags:['voice','campaign'], upd:61, ing:100, xc:110, xu:61,
       sum:'Launch campaign for the voice handoff work. Window opens before the next review date.',
-      x:{ objective:'Awareness for voice handoff', window:'1 Oct – 31 Dec · not started', assets:'2 assets · 1 landing page' } },
+      x:{ goal:'First 5 accounts for AiMY Voice in EMEA.',
+          sells:'AiMY Voice · Product',
+          persona:'Head of Customer Experience, Support Director',
+          sector:'Retail and e-commerce',
+          size:'200 to 1,000 staff',
+          window:'1 Oct to 31 Dec',
+          pitch:'Their handoffs drop and they know it. Open on the calls that never reached a person, not on the agent.' } },
 
-    { id:'campaign-residency', t:'campaign', work:'detected', owner:'Marketing',
+    { id:'campaign-residency', t:'campaign', work:'detected', owner:'Marketing', camp:'c7',
       title:'EU residency — compliance push', col:'marketing', src:'teamsupport', prod:'copilot', client:'',
       tags:['gdpr','eu','campaign'], upd:210, ing:300, xc:320, xu:210,
       sum:'Ran in Q1 and never closed out.',
-      x:{ objective:'Inbound from compliance buyers', window:'1 Jan – 31 Mar · ended', assets:'4 assets' } },
+      x:{ goal:'2 accounts won off a competitor for AiMY Knowledge.',
+          sells:'AiMY Knowledge · Product',
+          persona:'Head of Digital, Chief Information Officer, Head of Shared Services',
+          sector:'Healthcare',
+          size:'1,000 to 5,000 staff',
+          window:'19 Aug to 5 Dec',
+          pitch:'They are in Benelux, and they are running this with people rather than with a system. AiMY Knowledge is one answer surface over documentation nobody can find. Open on what it costs them today, not on what we do.' } },
+
+    /* ══ TWO OFFERINGS THAT EXIST ONLY AS DOCUMENTS ══════════════════════
+
+       Deliberately NOT two of the eight already hardcoded in settings. A
+       document called "AiMY Voice" would sit in the sell picker beside the
+       constant of the same name and the pair would be indistinguishable — which
+       would demonstrate the duplicate, not the feature. These are the two real
+       gaps in that list: the company sells Copilot and it sells CX consulting,
+       and neither is in the eight, so each one only reaches AiMY Sales by being
+       written down here. That is the whole point of the type.
+
+       `pitch` is the line the Sales picker prints; `sum` is what the document
+       says. See pitchOf — they are different lengths for different readers, and
+       the second is not a fallback for the first except when it has to be. */
+    { id:'product-copilot', t:'product', work:'completed', owner:'N. Wael',
+      title:'AiMY Copilot', col:'sales', src:'confluence', prod:'copilot', client:'',
+      tags:['copilot','catalogue'], upd:18, ing:64, xc:70, xu:18,
+      sum:'Copilot answers from the company’s own documents, inside the tools people already have open — the helpdesk, the CRM, the chat client. It cites what it used, so an answer can be checked rather than trusted.\n\nSold per seat, with a floor of twenty. The knowledge base it grounds on is whatever the client already has; there is no migration step and no content project before it is useful.',
+      x:{ pitch:'answers from your own documents, in the tools you already use' } },
+
+    { id:'service-cx', t:'service', work:'completed', owner:'O. Said',
+      title:'CX consulting', col:'sales', src:'upload', prod:'sales', client:'',
+      tags:['cx','catalogue'], upd:9, ing:9, xc:9, xu:9,
+      sum:'A six-week engagement. We map the journey as it actually runs — from the recordings and the ticket history, not from the process diagram — and come back with the three moments that lose the most customers, costed.\n\nIt ends in a decision, not a report: each of the three comes with what it would take to fix and what it is worth. Clients who take two of the three typically see it back inside two quarters.',
+      x:{ pitch:'we map the journey, then cost the three moments that lose customers' } },
 
     { id:'asset-onepager', t:'asset', work:'completed', owner:'Brand',
       title:'Quality at scale — one-pager', col:'marketing', src:'upload', prod:'aspire', client:'valsoft',
@@ -1117,8 +1208,14 @@
     { id:'campaign-q1-launch', t:'campaign', work:'completed', owner:'Marketing', arch:true,
       title:'Q1 — Launch week', col:'marketing', src:'teamsupport', prod:'sales', client:'',
       tags:['campaign'], upd:290, ing:320, xc:330, xu:290,
-      sum:'Closed out and archived. Kept for the asset list and the outcome numbers.',
-      x:{ objective:'Launch awareness', window:'6 Jan – 20 Jan · ended', assets:'9 assets' } }
+      sum:'Closed out and archived. Kept for what it targeted and what it was for.',
+      x:{ goal:'Launch awareness in the Nordics.',
+          sells:'AiMY Sales · Product',
+          persona:'Sales Director, Head of Revenue Operations',
+          sector:'Software',
+          size:'100 to 500 staff',
+          window:'6 Jan to 20 Jan',
+          pitch:'A launch list, called once each. Open on what they run today.' } }
   );
 
   /* Defaults, derived once. Region falls out of the tags where the object
@@ -1304,7 +1401,11 @@
     /* Campaigns. */
     { from: 'campaign-q3',           to: 'asset-onepager',      type: 'references',   by: 'Marketing',  at: 50 },
     { from: 'campaign-q1-launch',    to: 'campaign-q3',         type: 'supersededBy', by: 'Marketing',  at: 90 },
-    { from: 'blog-quality-scale',    to: 'story-nordwind',      type: 'references',   by: 'Marketing',  at: 38 }
+    { from: 'blog-quality-scale',    to: 'story-nordwind',      type: 'references',   by: 'Marketing',  at: 38 },
+    /* The catalogue entries are in the graph like everything else — a campaign
+       sells one of them, and a segment is where the other one lands. */
+    { from: 'campaign-q3',           to: 'product-copilot',     type: 'references',   by: 'Marketing',  at: 17 },
+    { from: 'service-cx',            to: 'icp-bpo',             type: 'related',      by: 'O. Said',    at: 9 }
   ];
 
   /* RELATED is now a PROJECTION of the edge list, not a second copy of it.
@@ -1733,6 +1834,18 @@
        module would render its list with a detail param it cannot use. */
     if (Object.keys(changes).some((k) => ALL_KEYS.indexOf(k) > -1))
       SET_KEYS.forEach((k) => { st[k] = ''; });
+    /* ── THE MODULE IS NOT DROPPED WHEN A DOCUMENT OPENS ──
+
+       Opening a module drops the document "because both want the same stage",
+       and for a moment this cleared `m` on the way in to say the same thing
+       back. That fixed the stage and lost the way home: opened from Archive,
+       the document's back button said *All documents*, because by then nothing
+       remembered there had been an Archive.
+
+       So `m` stays in the address and `render` gives the stage to the document
+       instead — see `isDoc` there. `?doc=…&m=archive` is not a contradiction,
+       it is a document open IN a module, and closing it falls back to the
+       module it was opened from with no extra key to carry. */
     if (changes.m !== undefined) {
       st.doc = '';
       if (changes.skill === undefined) st.skill = '';
@@ -1787,6 +1900,78 @@
   /* Multi-value axes — a set per object, matched on any overlap. */
   const MULTI_OF = { tag: 'tags', service: 'services', audience: 'aud', group: 'groups' };
   const DATE_FIELD = { updated: 'upd', ingested: 'ing', extCreated: 'xc', extUpdated: 'xu' };
+
+  /* ══ DOCUMENTS YOU WROTE HERE COME BACK ════════════════════════════
+
+     THE LINE IS "CREATED HERE", NOT "CHANGED HERE". The forty-odd fixtures
+     above are the demo corpus and they reset, which is honest — nobody expects
+     a tweak to somebody else's seeded article to still be there tomorrow. A
+     document YOU made is different in kind: it existed nowhere before you
+     wrote it, so losing it on a reload is not a reset, it is a deletion you did
+     not ask for. That asymmetry became visible the moment Sales picks started
+     persisting: tick a Product you wrote, reload, and the pick survived while
+     the product did not.
+
+     RESTORED HERE, and the position is load-bearing in two directions. Above
+     this line `CORPUS.forEach` seeds comments and versions onto every entry,
+     and a restored document carries its OWN — seeding it would wipe the note
+     you left on it. Below this line `ENTITLED` and `LIVE` are derived from
+     CORPUS, so anything pushed after them is invisible to every count, filter
+     and search on the surface. Between the two is the only correct place.
+
+     `made` marks them rather than the `new-` id shape. The id is a detail of
+     how they are numbered; whether a person made it is the fact being stored,
+     and the two should not be the same assertion. */
+  const DOC_STORE = 'aimy-k-docs';
+
+  function loadDocs() {
+    let raw = null;
+    try { raw = localStorage.getItem(DOC_STORE); } catch (e) { return; }
+    if (!raw) return;
+    let d;
+    try { d = JSON.parse(raw); } catch (e) { return; }
+    if (!d || d.v !== 1 || !Array.isArray(d.docs)) return;
+    d.docs.forEach((o) => {
+      /* A record whose type this build no longer has would render through the
+         article fallback and read as a document that silently changed kind, so
+         it is dropped instead. Same for a collection this reader cannot see:
+         `ENTITLED` would filter it out one line below anyway, and keeping it in
+         CORPUS would only inflate the withheld count. */
+      if (!o || typeof o.id !== 'string' || !TYPES[o.t]) return;
+      if (byId(o.id)) return;
+      /* The shapes the surface indexes into without checking. A stored record
+         is the one input here that did not come from this file. */
+      o.tags = Array.isArray(o.tags) ? o.tags : [];
+      o.services = Array.isArray(o.services) ? o.services : [];
+      o.aud = Array.isArray(o.aud) ? o.aud : [];
+      o.groups = Array.isArray(o.groups) ? o.groups : [];
+      o.comments = Array.isArray(o.comments) ? o.comments : [];
+      o.versions = Array.isArray(o.versions) ? o.versions : [];
+      o.x = (o.x && typeof o.x === 'object') ? o.x : {};
+      o.props = (o.props && typeof o.props === 'object') ? o.props : {};
+      o.made = 1;
+      CORPUS.push(o);
+    });
+  }
+  loadDocs();
+
+  /* Written from CORPUS, so a delete needs no hook of its own: a document that
+     has been spliced out simply is not in the next save. Debounced and
+     compared against the last write, because the only caller is `render`,
+     which runs on navigations that changed nothing. */
+  let docSaveTimer = null, docSaveLast = null;
+  function saveDocs() {
+    let out;
+    try {
+      out = JSON.stringify({ v: 1, docs: CORPUS.filter((o) => o.made) });
+    } catch (e) { return; }
+    if (out === docSaveLast) return;
+    try { localStorage.setItem(DOC_STORE, out); docSaveLast = out; } catch (e) {}
+  }
+  function scheduleDocSave() {
+    if (docSaveTimer) clearTimeout(docSaveTimer);
+    docSaveTimer = setTimeout(saveDocs, 400);
+  }
 
   /* Entitlement is a hard filter and must be visibly true: a briefing or a
      result set that silently includes inaccessible material is both a trust
@@ -3805,7 +3990,8 @@
        offers Replace, which is the honest action on a file this prototype does
        not store. An exit has to lead somewhere. */
     campaign: 'Open campaign',  asset:   'Open asset',   story: 'Open story',
-    blog:     'Open post',      webpage: 'Open page',    pptx:  'Open deck'
+    blog:     'Open post',      webpage: 'Open page',    pptx:  'Open deck',
+    product:  'Open product',   service: 'Open service'
   };
 
   /* One action per card, and it is the status's exit — so the card offers the
@@ -3864,7 +4050,7 @@
      One footer, not two. The library's card ends with a bordered, tinted
      `.tc-gov` strip followed by a bordered `.tc-action` strip holding a
      full-width button — two rules and a banner where one row does the job. */
-  function typeCard(o, compact) {
+  function typeCard(o, compact, opts) {
     const t = TYPES[o.t];
     const ins = compact ? null : cardInsight(o);
     /* The finding decides whether there is an action at all, so it is asked
@@ -3966,6 +4152,43 @@
        itself is still the way in — `data-card-open` is on the whole thing. */
     const actEl = !ins ? '' : `<span class="tc-foot-act">${entryAction(act[0], act[1],
       `data-card-act="${o.id}"`, AI_EXIT[act[2]] ? AIMY_MARK(12, 14) : null)}</span>`;
+
+    /* ── THE ARCHIVE'S CARDS CARRY THEIR OWN TWO VERBS ──
+
+       The footer above renders only when AiMY noticed something, and an
+       archived document never carries a finding — findings are computed over
+       LIVE, and being archived is not a detection, it is something a person
+       did. So these cards were footless everywhere, which is right in a
+       library and wrong on the one page whose whole job is deciding what to do
+       with them.
+
+       Restore and Delete, not one action. The card's usual one-action rule
+       exists so a grid of mixed documents offers one obvious next step; here
+       every card is the same kind of thing and the two verbs are the entire
+       question the page asks. Delete still goes through `docAct`, so the typed
+       confirmation and the audit line are the ones it has always been behind. */
+    /* Two words, and nothing around them. This was `entryAction` first — which
+       made Delete a FILLED BRAND BUTTON, the loudest control on the page being
+       the most destructive thing on it — and then `cite-action` pills, which
+       were quieter and still two chrome-heavy controls on every card of a list
+       whose cards are all the same.
+
+       They are links. The card already carries the weight: its title, its type
+       and its facts are the thing being read, and these say what can be done
+       about it in the smallest form that is still a control. Delete earns its
+       colour and nothing else; the confirmation behind it is where the caution
+       lives, and it has not moved. */
+    /* Restore left, Delete hard right. Not a pair sitting together: they are
+       opposite answers to the same question, and pushing them to opposite ends
+       means the destructive one is never the thing your hand is already over
+       after pressing the other. Icons because at this weight the two words are
+       the same length and the same colour-blind grey to a fast reader — a
+       crate with an arrow out of it and a bin are tellable apart before the
+       label is. */
+    const archEl = !(opts && opts.arch) ? '' : `<div class="tc-foot tc-foot-arch">
+        <button class="tc-arch-lnk" data-act="restore" data-obj="${o.id}">${ICO.unarchive}<span>Restore</span></button>
+        <button class="tc-arch-lnk is-danger" data-act="delete" data-obj="${o.id}">${ICO.trash}<span>Delete</span></button>
+      </div>`;
     /* The whole card opens the document. The title stays a real button so the
        keyboard has one focusable target that announces which document it is —
        wrapping the card itself in a button would swallow the action inside it,
@@ -3982,6 +4205,7 @@
           ${actEl}
         </div>
       </div>`}
+      ${archEl}
     </div>`;
   }
 
@@ -4023,23 +4247,61 @@
      byline and the card's meta line use, so a reader learns one mapping for the
      whole product.
 
-     The nine one-line definitions that used to sit under each label are gone.
-     They explained what an Article or an ICP is — a fact learned once, on a
-     menu opened weekly, and after the first time they were nine lines to scan
-     past to reach the name you already knew. The names carry it. */
+     The nine one-line definitions that used to sit under each label were cut,
+     and the reason given was: they explained what an Article or an ICP is, a
+     fact learned once, on a menu opened weekly, and after the first time they
+     were nine lines to scan past to reach the name you already knew.
+
+     They are back, and the premise is what changed rather than the taste. That
+     argument rests on "the names carry it", which was true of nine types that
+     all meant *a document about something*. It is FALSE of Product and Service:
+     their names do not tell you that writing one puts an entry in the AiMY
+     Sales picker, and that is the only consequence on this menu that reaches
+     outside the library. A note on those two and not the rest would be the
+     worse answer — an explained row among unexplained ones reads as the odd
+     one out rather than as the important one — so every row gets its line and
+     the two that matter are simply the two whose line says something you could
+     not have guessed. */
+  const NEW_DOC_NOTE = {
+    article:  'Guidance that answers a question, written once and cited.',
+    ticket:   'A case as it came in, and what settled it.',
+    icp:      'Who to sell to, and what rules them out.',
+    campaign: 'A goal, who it targets and the window — the brief Sales runs from.',
+    asset:    'A file you send — a one-pager, a sheet, an image.',
+    pptx:     'A deck, with slides and where it was last shown.',
+    story:    'A customer, a number, and their words for it.',
+    blog:     'A public post, drafted here before it ships.',
+    webpage:  'A page we already publish, pulled in to be checked.',
+    product:  'Something you sell. It appears in AiMY Sales settings.',
+    service:  'Something you run for a client. Appears in AiMY Sales settings.'
+  };
 
   /* The trigger is passed in, because the two surfaces that offer this have
      different buttons — a text action on the result line, a filled one on the
      empty state — and only the panel is shared. Closing on outside-click and
      on Escape is the design system's, already wired. */
+  /* ── ARRIVING WITH THIS MENU ALREADY OPEN ──
+
+     Set by `newOffering` when somebody followed *Create a product/service* out
+     of Sales settings. It is STATE THE RENDER READS, not a class poked onto the
+     DOM afterwards, and that is the second attempt: poking worked and then a
+     repaint 420ms later threw it away, because a class nothing re-draws is a
+     class that lives until the next draw. Anything that repaints while this is
+     set draws the menu open and the two rows flagged, so the number of
+     repaints in that second stops mattering. */
+  let flagNewTypes = false;
+
   function newDocMenu(trigger) {
-    return `<span class="menu-anchor">
+    return `<span class="menu-anchor${flagNewTypes ? ' open' : ''}">
       ${trigger}
       <div class="menu new-menu" role="menu" aria-label="What kind of document">
         <div class="menu-label">New document</div>
-        ${Object.keys(TYPES).map((k) => `<button class="menu-item" type="button" role="menuitem" data-new-type="${k}">
+        ${Object.keys(TYPES).map((k) => `<button class="menu-item${NEW_DOC_NOTE[k] ? ' has-note' : ''}${flagNewTypes && SELLABLE[k] ? ' is-flagged' : ''}" type="button" role="menuitem" data-new-type="${k}">
           ${TYPES[k].ico.replace('<svg', '<svg width="14" height="14"')}
-          <span class="new-menu-name">${esc(TYPES[k].label)}</span>
+          <span class="new-menu-tx">
+            <span class="new-menu-name">${esc(TYPES[k].label)}</span>
+            ${NEW_DOC_NOTE[k] ? `<span class="new-menu-note">${esc(NEW_DOC_NOTE[k])}</span>` : ''}
+          </span>
         </button>`).join('')}
       </div>
     </span>`;
@@ -4467,7 +4729,7 @@
     icp: ['Fit is assessed on the criteria above, in order. A prospect failing any disqualifier is out regardless of how well it scores elsewhere.'],
     ticket: ['Ingested from the source system. Ticket content is evidence, not policy — it records what was decided once, for one customer.'],
     story: ['Cleared claims only. Anything not listed as an outcome has not been measured and must not be repeated externally.'],
-    campaign: ['Campaign records are operational, not promotional. The asset list is the authority on what may be sent.'],
+    campaign: ['This is the brief AiMY Sales runs from, not a record of the running. Who has been called, what they said and how far it has got are in Sales, against the campaign itself.'],
     asset: ['Approval and usage rights travel with the asset. Verified is not the same as cleared for external use.'],
     pptx: ['The deck is the content; this is the note beside it. What a reader needs from here is whether it may be shown, and whether it has been shown recently enough to still be true.'],
     blog: ['Published content. The canonical URL is what search engines and customers see; this is the copy AiMY grounds on.'],
@@ -5327,6 +5589,11 @@
      document. Two controls for one field is how they drift.
   ═══════════════════════════════════════════════ */
   const TYPE_FIELDS = {
+    /* One row, and it is the row Sales reads. Everything else about an
+       offering — what it is, who it suits, what it costs — is the document's
+       own prose, which is where a reader is already looking. */
+    product:  [['pitch', 'One line for Sales', 'text']],
+    service:  [['pitch', 'One line for Sales', 'text']],
     article:  [['applies', 'Applies to', 'text']],
     ticket:   [['status', 'At source it is', 'pick', ['Resolved', 'Open', 'Awaiting legal', 'On hold']],
                ['requester', 'Raised by', 'text'],
@@ -5335,9 +5602,34 @@
                ['segment', 'Segment', 'text'],
                ['fit', 'Fits when', 'list'],
                ['dis', 'Ruled out by', 'list']],
-    campaign: [['objective', 'Aimed at', 'text'],
-               ['window', 'Ran', 'text'],
-               ['assets', 'Includes', 'text']],
+    /* ── THE CAMPAIGN, AS AiMY SALES DEFINES ONE ──
+
+       These three rows were this file's own idea of a campaign — aimed at, ran,
+       includes — and AiMY Sales, which is where campaigns actually live, holds
+       a different and larger record. Read off a campaign page there, the block
+       above the fold is: the goal, what we sell them, the client, the targeted
+       persona, the sector, the region, the company size band, the window, the
+       sales pitch and the team. Everything BELOW that fold is the working of it
+       — who has been called, callbacks, never-called, connect rates, what came
+       up on which call.
+
+       This is the distillation, so the line is drawn at that fold. What
+       survives is what somebody had to decide in order for the campaign to
+       exist; what goes is everything the campaign then accumulated by running.
+       `assets` went with it: a list of pieces sent is the same kind of fact as
+       a list of calls made.
+
+       Four of Sales' ten are NOT here because the console already holds them on
+       every document — client, region and owner are core fields, and the team
+       is the owner — and repeating them as campaign properties would be the
+       same fact in two rows of one panel. */
+    campaign: [['goal', 'The goal', 'text'],
+               ['sells', 'What we sell them', 'text'],
+               ['persona', 'Targeted persona', 'text'],
+               ['sector', 'Sector', 'text'],
+               ['size', 'Company size', 'text'],
+               ['window', 'Runs', 'text'],
+               ['pitch', 'Sales pitch', 'long']],
     asset:    [['format', 'Format', 'text'],
                ['usage', 'Used', 'pick', ['External — customer-facing', 'External — under NDA', 'Internal only']],
                ['approval', 'Approval', 'pick', [['approved', 'Approved'], ['pending', 'Awaiting approval']]]],
@@ -5891,7 +6183,24 @@
            grid, which is where a reader goes to ask about the CONNECTOR rather
            than about this document. An upload has no upstream and stays a
            peek, because there is nowhere to send anybody. -->
-      ${bornHere(o)
+      <!-- ── A CAMPAIGN'S UPSTREAM IS AiMY SALES ──
+
+           This slot names the one place you can GO from the byline, and for
+           nine types that is the source the copy was pulled from. A campaign
+           brief is the exception: the connector it happens to have been synced
+           through is a fact about plumbing, and the thing a reader actually
+           wants from this line is the campaign being run. So Sales takes the
+           slot when there is a campaign to take it to.
+
+           Nothing is lost. The source, its health and its cadence are still in
+           the rail's "Where it came from", which is the block that exists to
+           answer questions about the connector; this line only ever held the
+           shortcut. -->
+      ${salesHref(o)
+        ? `<a class="doc-by-ent doc-by-out" href="${esc(salesHref(o))}" target="_blank"
+             rel="noopener noreferrer" title="Opens the live campaign in AiMY Sales"
+             >Open in AiMY Sales${ICO.external.replace('<svg', '<svg class="doc-by-out-ico"')}</a>`
+        : bornHere(o)
         ? '<span>Written here</span>'
         : originHref(o)
         ? `<a class="doc-by-ent doc-by-out" href="${esc(originHref(o))}" target="_blank"
@@ -6745,23 +7054,28 @@
                  prose: 'How to use this profile' }
     },
 
-    /* An objective, a window, and what actually ran. The assets are `references`
-       edges, and they are the campaign's content: a campaign record whose asset
-       list you cannot see is a date range. */
+    /* The brief, and the pieces it points at. The record answers what the
+       campaign is FOR — goal, who it targets, the window — and the `references`
+       edges are what it has to send: a brief whose material you cannot reach is
+       a date range. What it has DONE is not here and is not meant to be; that
+       lives in AiMY Sales, against the campaign itself. */
     campaign: {
       regions: ['record', 'prose'],
       prose:   'secondary',
       rail:    ['what', 'connects', 'came'],
       fields:  (o) => typeFieldRows(o),
-      /* Featured in the rail's connections block, for the same reason: a
-         campaign whose asset list is empty is a campaign nobody can check. */
+      /* Featured in the rail's connections block. The wording used to make the
+         asset LIST the authority on what may be sent; there is no asset list
+         any more, so the links are that authority instead — which was always
+         the more honest version, since a linked document can be opened and a
+         line of text saying "6 assets" cannot. */
       links:   { phrase: 'References',
-                 empty:  'Nothing is linked to it yet — the asset list is the authority on what may be sent.' },
+                 empty:  'Nothing is linked to it yet — what is linked here is what may be sent.' },
       start:   ['ai', 'connect'],
       ai:      { blank:  ['Write a first draft', 'Outline it'],
                  filled: ['Rewrite for marketing', 'Shorten', 'Fill the gaps'] },
-      ready:   (o) => xVal(o, 'objective') && xVal(o, 'objective') !== '—' ? ''
-                    : 'Say what it aimed at first',
+      ready:   (o) => xVal(o, 'goal') && xVal(o, 'goal') !== '—' ? ''
+                    : 'Say what it is for first',
       copy:    { body: 'How it ran, and what was learned.',
                  prose: 'Campaign notes' }
     },
@@ -6883,6 +7197,16 @@
 
   const viewFor = (o) => TYPE_VIEW[o.t] || TYPE_VIEW.article;
 
+  /* Where the back button goes, and what it is therefore called. The module's
+     own name comes from settings rather than a table here, so a module renamed
+     there cannot leave this button naming a page that no longer exists. */
+  function backLabel(st) {
+    const SET = window.AIMY_SETTINGS;
+    if (!st.m || !SET || !SET.has(st.m)) return 'All documents';
+    const m = (SET.modules || []).filter((x) => x.id === st.m)[0];
+    return m ? 'Back to ' + m.name : 'All documents';
+  }
+
   function renderDoc(st) {
     const o = byId(st.doc);
     if (!o) { patch({ doc: '' }, { replace: true }); return; }
@@ -6989,9 +7313,14 @@
     stage.innerHTML = `
       <div class="doc-page${railOpen ? '' : ' rail-closed'}">
         <div class="doc-topbar">
+          <!-- Named for the destination, not for the gesture. Opened from a
+               module, the Archive today, this is the way back INTO it, and
+               "All documents" would be a button that says one thing and does
+               another. No backticks in here: this comment sits inside a
+               template literal and one would end the string. -->
           <button class="doc-back" data-doc-close>
             ${ICO.arrow.replace('<svg', '<svg width="14" height="14" style="transform:rotate(180deg)"')}
-            All documents</button>
+            ${esc(backLabel(readURL()))}</button>
           <span class="doc-top-end">${docTopEnd(o)}
           </span>
         </div>
@@ -10543,6 +10872,11 @@
   function render() {
     const st = readURL();
     syncTitle();
+    /* Every mutation on this surface ends in a paint — that is the design, and
+       it is why this is the one hook a store needs rather than a call beside
+       each of the fifty things that can change a document. Debounced, and a
+       no-op when nothing a person made has changed. */
+    scheduleDocSave();
 
     /* ══ THE GATE HAS NO SURFACE TO RENDER ═════════════════════════════
        No grid, no filter row, no briefing, no document, no settings sheet.
@@ -10609,10 +10943,18 @@
        address bar with no script to render it should fall through to the grid
        rather than paint an empty column. */
     const SET = window.AIMY_SETTINGS;
-    const inSet = !!(st.m && SET && SET.has(st.m));
+    /* The document wins. Both want the stage; the one you opened LAST is the
+       one you are looking at, and a module is a place you can still be
+       standing in behind it. */
+    const isDocNow = !!(st.doc && byId(st.doc));
+    const inSet = !isDocNow && !!(st.m && SET && SET.has(st.m));
     document.body.classList.toggle('is-settings', inSet);
+    /* Settings hides the filter bar because a module has no working set to
+       describe. Archive is the exception that proves it: it IS a working set,
+       drawn with the same cards and narrowed by the same controls. */
+    document.body.classList.toggle('is-archive', inSet && st.m === 'archive');
 
-    const isDoc = !inSet && !!(st.doc && byId(st.doc));
+    const isDoc = isDocNow;
     document.body.classList.toggle('is-doc', isDoc);
     /* Opening a document hides the rail at every width, so a drawer still open
        over it would be presenting a surface the layout has withdrawn — and its
@@ -13887,9 +14229,13 @@
   let newSeq = 0;
   function newDocument(type, seed, quiet) {
     const t = TYPES[type] ? type : 'article';
-    const id = 'new-' + (++newSeq);
+    /* Past anything restored from a previous session. `newSeq` starts at zero
+       every load, so without this the first document you make after a reload
+       would be born holding the id of one you made yesterday. */
+    let id;
+    do { id = 'new-' + (++newSeq); } while (byId(id));
     const doc = Object.assign({
-      id: id, work: 'drafted', owner: USER.owner, t: t,
+      id: id, work: 'drafted', owner: USER.owner, t: t, made: 1,
       /* The label's own case. Lowercasing reads fine on Article and Ticket and
          produces "Untitled icp" — which nobody saw while the only way to make
          one was to filter to ICP first, and which the kind menu now puts one
@@ -13952,6 +14298,20 @@
   }
 
   const isBlankDoc = (o) => o && !String(o.sum || '').trim() && !String(o.html || '').trim();
+
+  /* The one line Sales shows for an offering. `BLANK_X` seeds `pitch` with an
+     em dash, which is the right thing to show in a FIELD that is empty and the
+     wrong thing to print as a description, so it is treated as absent. The
+     summary's first sentence is the fallback because a product somebody has
+     described but not pitched should still say something in the picker. */
+  function pitchOf(o) {
+    const p = String((o.x && o.x.pitch) || '').trim();
+    if (p && p !== '—' && p !== '-') return p;
+    const sum = String(o.sum || '').trim();
+    if (!sum) return '';
+    const stop = sum.indexOf('. ');
+    return stop > 0 ? sum.slice(0, stop + 1) : sum;
+  }
 
   /* ── What a drop means depends on where you drop it ──
 
@@ -14191,7 +14551,8 @@
     article:  { applies: '—' },
     ticket:   { requester: '—', assignee: 'Unassigned', status: 'Open', resolution: '—' },
     icp:      { segment: '—', score: 0, fit: [], dis: [] },
-    campaign: { objective: '—', window: '—', assets: '—' },
+    campaign: { goal: '—', sells: '—', persona: '—', sector: '—', size: '—',
+                window: '—', pitch: '' },
     asset:    { format: '—', usage: 'Internal only', approval: 'pending' },
     /* `slides: 0` rather than '—': it is a count, the number input writes a
        number, and 0 is what "no deck yet" honestly is. TYPE_BODY tests it as
@@ -14200,7 +14561,14 @@
     story:    { size: '—', outcome: '—', quote: '', approval: 'pending' },
     blog:     { pub: 'Draft', canonical: '—', author: USER.owner },
     /* No crawl or change: both are derived from `upd` and `xu` now. */
-    webpage:  { url: '—' }
+    webpage:  { url: '—' },
+    /* `pitch` is not a summary with a different name. The summary is what the
+       document says; the pitch is the ONE LINE AiMY Sales prints beside this
+       offering in its picker, which is a different job with a different length
+       and a different reader. Slicing the summary to fit would have been the
+       version of this that nobody can edit. */
+    product:  { pitch: '—' },
+    service:  { pitch: '—' }
   };
 
   /* The card's one classified action. Each terminates in a completed action, a
@@ -15286,7 +15654,160 @@
        because the file is optional — the console still renders its grid on a
        page that does not load it. */
     if (window.AIMY_SETTINGS) {
-      window.AIMY_SETTINGS.init({ patch: patch, readURL: readURL, render: render });
+      /* ══ THE CATALOGUE IS DOCUMENTS ══════════════════════════════════
+
+         Settings' sell picker had eight offerings hardcoded, under a comment
+         saying nothing there is typed into existence "because every entry is a
+         node the knowledge graph points at and a free-written 'QA stuff' would
+         be an edge to nowhere". That rule is kept, not broken — a Product
+         document IS such a node. Writing one is how you add to the catalogue,
+         and there is still no way to type a name straight into the picker.
+
+         A FUNCTION, not an array. Settings calls it on every repaint, so a
+         product written a moment ago is in the next painting of the picker
+         with nothing to invalidate and no copy to keep in step.
+
+         Direction of the dependency is the existing one: knowledge.js knows
+         settings.js exists and hands it what it cannot compute; settings.js
+         knows only what it was handed. */
+      window.AIMY_SETTINGS.init({
+        patch: patch, readURL: readURL, render: render,
+        offerings: () => ENTITLED
+          /* Archived is the one exclusion. NOT drafts: you write the product,
+             it is a draft for as long as it takes you to describe it, and a
+             catalogue that withholds it until publication would make the
+             obvious next step — go and tick it in Sales — silently impossible. */
+          .filter((o) => SELLABLE[o.t] && !o.arch)
+          .map((o) => ({
+            /* Namespaced, because these ids share a picker with the eight
+               static ones and a document called `qa` must not shadow AiMY QA. */
+            id: 'doc:' + o.id,
+            name: o.title,
+            kind: SELLABLE[o.t],
+            /* The pitch if it has been written, the summary's first sentence if
+               not, and nothing rather than a literal em dash — which is what
+               `BLANK_X` puts there and would read as a description that says
+               "—". */
+            d: pitchOf(o),
+            doc: o.id
+          })),
+
+        /* ── WHAT IS IN THE ARCHIVE, AND THE TWO VERBS ON IT ──
+
+           Settings owns the page; this file owns the documents, so it answers
+           the list and performs the actions. `docAct` is handed over whole
+           rather than a pair of restore/delete wrappers, because the dialogs,
+           the typed confirmation and the audit copy all live behind it and a
+           wrapper would be a second place for them to be described. */
+        archived: () => ENTITLED
+          .filter((o) => o.arch)
+          .map((o) => ({
+            id: o.id,
+            title: o.title,
+            kind: TYPES[o.t] ? TYPES[o.t].label : 'Document',
+            collection: COLLECTIONS[o.col] || o.col,
+            /* The date the copy last changed, which for an archived document is
+               when it was put away — archiving writes a version and stamps it. */
+            when: fmtDate(o.upd)
+          })),
+        /* The archive holds DOCUMENTS, so it draws them the way every other
+           surface in this console draws them — `typeCard`, the same component
+           as the grid, the search results and the briefing. Settings is handed
+           the finished markup rather than the data, because the card is this
+           file's component and a settings-side reimplementation of it would be
+           a second card to keep in step with the first.
+
+           The click handlers need no bridge: they are delegated on `document`
+           here, so a card works wherever its markup lands. */
+        /* Filtered by the SAME bar the grid uses. `applyFilters` already reads
+           `st.archived` and flips which half of the corpus it draws from, so
+           forcing that one key on gives Client, Product, Source, Type, date and
+           the search box over the archive for free — and means the archive
+           cannot disagree with the grid about what a filter means. */
+        archiveCards: () => {
+          const st = Object.assign(readURL(), { archived: 1 });
+          const list = sortSet(applyFilters(st), orderOf(st, false));
+          if (!list.length) return '<p class="rail-empty">Nothing archived matches those filters.</p>';
+          return '<div class="ws-grid">'
+            + list.map((o) => typeCard(o, false, { arch: 1 })).join('')
+            + '</div>';
+        },
+        docAct: docAct,
+
+        /* ── THE WAY BACK, FROM THE PICKER TO THE THING THE PICKER LACKS ──
+
+           Settings can say "create one" but cannot do it: the library, the
+           menu and the URL all live here. So it asks, and this performs the
+           whole errand — leave settings, open the menu, bring the two rows
+           that matter into view, and say which they are.
+
+           The flag is the point. The menu is eleven rows in a 17rem box, so
+           Product and Service are BELOW THE FOLD and arriving with them merely
+           scrolled into view looks identical to arriving at a menu that
+           happened to be scrolled. A second of tint is the difference between
+           "here is a menu" and "here are the two rows you were sent for". */
+        newOffering: () => {
+          flagNewTypes = true;
+          /* Out of settings AND out of any open document, in one patch: two
+             would render an intermediate state nobody asked to see. `patch`
+             renders synchronously, so the menu exists by the time this
+             returns — already open, because the flag was set first. */
+          patch({ m: '', sec: '', doc: '' });
+
+          /* Scroll position is the one thing the flag cannot carry: the markup
+             is regenerated on every repaint, and a fresh element scrolls to its
+             top. So it is re-applied for as long as the flag is up — the same
+             repaint that made poking classes fail is why a single scroll would
+             not hold either. Cheap, idempotent, and it stops itself. */
+          let armed = false;
+          const reveal = () => {
+            const keys = Object.keys(SELLABLE);
+            const last = $('[data-new-type="' + keys[keys.length - 1] + '"]');
+            /* The LAST of the two, so both land in view: they are adjacent and
+               at the end of the list, and scrolling to the first would leave
+               the second under the fold it was meant to clear. */
+            if (!last) return;
+            last.scrollIntoView({ block: 'nearest' });
+            if (armed) return;
+            armed = true;
+            /* Focus once, not on every repaint: moving focus repeatedly would
+               fight a reader who has already pressed an arrow key. */
+            const first = $('[data-new-type="' + keys[0] + '"]');
+            if (first) first.focus({ preventScroll: true });
+            /* ── THE SECOND STARTS WHEN THE MENU IS ON SCREEN ──
+               Measured from the click it was mostly spent before there was
+               anything to look at: leaving settings and drawing the library
+               takes about 400ms, so a 1000ms flag showed for 600. The clock
+               starts at the first paint that actually contains the rows. */
+            setTimeout(() => {
+              flagNewTypes = false;
+              /* ── AND IT DOES NOT RE-RENDER ──
+
+                 One flag was doing two jobs — drawing the menu open and tinting
+                 the two rows — so ending the tint re-drew the menu from state
+                 that no longer said "open" and shut it in the reader's face,
+                 one second after sending them there to look at it. Only ONE of
+                 the two jobs is over.
+
+                 So the class comes off the live DOM instead. The tint
+                 transitions away, `.open` is left exactly where the last render
+                 put it, and the menu goes back to being an ordinary open menu
+                 — dismissed by clicking away or pressing Escape, like every
+                 other menu here. */
+              $$('.new-menu .menu-item.is-flagged')
+                .forEach((r) => r.classList.remove('is-flagged'));
+            }, 1000);
+          };
+          requestAnimationFrame(reveal);
+          /* One mechanism for both jobs: waiting for the menu to exist, and
+             re-scrolling it after each repaint while it does. It ends with the
+             flag, so nothing here outlives the second it belongs to. */
+          const poll = setInterval(() => {
+            if (!flagNewTypes) { clearInterval(poll); return; }
+            reveal();
+          }, 100);
+        }
+      });
     }
 
     /* ── What another shell sent here ──

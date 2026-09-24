@@ -1218,7 +1218,26 @@
     { id: 'back',    name: 'Finance and back office',  kind: 'Service',
       d: 'invoicing, reconciliation and reporting, run for you' }
   ];
-  const offeringById = (id) => OFFERINGS.filter((o) => o.id === id)[0];
+  /* ══ THE CATALOGUE IS THE EIGHT ABOVE, PLUS WHAT SOMEBODY WROTE ═════════
+
+     The rule this file opened with — nothing here is typed into existence,
+     because every entry is a node the knowledge graph points at — still
+     holds. It is now satisfied by a second route: a Product or Service
+     DOCUMENT is such a node, so writing one adds to this list. There is still
+     no way to type a name straight into the picker.
+
+     `API.offerings` is handed over by knowledge.js at `init`. Called fresh
+     every time rather than cached, so an offering written a moment ago is in
+     the next painting of the picker with nothing to invalidate.
+
+     Guarded on every access because this file loads FIRST — settings.js is
+     parsed before knowledge.js exists, let alone before it calls `init` — so
+     the honest answer for that window is "the eight". */
+  function catalogue() {
+    const extra = (API && API.offerings) ? API.offerings() : [];
+    return OFFERINGS.concat(extra || []);
+  }
+  const offeringById = (id) => catalogue().filter((o) => o.id === id)[0];
 
   /* ══ WHAT YOU SELL SURVIVES THE RELOAD ══════════════════════════════
 
@@ -1235,12 +1254,22 @@
      would be this page's one unforgivable bug, and the owner check costs a
      line.
 
-     Stale ids are dropped on the way IN, not on the way out. `sellMine` already
-     does `.map(offeringById).filter(Boolean)`, so a catalogue entry that has
-     gone would vanish from the list — but the array would still hold it, and
-     `mySells().length` is what the rail counts, so the page would say three
-     chosen and show two. Deduped for the same reason: a repeated id renders one
-     row and counts two.
+     Stale ids are dropped on the way OUT, not on the way in, and that is the
+     opposite of what this said a moment ago. The load USED to check each id
+     against the catalogue, which worked while the catalogue was eight
+     constants and breaks the instant it also contains documents: at parse time
+     knowledge.js has not run, `API` is not set, and every doc-backed id you
+     had chosen would be discarded as unknown — silently, once, on the reload
+     that was supposed to bring them back.
+
+     So the stored list is kept RAW and resolved at the moment it is read. That
+     also fixes a case the old way never covered: a product archived after the
+     page loaded now leaves the list immediately, rather than at the next
+     reload. `sellsValid` is what the rows and the count both read, so they
+     cannot disagree — which was the whole point of filtering early.
+
+     Deduping still happens on load: a repeated id renders one row and counts
+     two, and that is a property of the record, not of the catalogue.
 
      An absent record and an empty one are NOT the same. Nothing stored means a
      first visit and the fixture stands; `ids: []` means you took the last one
@@ -1261,11 +1290,16 @@
     if (!d || d.v !== 1 || d.who !== ME_ID || !Array.isArray(d.ids)) return;
     const seen = {};
     p.sells = d.ids.filter((id) => {
-      if (seen[id] || !offeringById(id)) return false;
+      if (typeof id !== 'string' || seen[id]) return false;
       seen[id] = 1;
       return true;
     });
   }
+
+  /* What is both chosen AND still in the catalogue. Every count and every row
+     goes through here; `mySells` stays the raw, mutable list the picker
+     toggles, because a filtered copy cannot be spliced. */
+  const sellsValid = () => mySells().filter((id) => !!offeringById(id));
 
   /* Called at both places the list changes, beside the `DIRTY.add('sell')`
      that already marks them. A full quota throws on write; that is not worth
@@ -1391,6 +1425,29 @@
        a nav that truncates every name and a document set narrower than the
        prose it holds. Same reason User & access carries it. */
     { g: 'Admin',  id: 'skills',    name: 'Skills', wide: true },
+
+    /* ── THE ARCHIVE ──
+       Archived documents were reachable only by typing `archived` into the ask
+       bar, which is a route you have to already know about — and the one place
+       a person looks for the things they put away is a list called Archive.
+
+       It sits in Admin rather than Client because archiving is governed by
+       retention, which is an admin decision, and because what it holds spans
+       every client's documents rather than one connection's.
+
+       `wide`, for the same reason Skills and User & access carry it: this is a
+       list of documents, and a 46rem measure gives the title column about
+       20rem and truncates most of them. */
+    { g: 'Admin',  id: 'archive',   name: 'Archive', wide: true,
+      state: function () {
+        var n = (API && API.archived) ? API.archived().length : 0;
+        /* No warning colour. Archiving is a thing somebody chose to do, not a
+           fault, and a rail that shouts about it in the error ramp ranks a tidy
+           library beside a broken connector — the same call the Sales row makes
+           about an empty list. Silent at zero, because "0 archived" is a count
+           of nothing. */
+        return n ? { note: n + ' archived', s: '' } : null;
+      } },
 
     /* Deferred: reachable by URL and findable in the palette, absent from the
        rail. Not deleted — that is the difference between deferring a module and
@@ -2262,6 +2319,46 @@
       </section>`;
   }
 
+  /* ══ THE ARCHIVE ═════════════════════════════════════════════════
+
+     A list, and two verbs on each row. It does NOT reimplement either verb:
+     `Restore` and `Delete` hand straight back to `docAct` in knowledge.js,
+     which already owns the typed confirmation, the audit line, the count of
+     versions going with it and the sentence about citations breaking. A second
+     delete path written here would be a second set of those promises to keep
+     in step, and the one that drifted would be the dangerous one.
+
+     Opening a row opens the DOCUMENT, not a settings detail page. An archived
+     document is still a document; the thing you usually want from this list is
+     to read the one you are about to restore. */
+  M.archive = function () {
+    const rows = (API && API.archived) ? API.archived() : [];
+    if (!rows.length) {
+      return `
+        <section class="set2-sec">
+          <div class="set2-empty"><b>Nothing is archived</b>
+            Archiving a document takes it out of the library and out of every
+            answer, and it stays here until somebody restores or deletes it.</div>
+        </section>`;
+    }
+    /* Cards, not settings rows. These are documents, and everywhere else in
+       this console a document is a card — the grid, the search results, the
+       briefing. A list row here would have made the archive the one place
+       where a document looks like a setting.
+
+       The markup comes from knowledge.js, which owns `typeCard`; this page
+       only says where it goes. Each card carries Restore as its one action,
+       which is the card's rule everywhere: opening it gets you the document,
+       and Delete is in the document's own footer, behind the typed
+       confirmation it has always been behind. */
+    return `
+      <section class="set2-sec">
+        <p class="set2-page-lede">Out of the library and out of every answer — kept,
+          not deleted. Restoring one puts it back exactly as it was.</p>
+        ${(API && API.archiveCards) ? API.archiveCards() : ''}
+      </section>`;
+  };
+
   M.agents = () => `
     <section class="set2-sec">
       <div class="set2-sec-h"><h2 class="set2-sec-t">Agents</h2></div>
@@ -2464,7 +2561,7 @@
   /* The list alone, so the menu can repaint it behind itself on every press
      without rebuilding the page and taking its own anchor away. */
   function sellMine() {
-    const mine = mySells().map(offeringById).filter(Boolean);
+    const mine = sellsValid().map(offeringById);
     return group('You sell', mine.length ? 'is-ok' : '', mine.length,
       mine.length ? mine.map(sellItem).join('')
         : `<div class="set2-sell-none">Nothing yet. Add the products and services you sell.</div>`);
@@ -2489,7 +2586,7 @@
   function paintSellPick(anchor) {
     const mine = mySells();
     const rows = (q) => {
-      const hits = OFFERINGS.filter((o) => !q ||
+      const hits = catalogue().filter((o) => !q ||
         (o.name + ' ' + o.kind + ' ' + o.d).toLowerCase().indexOf(q) >= 0);
       if (!hits.length) return `<div class="set2-pal-empty">Nothing we sell matches <b>${esc(q)}</b>.</div>`;
       return ['Product', 'Service'].map((kind) => {
@@ -2497,10 +2594,24 @@
         if (!of.length) return '';
         return `<div class="set2-pop-t">${kind}s</div>` + of.map((o) => {
           const on = mine.indexOf(o.id) > -1;
+          /* The description was in the data from the start and the search has
+             always read it — it was just never on screen, only in a `title`,
+             which is a tooltip nobody sees on a phone and nobody waits for on
+             a desktop. It is the line that separates *AiMY QA* from *QA and
+             test automation* for a reader who does not already know both.
+
+             `.set2-pop-tx` rather than a wrapper of its own: the scope menu
+             solved this exact shape already — two lines of text that must not
+             drag the tick down into a column with them. The `title` goes,
+             because a tooltip repeating visible text is a second copy that can
+             fall out of step with the first. */
           return `
             <button class="set2-pop-i is-val${on ? ' is-on' : ''}" type="button"
-                    data-sell-t="${esc(o.id)}" aria-pressed="${on}" title="${esc(o.d)}">
-              <span class="set2-pop-n">${esc(o.name)}</span>
+                    data-sell-t="${esc(o.id)}" aria-pressed="${on}">
+              <span class="set2-pop-tx">
+                <span class="set2-pop-n">${esc(o.name)}</span>
+                <span class="set2-pop-p">${esc(o.d)}</span>
+              </span>
               <span class="set2-pop-k">${I.tick}</span>
             </button>`;
         }).join('');
@@ -2534,7 +2645,10 @@
          has none — so the count would stay at "1 chosen" after the last one
          went. Said here, from the same list. */
       const note = $('.rail-pg[data-sec="selling"] .rail-pg-s');
-      if (note) note.textContent = mine.length ? mine.length + ' chosen' : '';
+      /* `sellsValid`, not `mine.length` — `mine` is the raw list and may hold
+         an id whose document has since been archived, which is exactly the
+         disagreement between the count and the rows this note once had. */
+      if (note) { const n = sellsValid().length; note.textContent = n ? n + ' chosen' : ''; }
     });
   }
 
@@ -6125,7 +6239,16 @@
      page every time the list grew. Keyed by page id; a page without one keeps
      the bare title. */
   const PAGE_ACT = {
-    selling: () => `<button class="btn btn-brand btn-sm" type="button" data-sell-open>Add what you sell</button>`
+    /* Two actions, and they are not alternatives. The button picks from the
+       catalogue; the link underneath is what you need when the thing you sell
+       is NOT in it yet — which, until Product and Service documents existed,
+       was a dead end this page could not even name. It is a link and not a
+       second button because it leaves the page: you come back here to tick the
+       result, so it must not compete with the verb that does the ticking. */
+    selling: () => `<span class="set2-act-stack">
+        <button class="btn btn-brand btn-sm" type="button" data-sell-open>Add what you sell</button>
+        <button class="set2-lnk set2-act-sub" type="button" data-sell-new>Create a product/service</button>
+      </span>`
   };
 
   /* ── AND A PAGE'S ONE LINE, UNDER IT ──
@@ -6330,7 +6453,7 @@
          nothing until there is something to count. */
       { id: 'selling', name: 'Sales', secs: ['selling'],
         state: function () {
-          var n = mySells().length;
+          var n = sellsValid().length;
           return n ? { note: n + ' chosen', s: '' } : null;
         } }
     ]
@@ -7225,6 +7348,10 @@
     /* ── What you sell ── */
     const sellOpen = e.target.closest('[data-sell-open]');
     if (sellOpen) { paintSellPick(sellOpen); return; }
+    /* Handed over by knowledge.js, which owns the library, the new-document
+       menu and the URL. This file knows only that it wants one made. */
+    const sellNew = e.target.closest('[data-sell-new]');
+    if (sellNew) { if (API && API.newOffering) API.newOffering(); return; }
     const sellRm = e.target.closest('[data-sell-rm]');
     if (sellRm) {
       const list = mySells();

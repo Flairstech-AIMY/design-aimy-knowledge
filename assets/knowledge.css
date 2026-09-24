@@ -3767,6 +3767,47 @@ body.is-doc .filter-row { display: none; }
    NAVIGATED, and the rail is what navigates it. */
 body.is-settings #filterBar,
 body.is-settings #chipBar { display: none; }
+/* ── EXCEPT ON THE ARCHIVE ──
+   The rule above holds because a settings module has no working set for those
+   controls to describe. The Archive module is a set of documents drawn with
+   the grid's own cards, so the controls describe it exactly as well as they
+   describe the library, and hiding them would leave the one list you cannot
+   narrow. */
+body.is-settings.is-archive #filterBar,
+body.is-settings.is-archive #chipBar { display: block; }
+
+/* The two verbs on an archived card. A row, so they read as a pair of choices
+   rather than a stack of two unrelated buttons — the same call `.rail-foot`
+   makes about Report and Archive. Ruled off the facts above it, because they
+   act on the document rather than describing it. */
+/* Two classes deep, because `.tc-foot` is the insight footer and stacks its
+   children in a column — equal specificity would have left the direction to
+   source order, which is how these two came out as full-width bars. */
+.tc-foot.tc-foot-arch {
+  display: flex; flex-direction: row; align-items: center;
+  /* Opposite ends, so the irreversible verb is never under the hand that has
+     just pressed the other one. */
+  justify-content: space-between; gap: 0.875rem;
+  padding-top: 0.5rem; margin-top: 0.625rem;
+  border-top: 0.0625rem solid var(--card-border);
+}
+/* A link, not a button. See typeCard: the card is already the object being
+   read, so its two verbs are the smallest thing that is still a control. */
+.tc-arch-lnk {
+  appearance: none; border: 0; background: none; padding: 0; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 0.375rem;
+  font-family: var(--font-sans); font-size: var(--ty-micro);
+  font-weight: var(--fw-semibold); color: var(--ink-action);
+}
+.tc-arch-lnk svg { flex: none; }
+/* The label underlines, not the glyph: an underlined icon is a box with a line
+   under it. */
+.tc-arch-lnk:hover { text-decoration: none; }
+.tc-arch-lnk:hover span { text-decoration: underline; }
+.tc-arch-lnk:hover { text-decoration: underline; }
+.tc-arch-lnk:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; border-radius: 0.125rem; }
+/* The one place colour is spent here, and it is spent on the irreversible one. */
+.tc-arch-lnk.is-danger { color: var(--err); }
 
 /* ── The settings rows in the briefing rail ──
    `.rail-set-row` was a <div> holding two controls: a name that opened a sheet
@@ -4562,7 +4603,14 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
    that belong to the whole document. Delete joins them when it exists. */
 .rail-foot {
   display: flex; flex-direction: row; flex-wrap: wrap;
-  align-items: center; gap: 0.25rem 0.5rem; padding: 1rem 0.25rem 0;
+  /* The two gaps are not the same measure and were written as though they
+     were. 4px of ROW gap is fine between controls that sit side by side and
+     share a baseline; the moment the rail is narrow enough to wrap them onto
+     their own lines — which is most of the time once Delete joins Report and
+     Restore — 4px reads as two buttons stuck together rather than two
+     choices. The column gap is untouched: side by side they were never the
+     problem. */
+  align-items: center; gap: 0.5rem 0.5rem; padding: 1rem 0.25rem 0;
 }
 
 /* Connections read as sentences: the relationship, the thing, and who said so. */
@@ -6256,10 +6304,34 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
    is. -6px cancels the panel's own padding so it sticks flush, the same way
    `.dd-search` does inside the filter dropdowns. */
 .new-menu .menu-label { position: sticky; top: -6px; z-index: 1; background: var(--panel-bg); }
-/* One line again, so the item goes back to the library's centring and the
-   glyph drops the nudge that was aligning it to the first of two lines. */
-.new-menu .menu-item { padding: 0.5rem; width: 100%; text-align: left; }
+/* Two lines again. The row went back to one when the nine notes were cut as
+   things you learn once; it takes the second line back now that two of the
+   eleven types do something a name cannot tell you — Product and Service put
+   an entry in AiMY Sales. The glyph gets its nudge back with it: centred
+   against a two-line block it floats between the lines. */
+.new-menu .menu-item { padding: 0.5rem; width: 100%; text-align: left; align-items: flex-start; }
+.new-menu .menu-item > svg { margin-top: 0.1875rem; flex: 0 0 auto; }
+.new-menu-tx { display: flex; flex-direction: column; gap: 0.0625rem; min-width: 0; }
 .new-menu-name { font-size: var(--ty-body); font-weight: var(--fw-semibold); color: var(--ink-primary); }
+.new-menu-note {
+  font-size: var(--ty-micro); line-height: var(--lh-snug); color: var(--ink-quiet);
+}
+
+/* ── SENT HERE FROM SOMEWHERE ELSE ──
+
+   Arriving from *Create a product/service* in Sales settings opens this menu
+   already scrolled to its last two rows. Scrolled and silent, that is
+   indistinguishable from a menu you happened to open near the bottom, so the
+   two rows say for one second that they are the ones you were sent for.
+
+   The tint is painted by the class, NOT by an animation, so it is there for a
+   reader with reduced motion too; the transition only governs how it leaves.
+   That is this file's own pattern — the end state outside the motion query,
+   the movement inside it. */
+.new-menu .menu-item.is-flagged { background: var(--brand-dim); }
+@media (prefers-reduced-motion: no-preference) {
+  .new-menu .menu-item { transition: background var(--t-medium) var(--ease-out); }
+}
 
 /* ── Two library components that arrive below the floor ──
 
