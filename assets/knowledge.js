@@ -460,6 +460,17 @@
       + ICO.external.replace('<svg', '<svg class="em-ico"') + esc(label) + '</a>';
   }
 
+  /* A web address on a card is a place you can go, so it is a link to it and
+     not a string that looks like one. The stored value has no scheme, which is
+     how people write it; the href gets one so the browser does not read
+     `aimy.app/security` as a path on this site. The click router lets
+     `.url-link` through before the card claims the press — see the top of it. */
+  function urlLink(u) {
+    const href = /^https?:\/\//i.test(u) ? u : 'https://' + u;
+    return `<a class="url-link" href="${esc(href)}" target="_blank" rel="noopener noreferrer"
+       title="Opens ${esc(u)} in a new tab">${esc(u)}</a>`;
+  }
+
   /* ═══════════════════════════════
      CLIENTS, AND THE PRODUCTS THEY OWN
 
@@ -3943,12 +3954,12 @@
     blog:     (o) => tcSum('By ' + o.x.author +
         (o.x.pub === 'Published' ? ' · ' + fmtDate(o.xc) : '')) +
       (o.x.canonical && o.x.canonical !== '—'
-        ? `<p class="tc-mono">${esc(o.x.canonical)}</p>` : ''),
+        ? `<p class="tc-mono">${urlLink(o.x.canonical)}</p>` : ''),
 
     /* The URL is the whole of what makes a web page a web page, and monospace
        is the only run of that texture anywhere on the grid. */
     webpage:  (o) => (o.x.url && o.x.url !== '—'
-        ? `<p class="tc-mono">${esc(o.x.url)}</p>` : '') +
+        ? `<p class="tc-mono">${urlLink(o.x.url)}</p>` : '') +
       tcSum(o.sum)
   };
 
@@ -12552,6 +12563,11 @@
     document.addEventListener('click', (e) => {
       const t = e.target;
       let el;
+
+      /* A web address leaves the page; the browser follows it. Nothing below
+         may also claim the press — the card it sits on would open the document
+         underneath the new tab. */
+      if (t.closest('.url-link')) return;
 
       /* ── the date range controls ── */
       if ((el = t.closest('[data-cal-nav]'))) {
