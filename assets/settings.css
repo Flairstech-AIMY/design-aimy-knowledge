@@ -1033,7 +1033,7 @@ kbd {
 
 .set2-chip {
   display: inline-flex; align-items: center; gap: 0.3125rem;
-  padding: 0.1875rem 0.4375rem; border-radius: var(--r-sm);
+  padding: 0.1875rem 0.4375rem; border-radius: var(--r-pill);
   background: var(--card-bg-raised);
   font-size: var(--ty-micro); color: var(--ink-quiet); white-space: nowrap;
 }
