@@ -6319,7 +6319,7 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
 .new-menu .menu-item { padding: 0.5rem; width: 100%; text-align: left; align-items: flex-start; }
 .new-menu .menu-item > svg { margin-top: 0.1875rem; flex: 0 0 auto; }
 .new-menu-tx { display: flex; flex-direction: column; gap: 0.0625rem; min-width: 0; }
-.new-menu-name { font-size: var(--ty-body); font-weight: var(--fw-semibold); color: var(--ink-primary); }
+.new-menu-name { font-size: var(--ty-meta); font-weight: var(--fw-semibold); color: var(--ink-primary); }
 .new-menu-note {
   font-size: var(--ty-micro); line-height: var(--lh-snug); color: var(--ink-quiet);
 }
