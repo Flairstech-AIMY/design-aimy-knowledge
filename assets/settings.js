@@ -127,10 +127,9 @@
        map places by walk depth rather than by type, so they draw one step in
        from the client exactly as a BU would.
 
-       Note the names that repeat: AiMY Sales and AiMY Voice are PRODUCTS here,
-       while Sales and Voice under “AiMY agents” are AGENTS. Those are two
-       different things wearing one word, and the agents branch is still the
-       stale Copilot/Sales/Voice fixture noted in GAPS. */
+       The agents under “AiMY agents” are production's three, Nova, Trinity
+       and AiMY. They replaced a Copilot / Sales / Voice fixture whose last two
+       shared a word with the AiMY Sales and AiMY Voice PRODUCTS above. */
     { id: 'flairs', name: 'FlairsTech', type: 'Client', kids: [
       { id: 'aimy-qa',      name: 'AiMY QA',      type: 'Product', kids: [] },
       { id: 'aimy-voice',   name: 'AiMY Voice',   type: 'Product', kids: [] },
@@ -172,9 +171,9 @@
     ]},
     { id: 'medfar', name: 'MedFar', type: 'Client', kids: [] },
     { id: 'aimy', name: 'AiMY agents', type: 'Ours', kids: [
-      { id: 'copilot', name: 'Copilot', type: 'Agent' },
-      { id: 'sales', name: 'Sales', type: 'Agent' },
-      { id: 'voice', name: 'Voice', type: 'Agent' }
+      { id: 'nova', name: 'Nova', type: 'Agent' },
+      { id: 'trinity', name: 'Trinity', type: 'Agent' },
+      { id: 'general', name: 'AiMY', type: 'Agent' }
     ]}
   ];
 
@@ -237,7 +236,7 @@
     { id: 'tone', slug: 'professional-tone', name: 'Professional tone', own: 'org', trigger: 'always', on: true,
       desc: 'Neutral register. No emojis or jargon unless the reader asks for something looser.',
       by: 'A. Mahfouz', when: '11 Aug', v: 3, sources: ['policies'],
-      agents: ['copilot', 'sales', 'voice'], products: ['General', 'Support', 'Sales'],
+      agents: ['nova', 'trinity', 'general'], products: ['General', 'Support', 'Sales'],
       body: 'Keep a professional, neutral tone. Avoid emojis and jargon unless the reader asks '
           + 'for something more creative. Never open with an apology.' },
 
@@ -248,7 +247,7 @@
     { id: 'refund-org', slug: 'draft-refund-response', name: 'Draft a refund response', own: 'org', trigger: 'auto', on: true,
       desc: 'Answer from the EU refund article and name it. Never quote a figure that is not in a source.',
       by: 'A. Mahfouz', when: '11 Aug', v: 2, sources: ['policies', 'support'],
-      agents: ['copilot'], products: ['Support'],
+      agents: ['nova'], products: ['Support'],
       body: 'Answer from the EU refund article first, and name it. Never quote a figure that is '
           + 'not in a cited source. If the customer asks for an exception, say who can grant it '
           + 'rather than guessing whether it will be granted.' },
@@ -256,7 +255,7 @@
     { id: 'refund', slug: 'draft-refund-response', name: 'Draft a refund response', own: 'you', trigger: 'auto', on: true,
       desc: 'Cite the policy article and flag the contested clause rather than picking a side.',
       by: USER.name, when: '20m ago', v: 4, sources: ['policies', 'support'],
-      agents: ['copilot'], products: ['Support'],
+      agents: ['nova'], products: ['Support'],
       body: 'Answer from the EU refund article first, and name it. If the Returns FAQ disagrees '
           + 'about what happens after activation, say the clause is contested rather than picking '
           + 'a side. Nobody has ruled on it. Never quote a figure that is not in a cited source.' },
@@ -264,14 +263,14 @@
     { id: 'booking', slug: 'booking-reference-guard', name: 'Booking reference guard', own: 'org', trigger: 'always', on: true,
       desc: 'Never quote a fare without a booking reference.',
       by: 'Ahmed Samy', when: '3 Sep', v: 1, sources: ['policies'],
-      agents: ['copilot', 'voice'], products: ['Support'],
+      agents: ['nova', 'general'], products: ['Support'],
       body: 'Refer to the traveller in the second person. Never quote a fare without a booking '
           + 'reference in hand.' },
 
     { id: 'sweep', slug: 'weekly-staleness-sweep', name: 'Weekly staleness sweep', own: 'you', trigger: 'manual', on: true,
       desc: 'Documents behind their source, grouped by connector, with an owner for each.',
       by: USER.name, when: '3 Sep', v: 2, sources: ['policies', 'support', 'marketing'],
-      agents: ['copilot'], products: ['General'],
+      agents: ['nova'], products: ['General'],
       body: 'Group by connector, not by collection. A stale document is almost always a symptom '
           + 'of the sync that fed it. Name the owner for each. Stop at ten and say how many were '
           + 'left out.' },
@@ -298,7 +297,7 @@
      file, and something has to decide which. The organisation's wins.
 
      Matching on NAME rather than on reach is deliberate. Agents × products
-     intersect constantly — three of these six skills touch Copilot and
+     intersect constantly — three of these six skills touch Nova and
      Support — so an overlap defined that way would shadow nearly every
      personal skill and make owning one pointless. Name collision is the case
      where two files genuinely answer to the same call. */
@@ -1351,34 +1350,60 @@
 
      `voice` is what it sounds like when it answers aloud in voice mode. Two
      values, because that is the choice the brief asks for; a third is a
-     fixture edit, not a migration. */
+     fixture edit, not a migration.
+
+     `fillers` are the short phrases it says to cover a pause while it works
+     ("Hold on a second"), each with `c`, the moment it fits. Both are free
+     text: the context is an instruction to the agent, not a trigger this
+     console evaluates, so a vocabulary of events would only limit it. */
+  /* Production's three agents, by Nour on 5 Oct: Nova and Trinity each own
+     one client product's support questions, and AiMY takes the general ones.
+     They replaced the Copilot / Sales / Voice placeholders, ids included, so
+     a skill's `agents` list and the Scopes map's agent leaves name the same
+     three. `general` rather than `aimy`, which is already the id of the
+     "AiMY agents" branch in TREE. */
   const AGENTS = [
-    { id: 'copilot', name: 'Copilot', d: 'Answers support questions from the knowledge base.',
+    { id: 'nova', name: 'Nova', d: 'Answers MacPractice support questions.',
       voice: 'female', by: 'A. Mahfouz', when: '28 Aug',
+      fillers: [
+        { p: 'Let me check that for you.', c: 'Before searching the knowledge base' },
+        { p: 'One moment while I pull that up.', c: 'When opening a specific article or ticket' },
+        { p: 'Good question, give me a second.', c: 'When the answer needs more than one source' }
+      ],
       tone: { src: 'text', file: null,
         text: 'Calm and direct. Lead with the answer, then name the article it came from. '
           + 'Plain words over support jargon. When the knowledge base has nothing, say so '
           + 'in one sentence instead of guessing.' } },
-    { id: 'sales', name: 'Sales', d: 'Drafts outreach and answers product questions for the sales team.',
+    { id: 'trinity', name: 'Trinity', d: 'Answers XLDent questions.',
       voice: 'male', by: 'Nour Wael', when: '2 Sep',
+      fillers: [],
       tone: { src: 'file',
-        text: 'Warm and confident. Short paragraphs.',
-        file: { name: 'sales-tone.md', size: 1214, when: '2 Sep', by: 'Nour Wael',
-          body: '# Sales tone\n\n'
-            + 'Write like a person who knows the product and likes the customer.\n\n'
+        text: 'Patient and exact. Steps in order.',
+        file: { name: 'trinity-tone.md', size: 397, when: '2 Sep', by: 'Nour Wael',
+          body: '# XLDent support tone\n'
+            + '\n'
+            + 'Write for a busy front desk, or a dentist between patients.\n'
+            + '\n'
             + '## Do\n'
-            + '- Open with what changes for them, not with what the product is.\n'
-            + '- Keep paragraphs to two or three sentences.\n'
-            + '- Name one concrete outcome per message.\n\n'
+            + '- Give the menu path first, then the steps, numbered.\n'
+            + '- Use XLDent\'s own names for screens and fields.\n'
+            + '- Say which version a step applies to when versions differ.\n'
+            + '\n'
             + '## Avoid\n'
-            + '- Superlatives the documents do not back up.\n'
-            + '- Discounts, prices or dates unless a source states them.\n'
+            + '- Clinical or billing advice the documents do not back up.\n'
+            + '- Guessing at a fix when no article covers the error.\n'
             + '- Exclamation marks.\n' } } },
-    { id: 'voice', name: 'Voice', d: 'Takes inbound calls for client support lines.',
+    { id: 'general', name: 'AiMY', d: 'Answers general questions.',
       voice: 'female', by: 'A. Mahfouz', when: '19 Aug',
+      fillers: [
+        { p: 'Hold on a second.', c: 'Before any lookup that takes more than a moment' },
+        { p: 'Let me look into that.', c: 'When the answer has to come from several sources' },
+        { p: 'Thanks for waiting, nearly there.', c: 'When a lookup runs past five seconds' },
+        { p: 'Let me make sure I have that right.', c: 'Before repeating back a name, a number or a date' }
+      ],
       tone: { src: 'text', file: null,
-        text: 'Spoken aloud, so short sentences with one idea each. No lists, no links, '
-          + 'no reading out reference numbers unless the caller asks for one.' } }
+        text: 'Friendly and clear. Plain words and short answers, and say where the answer '
+          + 'came from. When a question belongs to one product, name the agent that owns it.' } }
   ];
 
   const COLS = [
@@ -2623,6 +2648,7 @@
           <div class="set2-ov-main">
             ${toneBlock(a)}
             ${voiceBlock(a)}
+            ${fillerBlock(a)}
           </div>
           <aside class="set2-ov-side">
             ${agentSkillsCard(a)}
@@ -2772,6 +2798,132 @@
           }).join('')}
         </div>
       </section>`;
+  }
+
+  /* ── FILLERS ──
+     What the agent says while it is busy, so a pause is not silence. The page
+     shows the first few as they will be heard, phrase over the moment it
+     fits, and the editing happens in a dialog: a two-column list of free text
+     is a form, and a form this page would otherwise grow by a row per phrase.
+     Capped at three here for the same reason, the O(records) rule. */
+  const FILLER_PEEK = 3;
+  function fillerBlock(a) {
+    const list = a.fillers || [];
+    const more = list.length - FILLER_PEEK;
+    return `
+      <section class="set2-ag-sec" id="st-fillers">
+        <span class="set2-lbl-row">
+          <p class="set2-lbl">Fillers</p>
+          ${tip('fillTip', 'fillers', 'Short phrases the agent says to cover a pause while it looks '
+            + 'something up, each with the moment it fits. The context is read by the agent, so '
+            + 'write it the way you would brief a person.')}
+          <span class="set2-ag-sec-end">
+            <button class="btn btn-ghost btn-sm" type="button" data-fl-open="${esc(a.id)}">${
+              list.length ? 'Edit fillers' : 'Add fillers'}</button>
+          </span>
+        </span>
+        ${list.length ? `
+          <div class="set2-ag-fl">
+            ${list.slice(0, FILLER_PEEK).map((f) => `
+              <div class="set2-ag-fl-r">
+                <span class="set2-ag-fl-p">\u201c${esc(f.p)}\u201d</span>
+                <span class="set2-ag-fl-c">${f.c ? esc(f.c) : 'Any pause'}</span>
+              </div>`).join('')}
+            ${more > 0 ? `
+              <button class="set2-ag-fl-more" type="button" data-fl-open="${esc(a.id)}">${
+                more} more</button>` : ''}
+          </div>` : `
+          <div class="set2-ag-fl is-empty">
+            <span class="set2-ag-fl-c">None yet, so a pause while the agent works is silent.</span>
+          </div>`}
+      </section>`;
+  }
+
+  /* ── The dialog ──
+     A working copy, not the agent's list: Cancel, the X and Escape all leave
+     the agent exactly as it was, and only Save writes. A row with a context
+     and no phrase is the one thing refused, because it would be an
+     instruction to say nothing. Rows left empty in both columns are dropped
+     on save rather than complained about. */
+  function fillerModal(md) {
+    const a = agentById(md.aid);
+    const rows = md.rows;
+    return `
+      <div class="set2-scrim" data-scrim>
+        <div class="set2-modal is-wide set2-fl-modal" role="dialog" aria-modal="true" aria-labelledby="flT">
+          <div class="set2-modal-hd">
+            <h2 class="set2-modal-t" id="flT">Fillers for ${esc(a ? a.name : '')}</h2>
+            <button class="set2-modal-x" type="button" data-close aria-label="Close">${I.x}</button>
+          </div>
+          <div class="set2-modal-bd">
+            <div class="set2-fl-grid" role="table" aria-label="Filler phrases">
+              <div class="set2-fl-hd" role="row">
+                <span role="columnheader">Filler</span>
+                <span role="columnheader">Context</span>
+                <span aria-hidden="true"></span>
+              </div>
+              ${rows.map((f, i) => `
+                <div class="set2-fl-row" role="row">
+                  <input class="set2-fld${md.bad === i ? ' is-bad' : ''}" data-fl-p="${i}" value="${esc(f.p)}"
+                         placeholder="Hold on a second" autocomplete="off"
+                         aria-label="Filler ${i + 1}">
+                  <input class="set2-fld" data-fl-c="${i}" value="${esc(f.c)}"
+                         placeholder="When it should be said, e.g. before a lookup" autocomplete="off"
+                         aria-label="Context for filler ${i + 1}">
+                  <button class="set2-fl-del" type="button" data-fl-del="${i}"
+                          aria-label="Remove filler ${i + 1}">${I.trash}</button>
+                </div>`).join('')}
+              ${rows.length ? '' : `
+                <p class="set2-fl-none">No fillers. Add one to give the agent something to say while it works.</p>`}
+            </div>
+            ${md.bad != null ? `<p class="set2-hint is-err" role="alert">Row ${md.bad + 1} has a context but no
+              filler. Write the phrase, or remove the row.</p>` : ''}
+            <button class="btn btn-ghost btn-sm set2-fl-add" type="button" data-fl-add>${
+              I.plus.replace('<svg', '<svg width="13" height="13" aria-hidden="true"')}Add filler</button>
+          </div>
+          <div class="set2-modal-ft">
+            <span class="set2-hint">Enter moves to the next row. Rows left empty are dropped.</span>
+            <span class="set2-modal-end">
+              <button class="btn btn-ghost btn-sm" type="button" data-close>Cancel</button>
+              <button class="btn btn-brand btn-sm" type="button" data-fl-save>Save</button>
+            </span>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function openFillers(aid) {
+    const a = agentById(aid);
+    if (!a) return;
+    const rows = (a.fillers || []).map((f) => ({ p: f.p, c: f.c }));
+    /* An empty list opens on one empty row: the dialog was opened to add
+       something, and a blank table with a button under it is one click
+       further from that. */
+    if (!rows.length) rows.push({ p: '', c: '' });
+    MODAL = { kind: 'fillers', aid: aid, rows: rows, bad: null };
+    paintModal();
+  }
+
+  /* Repaint, then put the caret where the person was going. paintModal
+     focuses the first field by default, which after Add would be row one. */
+  function repaintFillers(focusSel) {
+    paintModal();
+    const f = focusSel && $(focusSel);
+    if (f) { f.focus(); if (f.setSelectionRange) f.setSelectionRange(f.value.length, f.value.length); }
+  }
+
+  function saveFillers() {
+    const md = MODAL;
+    const a = md && agentById(md.aid);
+    if (!a) return;
+    const rows = md.rows.map((f) => ({ p: f.p.trim(), c: f.c.trim() }));
+    const bad = rows.findIndex((f) => !f.p && f.c);
+    if (bad > -1) { md.bad = bad; repaintFillers('[data-fl-p="' + bad + '"]'); return; }
+    a.fillers = rows.filter((f) => f.p);
+    a.when = 'just now'; a.by = USER.name;
+    DIRTY.add('fillers:' + a.id);
+    closeModal();
+    render();
   }
 
   /* The other half of an agent, read-only here. Editing a skill's agents is a
@@ -6021,6 +6173,7 @@
                    : MODAL.kind === 'adduser' ? addUserModal()
                    : MODAL.kind === 'rmpeople' ? removePeopleModal(MODAL)
                    : MODAL.kind === 'rotate' ? rotateModal(MODAL)
+                   : MODAL.kind === 'fillers' ? fillerModal(MODAL)
                    : deleteModal(MODAL);
     if (wasOpen) {
       const sc = $('.set2-scrim', host);
@@ -7500,6 +7653,26 @@
       }
       return;
     }
+    const flO = e.target.closest('[data-fl-open]');
+    if (flO) { openFillers(flO.getAttribute('data-fl-open')); return; }
+    if (MODAL && MODAL.kind === 'fillers') {
+      if (e.target.closest('[data-fl-add]')) {
+        MODAL.rows.push({ p: '', c: '' });
+        repaintFillers('[data-fl-p="' + (MODAL.rows.length - 1) + '"]');
+        return;
+      }
+      const flD = e.target.closest('[data-fl-del]');
+      if (flD) {
+        const i = +flD.getAttribute('data-fl-del');
+        MODAL.rows.splice(i, 1);
+        if (MODAL.bad === i) MODAL.bad = null;
+        else if (MODAL.bad > i) MODAL.bad -= 1;
+        const next = Math.min(i, MODAL.rows.length - 1);
+        repaintFillers(next > -1 ? '[data-fl-p="' + next + '"]' : '[data-fl-add]');
+        return;
+      }
+      if (e.target.closest('[data-fl-save]')) { saveFillers(); return; }
+    }
     const vPlay = e.target.closest('[data-voice-play]');
     if (vPlay) {
       const [aid, v] = vPlay.getAttribute('data-voice-play').split('|');
@@ -8523,6 +8696,14 @@
   document.addEventListener('input', (e) => {
     /* An agent's tone. Stored, and the bar under it told — never repainted,
        which would take the caret out of the sentence being written. */
+    const flI = e.target.closest && e.target.closest('[data-fl-p], [data-fl-c]');
+    if (flI && MODAL && MODAL.kind === 'fillers') {
+      const isP = flI.hasAttribute('data-fl-p');
+      const i = +flI.getAttribute(isP ? 'data-fl-p' : 'data-fl-c');
+      if (MODAL.rows[i]) MODAL.rows[i][isP ? 'p' : 'c'] = flI.value;
+      if (isP && MODAL.bad === i && flI.value.trim()) flI.classList.remove('is-bad');
+      return;
+    }
     const tta = e.target.closest && e.target.closest('[data-tone-ta]');
     if (tta) {
       const aid = tta.getAttribute('data-tone-ta');
@@ -8953,6 +9134,20 @@
       const next = group[(group.indexOf(rad) + step + group.length) % group.length];
       e.preventDefault();
       if (next) next.click();
+      return;
+    }
+    const flK = e.target.closest && e.target.closest('[data-fl-p], [data-fl-c]');
+    if (flK && e.key === 'Enter' && MODAL && MODAL.kind === 'fillers') {
+      e.preventDefault();
+      if (e.ctrlKey || e.metaKey) { saveFillers(); return; }
+      if (flK.hasAttribute('data-fl-p')) {
+        const c = $('[data-fl-c="' + flK.getAttribute('data-fl-p') + '"]');
+        if (c) c.focus();
+        return;
+      }
+      const i = +flK.getAttribute('data-fl-c');
+      if (i === MODAL.rows.length - 1) MODAL.rows.push({ p: '', c: '' });
+      repaintFillers('[data-fl-p="' + (i + 1) + '"]');
       return;
     }
     const tta = e.target.closest && e.target.closest('[data-tone-ta]');

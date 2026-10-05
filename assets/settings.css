@@ -4440,3 +4440,66 @@ input.set2-fld[type="password"] {
   .set2-ag-tpl-b { transition: transform var(--t-fast) var(--ease-out); }
   .set2-ag-tpl-b:active { transform: scale(0.97); }
 }
+
+/* ── Fillers, on the page ──
+   Phrase over the moment it fits, the way the agent will meet them: what to
+   say, then when. The edit button sits at the right end of the section's own
+   label row, the same place `Edit` sits on the Overview cards. */
+.set2-ag-sec-end { margin-left: auto; }
+.set2-ag-fl {
+  display: flex; flex-direction: column;
+  background: var(--card-bg); border-radius: var(--r-lg);
+  padding: 0.25rem 1rem;
+}
+.set2-ag-fl-r {
+  display: flex; flex-direction: column; gap: 0.125rem;
+  padding: 0.625rem 0;
+}
+.set2-ag-fl-r + .set2-ag-fl-r { border-top: 0.0625rem solid var(--hairline); }
+.set2-ag-fl-p { font-size: var(--ty-meta); font-weight: var(--fw-semibold); color: var(--ink-primary); }
+.set2-ag-fl-c { font-size: var(--ty-micro); color: var(--ink-secondary); line-height: var(--lh-snug); }
+.set2-ag-fl.is-empty { padding: 0.875rem 1rem; }
+.set2-ag-fl-more {
+  align-self: flex-start; margin: 0.125rem 0 0.625rem;
+  appearance: none; border: 0; background: none; padding: 0; cursor: pointer;
+  font-family: var(--font-sans); font-size: var(--ty-micro); font-weight: var(--fw-semibold);
+  color: var(--ink-action);
+}
+.set2-ag-fl-more:hover { color: var(--ink-primary); }
+.set2-ag-fl-more:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; border-radius: var(--r-xs); }
+
+/* ── Fillers, in the dialog ──
+   Two columns of free text and a remove button. Context gets the wider
+   share: a filler is a few words, the moment it fits is a sentence. The
+   header labels sit over their own columns in the same grid, so they cannot
+   drift out of line with the fields under them. */
+.set2-fl-grid { display: flex; flex-direction: column; gap: 0.5rem; }
+.set2-fl-hd, .set2-fl-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) 2rem;
+  gap: 0.5rem; align-items: center;
+}
+.set2-fl-hd {
+  font-size: var(--ty-micro); font-weight: var(--fw-semibold); color: var(--ink-quiet);
+  padding: 0 0.125rem;
+}
+.set2-fl-del {
+  width: 2rem; height: 2rem; display: grid; place-items: center;
+  appearance: none; border: 0; background: none; cursor: pointer;
+  border-radius: var(--r-md); color: var(--ink-quiet);
+}
+.set2-fl-del svg { width: 0.875rem; height: 0.875rem; }
+.set2-fl-del:hover { color: var(--ink-err); background: var(--err-bg); }
+.set2-fl-del:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0; }
+.set2-fl-none { margin: 0.25rem 0; font-size: var(--ty-micro); color: var(--ink-secondary); }
+.set2-fl-add { margin-top: 0.75rem; }
+.set2-fl-modal .set2-modal-bd > .set2-hint { margin-top: 0.625rem; }
+
+/* Below the shell's 735 rung the two columns stack per row: a phrase over
+   its context, with the remove button beside the phrase. */
+@media (max-width: 735.98px) {
+  .set2-fl-hd { display: none; }
+  .set2-fl-row { grid-template-columns: minmax(0, 1fr) 2rem; }
+  .set2-fl-row [data-fl-c] { grid-column: 1; grid-row: 2; }
+  .set2-fl-row .set2-fl-del { grid-column: 2; grid-row: 1; }
+  .set2-fl-row + .set2-fl-row { padding-top: 0.625rem; border-top: 0.0625rem solid var(--hairline); }
+}
