@@ -1591,7 +1591,7 @@
   /* The settings view's own keys, kept apart from ALL_KEYS on purpose: those
      are FILTERS, and changing one re-composes the working set. These are a
      PLACE YOU ARE. The two clear each other in `patch` for that reason. */
-  const SET_KEYS  = ['m', 'skill', 'part', 'node', 'role', 'vs', 'sc', 'sp', 'crm', 'f', 'who', 'sec'];
+  const SET_KEYS  = ['m', 'skill', 'agent', 'part', 'node', 'role', 'vs', 'sc', 'sp', 'crm', 'f', 'who', 'sec'];
 
   /* Parse a query string into the full state object. Split out from `readURL`
      so a stored conversation can be turned back into state by the same code
@@ -1647,6 +1647,9 @@
                     writer, or the two disagree about what the URL says. */
                  m: p.get('m') || '',
                  skill: p.get('skill') || '',
+                 /* Which agent's page is open under Agents > Tone & Voice.
+                    A place you are, like `skill`. */
+                 agent: p.get('agent') || '',
                  /* Which part of the open skill is showing — Instructions,
                     Precedence or Reach. A place you are, like `skill` and
                     `sec`, so it is linkable: the chain that explains why an
@@ -1756,6 +1759,7 @@
     if (st.chat) p.set('chat', st.chat);
     if (st.m) p.set('m', st.m);
     if (st.skill) p.set('skill', st.skill);
+    if (st.agent) p.set('agent', st.agent);
     if (st.part) p.set('part', st.part);
     if (st.node) p.set('node', st.node);
     if (st.role) p.set('role', st.role);
@@ -1860,6 +1864,7 @@
     if (changes.m !== undefined) {
       st.doc = '';
       if (changes.skill === undefined) st.skill = '';
+      if (changes.agent === undefined) st.agent = '';
       /* `sp` deliberately SURVIVES a module change — it is the page's scope,
          not the module's, and re-asking which product on every rail click is
          the flow this replaced. `crm` does not: it means nothing outside

@@ -81,7 +81,13 @@
     sortUp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>',
     sortDown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>',
     sortNone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg>',
-    key:  '<svg class="set2-row-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 21 9.6-9.6"/><path d="m7.5 15.5 2.3 2.3a1 1 0 0 1 0 1.4l-2.1 2.1a1 1 0 0 1-1.4 0L4 19"/><circle cx="15.5" cy="7.5" r="5.5"/></svg>'
+    key:  '<svg class="set2-row-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 21 9.6-9.6"/><path d="m7.5 15.5 2.3 2.3a1 1 0 0 1 0 1.4l-2.1 2.1a1 1 0 0 1-1.4 0L4 19"/><circle cx="15.5" cy="7.5" r="5.5"/></svg>',
+    /* Agents. Lucide 1.52 `bot`, `venus`, `mars`, `play`, `square`. */
+    bot:  '<svg class="set2-row-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>',
+    venus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15v7"/><path d="M9 19h6"/><circle cx="12" cy="9" r="6"/></svg>',
+    mars: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="m21 3-6.75 6.75"/><circle cx="10" cy="14" r="6"/></svg>',
+    play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></svg>',
+    stop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>'
   };
 
   /* ═══ WHO ═══ */
@@ -1333,10 +1339,46 @@
     ['Read Only', 'Read. Nothing else']
   ];
 
+  /* ── AN AGENT IS A NAME, A TONE AND A VOICE ──
+     `d` used to carry "4 skills, 2 collections" as literals, and the skill
+     count was wrong the day a skill changed its agents. The count is derived
+     now (`skillsOn`) and `d` says only what the agent is for.
+
+     `tone` has TWO sources and one switch between them. Plain text is written
+     here; a config file is uploaded. Switching does not throw the other away,
+     because the usual reason to try a file is to compare it with what you had.
+     Only the source `src` names is handed to the agent.
+
+     `voice` is what it sounds like when it answers aloud in voice mode. Two
+     values, because that is the choice the brief asks for; a third is a
+     fixture edit, not a migration. */
   const AGENTS = [
-    { id: 'copilot', name: 'Copilot', d: 'Internal support agent. 4 skills, 2 collections.', on: true },
-    { id: 'sales', name: 'Sales', d: 'Internal. 2 skills, 1 collection.', on: true },
-    { id: 'voice', name: 'Voice', d: 'Client-facing. 1 skill, 1 collection.', on: false }
+    { id: 'copilot', name: 'Copilot', d: 'Answers support questions from the knowledge base.',
+      voice: 'female', by: 'A. Mahfouz', when: '28 Aug',
+      tone: { src: 'text', file: null,
+        text: 'Calm and direct. Lead with the answer, then name the article it came from. '
+          + 'Plain words over support jargon. When the knowledge base has nothing, say so '
+          + 'in one sentence instead of guessing.' } },
+    { id: 'sales', name: 'Sales', d: 'Drafts outreach and answers product questions for the sales team.',
+      voice: 'male', by: 'Nour Wael', when: '2 Sep',
+      tone: { src: 'file',
+        text: 'Warm and confident. Short paragraphs.',
+        file: { name: 'sales-tone.md', size: 1214, when: '2 Sep', by: 'Nour Wael',
+          body: '# Sales tone\n\n'
+            + 'Write like a person who knows the product and likes the customer.\n\n'
+            + '## Do\n'
+            + '- Open with what changes for them, not with what the product is.\n'
+            + '- Keep paragraphs to two or three sentences.\n'
+            + '- Name one concrete outcome per message.\n\n'
+            + '## Avoid\n'
+            + '- Superlatives the documents do not back up.\n'
+            + '- Discounts, prices or dates unless a source states them.\n'
+            + '- Exclamation marks.\n' } } },
+    { id: 'voice', name: 'Voice', d: 'Takes inbound calls for client support lines.',
+      voice: 'female', by: 'A. Mahfouz', when: '19 Aug',
+      tone: { src: 'text', file: null,
+        text: 'Spoken aloud, so short sentences with one idea each. No lists, no links, '
+          + 'no reading out reference numbers unless the caller asks for one.' } }
   ];
 
   const COLS = [
@@ -1424,7 +1466,13 @@
        46rem measure that suits a settings ROW gives each of them about 20rem —
        a nav that truncates every name and a document set narrower than the
        prose it holds. Same reason User & access carries it. */
-    { g: 'Admin',  id: 'skills',    name: 'Skills', wide: true },
+    /* ── AGENTS HOLDS SKILLS ──
+       Skills was a module of its own, and the agents it runs on were a deferred
+       module nobody could reach from the rail. They are one subject: an agent
+       is what answers, and a skill is something it knows how to do. So Agents
+       is the group and Skills is a page in it, beside the agents' own
+       Tone & Voice. `?m=skills` still lands on Skills, through ALIAS. */
+    { g: 'Admin',  id: 'agents',    name: 'Agents', wide: true },
 
     /* ── THE ARCHIVE ──
        Archived documents were reachable only by typing `archived` into the ask
@@ -1452,7 +1500,6 @@
     /* Deferred: reachable by URL and findable in the palette, absent from the
        rail. Not deleted — that is the difference between deferring a module and
        dropping it. */
-    { g: 'Admin',  id: 'agents',    name: 'Agents and tools', off: true },
     { g: 'Admin',  id: 'grounding', name: 'Grounding', off: true },
     { g: 'Admin',  id: 'plan',      name: 'Entitlements and plan', off: true },
     { g: 'Admin',  id: 'audit',     name: 'Audit trail', tier: 'Enterprise', off: true }
@@ -1468,7 +1515,8 @@
      longer exists. */
   const ALIAS = { connections: 'config', people: 'access', enable: 'webhooks',
                   apis: 'webhooks', failures: 'config', sync: 'config',
-                  retention: 'config', roles: 'access', hierarchy: 'access' };
+                  retention: 'config', roles: 'access', hierarchy: 'access',
+                  skills: 'agents' };
   /* Several of those name a SECTION, and sections are pages now — so the ones
      that do land on the page holding them rather than on the module's first.
      `?m=retention` used to mean "Sync, scroll to find it"; it means the page
@@ -1478,7 +1526,7 @@
      choose between. */
   const ALIAS_SEC = { failures: 'sync',
                       sync: 'sync', retention: 'relevance', people: 'people',
-                      roles: 'roles', hierarchy: 'scopes' };
+                      roles: 'roles', hierarchy: 'scopes', skills: 'skills' };
   const aliasOf = (id) => ALIAS[id] || id;
   const moduleById = (id) => MODULES.filter((m) => m.id === aliasOf(id))[0];
 
@@ -1554,7 +1602,7 @@
 
   let FQ_T = 0;
   let API = null;
-  const FALLBACK = { m: 'config', skill: '', sp: '', crm: '', f: '' };
+  const FALLBACK = { m: 'config', skill: '', agent: '', sp: '', crm: '', f: '' };
   function readURL() { return API ? API.readURL() : FALLBACK; }
   function patch(changes) { if (API) API.patch(changes); }
   /* `then` runs once the repaint has actually landed. Most render() calls here
@@ -2361,14 +2409,466 @@
       </section>`;
   };
 
-  M.agents = () => `
-    <section class="set2-sec">
-      <div class="set2-sec-h"><h2 class="set2-sec-t">Agents</h2></div>
-      <div class="set2-rows">${AGENTS.map((a) => row({
-        ico: I.bolt, name: a.name, d: a.d, off: !a.on,
-        end: toggle(a.on, 'Enable ' + a.name)
-      })).join('')}</div>
-    </section>`;
+  /* ══ AGENTS ════════════════════════════════════════════════════════════
+     A group of two pages: Tone & Voice, which is the agents themselves, and
+     Skills, which is the module that used to stand alone. See MODULES.
+
+     Tone & Voice is the same shape Skills already taught: a list whose rows
+     are the destinations, and a page per item with the way back against its
+     name. An agent page answers two questions and nothing else — how it WRITES
+     (tone) and how it SOUNDS (voice). The skills it runs are a derived card on
+     the side, linking across to the page that edits them, because that is the
+     other half of what an agent is and it already has a home.
+     ══════════════════════════════════════════════════════════════════════ */
+  const agentById = (id) => AGENTS.filter((a) => a.id === id)[0] || null;
+
+  /* Skills whose reach names this agent. Read off SKILLS every time, which is
+     why the fixture stopped carrying a count. */
+  const skillsOn = (a) => SKILLS.filter((s) => (s.agents || []).indexOf(a.id) > -1);
+  /* The ones the agent actually gets. An overridden copy shares its name with
+     the org's, so listing every skill that NAMES the agent printed the same
+     title twice, once for a file that never runs. */
+  const skillsRun = (a) => skillsOn(a).filter((s) => standing2(s)[0] === 'is-ok');
+
+  /* The instruction actually handed to the agent: the source `src` names, and
+     only if it holds something. A file that was removed, or a text box that
+     was emptied, is no tone — not a fallback to the other source, which would
+     be the agent quietly writing in a register nobody chose. */
+  function toneOf(a) {
+    const t = a.tone || {};
+    if (t.src === 'file') return t.file ? t.file.body : '';
+    return (t.text || '').trim();
+  }
+
+  /* ── NO ON/OFF HERE ──
+     Agents carried a switch, on the row and on the page. Nour's call: this
+     page configures how an agent writes and sounds, and whether it runs at
+     all is not a question asked here. So the one state left to report is a
+     tone that is missing. */
+  function agentStanding(a) {
+    if (!toneOf(a)) return ['is-warn', 'No tone'];
+    return null;
+  }
+
+  const VOICES = [['female', 'Female', I.venus], ['male', 'Male', I.mars]];
+  const voiceName = (v) => ((VOICES.filter((x) => x[0] === v)[0] || [])[1] || 'Not set');
+
+  /* ── THE TONE, NAMED ──
+     The row said "Tone: Plain text", which is where a tone comes from and not
+     what it is. Then it carried the tone's own words, two lines of them, and
+     Nour cut that down: the row names the tone, it does not quote it.
+
+     A template IS a name, so a tone that is word for word a template is
+     called by it. Anything else is custom and gets a title made from its own
+     text: a file's first heading, a JSON file's own name or register field,
+     otherwise the first clause of the first sentence ("Calm and direct",
+     "Spoken aloud"), cut to four words. Derived every paint rather than
+     stored, so it can never disagree with the text it names. */
+  const TITLE_WORDS = 4;
+  const cap = (v) => v.charAt(0).toUpperCase() + v.slice(1);
+  const clip = (v) => cap(v.split(/\s+/).slice(0, TITLE_WORDS).join(' ').replace(/[.,;:!?]+$/, ''));
+
+  const firstClause = (v) => v.replace(/^\s*[-*]\s+/gm, '')
+    .split(/[.!?;\n]/).map((x) => x.trim()).filter(Boolean).concat([''])[0]
+    .split(/[,:]/)[0].trim();
+
+  function toneTemplate(a) {
+    if (!a.tone || a.tone.src !== 'text') return null;
+    const v = (a.tone.text || '').trim();
+    return TONE_TEMPLATES.filter((x) => x.text === v)[0] || null;
+  }
+
+  function toneTitle(a) {
+    const body = toneOf(a);
+    if (!body) return '';
+    const tpl = toneTemplate(a);
+    if (tpl) return tpl.name;
+    const f = a.tone.src === 'file' ? a.tone.file : null;
+    if (f) {
+      const h = body.match(/^\s*#{1,6}\s+(.+)$/m);
+      if (h) return clip(h[1].trim());
+      if (/\.json$/i.test(f.name)) {
+        try {
+          const j = JSON.parse(body);
+          const k = ['name', 'title', 'tone', 'register', 'style'].filter((x) => typeof j[x] === 'string')[0];
+          if (k) return clip(j[k]);
+        } catch (e) {}
+      }
+      const y = body.match(/^\s*(?:name|title|tone|register|style)\s*:\s*["']?([^"'\n]+)/mi);
+      if (y) return clip(y[1].trim());
+      /* The file name is the last resort: "support-voice_v2" is what somebody
+         called a file, and the first sentence is what the tone says. JSON is
+         the exception, because its first "sentence" is a brace. */
+      if (!/\.json$/i.test(f.name)) {
+        const lead = firstClause(body);
+        if (lead) return clip(lead);
+      }
+      return clip(f.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' '));
+    }
+    return clip(firstClause(body) || body);
+  }
+
+  /* ── TEMPLATES ──
+     A starting point, not a mode. Pressing one fills the text box as a DRAFT:
+     nothing is saved until Save, and Discard brings back what was there. So a
+     template can be tried, edited into shape, or abandoned, and none of it
+     touches the agent until somebody decides. */
+  const TONE_TEMPLATES = [
+    { id: 'professional', name: 'Professional',
+      text: 'Clear, neutral and courteous. Lead with the answer, then the reasoning or the '
+        + 'source behind it. No slang, emojis or exclamation marks. Full sentences, and every '
+        + 'reply stays on the question that was asked.' },
+    { id: 'friendly', name: 'Friendly',
+      text: 'Warm and approachable, like a helpful colleague. Plain, everyday words, and speak '
+        + 'to the person directly. A short friendly opener is fine, but get to the answer '
+        + 'quickly. Never sound scripted.' },
+    { id: 'concise', name: 'Concise',
+      text: 'As short as the answer allows. Give the answer in the first sentence, then only '
+        + 'what the reader needs to act on it. Short sentences, and a list when there are steps. '
+        + 'No greetings and no sign-offs.' },
+    { id: 'empathetic', name: 'Empathetic',
+      text: 'Calm and reassuring. Acknowledge the person’s situation in one sentence before '
+        + 'solving it. No blame and no jargon. Say what happens next and what they can expect, '
+        + 'one step at a time.' },
+    { id: 'formal', name: 'Formal',
+      text: 'Formal and precise, for client and executive readers. No contractions, slang or '
+        + 'emojis. Complete sentences and exact terms, with a respectful closing on longer '
+        + 'replies.' },
+    { id: 'technical', name: 'Technical',
+      text: 'Precise and technical. Use exact product names, settings and error codes. Give '
+        + 'steps in order, numbered. State any assumption, and say plainly when something is '
+        + 'not known.' }
+  ];
+
+  M.agents = function (st) {
+    return pageBody(st);
+  };
+
+  function secAgents(st) {
+    const cur = agentById(st.agent);
+    return cur ? agentDoc(cur) : agentList();
+  }
+
+  /* ── The list ──
+     Three agents is not a list that needs filters, sorting or a search, and
+     each of those is a control that has to be read before it can be ignored.
+     If the roster grows past a screen, the Skills toolbar is the one to copy.
+
+     Each row says what the page behind it edits, as LABELLED facts rather
+     than a run of values: "Female" alone does not say what is female. The
+     tone is its title (see toneTitle), never the paragraph. */
+  function agentRow(a) {
+    const bad = agentStanding(a);
+    const n = skillsRun(a).length;
+    return `
+      <div class="set2-sk-r set2-ag-r${bad ? ' is-warn' : ''}">
+        <span class="set2-sk-ico">${I.bot}</span>
+        <span class="set2-sk-main">
+          <span class="set2-sk-top">
+            <button class="set2-sk-go" type="button"
+                    data-go="agent:${esc(a.id)}">${esc(a.name)}</button>
+            ${bad ? pill(bad[0], bad[1]) : ''}
+          </span>
+          <span class="set2-sk-d">${esc(a.d)}</span>
+          <span class="set2-ag-facts">
+            <span>Tone ${toneTitle(a) ? `<b>${esc(toneTitle(a))}</b>`
+                                      : '<b class="is-none">Not set</b>'}</span>
+            <span>Voice <b>${esc(voiceName(a.voice))}</b></span>
+            <span>Skills <b class="set2-num">${n}</b></span>
+          </span>
+        </span>
+        <span class="set2-sk-end">${I.chev}</span>
+      </div>`;
+  }
+
+  function agentList() {
+    return `
+      <section class="set2-sec is-headless" id="st-agentlist">
+        ${AGENTS.length ? AGENTS.map(agentRow).join('') : `
+          <div class="set2-empty"><b>No agents yet</b>
+            An agent appears here once it is provisioned for this workspace.</div>`}
+      </section>`;
+  }
+
+  /* ── The agent's page ──
+     Skills' document header, so the two pages in this group open the same
+     way: back against the name and what it is under it. No switch (see
+     agentStanding). No tabs: tone and voice are two short sections, and a tab
+     bar over two things you can see at once is a click spent on a fact the
+     eye already had. */
+  /* Not URL state: a draft is somebody halfway through a sentence, and a
+     pasted link should open the saved tone rather than another person's
+     half-finished one. */
+  const TONE_DRAFT = {};
+  const TONE_ERR = {};
+  let VOICE_PLAYING = null;   /* 'agentId|female' while a sample speaks */
+
+  function agentDoc(a) {
+    const bad = agentStanding(a);
+    return `
+      <div class="set2-doc set2-ag-doc">
+        <div class="set2-doc-hd">
+          <button class="set2-back" type="button" data-ag-back
+                  aria-label="Back to all agents" title="All agents">${I.left}</button>
+          <span class="set2-doc-id">
+            <span class="set2-doc-tr">
+              <h2 class="set2-doc-t">${esc(a.name)}</h2>
+            </span>
+            <span class="set2-doc-by">${esc(a.d)}</span>
+          </span>
+          ${bad ? `<span class="set2-doc-end">${pill(bad[0], bad[1])}</span>` : ''}
+        </div>
+
+        <div class="set2-ov">
+          <div class="set2-ov-main">
+            ${toneBlock(a)}
+            ${voiceBlock(a)}
+          </div>
+          <aside class="set2-ov-side">
+            ${agentSkillsCard(a)}
+            <div class="set2-ov-card">
+              <p class="set2-ov-k">Last updated</p>
+              <p class="set2-ov-v">${esc(a.when)}</p>
+              <p class="set2-ov-s">by ${esc(a.by)}</p>
+            </div>
+          </aside>
+        </div>
+      </div>`;
+  }
+
+  /* ── TONE ──
+     Two sources behind one segmented switch. The switch IS the choice of
+     which one the agent reads, so it commits on press; the text needs Save,
+     because a tone half-typed is not a tone anyone chose. */
+  function toneBlock(a) {
+    const t = a.tone;
+    const draft = TONE_DRAFT[a.id];
+    const dirty = draft != null && draft.trim() !== (t.text || '').trim();
+    return `
+      <section class="set2-ag-sec" id="st-tone">
+        <span class="set2-lbl-row">
+          <p class="set2-lbl" id="toneLbl-${esc(a.id)}">Tone</p>
+          ${tip('toneTip', 'tone', 'How this agent writes. It is read before any skill, on every '
+            + 'answer. Only the selected source is used; switching keeps the other one, so you '
+            + 'can switch back.')}
+        </span>
+        <div class="seg set2-ag-seg" role="radiogroup" aria-label="Where ${esc(a.name)}’s tone comes from">
+          ${[['text', 'Plain text'], ['file', 'Config file']].map(([v, n]) => `
+            <button class="seg-btn${t.src === v ? ' active' : ''}" type="button" role="radio"
+                    aria-checked="${t.src === v}" tabindex="${t.src === v ? 0 : -1}"
+                    data-tone-src="${esc(a.id)}|${v}">${n}</button>`).join('')}
+        </div>
+
+        ${t.src === 'file' ? toneFile(a) : `
+          <div class="set2-ag-tone">
+            ${tplRow(a, draft != null ? draft : t.text || '')}
+            <textarea class="set2-ag-ta" data-tone-ta="${esc(a.id)}" rows="5"
+                      aria-labelledby="toneLbl-${esc(a.id)}"
+                      placeholder="Describe how ${esc(a.name)} should write. For example: brief, warm, no jargon, and always name the source."
+            >${esc(draft != null ? draft : t.text || '')}</textarea>
+            <div class="set2-ag-bar${dirty ? ' is-dirty' : ''}" data-tone-bar="${esc(a.id)}">
+              <span class="set2-ag-state">${esc(toneState(a, dirty))}</span>
+              <button class="btn btn-ghost btn-sm" type="button" data-tone-discard="${esc(a.id)}">Discard</button>
+              <button class="btn btn-brand btn-sm" type="button" data-tone-save="${esc(a.id)}">Save</button>
+            </div>
+          </div>`}
+      </section>`;
+  }
+
+  /* Under the box, once saved, the title the list will show. It is derived,
+     so this is the one place a person can see what it was derived AS, and
+     rewrite the first clause if they want the list to say something else. */
+  function toneState(a, dirty) {
+    if (dirty) return 'Unsaved changes';
+    const t = (a.tone.text || '').trim();
+    if (!t) return 'Empty, so no tone is applied';
+    /* Plain text: the render escapes it, and the input handler sets it as
+       textContent, which must not show entities. */
+    return toneTemplate(a) ? 'Saved, using the “' + toneTitle(a) + '” template'
+                           : 'Saved, listed as “' + toneTitle(a) + '”';
+  }
+
+  /* The template whose words are in the box is marked pressed, so after
+     trying three you can still see which one you are looking at. Edit a word
+     and none is: the box is yours now, not the template. */
+  function tplRow(a, cur) {
+    const v = String(cur || '').trim();
+    return `
+      <div class="set2-ag-tpl" role="group" aria-label="Tone templates">
+        <span class="set2-ag-tpl-l">Start from</span>
+        ${TONE_TEMPLATES.map((x) => `
+          <button class="set2-ag-tpl-b" type="button" aria-pressed="${v === x.text}"
+                  data-tone-tpl="${esc(a.id)}|${esc(x.id)}" title="${esc(x.text)}">${esc(x.name)}</button>`).join('')}
+      </div>`;
+  }
+
+  const TONE_EXT = /\.(md|markdown|txt|json|ya?ml)$/i;
+  const TONE_MAX = 64 * 1024;
+  const kb = (n) => (n < 1024 ? n + ' bytes' : (n / 1024).toFixed(n < 10240 ? 1 : 0) + ' KB');
+
+  function toneFile(a) {
+    const f = a.tone.file;
+    const err = TONE_ERR[a.id];
+    const input = `<input type="file" accept=".md,.markdown,.txt,.json,.yaml,.yml" hidden
+                          data-tone-file="${esc(a.id)}">`;
+    if (!f) return `
+      <label class="set2-drop set2-ag-drop" data-tone-drop="${esc(a.id)}">
+        ${I.up}
+        <span><b>Drop a config file here</b>, or click to choose</span>
+        <span class="set2-ag-drop-s">.md, .txt, .json or .yaml, up to 64 KB</span>
+        ${input}
+      </label>
+      ${err ? `<p class="set2-note is-err set2-ag-err" role="alert">${esc(err)}</p>` : ''}`;
+    return `
+      <div class="set2-ag-file" data-tone-drop="${esc(a.id)}">
+        <div class="set2-ag-file-hd">
+          <span class="set2-ag-file-i">${I.doc}</span>
+          <span class="set2-ag-file-id">
+            <b>${esc(f.name)}</b>
+            <span>${esc(kb(f.size))}, uploaded ${esc(f.when)} by ${esc(f.by)}</span>
+          </span>
+          <span class="set2-ag-file-end">
+            <label class="btn btn-ghost btn-sm">Replace${input}</label>
+            <button class="btn btn-ghost btn-sm" type="button" data-tone-remove="${esc(a.id)}">Remove</button>
+          </span>
+        </div>
+        <pre class="set2-ag-file-b">${esc(f.body)}</pre>
+      </div>
+      ${err ? `<p class="set2-note is-err set2-ag-err" role="alert">${esc(err)}</p>` : ''}`;
+  }
+
+  /* ── VOICE ──
+     Two options you can HEAR before choosing. A voice described in words is
+     a guess; the sample button sits on each card, so comparing them does not
+     mean switching the agent back and forth to find out. */
+  function voiceBlock(a) {
+    const canPlay = !!window.speechSynthesis;
+    return `
+      <section class="set2-ag-sec" id="st-voice">
+        <span class="set2-lbl-row">
+          <p class="set2-lbl" id="voiceLbl-${esc(a.id)}">Voice</p>
+          ${tip('voiceTip', 'voice', 'How this agent sounds when it answers aloud in voice mode. '
+            + 'Written answers are not affected.')}
+        </span>
+        <div class="set2-ag-voices" role="radiogroup" aria-labelledby="voiceLbl-${esc(a.id)}">
+          ${VOICES.map(([v, n, ico]) => {
+            const on = a.voice === v;
+            const playing = VOICE_PLAYING === a.id + '|' + v;
+            return `
+            <div class="set2-ag-vo${on ? ' is-on' : ''}">
+              <button class="set2-ag-vo-pick" type="button" role="radio" aria-checked="${on}"
+                      tabindex="${on ? 0 : -1}" data-voice-pick="${esc(a.id)}|${v}">
+                <span class="set2-ag-vo-ico">${ico}</span>
+                <span class="set2-ag-vo-n">${n}</span>
+                <span class="set2-ag-vo-r" aria-hidden="true"></span>
+              </button>
+              ${canPlay ? `
+              <button class="set2-ag-vo-play${playing ? ' is-playing' : ''}" type="button"
+                      data-voice-play="${esc(a.id)}|${v}"
+                      aria-label="${playing ? 'Stop the sample' : 'Play a ' + n.toLowerCase() + ' voice sample'}">
+                ${playing ? I.stop : I.play}<span>${playing ? 'Stop' : 'Sample'}</span>
+              </button>` : ''}
+            </div>`;
+          }).join('')}
+        </div>
+      </section>`;
+  }
+
+  /* The other half of an agent, read-only here. Editing a skill's agents is a
+     Skills job, so the card links across with that agent already filtered
+     rather than growing a second editor for the same list. */
+  function agentSkillsCard(a) {
+    const list = skillsRun(a);
+    const shown = list.slice(0, 5);
+    const idle = skillsOn(a).length - list.length;
+    return `
+      <div class="set2-ov-card">
+        <div class="set2-ov-h">
+          <p class="set2-ov-k">Skills</p>
+          <button class="btn btn-ghost btn-sm" type="button" data-ag-skills="${esc(a.id)}"
+                  aria-label="Open the skills ${esc(a.name)} runs">View</button>
+        </div>
+        <div class="set2-ov-chips">
+          ${shown.length ? shown.map((s) => `<span class="set2-chip">${esc(s.name)}</span>`).join('')
+            + (list.length > shown.length ? `<span class="set2-chip">+${list.length - shown.length} more</span>` : '')
+            : `<span class="set2-sp-note">None running. Give a skill this agent on the Skills page.</span>`}
+        </div>
+        ${idle ? `<p class="set2-ov-s">Plus ${idle} that ${idle === 1 ? 'is' : 'are'} off or
+          overridden.</p>` : ''}
+      </div>`;
+  }
+
+  /* ── Reading a tone file ──
+     Checked in the order a person would fix it: wrong kind of file, too big,
+     empty, and only then whether a JSON file parses. Nothing is written until
+     all four pass, so a bad upload leaves the previous file in place. */
+  function readToneFile(file, id) {
+    const a = agentById(id);
+    if (!a || !file) return;
+    const fail = (m) => { TONE_ERR[id] = m; render(); };
+    if (!TONE_EXT.test(file.name)) return fail('Use a .md, .txt, .json or .yaml file. ' + file.name + ' is none of those.');
+    if (file.size > TONE_MAX) return fail(file.name + ' is ' + kb(file.size) + '. A tone file can be up to 64 KB.');
+    const r = new FileReader();
+    r.onload = () => {
+      const body = String(r.result || '');
+      if (!body.trim()) return fail(file.name + ' is empty.');
+      if (/\.json$/i.test(file.name)) {
+        try { JSON.parse(body); } catch (ex) { return fail(file.name + ' is not valid JSON: ' + ex.message); }
+      }
+      delete TONE_ERR[id];
+      a.tone.file = { name: file.name, size: file.size, body: body, when: 'just now', by: USER.name };
+      a.tone.src = 'file';
+      a.when = 'just now'; a.by = USER.name;
+      DIRTY.add('tone:' + id);
+      render();
+    };
+    r.onerror = () => fail('Could not read ' + file.name + '.');
+    r.readAsText(file);
+  }
+
+  /* ── A sample in the chosen voice ──
+     The Web Speech API names its voices but does not say which are male or
+     female, so this reads the NAME, against the voices Edge, Chrome, Windows
+     and macOS actually ship. When nothing matches, the default voice is
+     pitched up or down instead: a rough sample beats a silent button. Region
+     language first, because Edge errors on a bare `en`. */
+  const VOICE_HINT = {
+    female: /\b(female|woman|aria|jenny|michelle|ana|emma|ava|sonia|libby|natasha|clara|zira|hazel|susan|samantha|karen|moira|tessa|victoria|fiona|serena|google us english)\b/i,
+    male: /\b(male|man|guy|christopher|eric|roger|steffan|andrew|brian|ryan|thomas|william|david|mark|george|alex|daniel|fred|oliver|arthur)\b/i
+  };
+  function voiceFor(gender) {
+    const all = window.speechSynthesis.getVoices() || [];
+    const want = (navigator.language || 'en-US').toLowerCase();
+    const en = all.filter((v) => /^en/i.test(v.lang));
+    const pool = [all.filter((v) => v.lang.toLowerCase() === want), en, all];
+    for (let i = 0; i < pool.length; i++) {
+      const hit = pool[i].filter((v) => VOICE_HINT[gender].test(v.name))[0];
+      if (hit) return hit;
+    }
+    return null;
+  }
+
+  function playSample(id, gender) {
+    const tts = window.speechSynthesis;
+    const a = agentById(id);
+    if (!tts || !a) return;
+    const key = id + '|' + gender;
+    tts.cancel();
+    if (VOICE_PLAYING === key) { VOICE_PLAYING = null; render(); return; }
+    const u = new SpeechSynthesisUtterance('Hi, I am ' + a.name
+      + '. This is how I sound when I answer you out loud.');
+    const v = voiceFor(gender);
+    if (v) { u.voice = v; u.lang = v.lang; }
+    else { u.lang = 'en-US'; u.pitch = gender === 'female' ? 1.25 : 0.8; }
+    const done = () => { if (VOICE_PLAYING === key) { VOICE_PLAYING = null; render(); } };
+    u.onend = done; u.onerror = done;
+    VOICE_PLAYING = key;
+    render();
+    tts.speak(u);
+  }
+  /* Chrome fills the voice list after first asking for it. Asking once at
+     load means the first press of Sample already has names to match. */
+  if (window.speechSynthesis) { try { window.speechSynthesis.getVoices(); } catch (e) {} }
 
   M.grounding = () => `
     <section class="set2-sec">
@@ -4579,7 +5079,9 @@
     people:     (st) => secPeople(st),
     roles:      (st) => M.roles(st),
     scopes:     (st) => M.hierarchy(st),
-    selling:    () => secSelling()
+    selling:    () => secSelling(),
+    agentlist:  (st) => secAgents(st),
+    skills:     (st) => M.skills(st)
   };
 
   /* ── ONE SECTION, ONE TITLE ──
@@ -4601,7 +5103,10 @@
       if (!f) throw new Error('No section renderer named ' + k);
       return f(st);
     }).join('');
-    return pg.secs.length > 1 ? out : `<div class="set2-solo">${out}</div>`;
+    /* `bare` pages bring their own top: a list or a document, not a titled
+       section, so there is no repeated head for `.set2-solo` to hide and its
+       margin would only push Skills down from where it has always sat. */
+    return pg.secs.length > 1 || pg.bare ? out : `<div class="set2-solo">${out}</div>`;
   }
 
   /* ── Sync ── which records, when, what happened, and what gets pruned ── */
@@ -5219,7 +5724,7 @@
       try {
         const s = acceptSkill(parseSkillFile(r.result));
         closeModal();
-        patch({ m: 'skills', skill: s.id });
+        patch({ m: 'agents', sec: 'skills', skill: s.id });
       } catch (ex) {
         if (err) err.textContent = ex.message;
       }
@@ -5932,8 +6437,10 @@
         add([m.g, m.name], pg.name, { m: m.id, sec: pg.id }));
     });
 
-    SKILLS.forEach((s) => add(['Admin', 'Skills'], s.name, { m: 'skills', skill: s.id }));
-    AGENTS.forEach((a) => add(['Admin', 'Agents and tools'], a.name, { m: 'agents' }));
+    SKILLS.forEach((s) => add(['Admin', 'Agents', 'Skills'], s.name,
+      { m: 'agents', sec: 'skills', skill: s.id }));
+    AGENTS.forEach((a) => add(['Admin', 'Agents', 'Tone & Voice'], a.name,
+      { m: 'agents', sec: 'tone-voice', agent: a.id }));
     COLS.forEach((c) => add(['Admin', 'Grounding'], c.name, { m: 'grounding' }));
 
     PEOPLE.forEach((p) => add(['Admin', 'User & access'], p.name, { m: 'access' }));
@@ -5994,12 +6501,8 @@
   function moduleNote(id) {
     let n;
     switch (id) {
-      case 'skills':
-        n = SKILLS.filter((x) => standing2(x)[0] !== 'is-ok').length;
-        return n ? [n + ' not applying', 'warn'] : [SKILLS.length + ' applying', 'ok'];
-      case 'agents':
-        n = AGENTS.filter((a) => !a.on).length;
-        return n ? [n + ' off', 'warn'] : [AGENTS.length + ' on', 'ok'];
+      /* No `skills` or `agents` case. Both are pages of the Agents group now,
+         and a group's note is the worst of its pages' own (SUBPAGES.agents). */
       case 'grounding':
         return [COLS.filter((c) => c.on).length + ' of ' + COLS.length + ' on', 'ok'];
       case 'access':
@@ -6298,8 +6801,13 @@
       })()}
       <div class="set2-bar">
         ${scopeSlot(st, m, pg)}
-        <div class="set2-bar-end set2-tally">${
-          TALLY[m.id] ? TALLY[m.id](st) : ''}</div>
+        <div class="set2-bar-end set2-tally">${(() => {
+          /* By page, then module — the same lookup PAGE_LEDE makes. Skills is
+             a page in Agents now, and its tally must not follow it onto
+             Tone & Voice. */
+          const tk = TALLY[(pg && pg.id)] ? pg.id : m.id;
+          return TALLY[tk] ? TALLY[tk](st) : '';
+        })()}</div>
       </div>`;
   }
 
@@ -6467,6 +6975,31 @@
         state: function () {
           var n = sellsValid().length;
           return n ? { note: n + ' chosen', s: '' } : null;
+        } }
+    ],
+
+    /* A plain count, and one warning: an agent with no tone is answering in
+       a register nobody chose. */
+    agents: [
+      /* "Tone & Voice", not "Configuration": the page edits exactly those two
+         things, and every sibling in the rail is named for what its page is
+         about. If an agent ever gains a third setting, this name is the one
+         to revisit (Persona was the runner-up). The ampersand follows
+         "User & access". */
+      { id: 'tone-voice', name: 'Tone & Voice', secs: ['agentlist'], bare: true,
+        state: function () {
+          var bare = AGENTS.filter(function (a) { return !!agentStanding(a); });
+          if (bare.length) return { note: bare.length + ' with no tone', s: 'warn',
+            fix: fixTo(bare.length === 1 ? 'Set a tone for ' + bare[0].name
+                                          : 'Set a tone for ' + bare.length + ' agents',
+                       'tone-voice', '.set2-ag-r.is-warn') };
+          return { note: AGENTS.length + ' agent' + (AGENTS.length === 1 ? '' : 's'), s: '' };
+        } },
+      { id: 'skills', name: 'Skills', secs: ['skills'], bare: true,
+        state: function () {
+          var n = SKILLS.filter(function (x) { return standing2(x)[0] !== 'is-ok'; }).length;
+          return n ? { note: n + ' not applying', s: 'warn' }
+                   : { note: SKILLS.length + ' applying', s: 'ok' };
         } }
     ]
   };
@@ -6890,6 +7423,90 @@
       patch({ skill: go.dataset.go.slice(6), part: '' }); return;
     }
 
+    /* ── AGENTS ── */
+    if (go && go.dataset.go.indexOf('agent:') === 0) {
+      patch({ agent: go.dataset.go.slice(6) }); return;
+    }
+    if (e.target.closest('[data-ag-back]')) { patch({ agent: '' }); return; }
+    /* Across to Skills with this agent already chosen in its filter, which is
+       the list the card on the side was a preview of. */
+    const agS = e.target.closest('[data-ag-skills]');
+    if (agS) {
+      const a0 = agentById(agS.getAttribute('data-ag-skills'));
+      if (a0) patch({ sec: 'skills', agent: '', skill: '', part: '', f: 'agent:' + a0.name });
+      return;
+    }
+    const tSrc = e.target.closest('[data-tone-src]');
+    if (tSrc) {
+      const [aid, v] = tSrc.getAttribute('data-tone-src').split('|');
+      const a0 = agentById(aid);
+      if (a0 && a0.tone.src !== v) {
+        a0.tone.src = v; a0.when = 'just now'; a0.by = USER.name;
+        delete TONE_ERR[aid];
+        DIRTY.add('tone:' + aid);
+        render(() => { const b = $('[data-tone-src="' + aid + '|' + v + '"]'); if (b) b.focus(); });
+      }
+      return;
+    }
+    const tSave = e.target.closest('[data-tone-save]');
+    if (tSave) {
+      const aid = tSave.getAttribute('data-tone-save');
+      const a0 = agentById(aid);
+      const ta = $('[data-tone-ta="' + aid + '"]');
+      if (a0 && ta) {
+        a0.tone.text = ta.value.trim();
+        a0.when = 'just now'; a0.by = USER.name;
+        DIRTY.add('tone:' + aid);
+      }
+      delete TONE_DRAFT[aid];
+      render();
+      return;
+    }
+    /* A template fills the box as a draft. The bar then shows Save and
+       Discard, which is the whole of "try it": nothing reaches the agent
+       until Save. */
+    const tTpl = e.target.closest('[data-tone-tpl]');
+    if (tTpl) {
+      const [aid, tid] = tTpl.getAttribute('data-tone-tpl').split('|');
+      const x = TONE_TEMPLATES.filter((y) => y.id === tid)[0];
+      if (x) {
+        TONE_DRAFT[aid] = x.text;
+        render(() => {
+          const ta = $('[data-tone-ta="' + aid + '"]');
+          if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+        });
+      }
+      return;
+    }
+    const tDis = e.target.closest('[data-tone-discard]');
+    if (tDis) { delete TONE_DRAFT[tDis.getAttribute('data-tone-discard')]; render(); return; }
+    const tRm = e.target.closest('[data-tone-remove]');
+    if (tRm) {
+      const aid = tRm.getAttribute('data-tone-remove');
+      const a0 = agentById(aid);
+      if (a0) { a0.tone.file = null; a0.when = 'just now'; a0.by = USER.name; DIRTY.add('tone:' + aid); }
+      delete TONE_ERR[aid];
+      render();
+      return;
+    }
+    const vPick = e.target.closest('[data-voice-pick]');
+    if (vPick) {
+      const [aid, v] = vPick.getAttribute('data-voice-pick').split('|');
+      const a0 = agentById(aid);
+      if (a0 && a0.voice !== v) {
+        a0.voice = v; a0.when = 'just now'; a0.by = USER.name;
+        DIRTY.add('voice:' + aid);
+        render(() => { const b = $('[data-voice-pick="' + aid + '|' + v + '"]'); if (b) b.focus(); });
+      }
+      return;
+    }
+    const vPlay = e.target.closest('[data-voice-play]');
+    if (vPlay) {
+      const [aid, v] = vPlay.getAttribute('data-voice-play').split('|');
+      playSample(aid, v);
+      return;
+    }
+
     /* ── Which half of the list you are looking at ──
        In `f` with the other filters rather than in a key of its own, so it
        survives opening a skill and coming back, and clears with them when the
@@ -7182,7 +7799,7 @@
     if (scP) { patch({ sec: 'people', node: scP.getAttribute('data-sc-people'),
                        f: withF(st, 'q', null) }); return; }
     const scS = e.target.closest('[data-sc-skills]');
-    if (scS) { patch({ m: 'skills', sec: '', skill: '', part: '' }); return; }
+    if (scS) { patch({ m: 'agents', sec: 'skills', skill: '', part: '' }); return; }
 
     /* ── Roles ── */
     /* Picking a role clears the capability search: the search is the OTHER
@@ -7904,6 +8521,28 @@
   });
 
   document.addEventListener('input', (e) => {
+    /* An agent's tone. Stored, and the bar under it told — never repainted,
+       which would take the caret out of the sentence being written. */
+    const tta = e.target.closest && e.target.closest('[data-tone-ta]');
+    if (tta) {
+      const aid = tta.getAttribute('data-tone-ta');
+      const a0 = agentById(aid);
+      TONE_DRAFT[aid] = tta.value;
+      const dirty = !!a0 && tta.value.trim() !== (a0.tone.text || '').trim();
+      const bar = $('[data-tone-bar="' + aid + '"]');
+      if (bar) {
+        bar.classList.toggle('is-dirty', dirty);
+        const s = $('.set2-ag-state', bar);
+        if (s) s.textContent = dirty ? 'Unsaved changes'
+          : a0 ? toneState(a0, false) : '';
+      }
+      const v = tta.value.trim();
+      $$('[data-tone-tpl^="' + aid + '|"]').forEach((b) => {
+        const x = TONE_TEMPLATES.filter((y) => b.getAttribute('data-tone-tpl') === aid + '|' + y.id)[0];
+        b.setAttribute('aria-pressed', String(!!x && x.text === v));
+      });
+      return;
+    }
     /* Repainted on every keystroke ONLY where the form's shape depends on the
        value — the counters and the scope field, which appears once a role is
        chosen. Everything else just stores. */
@@ -8240,27 +8879,40 @@
       afterSwitch(t, render);
       return;
     }
+    const tf = e.target.closest('[data-tone-file]');
+    if (tf) {
+      if (tf.files && tf.files[0]) readToneFile(tf.files[0], tf.getAttribute('data-tone-file'));
+      /* Cleared, so choosing the same file again after fixing it still fires
+         `change`. */
+      tf.value = '';
+      return;
+    }
     const f = e.target.closest('[data-file]');
     if (f && f.files && f.files[0]) readSkillFile(f.files[0]);
   });
 
   /* Drag and drop on the zone. `dragover` must be cancelled or the browser
      navigates to the file instead of handing it over. */
+  /* Two kinds of zone: a skill upload (`data-drop`) and an agent's tone file
+     (`data-tone-drop`, which names the agent it belongs to). */
+  const dropZone = (e) => e.target.closest && e.target.closest('[data-drop], [data-tone-drop]');
   document.addEventListener('dragover', (e) => {
-    const z = e.target.closest && e.target.closest('[data-drop]');
+    const z = dropZone(e);
     if (!z) return;
     e.preventDefault(); z.classList.add('is-over');
   });
   document.addEventListener('dragleave', (e) => {
-    const z = e.target.closest && e.target.closest('[data-drop]');
+    const z = dropZone(e);
     if (z) z.classList.remove('is-over');
   });
   document.addEventListener('drop', (e) => {
-    const z = e.target.closest && e.target.closest('[data-drop]');
+    const z = dropZone(e);
     if (!z) return;
     e.preventDefault(); z.classList.remove('is-over');
     const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-    if (file) readSkillFile(file);
+    if (!file) return;
+    if (z.hasAttribute('data-tone-drop')) readToneFile(file, z.getAttribute('data-tone-drop'));
+    else readSkillFile(file);
   });
 
   /* ═══ KEYBOARD ═══
@@ -8289,6 +8941,27 @@
   }
 
   document.addEventListener('keydown', (e) => {
+    /* ── The two radiogroups on an agent's page ──
+       Arrows move AND select, which is what a radiogroup does; one tab stop
+       per group (roving tabindex in the markup). Ctrl/Cmd+Enter in the tone
+       saves it, the way a comment box does. */
+    const rad = e.target.closest && e.target.closest('[data-tone-src], [data-voice-pick]');
+    if (rad && /^Arrow(Left|Right|Up|Down)$/.test(e.key)) {
+      const attr = rad.hasAttribute('data-tone-src') ? 'data-tone-src' : 'data-voice-pick';
+      const group = $$('[' + attr + ']', rad.closest('[role="radiogroup"]'));
+      const step = /Right|Down/.test(e.key) ? 1 : -1;
+      const next = group[(group.indexOf(rad) + step + group.length) % group.length];
+      e.preventDefault();
+      if (next) next.click();
+      return;
+    }
+    const tta = e.target.closest && e.target.closest('[data-tone-ta]');
+    if (tta && e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      const b = $('[data-tone-save="' + tta.getAttribute('data-tone-ta') + '"]');
+      if (b) b.click();
+      return;
+    }
     const ti = e.target.closest && e.target.closest('[data-title-ed]');
     if (ti) {
       if (e.key === 'Enter')  { e.preventDefault(); settleTitle(ti.getAttribute('data-title-ed'), true, ti.value); return; }

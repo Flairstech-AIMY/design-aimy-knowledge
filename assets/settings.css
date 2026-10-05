@@ -4248,3 +4248,195 @@ input.set2-fld[type="password"] {
 @media (max-width: 52rem) {
   .set2-pr-p { margin-left: 0; }
 }
+
+/* ══ AGENTS ════════════════════════════════════════════════════════════════
+   Tone & Voice borrows the Skills list row (`.set2-sk-r`) and the skill
+   document's header and Overview grid wholesale, so the two pages of one
+   group read as one surface. Only what neither had is defined here: the
+   labelled facts on a row, the tone editor and file, and the voice cards.
+
+   No `transition` on any background or box-shadow below. Their resting
+   values come from theme tokens, and a transitioned token does not
+   re-resolve when the theme toggle swaps it on <html> — the stale-fill bug
+   recorded on the People and Skills rows. Only `transform` moves. */
+
+/* Three facts, each with its label, so "Female" says what is female. */
+.set2-ag-facts {
+  display: flex; flex-wrap: wrap; column-gap: 1rem; row-gap: 0.125rem;
+  margin-top: 0.125rem;
+  font-size: var(--ty-micro); color: var(--ink-quiet);
+}
+.set2-ag-facts b { color: var(--ink-primary); font-weight: var(--fw-semibold); margin-left: 0.25rem; }
+
+.set2-ag-sec + .set2-ag-sec { margin-top: 2rem; }
+
+/* The library seg pairs accent TEXT on an accent fill, measured under 4.5:1
+   in both themes (see `.set2-bar .seg`). Same fix: a surface step says which
+   is chosen, and the label stays at full ink. */
+.set2-ag-seg { background: var(--card-bg); margin-bottom: 0.75rem; }
+.set2-ag-seg .seg-btn { font-size: var(--ty-meta); color: var(--ink-secondary); transition: none; }
+.set2-ag-seg .seg-btn:hover { color: var(--ink-primary); }
+/* Brand tint under primary ink, the pairing `.set2-own.is-org` uses. A
+   surface step alone (`--card-bg-raised`, as `.set2-bar .seg` has it) all but
+   vanishes in the light theme, where it is within a couple of values of the
+   card — and this switch decides what the agent reads, so it has to be seen. */
+.set2-ag-seg .seg-btn.active { background: var(--brand-dim); color: var(--ink-primary); }
+.set2-ag-seg .seg-btn:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.0625rem; }
+
+/* ── Tone, written ──
+   Prose, so the sans at reading size rather than the mono the SKILL.md
+   editor uses: this is a paragraph somebody writes, not a file. */
+.set2-ag-ta {
+  display: block; width: 100%; box-sizing: border-box;
+  min-height: 8.5rem; resize: vertical;
+  padding: 0.875rem 1rem;
+  border: 0; border-radius: var(--r-lg);
+  background: var(--card-bg); color: var(--ink-primary);
+  font-family: var(--font-sans); font-size: var(--ty-meta); line-height: var(--lh-base);
+}
+.set2-ag-ta::placeholder { color: var(--ink-quiet); opacity: 1; }
+.set2-ag-ta:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: -0.125rem; }
+.set2-ag-bar {
+  display: flex; align-items: center; gap: 0.5rem;
+  min-height: 2.125rem; margin-top: 0.5rem;
+}
+.set2-ag-state { flex: 1 1 auto; min-width: 0; font-size: var(--ty-micro); color: var(--ink-quiet); }
+/* Save and Discard exist only while there is something to save or discard.
+   Shown always, they are two buttons that do nothing on every visit. */
+.set2-ag-bar:not(.is-dirty) .btn { display: none; }
+.set2-ag-bar.is-dirty .set2-ag-state { color: var(--ink-warn); }
+
+/* ── Tone, from a file ── */
+.set2-ag-drop { min-height: 8.5rem; gap: 0.25rem; }
+.set2-ag-drop b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
+.set2-ag-drop-s { font-size: var(--ty-micro); color: var(--ink-quiet); }
+.set2-ag-file { background: var(--card-bg); border-radius: var(--r-lg); }
+.set2-ag-file.is-over { outline: 0.09375rem dashed var(--brand); outline-offset: -0.09375rem; }
+.set2-ag-file-hd {
+  display: flex; align-items: center; gap: 0.625rem;
+  padding: 0.625rem 0.75rem 0.625rem 1rem;
+  border-bottom: 0.0625rem solid var(--hairline);
+}
+.set2-ag-file-i { display: flex; flex: none; }
+/* Basis 0, so on a wrapping row the NAME keeps the line beside the icon and
+   the buttons are what move down — not the other way round. */
+.set2-ag-file-id { flex: 1 1 0; display: flex; flex-direction: column; min-width: 0; gap: 0.0625rem; }
+.set2-ag-file-id b {
+  font-size: var(--ty-meta); font-weight: var(--fw-semibold); color: var(--ink-primary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.set2-ag-file-id span { font-size: var(--ty-micro); color: var(--ink-quiet); }
+.set2-ag-file-end { margin-left: auto; display: flex; align-items: center; gap: 0.375rem; flex: none; }
+.set2-ag-file-end label.btn { cursor: pointer; }
+.set2-ag-file-b {
+  margin: 0; max-height: 18rem; overflow: auto;
+  padding: 0.875rem 1rem;
+  font-family: var(--font-mono); font-size: var(--ty-micro); line-height: 1.7;
+  color: var(--ink-secondary); white-space: pre-wrap; word-break: break-word;
+  scrollbar-width: thin;
+}
+.set2-ag-err { margin: 0.5rem 0 0; }
+
+/* ── Voice ──
+   Two cards, each one radio. The whole card picks (a stretched ::after on
+   the radio button, the same trick as `.set2-sk-go`), and Sample sits above
+   that layer so hearing a voice never chooses it. */
+.set2-ag-voices {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.625rem; max-width: 30rem;
+}
+.set2-ag-vo {
+  position: relative;
+  display: flex; flex-direction: column; align-items: flex-start;
+  background: var(--card-bg); border-radius: var(--r-lg);
+  box-shadow: inset 0 0 0 0.0625rem var(--hairline);
+}
+.set2-ag-vo.is-on { box-shadow: inset 0 0 0 0.09375rem var(--brand); }
+.set2-ag-vo-pick {
+  appearance: none; border: 0; background: none; cursor: pointer;
+  display: flex; align-items: center; gap: 0.625rem; width: 100%;
+  padding: 0.875rem 0.875rem 0.5rem 1rem;
+  font-family: var(--font-sans); color: var(--ink-primary); text-align: left;
+}
+.set2-ag-vo-pick::after { content: ""; position: absolute; inset: 0; border-radius: inherit; z-index: 0; }
+.set2-ag-vo-pick:focus-visible { outline: none; }
+.set2-ag-vo-pick:focus-visible::after { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; border-radius: var(--r-lg); }
+.set2-ag-vo:has(.set2-ag-vo-pick:hover):not(.is-on) { box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover); }
+.set2-ag-vo-ico {
+  flex: none; display: grid; place-items: center;
+  width: 2rem; height: 2rem; border-radius: var(--r-md);
+  background: var(--card-bg-raised); color: var(--ink-secondary);
+  box-shadow: inset 0 0 0 0.0625rem var(--hairline);
+}
+.set2-ag-vo-ico svg { width: 1rem; height: 1rem; }
+.set2-ag-vo.is-on .set2-ag-vo-ico { background: var(--brand-dim); color: var(--ink-primary); box-shadow: none; }
+.set2-ag-vo-n { flex: 1 1 auto; font-size: var(--ty-meta); font-weight: var(--fw-semibold); }
+/* A radio ring, filled when chosen. It says "one of these" before you read
+   the card, which a highlighted border alone does not. */
+.set2-ag-vo-r {
+  flex: none; width: 1rem; height: 1rem; border-radius: 50%;
+  box-shadow: inset 0 0 0 0.125rem var(--ink-rule);
+}
+/* Ring, gap, dot: the first shadow paints on top, so the brand ring sits
+   over the card-coloured gap, and the background is the dot inside both. */
+.set2-ag-vo.is-on .set2-ag-vo-r {
+  background: var(--brand);
+  box-shadow: inset 0 0 0 0.125rem var(--brand), inset 0 0 0 0.25rem var(--card-bg);
+}
+.set2-ag-vo-play {
+  position: relative; z-index: 1;
+  display: inline-flex; align-items: center; gap: 0.375rem;
+  margin: 0 0 0.75rem 3.625rem; padding: 0.25rem 0.625rem 0.25rem 0.5rem;
+  appearance: none; border: 0; border-radius: var(--r-pill); cursor: pointer;
+  background: var(--card-bg-raised); color: var(--ink-secondary);
+  box-shadow: inset 0 0 0 0.0625rem var(--hairline);
+  font-family: var(--font-sans); font-size: var(--ty-micro); font-weight: var(--fw-semibold);
+}
+.set2-ag-vo-play svg { width: 0.75rem; height: 0.75rem; }
+.set2-ag-vo-play:hover { color: var(--ink-primary); }
+.set2-ag-vo-play.is-playing { background: var(--brand-dim); color: var(--ink-primary); box-shadow: none; }
+.set2-ag-vo-play:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .set2-ag-vo { transition: transform var(--t-fast) var(--ease-out); }
+  .set2-ag-vo:has(.set2-ag-vo-pick:active) { transform: scale(0.985); }
+}
+
+/* Keyed to the shell's 735 rung, where the document header already wraps. */
+@media (max-width: 735.98px) {
+  .set2-ag-file-hd { flex-wrap: wrap; }
+  .set2-ag-file-hd { align-items: flex-start; }
+  .set2-ag-file-i { margin-top: 0.125rem; }
+  .set2-ag-file-end { margin-left: 0; width: 100%; padding-left: 1.625rem; justify-content: flex-start; }
+  .set2-ag-vo-play { margin-left: 1rem; }
+}
+
+/* A tone with nothing in it says so in the warning ink, in words: the
+   pill on the row says "No tone" and this is the fact it is about. */
+.set2-ag-facts b.is-none { color: var(--ink-warn); }
+
+/* ── Templates ──
+   Pills, the chip shape this surface already uses for values. Pressed is the
+   brand tint under primary ink, the same pairing as the chosen segment above
+   it, so "this is the one in use" looks the same in both places. */
+.set2-ag-tpl {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 0.375rem;
+  margin-bottom: 0.625rem;
+}
+/* Its own line. Beside the chips it took the room the sixth one needed, and
+   "Technical" wrapped alone onto a second row at 1280. */
+.set2-ag-tpl-l { flex-basis: 100%; font-size: var(--ty-micro); color: var(--ink-quiet); }
+.set2-ag-tpl-b {
+  appearance: none; border: 0; cursor: pointer;
+  padding: 0.25rem 0.625rem; border-radius: var(--r-pill);
+  background: var(--card-bg); color: var(--ink-secondary);
+  box-shadow: inset 0 0 0 0.0625rem var(--hairline);
+  font-family: var(--font-sans); font-size: var(--ty-micro); font-weight: var(--fw-semibold);
+}
+.set2-ag-tpl-b:hover { color: var(--ink-primary); box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover); }
+.set2-ag-tpl-b[aria-pressed="true"] { background: var(--brand-dim); color: var(--ink-primary); box-shadow: none; }
+.set2-ag-tpl-b:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
+@media (prefers-reduced-motion: no-preference) {
+  .set2-ag-tpl-b { transition: transform var(--t-fast) var(--ease-out); }
+  .set2-ag-tpl-b:active { transform: scale(0.97); }
+}
