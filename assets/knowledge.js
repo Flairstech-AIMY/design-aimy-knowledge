@@ -302,6 +302,11 @@
   ═══════════════════════════════════════════════ */
   const USER = {
     name: 'Nour Wael', initials: 'NW', role: 'Product Design',
+    /* A stock portrait (randomuser.me), chosen by Nour. The same URL is
+       Nour's row on Agents > Usage (settings.js US_PHOTO), so the two match.
+       The initials stay underneath: an image that cannot load is removed
+       (see the `error` listener by paintAvatar) and they show instead. */
+    photo: 'https://randomuser.me/api/portraits/men/32.jpg',
     owner: 'N. Wael',
     collections: ['policies', 'support', 'marketing', 'sales'],   // legal is not entitled
     recent: ['article-sso', 'ticket-48120', 'story-nordwind']
@@ -1591,7 +1596,7 @@
   /* The settings view's own keys, kept apart from ALL_KEYS on purpose: those
      are FILTERS, and changing one re-composes the working set. These are a
      PLACE YOU ARE. The two clear each other in `patch` for that reason. */
-  const SET_KEYS  = ['m', 'skill', 'agent', 'part', 'node', 'role', 'vs', 'sc', 'sp', 'crm', 'f', 'who', 'sec'];
+  const SET_KEYS  = ['m', 'skill', 'agent', 'meter', 'pool', 'part', 'node', 'role', 'vs', 'sc', 'sp', 'crm', 'f', 'who', 'sec'];
 
   /* Parse a query string into the full state object. Split out from `readURL`
      so a stored conversation can be turned back into state by the same code
@@ -1650,6 +1655,13 @@
                  /* Which agent's page is open under Agents > Tone & Voice.
                     A place you are, like `skill`. */
                  agent: p.get('agent') || '',
+                 /* Agents > Usage: which AiMY product's plan (Copilot when
+                    absent) and which level of its split you are standing
+                    on (the plan itself when absent). Two places you are,
+                    linkable, because "how is KMC's Copilot split" is a
+                    question people ask by pasting a URL. */
+                 meter: p.get('meter') || '',
+                 pool: p.get('pool') || '',
                  /* Which part of the open skill is showing — Instructions,
                     Precedence or Reach. A place you are, like `skill` and
                     `sec`, so it is linkable: the chain that explains why an
@@ -1760,6 +1772,8 @@
     if (st.m) p.set('m', st.m);
     if (st.skill) p.set('skill', st.skill);
     if (st.agent) p.set('agent', st.agent);
+    if (st.meter) p.set('meter', st.meter);
+    if (st.pool) p.set('pool', st.pool);
     if (st.part) p.set('part', st.part);
     if (st.node) p.set('node', st.node);
     if (st.role) p.set('role', st.role);
@@ -1865,6 +1879,8 @@
       st.doc = '';
       if (changes.skill === undefined) st.skill = '';
       if (changes.agent === undefined) st.agent = '';
+      if (changes.meter === undefined) st.meter = '';
+      if (changes.pool === undefined) st.pool = '';
       /* `sp` deliberately SURVIVES a module change — it is the page's scope,
          not the module's, and re-asking which product on every rail click is
          the flow this replaced. `crm` does not: it means nothing outside
@@ -8591,7 +8607,8 @@
     if (turn.q) wrap.dataset.q = turn.q;
     wrap.innerHTML =
       (isUser
-        ? `<div class="msg-avatar">${esc(USER.initials)}</div>`
+        ? `<div class="msg-avatar">${esc(USER.initials)}${USER.photo
+            ? `<img class="av-photo" src="${esc(USER.photo)}" alt="" decoding="async">` : ''}</div>`
         : '<div class="msg-avatar aimy-av"><svg width="15" height="17" viewBox="0 0 18 20"><use href="#aimy-logo-small"/></svg></div>') +
       `<div class="msg-bubble"${turn.id ? ` id="${turn.id}"` : ''}${live ? ' data-live="1"' : ''}>${live ? turn.html() : turn.html}</div>` +
       (isUser ? '' : msgActs(turn));
@@ -9391,6 +9408,7 @@
          The TURN is written and not just the element, because a conversation
          is its turns: an element left ahead of them comes back whole on the
          next repaint, which is the answer you stopped returning by itself. */
+      useSpend(text);
       const run = generating.start(() => {
         timer();
         stopStream();
@@ -15535,6 +15553,253 @@
     }
   };
 
+  /* ── THE ACCOUNT PILL'S PHOTO ──
+     Initials as text, the photo laid over them. A photo that fails to load
+     takes itself out and the initials are what is left, so a blocked or
+     offline image never leaves a broken-image glyph in the masthead. The
+     listener catches the same class on the Usage page's employee rows. */
+  function paintAvatar(el) {
+    el.textContent = USER.initials;
+    if (!USER.photo) return;
+    const img = document.createElement('img');
+    img.className = 'av-photo';
+    img.alt = '';
+    img.decoding = 'async';
+    img.src = USER.photo;
+    el.appendChild(img);
+  }
+  document.addEventListener('error', (e) => {
+    const t = e.target;
+    if (t && t.classList && t.classList.contains('av-photo')) t.remove();
+  }, true);
+
+  /* ═══ YOUR USAGE, ON THE MARK ═══════════════════════════════════════════
+     The composer is already four controls wide, so this adds none. The AiMY
+     mark at the start of the conversation's bar was a picture; it becomes the
+     way in. Its rim is drawn as a ring filled to the share of this month's
+     plan you have used, so the state is on screen without a number, and
+     pressing the mark opens the three facts behind it: the plan, this
+     session, and the way to the page that sets both.
+
+     ── EVERY MARK, ONE GESTURE THAT WORKS ON ALL OF THEM ──
+     The first build put this on the conversation's bar only, and Nour could
+     not find it: the bar you see most is the workbench's, and the popover
+     was one canvas away. So every composer's mark carries the ring, and
+     HOVER or keyboard FOCUS on any of them shows the popover. That is the
+     one gesture that means the same thing on all three.
+
+     Clicks keep the meaning they already had. The workbench's mark
+     (`#canvasOpen`) reopens the canvas, as it always did; taking that away
+     to show a popover would have broken the way back. On the conversation's
+     marks, which did nothing before, a click PINS the popover open, which is
+     also how a touch screen, with no hover, reaches it.
+
+     The figures are the signed-in person's own row on Agents > Usage when
+     the console has loaded settings.js, so the popover and that page cannot
+     disagree; the gate, which has no settings.js, carries the same row as a
+     fixture. A question costs a rough estimate, added to the session and to
+     the plan, so the ring moves as you use it. */
+  const USE_FALLBACK = { limit: 6000, used: 1860, unit: 'tokens', sessLimit: 5000,
+                         sessPer: 'per session', resets: '1 Nov',
+                         link: 'console.html?m=agents&sec=usage' };
+  let USE_SESSION = 1240;
+  const useNow = () => {
+    const S = window.AIMY_SETTINGS;
+    return S && S.usageMine ? S.usageMine() : USE_FALLBACK;
+  };
+  const useFmt = (n) => Math.round(n).toLocaleString('en-US');
+  /* Near at 85%, out at 100, the thresholds the Usage page uses. */
+  const useLevel = (used, lim) => lim == null ? ''
+    : (lim <= 0 || used >= lim) ? 'is-err' : used / lim >= 0.85 ? 'is-warn' : '';
+
+  function useSpend(text) {
+    /* A question in and an answer out, roughly: a base for the answer plus
+       the question's own length in tokens. An estimate, and named as one in
+       the comment rather than dressed as a meter reading. */
+    const n = 180 + Math.ceil(String(text || '').length / 4) * 3;
+    USE_SESSION += n;
+    const S = window.AIMY_SETTINGS;
+    if (S && S.usageSpend) S.usageSpend(n); else USE_FALLBACK.used += n;
+    paintUseMark();
+  }
+
+  function usePopBody(u) {
+    const pct = u.limit > 0 ? Math.min(100, Math.round(u.used / u.limit * 100)) : 100;
+    const plan = useLevel(u.used, u.limit);
+    const sess = useLevel(USE_SESSION, u.sessLimit);
+    return `
+      <div class="use-pop-g">
+        <div class="use-pop-r"><span>Plan</span>
+          <b class="${plan}">${plan === 'is-err' ? 'Limit reached' : pct + '% used'}</b></div>
+        <p class="use-pop-s">${useFmt(u.used)} of ${useFmt(u.limit)} ${esc(u.unit)}, resets ${esc(u.resets)}</p>
+      </div>
+      <div class="use-pop-g">
+        <div class="use-pop-r"><span>Session</span>
+          <b class="${sess}">${useFmt(USE_SESSION)} ${esc(u.unit)}</b></div>
+        <p class="use-pop-s">${u.sessLimit == null ? 'No session limit'
+          : sess === 'is-err' ? 'Session limit reached. Start a new conversation.'
+          : 'Up to ' + useFmt(u.sessLimit) + ' ' + esc(u.sessPer)}</p>
+      </div>
+      <a class="use-pop-a" href="${esc(u.link)}">View usage and plan…</a>`;
+  }
+
+  /* The ring shows the WORSE of the two limits, because either one is the
+     one that stops you: a session can run out long before the month does. */
+  function paintUseMark() {
+    const u = useNow();
+    const p = u.limit > 0 ? Math.min(1, u.used / u.limit) : 1;
+    const lv = [useLevel(u.used, u.limit), useLevel(USE_SESSION, u.sessLimit)];
+    const worst = lv.indexOf('is-err') > -1 ? 'is-err' : lv.indexOf('is-warn') > -1 ? 'is-warn' : '';
+    const pct = Math.round(p * 100) + '% of your plan used'
+      + (worst === 'is-err' ? ', limit reached' : worst === 'is-warn' ? ', near the limit' : '');
+    $$(USE_MARK).forEach((el) => {
+      el.classList.add('has-use');
+      el.classList.toggle('is-warn', worst === 'is-warn');
+      el.classList.toggle('is-err', worst === 'is-err');
+      el.style.setProperty('--use', p.toFixed(4));
+      /* The workbench's mark keeps saying what pressing it does; the usage
+         is added after, so a screen reader hears both. */
+      if (el.dataset.useLabel === undefined) el.dataset.useLabel = el.getAttribute('aria-label') || '';
+      el.setAttribute('aria-label', el.id === 'canvasOpen'
+        ? el.dataset.useLabel + '. ' + pct : 'Your usage: ' + pct);
+    });
+    const pop = $('#usePop');
+    if (pop) pop.innerHTML = usePopBody(u);
+  }
+
+  /* Every composer's mark: the gate's and the canvas's (conversation) and
+     the workbench's float bar. */
+  const USE_MARK = '.overlay-input-bar > .aimy-float-icon, .aimy-float-bar > .aimy-float-icon';
+  const useClickOpens = (el) => el.id !== 'canvasOpen';
+
+  let USE_OPENER = null;
+  let USE_PINNED = false;
+  let USE_T = 0;
+  function closeUsePop(refocus) {
+    clearTimeout(USE_T);
+    const pop = $('#usePop');
+    if (pop) pop.remove();
+    if (USE_OPENER) {
+      USE_OPENER.setAttribute('aria-expanded', 'false');
+      if (refocus) USE_OPENER.focus();
+    }
+    USE_OPENER = null;
+    USE_PINNED = false;
+  }
+  /* On the body rather than in the bar, because the bar clips: it carries the
+     beam, which is drawn to its rounded edge. Fixed, and placed from the
+     mark's own box so it opens upward from the thing you pressed. */
+  function openUsePop(btn, byKey) {
+    clearTimeout(USE_T);
+    if (USE_OPENER === btn && $('#usePop')) return;
+    closeUsePop();
+    const pop = document.createElement('div');
+    pop.id = 'usePop';
+    pop.className = 'use-pop';
+    pop.setAttribute('role', 'dialog');
+    pop.setAttribute('aria-label', 'Your usage');
+    pop.innerHTML = usePopBody(useNow());
+    document.body.appendChild(pop);
+    const r = btn.getBoundingClientRect();
+    const w = pop.offsetWidth;
+    pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8)) + 'px';
+    pop.style.bottom = (window.innerHeight - r.top + 8) + 'px';
+    btn.setAttribute('aria-expanded', 'true');
+    USE_OPENER = btn;
+    if (byKey) { const a = $('.use-pop-a', pop); if (a) a.focus(); }
+  }
+  /* Hover opens after a beat and closes after a grace, so passing the
+     pointer across the bar does not flash it and the gap between the mark
+     and the popover can be crossed. A pinned popover ignores both. */
+  const useHoverIn = (el) => {
+    clearTimeout(USE_T);
+    if (USE_PINNED) return;
+    USE_T = setTimeout(() => openUsePop(el, false), 220);
+  };
+  const useHoverOut = () => {
+    clearTimeout(USE_T);
+    if (USE_PINNED || !USE_OPENER) return;
+    USE_T = setTimeout(() => { if (!USE_PINNED) closeUsePop(); }, 240);
+  };
+  const canHover = () => window.matchMedia && window.matchMedia('(hover: hover)').matches;
+
+  (function seatUseMark() {
+    $$(USE_MARK).forEach((el) => {
+      el.setAttribute('aria-haspopup', 'dialog');
+      el.setAttribute('aria-expanded', 'false');
+    });
+    paintUseMark();
+
+    /* After a click on a mark, hover stays quiet until the pointer has been
+       somewhere else. Opening the canvas from the workbench's mark slides
+       the canvas's own mark in under a pointer that has not moved, and that
+       arrives as a hover: the popover opened over a canvas you had just
+       asked for. */
+    let quiet = false;
+    document.addEventListener('mouseover', (e) => {
+      if (!canHover() || !e.target.closest) return;
+      const mark = e.target.closest(USE_MARK);
+      if (mark) { if (!quiet) useHoverIn(mark); return; }
+      quiet = false;
+      if (e.target.closest('#usePop')) { clearTimeout(USE_T); return; }
+      if (USE_OPENER) useHoverOut();
+    });
+    /* Keyboard focus shows it too, unpinned; Tab then walks INTO it (it sits
+       at the end of the body, so the browser's own order never would), and
+       Tab out of it carries on to the field the mark sits beside. */
+    document.addEventListener('focusin', (e) => {
+      const mark = e.target.closest && e.target.closest(USE_MARK);
+      if (mark && mark.matches(':focus-visible')) openUsePop(mark, false);
+      else if (USE_OPENER && !USE_PINNED && !(e.target.closest && e.target.closest('#usePop'))) closeUsePop();
+    });
+    document.addEventListener('click', (e) => {
+      const mark = e.target.closest && e.target.closest(USE_MARK);
+      if (mark) {
+        quiet = true;
+        if (!useClickOpens(mark)) { closeUsePop(); return; }   /* it opens the canvas */
+        if (USE_OPENER === mark && USE_PINNED) { closeUsePop(); return; }
+        openUsePop(mark, e.detail === 0);
+        USE_PINNED = true;
+        return;
+      }
+      /* ── THE LINK OPENS THE PAGE, NOT A RELOAD OF IT ──
+         In the console the Usage page is a module of the page you are already
+         on, so the link moves there the way the rail does: the canvas closes,
+         the module opens, nothing reloads and the thread you came from is
+         still there when you reopen it. From the gate it is an ordinary link
+         to the console. A modified click (new tab, new window) is left to the
+         browser either way. */
+      const go = e.target.closest && e.target.closest('#usePop .use-pop-a');
+      if (go && document.body.dataset.page === 'workbench'
+          && !(e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button)) {
+        e.preventDefault();
+        closeUsePop();
+        if (canvas.open) canvas.close({ quiet: true });
+        patch({ m: 'agents', sec: 'usage' });
+        return;
+      }
+      if (USE_OPENER && !(e.target.closest && e.target.closest('#usePop'))) closeUsePop();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (!USE_OPENER) return;
+      if (e.key === 'Escape') { e.stopPropagation(); closeUsePop(true); return; }
+      if (e.key !== 'Tab') return;
+      const link = $('#usePop .use-pop-a');
+      if (e.target === USE_OPENER && !e.shiftKey && link) {
+        e.preventDefault(); USE_PINNED = true; link.focus(); return;
+      }
+      if (e.target === link) {
+        e.preventDefault();
+        const bar = USE_OPENER.parentElement;
+        const opener = USE_OPENER;
+        closeUsePop();
+        if (e.shiftKey) opener.focus();
+        else { const f = bar && bar.querySelector('textarea, input'); if (f) f.focus(); }
+      }
+    }, true);
+    window.addEventListener('resize', () => closeUsePop());
+  })();
+
   function stoppedNote() {
     return '<div class="msg-stopped">' + ICO.slash.replace('<svg', '<svg width="12" height="12"') +
            'Stopped</div>';
@@ -15602,7 +15867,7 @@
       const nm = $('#userName'), rl = $('#userRole'), av = $('#userAvatar');
       if (nm) nm.textContent = USER.name;
       if (rl) rl.textContent = USER.role;
-      if (av) av.textContent = USER.initials;
+      if (av) paintAvatar(av);
       userMenu.init();
       prodMenu.init();
       bell.init();
@@ -15647,7 +15912,7 @@
     const u = $('#userName'), r = $('#userRole'), a = $('#userAvatar');
     if (u) u.textContent = USER.name;
     if (r) r.textContent = USER.role;
-    if (a) a.textContent = USER.initials;
+    if (a) paintAvatar(a);
 
     if (gate) {
       if (window.AIMY_GATE) window.AIMY_GATE.init(GATE_API);

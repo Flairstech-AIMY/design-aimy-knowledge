@@ -28,7 +28,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="assets/aimy-ds.css?v=46" />
-  <link rel="stylesheet" href="assets/knowledge.css?v=324" />
+  <link rel="stylesheet" href="assets/knowledge.css?v=327" />
   <link rel="stylesheet" href="assets/chat.css?v=65" />
   <link rel="stylesheet" href="assets/voice.css?v=10" />
 
@@ -349,9 +349,12 @@
       <div class="gate-composer">
         <div class="overlay-input-wrap">
           <div class="overlay-input-bar">
-            <div class="aimy-float-icon">
-              <svg width="16" height="18" viewBox="0 0 18 20"><use href="#aimy-logo-small"/></svg>
-            </div>
+            <!-- The mark is the way to your usage: its rim fills with the
+                 month's plan used, and pressing it opens Plan / Session.
+                 A button so it can be pressed; it looks exactly as it did. -->
+            <button class="aimy-float-icon" type="button" aria-label="Your usage">
+              <svg width="16" height="18" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
+            </button>
             <textarea class="overlay-input" id="overlayInput" placeholder="Ask me anything…" rows="1"
                       spellcheck="false" autocomplete="off" data-submit-on-enter aria-label="Ask AiMY"></textarea>
 
@@ -386,7 +389,7 @@
 <script src="assets/halaska-bridge.js?v=32"></script>
 <script src="assets/halaska-mounts.js?v=32"></script>
 
-<script src="assets/knowledge.js?v=418"></script>
+<script src="assets/knowledge.js?v=425"></script>
 <script src="assets/voice.js?v=12"></script>
 </body>
 </html>

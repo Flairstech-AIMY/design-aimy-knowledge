@@ -2383,6 +2383,13 @@ body.is-settings .set2-bulk { bottom: 4.75rem; }
   outline-offset: 0.125rem;
   border-radius: var(--r-xs);
 }
+/* Except the search field's own input. `.k-search` draws the ring on its
+   WRAPPER (:focus-within, knowledge.css), and the rule above matched the
+   input inside it at equal weight and later in the cascade, so every
+   settings search wore two rings, one inside the other. The wrapper's is the
+   one kept: it encloses the icon and the clear button, which belong to the
+   field. */
+.set2-col .k-search-i:focus-visible { outline: none; }
 
 /* ── The save bar stops covering the last row ──
    It is sticky at the foot of the scroll port, so the column has to end above
@@ -4535,3 +4542,246 @@ input.set2-fld[type="password"] {
   .set2-fl-modal .set2-modal-ft { flex-wrap: wrap; row-gap: 0.625rem; }
 }
 
+
+/* ══ USAGE ═══════════════════════════════════════════════════════════════
+   Agents > Usage. A meter switch, one card saying where this level stands,
+   then the split: one bar for the whole level and a row per child. Fills are
+   scaled, never sized, so the entrance and every live re-divide move on the
+   compositor; the row grid never animates. No background transitions on
+   anything that rests on a theme token: a theme toggle does not re-resolve
+   a transitioning var(), and the row keeps the previous theme's fill. */
+.set2-us { margin-top: 1.25rem; }
+.set2-us-top { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.set2-us-seg { margin-bottom: 0; }
+.set2-us-unit {
+  margin-left: 0.375rem; font-size: var(--ty-micro); color: var(--ink-quiet);
+  font-weight: var(--fw-regular);
+}
+.set2-us-seg .seg-btn.active .set2-us-unit { color: var(--ink-secondary); }
+
+/* ── Where this level stands ── */
+.set2-us-hero {
+  display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  margin-top: 1rem; background: var(--card-bg); border-radius: var(--r-xl);
+  box-shadow: inset 0 0 0 0.0625rem var(--card-border);
+}
+.set2-us-now { padding: 1.25rem 1.5rem 1.125rem; min-width: 0; }
+.set2-us-k {
+  display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+  font-size: var(--ty-micro); color: var(--ink-quiet);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+}
+.set2-us-k .set2-pill { text-transform: none; letter-spacing: 0; }
+.set2-us-big {
+  display: flex; align-items: baseline; gap: 0.625rem; flex-wrap: wrap;
+  margin: 0.5rem 0 0.875rem;
+}
+.set2-us-big b {
+  font-family: var(--font-display); font-size: 2.25rem; line-height: 1;
+  font-weight: var(--fw-bold); color: var(--ink-primary); letter-spacing: -0.02em;
+}
+.set2-us-big span { font-size: var(--ty-meta); color: var(--ink-secondary); }
+
+/* A meter: a track and a fill scaled to --p. */
+.set2-us-m {
+  position: relative; display: block; height: 0.375rem; border-radius: var(--r-pill);
+  background: var(--w07); overflow: hidden;
+}
+.set2-us-m.is-lg { height: 0.5rem; }
+.set2-us-fill {
+  position: absolute; inset: 0; border-radius: inherit; background: var(--brand);
+  transform-origin: left center; transform: scaleX(var(--p, 0));
+}
+.set2-us-fill.is-warn { background: var(--warn); }
+.set2-us-fill.is-err  { background: var(--err); }
+.set2-us-scale {
+  display: flex; justify-content: space-between; margin-top: 0.375rem;
+  font-size: var(--ty-micro); color: var(--ink-quiet); font-variant-numeric: tabular-nums;
+}
+.set2-us-left { margin: 0.75rem 0 0; font-size: var(--ty-meta); color: var(--ink-secondary); }
+.set2-us-left b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
+.set2-us-dot { margin: 0 0.25rem; color: var(--ink-quiet); }
+
+.set2-us-facts {
+  margin: 0; padding: 0.375rem 1.5rem; min-width: 0;
+  border-left: 0.0625rem solid var(--hairline);
+  display: flex; flex-direction: column; justify-content: center;
+}
+.set2-us-fact {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center;
+  column-gap: 0.75rem; padding: 0.75rem 0;
+}
+.set2-us-fact + .set2-us-fact { border-top: 0.0625rem solid var(--hairline); }
+.set2-us-fact dt {
+  grid-column: 1; display: flex; align-items: center; gap: 0.25rem;
+  font-size: var(--ty-micro); color: var(--ink-quiet);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+}
+.set2-us-fact dt .set2-tip { text-transform: none; letter-spacing: 0; }
+.set2-us-fact dd { grid-column: 1; margin: 0.25rem 0 0; display: flex; flex-direction: column; gap: 0.125rem; min-width: 0; }
+.set2-us-fact dd b { font-size: var(--ty-meta); font-weight: var(--fw-semibold); color: var(--ink-primary); }
+.set2-us-fact dd > span { font-size: var(--ty-micro); color: var(--ink-quiet); }
+.set2-us-fact-ed { grid-column: 2; grid-row: 1 / span 2; }
+.set2-us-fact.is-edit dd { gap: 0.375rem; }
+.set2-us-sess-row { display: flex; align-items: center; gap: 0.5rem; }
+.set2-us-sess-row .set2-us-in { width: 7.5rem; flex: none; }
+.set2-us-per { font-size: var(--ty-micro); color: var(--ink-secondary); }
+.set2-us-fact .set2-hint { margin-top: 0; }
+.set2-us-sess-act { display: flex; gap: 0.375rem; justify-content: flex-end; }
+
+/* ── The split ── */
+.set2-us-alloc { margin-top: 2rem; }
+.set2-us-hd { margin-bottom: 0.75rem; min-height: 2.125rem; }
+.set2-us-hd-end { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; }
+.set2-us-q { width: 14rem; }
+
+.set2-us-stack, .set2-us-stack-l { display: flex; gap: 0.1875rem; }
+.set2-us-stack { height: 0.875rem; }
+.set2-us-sg {
+  position: relative; flex-basis: 0; min-width: 0.1875rem;
+  border-radius: var(--r-xs); background: var(--brand-dim); overflow: hidden;
+}
+.set2-us-sg .set2-us-fill { border-radius: 0; }
+.set2-us-sg.is-free {
+  background: repeating-linear-gradient(135deg, var(--card-border-hover) 0 0.0625rem, transparent 0.0625rem 0.375rem);
+  box-shadow: inset 0 0 0 0.0625rem var(--card-border);
+}
+.set2-us-sg.is-hot { box-shadow: 0 0 0 0.125rem var(--brand); }
+.set2-us-stack-l { margin-top: 0.4375rem; }
+.set2-us-sl {
+  flex-basis: 0; min-width: 0.1875rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: var(--ty-micro); color: var(--ink-quiet); font-variant-numeric: tabular-nums;
+}
+.set2-us-sl b { color: var(--ink-secondary); font-weight: var(--fw-semibold); }
+.set2-us-sl.is-hot b { color: var(--ink-primary); }
+.set2-us-free { margin: 0.375rem 0 0; font-size: var(--ty-micro); color: var(--ink-quiet); }
+
+/* Rows. Name, use, limit, on one grid with the header labels in it, so
+   the columns cannot drift from the words over them. */
+.set2-us-list { margin-top: 1.25rem; }
+.set2-us-r {
+  position: relative;
+  display: grid; grid-template-columns: 2rem minmax(0, 1.35fr) minmax(0, 1fr) 10rem 1rem;
+  align-items: center; column-gap: 1rem;
+  padding: 0.75rem 0.5rem; border-bottom: 0.0625rem solid var(--hairline);
+}
+.set2-us-r.is-hd {
+  padding-top: 0; padding-bottom: 0.5rem;
+  font-size: var(--ty-micro); font-weight: var(--fw-semibold); color: var(--ink-quiet);
+}
+.set2-us-r:has(.set2-sk-go:hover), .set2-us-r.is-hot:not(.is-hd) { background: var(--card-bg); }
+.set2-us-r.has-err { box-shadow: inset 0.125rem 0 0 var(--err); }
+.set2-us-r.has-warn { box-shadow: inset 0.125rem 0 0 var(--warn); }
+.set2-us-ico { display: flex; justify-content: center; color: var(--ink-quiet); }
+.set2-us-av {
+  width: 1.75rem; height: 1.75rem; border-radius: var(--r-pill);
+  display: grid; place-items: center;
+  background: var(--card-bg-raised); box-shadow: inset 0 0 0 0.0625rem var(--card-border);
+  font-size: 0.6875rem; font-weight: var(--fw-semibold); color: var(--ink-secondary);
+  letter-spacing: 0.02em;
+}
+.set2-us-main { display: flex; flex-direction: column; align-items: flex-start; gap: 0.1875rem; min-width: 0; }
+.set2-us-n {
+  font-size: var(--ty-meta); font-weight: var(--fw-semibold); color: var(--ink-primary);
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.set2-us-sub {
+  font-size: var(--ty-micro); color: var(--ink-quiet);
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.set2-us-use { display: flex; flex-direction: column; gap: 0.375rem; min-width: 0; }
+.set2-us-use-t { display: flex; align-items: center; gap: 0.5rem; font-size: var(--ty-meta); color: var(--ink-secondary); }
+.set2-us-use-t b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
+.set2-us-pc { font-size: var(--ty-micro); color: var(--ink-quiet); font-variant-numeric: tabular-nums; }
+.set2-us-r-lim {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 0.1875rem; text-align: right;
+}
+.set2-us-r-lim > b { font-size: var(--ty-meta); font-weight: var(--fw-semibold); color: var(--ink-primary); }
+.set2-us-r.is-hd .set2-us-r-lim { display: block; }
+.set2-us-src { font-size: var(--ty-micro); color: var(--ink-quiet); white-space: nowrap; }
+.set2-us-src.is-set { color: var(--ink-secondary); font-weight: var(--fw-semibold); }
+.set2-us-flag { font-weight: var(--fw-semibold); }
+.set2-us-flag.is-err { color: var(--ink-err); }
+.set2-us-flag.is-warn { color: var(--ink-warn); }
+.set2-us-end { display: flex; justify-content: flex-end; }
+
+.set2-us-in-wrap { display: flex; align-items: center; gap: 0.25rem; width: 100%; }
+.set2-us-in { text-align: right; font-variant-numeric: tabular-nums; padding-block: 0.3125rem; }
+.set2-us-in::placeholder { color: var(--ink-quiet); }
+.set2-us-rs {
+  flex: none; width: 1.75rem; height: 1.75rem; display: grid; place-items: center;
+  appearance: none; border: 0; background: none; cursor: pointer;
+  border-radius: var(--r-md); color: var(--ink-quiet);
+}
+/* Holds its place while hidden, so the field does not jump sideways the
+   moment a number is typed into it. */
+.set2-us-rs[hidden] { display: grid; visibility: hidden; }
+.set2-us-rs svg { width: 0.875rem; height: 0.875rem; }
+.set2-us-rs:hover { color: var(--ink-primary); background: var(--card-bg-raised); }
+.set2-us-rs:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0; }
+
+.set2-us-bar {
+  display: flex; align-items: center; gap: 0.5rem; margin-top: 0.875rem;
+  padding: 0.625rem 0.75rem 0.625rem 1rem; border-radius: var(--r-lg);
+  background: var(--card-bg); box-shadow: inset 0 0 0 0.0625rem var(--card-border);
+}
+.set2-us-bar-s { flex: 1 1 auto; min-width: 0; font-size: var(--ty-micro); color: var(--ink-secondary); }
+.set2-us-bar-s.is-dirty { color: var(--ink-warn); }
+.set2-us-bar-s.is-warn { color: var(--ink-warn); }
+.set2-us-bar-s.is-err { color: var(--ink-err); }
+.set2-us-more { margin-left: 0.375rem; font-weight: var(--fw-semibold); }
+.set2-us-bar .btn[disabled] { cursor: not-allowed; }
+.set2-us-when { margin: 0.75rem 0 0; font-size: var(--ty-micro); color: var(--ink-quiet); }
+.set2-us-none { margin: 0.875rem 0.5rem; font-size: var(--ty-micro); color: var(--ink-secondary); }
+.set2-us-empty { margin-top: 2rem; }
+
+/* The path to this level, in the header's scope slot. */
+.set2-us-crumb {
+  appearance: none; border: 0; background: none; padding: 0.125rem 0.1875rem; margin: 0 -0.1875rem;
+  font: inherit; font-size: var(--ty-micro); color: var(--ink-quiet); cursor: pointer;
+  border-radius: var(--r-xs); white-space: nowrap;
+}
+.set2-us-crumb:hover { color: var(--ink-primary); text-decoration: underline; text-underline-offset: 0.1875rem; }
+.set2-us-crumb:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.0625rem; }
+
+/* Entrance, once per meter and level, not on every repaint. The bars grow
+   from the left in a short stagger; nothing moves that is not a fill. */
+@media (prefers-reduced-motion: no-preference) {
+  .set2-us.is-enter .set2-us-fill {
+    animation: set2-us-grow var(--t-emphasis) var(--ease-out) both;
+  }
+  .set2-us.is-enter .set2-us-sg .set2-us-fill { animation-delay: calc(var(--i, 0) * var(--t-stagger)); }
+  .set2-us.is-enter .set2-us-list .set2-us-fill { animation-delay: 120ms; }
+}
+@keyframes set2-us-grow { from { transform: scaleX(0); } }
+
+/* The card goes to one column on the surface's own narrow rung. */
+@media (max-width: 52rem) {
+  .set2-us-hero { grid-template-columns: minmax(0, 1fr); }
+  .set2-us-facts { border-left: 0; border-top: 0.0625rem solid var(--hairline); padding: 0.25rem 1.25rem; }
+  .set2-us-now { padding: 1.125rem 1.25rem 1rem; }
+}
+/* Below the shell's 735 rung a row is the name on top and use and limit
+   beside and under it; the header row has nothing left to label. */
+@media (max-width: 735.98px) {
+  .set2-us-r { grid-template-columns: 2rem minmax(0, 1fr) auto; row-gap: 0.625rem; }
+  .set2-us-r.is-hd { display: none; }
+  .set2-us-use { grid-column: 2 / span 2; grid-row: 2; }
+  .set2-us-r-lim { grid-column: 3; grid-row: 1; }
+  .set2-us-end { display: none; }
+  .set2-us-list.is-edit .set2-us-r-lim { width: 9rem; }
+  .set2-us-hd { flex-wrap: wrap; }
+  .set2-us-hd-end { width: 100%; margin-left: 0; }
+  .set2-us-q { flex: 1 1 auto; width: auto; }
+  .set2-us-big b { font-size: 1.875rem; }
+  /* With units the switch is 410px and ran off a 375 screen. The card
+     under it says "of 70,000 tokens", so the unit is not lost. */
+  .set2-us-unit { display: none; }
+  /* Past four segments the labels shrink to one letter and an ellipsis,
+     which is noise; the rows underneath carry every name. */
+  .set2-us-stack-l:has(> :nth-child(5)) { display: none; }
+}
+
+/* The employee avatar carries a photo over its initials (.av-photo, knowledge.css). */
+.set2-us-av { position: relative; overflow: hidden; }

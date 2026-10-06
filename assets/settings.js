@@ -87,7 +87,12 @@
     venus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15v7"/><path d="M9 19h6"/><circle cx="12" cy="9" r="6"/></svg>',
     mars: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="m21 3-6.75 6.75"/><circle cx="10" cy="14" r="6"/></svg>',
     play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></svg>',
-    stop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>'
+    stop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>',
+    /* Usage. Lucide 1.52 `building-2`, `building`, `package`, `rotate-ccw`. */
+    org:  '<svg class="set2-row-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12h4"/><path d="M10 8h4"/><path d="M14 21v-3a2 2 0 0 0-4 0v3"/><path d="M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/><path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/></svg>',
+    co:   '<svg class="set2-row-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M12 6h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M16 6h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/><path d="M8 6h.01"/><path d="M9 22v-3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/><rect x="4" y="2" width="16" height="20" rx="2"/></svg>',
+    pkg:  '<svg class="set2-row-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/></svg>',
+    reset: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>'
   };
 
   /* ═══ WHO ═══ */
@@ -3125,6 +3130,725 @@
       </div>`;
   }
 
+  /* ═══ USAGE ═══════════════════════════════════════════════════════════════
+     How much each organisation, company, product and person may use of the
+     plan in one period, per AiMY product. Built 6 Oct 2026 from the team
+     lead's notes:
+
+         Organization  ->  200K
+         Companies     ->  20K, 60K, 40K, 80K    total max of the organization
+         Products      ->  10K, 5K, 5K           total max of the company
+         Employees     ->  1K, 2K, 1K, 1K        total max of the product
+
+     ── ONE RULE DECIDES EVERY NUMBER ──
+     A level's limit is split among the level under it. A child the admin has
+     not touched takes an EQUAL SHARE of what is left after the ones they
+     have; a child they set keeps exactly that. So a fresh tree is 1:1 all the
+     way down with nothing typed, and setting one person to 12,000 re-divides
+     the rest of the product among everyone else without anybody re-typing
+     them. The children can never add up to more than the parent; setting
+     them to less leaves the remainder unallocated, which the bar shows.
+
+     ── THE TENANCY IS THE TEAM LEAD'S, NOT TREE'S ──
+     Organization > Company > Product > Employee (Upland > KMC > FileBound),
+     which is not the Client > Business Unit > Product > Team > User ladder
+     TREE carries. Kept apart deliberately rather than bent to fit: limits
+     are set against how a CLIENT is billed, and nothing in TREE records a
+     company. Which of the two is right is a ruling to ask for, not to make.
+
+     ── THE UNIT IS THE AIMY PRODUCT'S ──
+     Copilot counts tokens, QA counts tickets, Voice counts minutes, and each
+     has its own plan and its own split. Voice stops at Product: its callers
+     are not employees, so there is nobody below a product to give a share to.
+     The machinery is the same so the day Voice gains users is a `depth` edit.
+
+     ── A SESSION LIMIT IS PER ORGANIZATION ──
+     The most one session can use, for anyone in that organisation. A QA
+     session is a whole working day, so there it reads as a daily cap. Voice
+     has no sessions and says so rather than offering a field that does
+     nothing. */
+  const US_METERS = [
+    { id: 'copilot', name: 'Copilot', unit: 'tokens', depth: 4,
+      sess: { per: 'per session', d: 'The most one Copilot session can use, for anyone in this '
+        + 'organization. A session that reaches it ends, and the person starts a new one.' } },
+    { id: 'qa', name: 'QA', unit: 'tickets', depth: 4,
+      sess: { per: 'per working day', d: 'A QA session is a whole working day, so this is the most '
+        + 'tickets one person in this organization can take in a day.' } },
+    { id: 'voice', name: 'Voice', unit: 'minutes', depth: 3, sess: null }
+  ];
+  const usMeter = (id) => US_METERS.filter((x) => x.id === id)[0] || US_METERS[0];
+  const US_LEVEL = ['Plan', 'Organization', 'Company', 'Product', 'Employee'];
+  const US_PLURAL = ['plans', 'organizations', 'companies', 'products', 'employees'];
+  const US_ICO = ['', 'org', 'co', 'pkg', ''];
+
+  /* The period. Monthly, and the page says when it turns over rather than
+     leaving the reader to work out whose month it is. */
+  const US_PERIOD = { name: 'October', resets: '1 Nov', left: 26 };
+
+  /* People, once each. A person in two products is ONE entry here and two
+     employee rows there, because a limit is per product: Tarek's FileBound
+     share and his Ultriva share are separate numbers. */
+  const US_PEOPLE = {
+    hana: 'Hana Saleh', omar: 'Omar Fathy', yara: 'Yara Mansour', karim: 'Karim Fouad',
+    mariam: 'Mariam Gaber', tarek: 'Tarek Ahmed', nadine: 'Nadine Ishak', youssef: 'Youssef Barakat',
+    salma: 'Salma Hegazy', lotfy: 'Ahmed Lotfy', rana: 'Rana Kamal', zaki: 'Mostafa Zaki',
+    dina: 'Dina Abdelaziz', sherif: 'Sherif Naguib', laila: 'Laila Morsy', ziad: 'Ziad Hamdy',
+    noura: 'Noura El-Sayed', amr: 'Amr Khalil', habiba: 'Habiba Roshdy', sami: 'Mahmoud Sami',
+    farida: 'Farida Wahba', bassem: 'Bassem Adly', jana: 'Jana Selim', malak: 'Malak Ezzat',
+    hazem: 'Hazem Ragab', rawan: 'Rawan Fikry', seif: 'Seif Abouzeid', nada: 'Nada Helmy',
+    priya: 'Priya Raman', mathieu: 'Mathieu Gagnon', hossam: 'Hossam Atef', chloe: 'Chloé Tremblay',
+    ines: 'Ines Haddad', ravi: 'Ravi Menon', aya: 'Aya Shawky', owen: 'Owen Prescott',
+    sara: 'Sara Bakr', julien: 'Julien Roy', marwan: 'Marwan Tawfik', emily: 'Emily Chu',
+    hadeer: 'Hadeer Sabry', ramy: 'Mohamed Ramy', saly: 'Saly Tarek', mona: 'Mona Adel',
+    khaled: 'Khaled Shafik', reem: 'Reem Halim', fady: 'Fady Girgis', hagar: 'Hagar Nabil',
+    islam: 'Islam Wagdy', nour: 'Nour Wael'
+  };
+  /* Stock portraits (randomuser.me), one per person, so a row reads as
+     somebody rather than as two letters. Nour's is the one Nour chose for
+     the account pill (knowledge.js USER.photo). The initials stay under
+     each photo, and a photo that fails to load removes itself. */
+  const US_PHOTO = (() => {
+    const W = ['hana', 'yara', 'mariam', 'nadine', 'salma', 'rana', 'dina', 'laila', 'noura',
+               'habiba', 'farida', 'jana', 'malak', 'rawan', 'nada', 'priya', 'chloe', 'ines',
+               'aya', 'sara', 'emily', 'hadeer', 'saly', 'mona', 'reem', 'hagar'];
+    const M = ['omar', 'karim', 'tarek', 'youssef', 'lotfy', 'zaki', 'sherif', 'ziad', 'amr',
+               'sami', 'bassem', 'hazem', 'seif', 'mathieu', 'hossam', 'ravi', 'owen', 'julien',
+               'marwan', 'ramy', 'khaled', 'fady', 'islam'];
+    const base = 'https://randomuser.me/api/portraits/';
+    const out = { nour: base + 'men/32.jpg' };
+    W.forEach((p, i) => { out[p] = base + 'women/' + ((i * 7 + 12) % 99) + '.jpg'; });
+    /* (i * 7 + 3) % 99 never lands on 32, so nobody shares Nour's face. */
+    M.forEach((p, i) => { out[p] = base + 'men/' + ((i * 7 + 3) % 99) + '.jpg'; });
+    return out;
+  })();
+  const usProd = (id, name, people) => ({ id: id, name: name,
+    kids: people.map((p) => ({ id: id + '.' + p, name: US_PEOPLE[p], person: p })) });
+  const US_TREE = [
+    { id: 'upland', name: 'Upland', kids: [
+      { id: 'kmc', name: 'KMC', kids: [
+        usProd('filebound', 'FileBound', ['hana', 'omar', 'yara', 'karim', 'mariam', 'tarek',
+                                         'nadine', 'youssef', 'salma', 'lotfy']),
+        usProd('ultriva', 'Ultriva', ['tarek', 'rana', 'zaki', 'dina', 'sherif', 'laila', 'ziad', 'noura'])
+      ]},
+      { id: 'kcx', name: 'KCX', kids: [
+        usProd('interfax', 'InterFAX', ['amr', 'habiba', 'sami', 'farida', 'bassem', 'jana']),
+        usProd('kapost', 'Kapost', ['malak', 'hazem', 'rawan', 'seif', 'nada'])
+      ]}
+    ]},
+    { id: 'valsoft', name: 'Valsoft', kids: [
+      { id: 'asteris', name: 'Asteris', kids: [
+        usProd('macpractice', 'MacPractice', ['priya', 'mathieu', 'hossam', 'chloe', 'ines', 'ravi', 'aya']),
+        usProd('xldent', 'XLDent', ['owen', 'sara', 'julien', 'marwan', 'emily', 'hadeer'])
+      ]}
+    ]},
+    { id: 'flairstech', name: 'FlairsTech', kids: [
+      { id: 'ft-egypt', name: 'FlairsTech Egypt', kids: [
+        usProd('helpdesk', 'IT Helpdesk', ['ramy', 'saly', 'mona', 'khaled', 'nour']),
+        usProd('salesops', 'Sales Ops', ['reem', 'fady', 'hagar', 'islam'])
+      ]}
+    ]}
+  ];
+
+  /* id -> { n, parent, depth }. The root is the plan, id '', depth 0. */
+  const US_IDX = (() => {
+    const out = { '': { n: { id: '', name: 'Plan', kids: US_TREE }, parent: null, depth: 0 } };
+    const walk = (list, parent, d) => list.forEach((n) => {
+      out[n.id] = { n: n, parent: parent, depth: d };
+      if (n.kids) walk(n.kids, n.id, d + 1);
+    });
+    walk(US_TREE, '', 1);
+    return out;
+  })();
+  const usAt = (id) => US_IDX[id] || null;
+  /* Children as THIS meter sees them: Voice has none under a product. */
+  const usKids = (m, id) => {
+    const x = usAt(id);
+    return x && x.depth < m.depth ? (x.n.kids || []) : [];
+  };
+
+  /* What the admin has set, per meter. Everything absent is an equal share.
+     Shaped to the team lead's numbers: Upland is pinned, the other two
+     split what is left, and inside FileBound two people were moved off the
+     even split, which is the case the page exists for. */
+  const US_PLAN = { copilot: 500000, qa: 12000, voice: 4100 };
+  const US_SET = {
+    copilot: { upland: 200000, flairstech: 60000, kmc: 120000, ultriva: 50000,
+               'filebound.hana': 12000, 'filebound.omar': 4000 },
+    qa:      { upland: 5000, kcx: 1800 },
+    voice:   { valsoft: 1500 }
+  };
+  const US_SESS = {
+    copilot: { upland: 6000, valsoft: null, flairstech: 5000 },
+    qa:      { upland: 40, valsoft: 30, flairstech: null },
+    voice:   {}
+  };
+  /* Who last changed the split under a node, per meter. Seeded on the
+     levels that carry a pinned child, because those are the decisions. */
+  const US_WHEN = {
+    copilot: { '': ['2 Oct', 'A. Mahfouz'], upland: ['2 Oct', 'A. Mahfouz'],
+               kmc: ['28 Sep', 'Tarek Ahmed'], filebound: ['4 Oct', 'Hana Saleh'] },
+    qa: { '': ['30 Sep', 'A. Mahfouz'], upland: ['30 Sep', 'A. Mahfouz'] },
+    voice: { '': ['1 Oct', 'Nour Wael'] }
+  };
+
+  /* ── THE SPLIT ──
+     `over` replaces the stored values for ONE node's children, which is how
+     the editor previews a draft through the same arithmetic the page uses.
+     Equal shares are whole units, and the remainder of the division goes to
+     the first few so the children add up to the parent exactly — an
+     "unallocated 2 tokens" sliver is a rounding error presented as a fact. */
+  function usSplit(m, id, over) {
+    const L = usLimit(m, id);
+    const kids = usKids(m, id);
+    const set = over || US_SET[m.id];
+    const pinned = kids.filter((k) => set[k.id] != null);
+    const fixed = pinned.reduce((a, k) => a + set[k.id], 0);
+    const auto = kids.filter((k) => set[k.id] == null);
+    const pool = Math.max(0, L - fixed);
+    const each = auto.length ? Math.floor(pool / auto.length) : 0;
+    let extra = auto.length ? pool - each * auto.length : 0;
+    const out = {};
+    kids.forEach((k) => {
+      if (set[k.id] != null) out[k.id] = set[k.id];
+      else { out[k.id] = each + (extra > 0 ? 1 : 0); if (extra > 0) extra--; }
+    });
+    const given = kids.reduce((a, k) => a + out[k.id], 0);
+    return { L: L, lim: out, fixed: fixed, auto: auto.length, each: each,
+             free: Math.max(0, L - given), over: fixed - L };
+  }
+  const US_MEMO = {};
+  function usLimit(m, id) {
+    if (!id) return US_PLAN[m.id];
+    const key = m.id + '|' + id;
+    if (US_MEMO[key] != null) return US_MEMO[key];
+    const x = usAt(id);
+    const v = usSplit(m, x.parent).lim[id] || 0;
+    US_MEMO[key] = v;
+    return v;
+  }
+  const usForget = () => Object.keys(US_MEMO).forEach((k) => { delete US_MEMO[k]; });
+
+  /* ── USE ──
+     Stored on the leaves and summed upward, so a company's figure is always
+     its products' figures added and can never drift from them. Seeded once
+     from the starting limits with a fixed spread — a week into the month,
+     most people well under, two close, one out. */
+  const US_USED = { copilot: {}, qa: {}, voice: {} };
+  (function seedUse() {
+    const RATIO = [0.14, 0.23, 0.09, 0.31, 0.17, 0.36, 0.07, 0.21, 0.12, 0.27, 0.19, 0.05, 0.24];
+    const PIN = { copilot: { 'filebound.omar': 1, 'filebound.karim': 0.91, 'ultriva.zaki': 0.87,
+                             'interfax.farida': 1, 'helpdesk.nour': 0.31 },
+                  qa: { 'kapost.hazem': 0.93, 'macpractice.ravi': 1 },
+                  voice: { interfax: 0.88 } };
+    US_METERS.forEach((m) => {
+      let i = 0;
+      const walk = (id) => {
+        const kids = usKids(m, id);
+        if (!kids.length) {
+          if (!id) return;
+          const r = PIN[m.id][id] != null ? PIN[m.id][id] : RATIO[i++ % RATIO.length];
+          US_USED[m.id][id] = Math.round(usLimit(m, id) * r);
+          return;
+        }
+        kids.forEach((k) => walk(k.id));
+      };
+      walk('');
+    });
+  })();
+  function usUsed(m, id) {
+    const kids = usKids(m, id);
+    if (!kids.length) return US_USED[m.id][id] || 0;
+    return kids.reduce((a, k) => a + usUsed(m, k.id), 0);
+  }
+
+  const usFmt = (n) => Math.round(n).toLocaleString('en-US');
+  /* Short form for the labels under the bar, where four of them share a
+     line: 120,000 is 120K, 4,100 stays 4,100 because 4.1K loses the 100. */
+  const usShort = (n) => n >= 100000 ? Math.round(n / 1000) + 'K'
+    : n >= 10000 ? (Math.round(n / 100) / 10).toString().replace(/\.0$/, '') + 'K' : usFmt(n);
+  /* What a person types: 12000, 12,000, 12k, 1.5m. Empty means equal share. */
+  function usParse(v) {
+    const s = String(v == null ? '' : v).trim().toLowerCase().replace(/[,\s]/g, '');
+    if (!s) return null;
+    const mt = /^(\d+(?:\.\d+)?)([km]?)$/.exec(s);
+    if (!mt) return NaN;
+    return Math.round(parseFloat(mt[1]) * (mt[2] === 'k' ? 1e3 : mt[2] === 'm' ? 1e6 : 1));
+  }
+  /* Near at 85%, out at 100. Said in a pill, never by fading the row. */
+  function usStanding(used, lim) {
+    if (lim <= 0) return used > 0 ? ['is-err', 'No allowance'] : null;
+    const r = used / lim;
+    if (r >= 1) return ['is-err', 'At limit'];
+    if (r >= 0.85) return ['is-warn', 'Near limit'];
+    return null;
+  }
+  const usPct = (used, lim) => lim > 0 ? Math.min(1, used / lim) : (used > 0 ? 1 : 0);
+  const usFillCls = (used, lim) => {
+    const s = usStanding(used, lim);
+    return s ? (s[0] === 'is-err' ? ' is-err' : ' is-warn') : '';
+  };
+
+  /* Where the page stands: a meter and a node, both from the URL. A node
+     the meter cannot reach (a product's people, under Voice) falls back to
+     its parent rather than rendering a level with nothing in it. */
+  function usPlace(st) {
+    const m = usMeter(st.meter);
+    let id = usAt(st.pool) ? st.pool : '';
+    while (id && usAt(id).depth >= m.depth) id = usAt(id).parent;
+    return { m: m, id: id };
+  }
+  const usPath = (id) => {
+    const out = [];
+    for (let x = id; x; x = usAt(x).parent) out.unshift(x);
+    return out;
+  };
+
+  /* The editor's working copy. Not URL state, for the reason a tone draft is
+     not: a link should open the saved split, not somebody's half-typed one. */
+  let US_EDIT = null;          /* { meter, pool, vals: { childId: 'typed' } } */
+  let US_SESS_ED = null;       /* { meter, org, v, err } */
+  let US_LAST = '';            /* the meter|pool last painted, to play the entrance once */
+
+  function usDraft() {
+    const out = {};
+    Object.keys(US_SET[US_EDIT.meter]).forEach((k) => { out[k] = US_SET[US_EDIT.meter][k]; });
+    Object.keys(US_EDIT.vals).forEach((k) => {
+      const v = usParse(US_EDIT.vals[k]);
+      if (v == null || isNaN(v)) delete out[k]; else out[k] = v;
+    });
+    return out;
+  }
+
+  /* ── WHAT CAN GO WRONG WITH A DRAFT ──
+     Three refusals and two warnings, each naming the row and the number.
+     Refused: not a number; the hand-set limits add up past the parent; a
+     child set below what ITS own children already hold by hand (lowering KCX
+     under the 90,000 its products were given would leave them pointing at
+     tokens that no longer exist). Warned, and allowed: a limit below what is
+     already used (that person is out until the reset, which may be the
+     point), and pinning so much that the equal-share rows get nothing. */
+  function usCheck(m, id) {
+    const draft = usDraft();
+    const sp = usSplit(m, id, draft);
+    const row = {};
+    const errs = [];
+    const warns = [];
+    const parent = usAt(id).n.name;
+    usKids(m, id).forEach((k) => {
+      const typed = US_EDIT.vals[k.id];
+      if (typed != null && isNaN(usParse(typed))) {
+        row[k.id] = ['is-err', 'Not a number'];
+        errs.push(k.name + ' is not a number. Use digits, or 12k for 12,000.');
+        return;
+      }
+      const lim = sp.lim[k.id];
+      const kk = usKids(m, k.id);
+      const held = kk.reduce((a, g) => a + (US_SET[m.id][g.id] || 0), 0);
+      if (kk.length && held > lim) {
+        row[k.id] = ['is-err', 'Below its own split'];
+        errs.push(k.name + '’s ' + US_PLURAL[usAt(k.id).depth + 1] + ' are set to ' + usFmt(held)
+          + ' by hand, so ' + k.name + ' cannot go below that.');
+        return;
+      }
+      const used = usUsed(m, k.id);
+      if (used > lim) row[k.id] = ['is-warn', usFmt(used) + ' already used'];
+    });
+    if (sp.over > 0) errs.unshift('Set limits add up to ' + usFmt(sp.fixed) + ', which is '
+      + usFmt(sp.over) + ' over ' + parent + '’s ' + usFmt(sp.L) + '.');
+    else if (sp.auto && sp.each === 0) warns.push('Nothing is left for the ' + sp.auto
+      + (sp.auto === 1 ? ' row' : ' rows') + ' on an equal share.');
+    const over = Object.keys(row).filter((k) => row[k][0] === 'is-warn').length;
+    if (over) warns.push(over + (over === 1 ? ' limit is' : ' limits are')
+      + ' below what is already used. Those stop until ' + US_PERIOD.resets + '.');
+    return { sp: sp, row: row, errs: errs, warns: warns };
+  }
+
+  /* ── The page ── */
+  function secUsage(st) {
+    const pl = usPlace(st);
+    const m = pl.m;
+    const id = pl.id;
+    if (US_EDIT && (US_EDIT.meter !== m.id || US_EDIT.pool !== id)) US_EDIT = null;
+    if (US_SESS_ED && (US_SESS_ED.meter !== m.id || US_SESS_ED.org !== id)) US_SESS_ED = null;
+    usForget();
+    const key = m.id + '|' + id;
+    const enter = key !== US_LAST;
+    US_LAST = key;
+    return `
+      <section class="set2-sec is-headless set2-us${enter ? ' is-enter' : ''}" id="st-usage">
+        <div class="set2-us-top">
+          <div class="seg set2-ag-seg set2-us-seg" role="radiogroup" aria-label="Which AiMY product">
+            ${US_METERS.map((x) => `
+              <button class="seg-btn${x.id === m.id ? ' active' : ''}" type="button" role="radio"
+                      aria-checked="${x.id === m.id}" tabindex="${x.id === m.id ? 0 : -1}"
+                      data-us-meter="${x.id}">${esc(x.name)}<span class="set2-us-unit">${esc(x.unit)}</span></button>`).join('')}
+          </div>
+        </div>
+        ${usHero(m, id)}
+        ${usAlloc(m, id, st)}
+      </section>`;
+  }
+
+  /* ── WHERE THIS LEVEL STANDS ──
+     The figure the screenshot from the Operations Hub leads with, used of
+     limit, then the three facts that explain the limit: where it came from,
+     the session cap, and when it turns over. One card, two columns, the
+     number getting the wide one. */
+  function usHero(m, id) {
+    const x = usAt(id);
+    const L = usLimit(m, id);
+    const used = usUsed(m, id);
+    const bad = usStanding(used, L);
+    const p = usPct(used, L);
+    const parent = x.parent != null ? usAt(x.parent).n : null;
+    const src = !id ? ['Plan', 'Your ' + m.name + ' plan, each month']
+      : US_SET[m.id][id] != null ? ['Set by admin', 'Set on ' + (parent.id ? parent.name : 'the plan')]
+      : ['Equal share', 'An equal share of ' + (parent.id ? parent.name : 'the plan')];
+    return `
+      <div class="set2-us-hero">
+        <div class="set2-us-now">
+          <span class="set2-us-k">${id ? esc(x.n.name) + ' · ' : ''}Used in ${US_PERIOD.name}
+            ${bad ? pill(bad[0], bad[1]) : ''}</span>
+          <p class="set2-us-big"><b class="set2-num">${usFmt(used)}</b>
+            <span>of ${usFmt(L)} ${esc(m.unit)}</span></p>
+          <div class="set2-us-m is-lg" role="meter" aria-valuemin="0" aria-valuemax="${L}"
+               aria-valuenow="${used}" aria-label="${esc(m.unit)} used">
+            <i class="set2-us-fill${usFillCls(used, L)}" style="--p:${p.toFixed(4)}"></i>
+          </div>
+          <div class="set2-us-scale" aria-hidden="true"><span>0</span><span>25%</span><span>50%</span>
+            <span>75%</span><span>100%</span></div>
+          <p class="set2-us-left"><b class="set2-num">${usFmt(Math.max(0, L - used))}</b> left
+            <span class="set2-us-dot">·</span> ${Math.round(p * 100)}% used</p>
+        </div>
+        <dl class="set2-us-facts">
+          <div class="set2-us-fact">
+            <dt>Limit</dt>
+            <dd><b>${esc(src[0])}</b><span>${esc(src[1])}</span></dd>
+          </div>
+          ${x.depth === 1 ? usSessFact(m, id) : ''}
+          <div class="set2-us-fact">
+            <dt>Resets</dt>
+            <dd><b>${US_PERIOD.resets}</b><span>in ${US_PERIOD.left} days, for everyone</span></dd>
+          </div>
+        </dl>
+      </div>`;
+  }
+
+  function usSessFact(m, id) {
+    if (!m.sess) return `
+      <div class="set2-us-fact">
+        <dt>Session limit</dt>
+        <dd><b>Not used</b><span>Voice calls are not grouped into sessions</span></dd>
+      </div>`;
+    const v = US_SESS[m.id][id];
+    const ed = US_SESS_ED;
+    if (ed) return `
+      <div class="set2-us-fact is-edit">
+        <dt><label for="usSessIn">Session limit</label></dt>
+        <dd>
+          <span class="set2-us-sess-row">
+            <input class="set2-fld set2-us-in${ed.err ? ' is-bad' : ''}" id="usSessIn" data-us-sess-in
+                   value="${esc(ed.v)}" placeholder="No limit" inputmode="numeric" autocomplete="off"
+                   aria-describedby="usSessHint">
+            <span class="set2-us-per">${esc(m.unit)} ${esc(m.sess.per)}</span>
+          </span>
+          <span class="set2-hint${ed.err ? ' is-err' : ''}" id="usSessHint"${ed.err ? ' role="alert"' : ''}>${
+            esc(ed.err || 'Leave empty for no limit.')}</span>
+          <span class="set2-us-sess-act">
+            <button class="btn btn-ghost btn-sm" type="button" data-us-sess-cancel>Cancel</button>
+            <button class="btn btn-brand btn-sm" type="button" data-us-sess-save>Save</button>
+          </span>
+        </dd>
+      </div>`;
+    return `
+      <div class="set2-us-fact">
+        <dt>Session limit ${tip('usSessTip', 'the session limit', m.sess.d)}</dt>
+        <dd><b>${v == null ? 'No limit' : usFmt(v) + ' ' + esc(m.unit)}</b>
+          <span>${v == null ? 'A session can use the whole allowance' : esc(m.sess.per)}</span></dd>
+        <button class="btn btn-ghost btn-sm set2-us-fact-ed" type="button" data-us-sess-open="${esc(id)}">Edit</button>
+      </div>`;
+  }
+
+  /* ── THE SPLIT, AS ONE BAR AND THE ROWS UNDER IT ──
+     The bar answers "who has how much of this" before a single row is read:
+     each segment is a child's share of the limit, and the darker part of it is
+     what that child has used. Labels sit UNDER the bar on the same flex, so
+     they line up with their segment and never have to fight the fill for
+     contrast. Unallocated is hatched and says it. */
+  function usAlloc(m, id, st) {
+    const kids = usKids(m, id);
+    const depth = usAt(id).depth;
+    const noun = US_PLURAL[depth + 1];
+    const name = usAt(id).n.name;
+    if (!kids.length) return `
+      <div class="set2-empty set2-us-empty"><b>No ${noun} in ${esc(name)} yet</b>
+        Anyone added here takes an equal share of its ${usFmt(usLimit(m, id))} ${esc(m.unit)}.</div>`;
+    const ed = !!US_EDIT;
+    const ck = ed ? usCheck(m, id) : null;
+    const sp = ck ? ck.sp : usSplit(m, id);
+    const q = (readF(st).uq || '').trim().toLowerCase();
+    const rows = q ? kids.filter((k) => k.name.toLowerCase().indexOf(q) > -1) : kids;
+    const when = (US_WHEN[m.id] || {})[id];
+    return `
+      <div class="set2-us-alloc">
+        <div class="set2-lbl-row set2-us-hd">
+          <p class="set2-lbl">Split across ${esc(noun)}</p>
+          ${tip('usSplitTip', 'how the split works', 'Anyone not set by hand gets an equal share of '
+            + 'what is left after the ones that are. Together they can never be more than '
+            + (id ? name : 'the plan') + '.')}
+          <span class="set2-us-hd-end">
+            ${kids.length > 8 ? `
+              <div class="k-search set2-us-q${q ? ' is-on' : ''}">
+                ${I.search.replace('<svg', '<svg width="13" height="13" aria-hidden="true"')}
+                <input class="k-search-i" type="search" placeholder="Find in ${esc(name)}…"
+                       value="${esc(readF(st).uq || '')}" data-f-q data-f-key="uq" autocomplete="off"
+                       spellcheck="false" aria-label="Find ${esc(noun)} in ${esc(name)}">
+                ${q ? `<button class="k-search-x" type="button" data-fq-clear data-fq-key="uq"
+                         aria-label="Clear search">${I.x.replace('<svg', '<svg width="11" height="11"')}</button>` : ''}
+              </div>` : ''}
+            ${ed ? `<button class="btn btn-ghost btn-sm" type="button" data-us-even
+                            title="Clear every hand-set limit on this level">Split equally</button>`
+                 : `<button class="btn btn-ghost btn-sm" type="button" data-us-edit>Edit limits</button>`}
+          </span>
+        </div>
+        <div data-us-stack>${usStack(m, kids, sp)}</div>
+        <div class="set2-us-list${ed ? ' is-edit' : ''}" role="list" aria-label="${esc(noun)} in ${esc(name)}">
+          <div class="set2-us-r is-hd" aria-hidden="true">
+            <span></span><span>${esc(US_LEVEL[depth + 1])}</span><span>Used</span><span class="set2-us-r-lim">Limit</span><span></span>
+          </div>
+          ${rows.map((k) => usRow(m, k, sp, ck)).join('')}
+          ${rows.length ? '' : `<p class="set2-us-none">No ${esc(noun)} in ${esc(name)} match
+            “${esc(readF(st).uq)}”.</p>`}
+        </div>
+        ${ed ? `<div class="set2-us-bar" data-us-bar>${usBar(ck)}</div>`
+             : when ? `<p class="set2-us-when">Split last changed ${esc(when[0])} by ${esc(when[1])}</p>` : ''}
+      </div>`;
+  }
+
+  function usStack(m, kids, sp) {
+    const L = sp.L || 1;
+    const segs = kids.map((k) => ({ id: k.id, name: k.name, lim: sp.lim[k.id],
+                                    used: usUsed(m, k.id), set: US_EDIT ? null : US_SET[m.id][k.id] != null }));
+    const part = (s, i) => `
+      <span class="set2-us-sg" data-us-seg="${esc(s.id)}" style="flex-grow:${s.lim};--i:${i}"
+            title="${esc(s.name)}: ${usFmt(s.used)} of ${usFmt(s.lim)} ${esc(m.unit)}">
+        <i class="set2-us-fill${usFillCls(s.used, s.lim)}" style="--p:${usPct(s.used, s.lim).toFixed(4)}"></i>
+      </span>`;
+    /* People by first name: ten of them share the line, and the row below
+       says the rest. */
+    const lab = (s) => `
+      <span class="set2-us-sl" style="flex-grow:${s.lim}" data-us-lab="${esc(s.id)}">
+        ${s.lim / L >= 0.07 ? `<b>${esc(usAt(s.id).depth === 4 ? s.name.split(' ')[0] : s.name)}</b> ${
+          usShort(s.lim)}` : ''}</span>`;
+    return `
+      <div class="set2-us-stack" aria-hidden="true">
+        ${segs.map(part).join('')}
+        ${sp.free > 0 ? `<span class="set2-us-sg is-free" style="flex-grow:${sp.free}"></span>` : ''}
+      </div>
+      <div class="set2-us-stack-l" aria-hidden="true">
+        ${segs.map(lab).join('')}
+        ${sp.free > 0 ? `<span class="set2-us-sl is-free" style="flex-grow:${sp.free}">${
+          sp.free / L >= 0.07 ? `<b>Unallocated</b> ${usShort(sp.free)}` : ''}</span>` : ''}
+      </div>
+      ${sp.free > 0 && sp.free / L < 0.07 ? `<p class="set2-us-free">${usFmt(sp.free)} ${esc(m.unit)} unallocated</p>` : ''}`;
+  }
+
+  /* One row. A level with a level under it is a destination; an employee
+     is not, and gets initials instead of a chevron. In edit mode the names
+     stop being links: leaving would lose the draft, and a click aimed at a
+     field should never navigate. */
+  function usRow(m, k, sp, ck) {
+    const x = usAt(k.id);
+    const deeper = x.depth < m.depth;
+    const lim = sp.lim[k.id];
+    const used = usUsed(m, k.id);
+    const bad = usStanding(used, lim);
+    const isSet = US_EDIT ? usParse(US_EDIT.vals[k.id]) != null && !isNaN(usParse(US_EDIT.vals[k.id]))
+                          : US_SET[m.id][k.id] != null;
+    const sub = (() => {
+      if (x.depth === 4) {
+        const also = Object.keys(US_IDX).filter((oid) => oid !== k.id && US_IDX[oid].n.person === k.person)
+          .map((oid) => usAt(usAt(oid).parent).n.name);
+        return also.length ? 'Also in ' + also.join(', ') + ', limited separately' : '';
+      }
+      const kk = usKids(m, k.id);
+      const bits = kk.length ? [kk.length + ' ' + (kk.length === 1 ? US_LEVEL[x.depth + 1].toLowerCase()
+                                                                   : US_PLURAL[x.depth + 1])] : [];
+      if (x.depth === 1 && m.sess) {
+        const s = US_SESS[m.id][k.id];
+        bits.push(s == null ? 'no session limit' : usFmt(s) + ' ' + m.sess.per);
+      }
+      return bits.join(' · ');
+    })();
+    const flag = ck && ck.row[k.id];
+    const initials = k.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join('');
+    return `
+      <div class="set2-us-r${bad ? ' ' + bad[0] : ''}${flag ? ' has-' + flag[0].slice(3) : ''}" role="listitem"
+           data-us-row="${esc(k.id)}">
+        <span class="set2-us-ico">${x.depth === 4 ? `<span class="set2-us-av">${esc(initials)}${US_PHOTO[k.person]
+          ? `<img class="av-photo" src="${esc(US_PHOTO[k.person])}" alt="" loading="lazy" decoding="async">` : ''}</span>` : I[US_ICO[x.depth]]}</span>
+        <span class="set2-us-main">
+          ${deeper && !US_EDIT
+            ? `<button class="set2-sk-go" type="button" data-us-go="${esc(k.id)}">${esc(k.name)}</button>`
+            : `<span class="set2-us-n">${esc(k.name)}</span>`}
+          ${sub ? `<span class="set2-us-sub">${esc(sub)}</span>` : ''}
+        </span>
+        <span class="set2-us-use">
+          <span class="set2-us-use-t"><b class="set2-num">${usFmt(used)}</b>
+            ${bad ? pill(bad[0], bad[1]) : `<span class="set2-us-pc">${Math.round(usPct(used, lim) * 100)}%</span>`}</span>
+          <span class="set2-us-m"><i class="set2-us-fill${usFillCls(used, lim)}" style="--p:${usPct(used, lim).toFixed(4)}"></i></span>
+        </span>
+        <span class="set2-us-r-lim">
+          ${US_EDIT ? `
+            <span class="set2-us-in-wrap">
+              <input class="set2-fld set2-us-in${flag && flag[0] === 'is-err' ? ' is-bad' : ''}"
+                     data-us-in="${esc(k.id)}" value="${esc(US_EDIT.vals[k.id] != null ? US_EDIT.vals[k.id] : '')}"
+                     placeholder="${usFmt(lim)}" inputmode="numeric" autocomplete="off"
+                     aria-label="${esc(k.name)}’s limit, in ${esc(m.unit)}. Empty for an equal share.">
+              <button class="set2-us-rs" type="button" data-us-rs="${esc(k.id)}"${isSet ? '' : ' hidden'}
+                      aria-label="Give ${esc(k.name)} an equal share" title="Back to an equal share">${I.reset}</button>
+            </span>
+            <span class="set2-us-src${isSet ? ' is-set' : ''}" data-us-src="${esc(k.id)}">${
+              flag ? `<span class="set2-us-flag ${flag[0]}">${esc(flag[1])}</span>`
+                   : isSet ? 'Set by hand' : 'Equal share'}</span>`
+          : `
+            <b class="set2-num">${usFmt(lim)}</b>
+            <span class="set2-us-src${isSet ? ' is-set' : ''}">${isSet ? 'Set by admin' : 'Equal share'}</span>`}
+        </span>
+        <span class="set2-us-end">${deeper && !US_EDIT ? I.chev : ''}</span>
+      </div>`;
+  }
+
+  /* The editor's footer: what is wrong, or what will change, then the two
+     buttons. Save is refused, not hidden, while anything is refused, and the
+     reason is the sentence beside it. */
+  function usBar(ck) {
+    const n = Object.keys(US_EDIT.vals).filter((k) => {
+      const v = usParse(US_EDIT.vals[k]);
+      const was = US_SET[US_EDIT.meter][k];
+      return (v == null || isNaN(v)) ? was != null || (US_EDIT.vals[k] || '').trim() !== '' : v !== was;
+    }).length;
+    const msg = ck.errs[0] || ck.warns[0]
+      || (n ? n + (n === 1 ? ' change' : ' changes') + ', not saved' : 'No changes yet');
+    const cls = ck.errs.length ? ' is-err' : ck.warns.length ? ' is-warn' : n ? ' is-dirty' : '';
+    return `
+      <span class="set2-us-bar-s${cls}"${ck.errs.length ? ' role="alert"' : ''}>${esc(msg)}${
+        ck.errs.length + ck.warns.length > 1 ? ` <span class="set2-us-more" title="${esc(ck.errs.concat(ck.warns).slice(1).join(' '))}">+${
+          ck.errs.length + ck.warns.length - 1} more</span>` : ''}</span>
+      <button class="btn btn-ghost btn-sm" type="button" data-us-cancel>Cancel</button>
+      <button class="btn btn-brand btn-sm" type="button" data-us-save${ck.errs.length ? ' disabled aria-disabled="true"' : ''}>Save limits</button>`;
+  }
+
+  /* Typing re-divides the equal shares as you go, without a repaint: the
+     caret stays in the field, and the bar, the placeholders and the footer
+     are rewritten in place. */
+  function usLive() {
+    if (!US_EDIT) return;
+    const m = usMeter(US_EDIT.meter);
+    const id = US_EDIT.pool;
+    usForget();
+    const ck = usCheck(m, id);
+    const stack = $('[data-us-stack]');
+    if (stack) stack.innerHTML = usStack(m, usKids(m, id), ck.sp);
+    const bar = $('[data-us-bar]');
+    if (bar) bar.innerHTML = usBar(ck);
+    usKids(m, id).forEach((k) => {
+      const inp = $('[data-us-in="' + k.id + '"]');
+      if (!inp) return;
+      const v = usParse(US_EDIT.vals[k.id]);
+      const isSet = v != null && !isNaN(v);
+      const flag = ck.row[k.id];
+      inp.placeholder = usFmt(ck.sp.lim[k.id]);
+      inp.classList.toggle('is-bad', !!flag && flag[0] === 'is-err');
+      const rs = $('[data-us-rs="' + k.id + '"]');
+      if (rs) rs.hidden = !isSet;
+      const src = $('[data-us-src="' + k.id + '"]');
+      if (src) {
+        src.classList.toggle('is-set', isSet);
+        src.innerHTML = flag ? `<span class="set2-us-flag ${flag[0]}">${esc(flag[1])}</span>`
+          : isSet ? 'Set by hand' : 'Equal share';
+      }
+      const r = $('[data-us-row="' + k.id + '"]');
+      if (r) {
+        r.classList.toggle('has-err', !!flag && flag[0] === 'is-err');
+        r.classList.toggle('has-warn', !!flag && flag[0] === 'is-warn');
+      }
+    });
+  }
+
+  function usSave() {
+    if (!US_EDIT) return;
+    const m = usMeter(US_EDIT.meter);
+    const ck = usCheck(m, US_EDIT.pool);
+    if (ck.errs.length) { usLive(); return; }
+    usKids(m, US_EDIT.pool).forEach((k) => {
+      const v = usParse(US_EDIT.vals[k.id]);
+      if (v == null || isNaN(v)) delete US_SET[m.id][k.id]; else US_SET[m.id][k.id] = v;
+    });
+    (US_WHEN[m.id] = US_WHEN[m.id] || {})[US_EDIT.pool] = ['just now', USER.name];
+    DIRTY.add('usage:' + m.id + ':' + (US_EDIT.pool || 'plan'));
+    US_EDIT = null;
+    usForget();
+    render();
+  }
+
+  function usSessSave() {
+    const ed = US_SESS_ED;
+    if (!ed) return;
+    const m = usMeter(ed.meter);
+    const v = usParse(ed.v);
+    if (v != null && (isNaN(v) || v <= 0)) {
+      ed.err = 'Use a whole number above 0, or leave it empty for no limit.';
+      render(() => { const f = $('[data-us-sess-in]'); if (f) f.focus(); });
+      return;
+    }
+    if (v != null && v > usLimit(m, ed.org)) {
+      ed.err = 'That is more than ' + usAt(ed.org).n.name + '’s whole ' + usFmt(usLimit(m, ed.org))
+        + ' for the month.';
+      render(() => { const f = $('[data-us-sess-in]'); if (f) f.focus(); });
+      return;
+    }
+    US_SESS[m.id][ed.org] = v;
+    DIRTY.add('session:' + m.id + ':' + ed.org);
+    US_SESS_ED = null;
+    render(() => { const b = $('[data-us-sess-open]'); if (b) b.focus(); });
+  }
+
+  /* The header's scope slot: the path from the plan to here, each step
+     pressable. The last step is where you are, so it is not a link. */
+  function usageScope(st) {
+    const pl = usPlace(st);
+    const sep = '<span class="set2-scope-s">&rsaquo;</span>';
+    const path = usPath(pl.id);
+    const step = (id, label) => `<button class="set2-us-crumb" type="button" data-us-go="${esc(id)}">${esc(label)}</button>`;
+    return `
+      <nav class="set2-scope set2-us-crumbs" aria-label="Where in the split">
+        ${pl.id ? step('', pl.m.name + ' plan') : `<span class="set2-scope-i"><b>${esc(pl.m.name)} plan</b></span>`}
+        ${path.map((id, i) => sep + (i === path.length - 1
+          ? `<span class="set2-scope-i" aria-current="page"><b>${esc(usAt(id).n.name)}</b>
+               ${esc(US_LEVEL[usAt(id).depth].toLowerCase())}</span>`
+          : step(id, usAt(id).n.name))).join('')}
+      </nav>`;
+  }
+
+  /* Rail note: the worst thing on the meter you were last looking at,
+     counted in people (or products, for Voice) rather than in nodes — "2 at
+     limit" means two somebodies who cannot work right now. */
+  function usageState(st) {
+    const m = usMeter(st.meter);
+    usForget();
+    const leaves = Object.keys(US_IDX).filter((id) => id && usAt(id).depth === m.depth);
+    let out = 0;
+    let near = 0;
+    leaves.forEach((id) => {
+      const s = usStanding(usUsed(m, id), usLimit(m, id));
+      if (s && s[0] === 'is-err') out++; else if (s) near++;
+    });
+    if (out) return { note: out + ' at limit', s: 'err' };
+    if (near) return { note: near + ' near limit', s: 'warn' };
+    return { note: Math.round(usPct(usUsed(m, ''), US_PLAN[m.id]) * 100) + '% used', s: '' };
+  }
+
   /* ── Reading a tone file ──
      Checked in the order a person would fix it: wrong kind of file, too big,
      empty, and only then whether a JSON file parses. Nothing is written until
@@ -5408,6 +6132,7 @@
     scopes:     (st) => M.hierarchy(st),
     selling:    () => secSelling(),
     agentlist:  (st) => secAgents(st),
+    usage:      (st) => secUsage(st),
     skills:     (st) => M.skills(st)
   };
 
@@ -7063,7 +7788,10 @@
       const off = SKILLS.filter((x) => standing2(x)[0] !== 'is-ok').length;
       return `<span class="set2-num"><b>${SKILLS.length}</b> configured</span>`
            + (off ? `<span class="set2-num is-warn"><b>${off}</b> not applying</span>` : '');
-    }
+    },
+    /* When the period turns over, because every number on the page is
+       "so far this month" and the page should say how far that is. */
+    usage: () => `<span class="set2-num">Resets <b>${US_PERIOD.resets}</b></span>`
   };
 
   /* ── A PAGE'S ONE ACTION, ON ITS TITLE ROW ──
@@ -7159,6 +7887,7 @@
   function scopeSlot(st, m, pg) {
     if (m.scope === 'prod') return prodScope(st);
     if (pg && pg.id === 'people') return peopleScope(st);
+    if (pg && pg.id === 'usage') return usageScope(st);
     return '';
   }
 
@@ -7328,7 +8057,14 @@
           var n = SKILLS.filter(function (x) { return standing2(x)[0] !== 'is-ok'; }).length;
           return n ? { note: n + ' not applying', s: 'warn' }
                    : { note: SKILLS.length + ' applying', s: 'ok' };
-        } }
+        } },
+      /* ── USAGE ──
+         How much of each AiMY product's plan every organization, company,
+         product and person may use. A page of Agents because what it limits
+         is what the agents spend; Tone & Voice sets how they answer, this sets
+         how much. The note is the worst thing on the meter you last had open. */
+      { id: 'usage', name: 'Usage', secs: ['usage'], bare: true,
+        state: function (st) { return usageState(st); } }
     ]
   };
 
@@ -7756,6 +8492,76 @@
       patch({ agent: go.dataset.go.slice(6) }); return;
     }
     if (e.target.closest('[data-ag-back]')) { patch({ agent: '' }); return; }
+
+    /* ── USAGE ──
+       Moving between meters or levels drops the name search, which was a
+       search of the level you left. */
+    const usM = e.target.closest('[data-us-meter]');
+    if (usM) {
+      const v = usM.getAttribute('data-us-meter');
+      if (v !== usPlace(st).m.id) {
+        US_EDIT = null; US_SESS_ED = null;
+        patch({ meter: v === 'copilot' ? '' : v, f: withF(st, 'uq', null) });
+        render(() => { const b = $('[data-us-meter="' + v + '"]'); if (b) b.focus(); });
+      }
+      return;
+    }
+    const usG = e.target.closest('[data-us-go]');
+    if (usG) {
+      if (US_EDIT) return;
+      US_SESS_ED = null;
+      patch({ pool: usG.getAttribute('data-us-go'), f: withF(st, 'uq', null) });
+      return;
+    }
+    if (e.target.closest('[data-us-edit]')) {
+      const pl = usPlace(st);
+      US_EDIT = { meter: pl.m.id, pool: pl.id, vals: {} };
+      usKids(pl.m, pl.id).forEach((k) => {
+        const v = US_SET[pl.m.id][k.id];
+        US_EDIT.vals[k.id] = v == null ? '' : usFmt(v);
+      });
+      render(() => { const f = $('[data-us-in]'); if (f) f.focus(); });
+      return;
+    }
+    if (e.target.closest('[data-us-cancel]')) {
+      US_EDIT = null;
+      render(() => { const b = $('[data-us-edit]'); if (b) b.focus(); });
+      return;
+    }
+    if (e.target.closest('[data-us-save]')) { usSave(); return; }
+    /* The 1:1 default, back in one press. Still a draft: nothing is written
+       until Save, so it is also the fastest way to SEE the even split. */
+    if (e.target.closest('[data-us-even]')) {
+      if (US_EDIT) {
+        Object.keys(US_EDIT.vals).forEach((k) => { US_EDIT.vals[k] = ''; });
+        $$('[data-us-in]').forEach((f) => { f.value = ''; });
+        usLive();
+      }
+      return;
+    }
+    const usR = e.target.closest('[data-us-rs]');
+    if (usR && US_EDIT) {
+      const k = usR.getAttribute('data-us-rs');
+      US_EDIT.vals[k] = '';
+      const f = $('[data-us-in="' + k + '"]');
+      if (f) { f.value = ''; f.focus(); }
+      usLive();
+      return;
+    }
+    const usSO = e.target.closest('[data-us-sess-open]');
+    if (usSO) {
+      const pl = usPlace(st);
+      const v = US_SESS[pl.m.id][pl.id];
+      US_SESS_ED = { meter: pl.m.id, org: pl.id, v: v == null ? '' : String(v), err: '' };
+      render(() => { const f = $('[data-us-sess-in]'); if (f) { f.focus(); f.select(); } });
+      return;
+    }
+    if (e.target.closest('[data-us-sess-cancel]')) {
+      US_SESS_ED = null;
+      render(() => { const b = $('[data-us-sess-open]'); if (b) b.focus(); });
+      return;
+    }
+    if (e.target.closest('[data-us-sess-save]')) { usSessSave(); return; }
     /* Across to Skills with this agent already chosen in its filter, which is
        the list the card on the side was a preview of. */
     const agS = e.target.closest('[data-ag-skills]');
@@ -8871,7 +9677,31 @@
        `picker()`, `repaintPicker()` or `SEL`, all three now gone. */
   });
 
+  /* A row and its segment light together, so the bar can be read by
+     pointing at a name and a name found by pointing at the bar. */
+  const usHot = (id) => {
+    $$('.set2-us .is-hot').forEach((x) => x.classList.remove('is-hot'));
+    if (!id) return;
+    $$('[data-us-seg="' + id + '"], [data-us-lab="' + id + '"], [data-us-row="' + id + '"]')
+      .forEach((x) => x.classList.add('is-hot'));
+  };
+  document.addEventListener('mouseover', (e) => {
+    if (!e.target.closest) return;
+    const hit = e.target.closest('[data-us-row], [data-us-seg]');
+    if (!hit && !e.target.closest('.set2-us')) return;
+    usHot(hit ? hit.getAttribute('data-us-row') || hit.getAttribute('data-us-seg') : '');
+  });
+
   document.addEventListener('input', (e) => {
+    /* A usage limit. Stored, and the split re-divided in place. */
+    const usI = e.target.closest && e.target.closest('[data-us-in]');
+    if (usI && US_EDIT) {
+      US_EDIT.vals[usI.getAttribute('data-us-in')] = usI.value;
+      usLive();
+      return;
+    }
+    const usSI = e.target.closest && e.target.closest('[data-us-sess-in]');
+    if (usSI && US_SESS_ED) { US_SESS_ED.v = usSI.value; return; }
     /* An agent's tone. Stored, and the bar under it told — never repainted,
        which would take the caret out of the sentence being written. */
     const flI = e.target.closest && e.target.closest('[data-fl-p], [data-fl-c]');
@@ -9307,6 +10137,40 @@
   }
 
   document.addEventListener('keydown', (e) => {
+    /* Usage: Enter saves and Escape cancels, in the split and in the session
+       field alike; the meter switch is a radiogroup like the two below. */
+    const usK = e.target.closest && e.target.closest('[data-us-in], [data-us-sess-in]');
+    if (usK && (e.key === 'Enter' || e.key === 'Escape')) {
+      e.preventDefault();
+      const sess = usK.hasAttribute('data-us-sess-in');
+      if (e.key === 'Enter') { if (sess) usSessSave(); else usSave(); return; }
+      if (sess) US_SESS_ED = null; else US_EDIT = null;
+      render(() => { const b = $(sess ? '[data-us-sess-open]' : '[data-us-edit]'); if (b) b.focus(); });
+      return;
+    }
+    /* While the split is open, Enter saves it from wherever focus is: after
+       pressing a reset glyph, Split equally, or nowhere in particular. Two
+       exceptions keep their own meaning: Cancel still cancels, and a text
+       field that is not a limit (the ask bar, the name search) is typing
+       something else. A refused save leaves the editor open with the reason
+       in its footer, and focus goes to the first field it refused. */
+    if (US_EDIT && e.key === 'Enter' && !e.shiftKey && !e.altKey && !e.isComposing
+        && e.target.closest && !e.target.closest('[data-us-cancel]')
+        && !(e.target.matches && e.target.matches('input, textarea, select, [contenteditable="true"]'))) {
+      e.preventDefault();
+      usSave();
+      if (US_EDIT) { const bad = $('[data-us-in].is-bad'); if (bad) bad.focus(); }
+      return;
+    }
+    const usMk = e.target.closest && e.target.closest('[data-us-meter]');
+    if (usMk && /^Arrow(Left|Right|Up|Down)$/.test(e.key)) {
+      const group = $$('[data-us-meter]');
+      const step = /Right|Down/.test(e.key) ? 1 : -1;
+      const next = group[(group.indexOf(usMk) + step + group.length) % group.length];
+      e.preventDefault();
+      if (next) next.click();
+      return;
+    }
     /* ── The two radiogroups on an agent's page ──
        Arrows move AND select, which is what a radiogroup does; one tab stop
        per group (roving tabindex in the markup). Ctrl/Cmd+Enter in the tone
@@ -9422,7 +10286,31 @@
   /* `_pages` is exported for the same reason `_stageAt` was: it is the rule
      that decides what the rail lists and what each row says about it, and a
      browser pane can check it against the model without driving a scroll. */
+  /* ── THE SIGNED-IN PERSON'S OWN ROW ──
+     Read by the chat composer's usage mark (knowledge.js), so the figure in
+     the popover and the figure on Agents > Usage are one number. The chat is
+     Copilot, so it is Copilot's meter; Nour sits in FlairsTech's IT Helpdesk. */
+  const US_ME = { id: 'helpdesk.nour', org: 'flairstech', meter: 'copilot' };
+  function usageMine() {
+    const m = usMeter(US_ME.meter);
+    usForget();
+    return { limit: usLimit(m, US_ME.id), used: usUsed(m, US_ME.id), unit: m.unit,
+             sessLimit: m.sess ? US_SESS[m.id][US_ME.org] : null, sessPer: m.sess ? m.sess.per : '',
+             resets: US_PERIOD.resets,
+             /* The page as the rail opens it: the plan, all organisations.
+                Not drilled into your own product; the person following the
+                link is usually looking for the whole picture, and the
+                breadcrumb gets them to IT Helpdesk in two presses. */
+             link: 'console.html?m=agents&sec=usage' };
+  }
+  function usageSpend(n) {
+    const u = US_USED[US_ME.meter];
+    u[US_ME.id] = (u[US_ME.id] || 0) + n;
+  }
+
   window.AIMY_SETTINGS = {
+    usageMine: usageMine,
+    usageSpend: usageSpend,
     _pages: function (st) {
       const m = moduleById(st.m) || moduleById('config');
       const list = pagesOf(m.id) || [];

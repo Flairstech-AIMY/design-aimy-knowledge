@@ -28,12 +28,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="assets/aimy-ds.css?v=46" />
-  <link rel="stylesheet" href="assets/knowledge.css?v=324" />
+  <link rel="stylesheet" href="assets/knowledge.css?v=327" />
   <!-- The settings modules render into this page's stage now, so their
        stylesheet loads with it. Nothing in it paints console markup: every
        rule is namespaced `.set2-`, apart from `kbd` and `.w-lock`, neither of
        which the console renders. -->
-  <link rel="stylesheet" href="assets/settings.css?v=525" />
+  <link rel="stylesheet" href="assets/settings.css?v=530" />
   <link rel="stylesheet" href="assets/voice.css?v=10" />
 
   <script>
@@ -430,9 +430,12 @@
 
         <div class="overlay-input-wrap">
           <div class="overlay-input-bar">
-            <div class="aimy-float-icon">
-              <svg width="16" height="18" viewBox="0 0 18 20"><use href="#aimy-logo-small"/></svg>
-            </div>
+            <!-- The mark is the way to your usage: its rim fills with the
+                 month's plan used, and pressing it opens Plan / Session.
+                 A button so it can be pressed; it looks exactly as it did. -->
+            <button class="aimy-float-icon" type="button" aria-label="Your usage">
+              <svg width="16" height="18" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
+            </button>
             <textarea class="overlay-input" id="overlayInput" placeholder="Ask AiMY anything…" rows="1"
                       spellcheck="false" autocomplete="off" data-submit-on-enter aria-label="Ask AiMY"></textarea>
             <button class="overlay-send" id="overlaySend" aria-label="Send">
@@ -511,14 +514,14 @@
      time and the settings modal is the shallowest layer on the page, so it has
      to answer first; and knowledge.js hands it `patch` and `readURL` from
      inside its own `init`, which waits for DOMContentLoaded either way. -->
-<script src="assets/settings.js?v=515"></script>
+<script src="assets/settings.js?v=524"></script>
 <!-- The four patterns AiMY does not already have. Optional: every call site in
      knowledge.js is guarded, so the console runs without them. -->
 <script src="assets/halaska-kit.bundle.js?v=37"></script>
 <script src="assets/halaska-bridge.js?v=32"></script>
 <script src="assets/halaska-mounts.js?v=32"></script>
 
-<script src="assets/knowledge.js?v=418"></script>
+<script src="assets/knowledge.js?v=425"></script>
 <script src="assets/voice.js?v=12"></script>
 </body>
 </html>
