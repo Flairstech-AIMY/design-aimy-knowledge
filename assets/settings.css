@@ -532,6 +532,18 @@ textarea.set2-fld { resize: vertical; min-height: 6rem; line-height: var(--lh-ba
     margin-top: 0.4375rem;
   }
 }
+/* Above, for a glyph in a dialog FOOTER: the footer does not scroll, there is
+   nothing under it but the dialog's edge, and the list above has room. */
+.set2-tip.is-above {
+  left: 0; top: auto; bottom: calc(100% + 0.4375rem);
+  /* 5.5rem is the dialog's 1.5rem margin and 1.125rem padding on each side,
+     plus room to spare; at 3rem it ran 12px past the dialog at 375 and the
+     dialog's `overflow: hidden` cut it off. */
+  max-width: min(20rem, calc(100vw - 5.5rem));
+}
+.set2-tip-l { display: block; }
+.set2-tip-l + .set2-tip-l { margin-top: 0.25rem; }
+.set2-tip b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
 @media (prefers-reduced-motion: reduce) { .set2-tip { transition: none; } }
 /* Settings is set in Urbanist throughout — the URLs and tokens included. The
    class stays as the hook for what a monospace face was doing here, because
@@ -4491,7 +4503,22 @@ input.set2-fld[type="password"] {
 .set2-fl-del:hover { color: var(--ink-err); background: var(--err-bg); }
 .set2-fl-del:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0; }
 .set2-fl-none { margin: 0.25rem 0; font-size: var(--ty-micro); color: var(--ink-secondary); }
-.set2-fl-add { margin-top: 0.75rem; }
+/* Add and Upload. The templates and the format rule are in the footer. */
+.set2-fl-bar {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.set2-fl-up { cursor: pointer; }
+/* In the footer, after the info glyph, so the glyph reads as being about
+   the two links beside it. */
+.set2-fl-fmt { align-items: center; gap: 0.5rem; }
+.set2-fl-tpl {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  font-size: var(--ty-micro); color: var(--ink-quiet);
+}
+.set2-fl-msg { margin: 0.625rem 0 0; }
+.set2-fl-msg:not(.is-err) { color: var(--ink-ok); border-left-color: var(--ink-ok); }
+.set2-fl-modal.is-over { outline: 0.125rem dashed var(--brand); outline-offset: -0.125rem; }
 .set2-fl-modal .set2-modal-bd > .set2-hint { margin-top: 0.625rem; }
 
 /* Below the shell's 735 rung the two columns stack per row: a phrase over
@@ -4502,4 +4529,9 @@ input.set2-fld[type="password"] {
   .set2-fl-row [data-fl-c] { grid-column: 1; grid-row: 2; }
   .set2-fl-row .set2-fl-del { grid-column: 2; grid-row: 1; }
   .set2-fl-row + .set2-fl-row { padding-top: 0.625rem; border-top: 0.0625rem solid var(--hairline); }
+  /* The template group and the two actions want 340px; at 375 the footer has
+     about 290, and Save ran 14px out of the dialog. They take two lines, with
+     the actions on the second, still at the right where a dialog keeps them. */
+  .set2-fl-modal .set2-modal-ft { flex-wrap: wrap; row-gap: 0.625rem; }
 }
+

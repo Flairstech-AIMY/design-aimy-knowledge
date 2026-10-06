@@ -2850,7 +2850,8 @@
     const rows = md.rows;
     return `
       <div class="set2-scrim" data-scrim>
-        <div class="set2-modal is-wide set2-fl-modal" role="dialog" aria-modal="true" aria-labelledby="flT">
+        <div class="set2-modal is-wide set2-fl-modal" role="dialog" aria-modal="true" aria-labelledby="flT"
+             data-fl-drop>
           <div class="set2-modal-hd">
             <h2 class="set2-modal-t" id="flT">Fillers for ${esc(a ? a.name : '')}</h2>
             <button class="set2-modal-x" type="button" data-close aria-label="Close">${I.x}</button>
@@ -2878,11 +2879,48 @@
             </div>
             ${md.bad != null ? `<p class="set2-hint is-err" role="alert">Row ${md.bad + 1} has a context but no
               filler. Write the phrase, or remove the row.</p>` : ''}
-            <button class="btn btn-ghost btn-sm set2-fl-add" type="button" data-fl-add>${
-              I.plus.replace('<svg', '<svg width="13" height="13" aria-hidden="true"')}Add filler</button>
+            <!-- Add and Upload, the two ways in. The templates moved to the
+                 footer, under the format rule they illustrate. -->
+            <div class="set2-fl-bar">
+              <button class="btn btn-ghost btn-sm" type="button" data-fl-add>${
+                I.plus.replace('<svg', '<svg width="13" height="13" aria-hidden="true"')}Add filler</button>
+              <label class="btn btn-ghost btn-sm set2-fl-up">${
+                I.up.replace('<svg', '<svg width="13" height="13" aria-hidden="true"')}Upload file
+                <input type="file" accept=".csv,.json,text/csv,application/json" hidden data-fl-file>
+              </label>
+            </div>
+            ${md.upErr ? `<p class="set2-note is-err set2-fl-msg" role="alert">${esc(md.upErr)}</p>`
+              : md.upNote ? `<p class="set2-note set2-fl-msg" role="status">${esc(md.upNote)}</p>` : ''}
           </div>
           <div class="set2-modal-ft">
-            <span class="set2-hint">Enter moves to the next row. Rows left empty are dropped.</span>
+            ${/* ── THE TEMPLATES CARRY THE FORMAT RULE ──
+                  A sentence first, then an info glyph labelled "CSV or JSON",
+                  then, on Nour's call, the two template downloads themselves
+                  with the glyph in front of them: the files ARE the format, so
+                  the rule belongs on the links that hand them over.
+
+                  In the footer because it does not scroll. Inside the body a
+                  tooltip, even an invisible one, adds to scrollHeight and left
+                  an 85px gap under the list; here it opens UPWARD over the
+                  list (`.is-above`) and moves nothing. Hovering anywhere on
+                  the group shows it; the glyph is the keyboard's way in, and
+                  the tooltip must stay its next sibling for the focus rule. */ ''}
+            <span class="set2-tip-wrap set2-fl-fmt">
+              <button class="set2-tip-b" type="button" aria-describedby="flFmtTip"
+                      aria-label="About filler files">${I.info}</button>
+              <span class="set2-tip is-above" role="tooltip" id="flFmtTip">
+                <span class="set2-tip-l"><b>CSV:</b> a header row naming the filler and context columns.</span>
+                <span class="set2-tip-l"><b>JSON:</b> a list of objects with filler and context keys.</span>
+                <span class="set2-tip-l">You can drop the file anywhere on this window.</span>
+              </span>
+              <span class="set2-fl-tpl">
+                Template
+                <button class="set2-lnk" type="button" data-fl-tpl="csv"
+                        aria-label="Download the CSV template">CSV</button>
+                <button class="set2-lnk" type="button" data-fl-tpl="json"
+                        aria-label="Download the JSON template">JSON</button>
+              </span>
+            </span>
             <span class="set2-modal-end">
               <button class="btn btn-ghost btn-sm" type="button" data-close>Cancel</button>
               <button class="btn btn-brand btn-sm" type="button" data-fl-save>Save</button>
@@ -2910,6 +2948,143 @@
     paintModal();
     const f = focusSel && $(focusSel);
     if (f) { f.focus(); if (f.setSelectionRange) f.setSelectionRange(f.value.length, f.value.length); }
+  }
+
+  /* ══ FILLER FILES ═════════════════════════════════════════════════════
+     Two formats. CSV because the data IS a two-column table and the people
+     writing fillers keep them in a spreadsheet; JSON for when a script makes
+     them. Excel, .txt and .md are refused: one needs a library this page
+     does not load, and the other two have no columns, so a parser would have
+     to guess where a phrase ends and its context begins.
+
+     A file ADDS to the open dialog's working copy. It is not saved, and it
+     does not replace what is there; Save is still the only write. A bad file
+     adds nothing at all, and the message names the row to fix. */
+  const FL_MAX = 64 * 1024;
+
+  /* RFC 4180, the parts that occur: quoted fields, doubled quotes inside
+     them, commas and line breaks inside quotes, CRLF, and Excel's BOM. */
+  function parseCsv(text) {
+    const rows = [];
+    let row = [], f = '', q = false;
+    const t = text.replace(/^\uFEFF/, '');
+    for (let i = 0; i < t.length; i++) {
+      const ch = t[i];
+      if (q) {
+        if (ch === '"' && t[i + 1] === '"') { f += '"'; i++; }
+        else if (ch === '"') q = false;
+        else f += ch;
+      } else if (ch === '"') q = true;
+      else if (ch === ',') { row.push(f); f = ''; }
+      else if (ch === '\n' || ch === '\r') {
+        if (ch === '\r' && t[i + 1] === '\n') i++;
+        row.push(f); rows.push(row); row = []; f = '';
+      } else f += ch;
+    }
+    if (q) throw new Error('has a quoted field that is never closed. Check for a stray " character.');
+    if (f !== '' || row.length) { row.push(f); rows.push(row); }
+    return rows;
+  }
+
+  function fillersFromCsv(text, name) {
+    let rows;
+    try { rows = parseCsv(text); } catch (ex) { throw new Error(name + ' ' + ex.message); }
+    const head = (rows[0] || []).map((h) => h.trim().toLowerCase());
+    const pi = head.indexOf('filler'), ci = head.indexOf('context');
+    if (pi < 0 || ci < 0) throw new Error(name + ' needs a header row naming a filler and a context '
+      + 'column. Its first row is: ' + ((rows[0] || []).join(', ').slice(0, 80) || 'empty') + '.');
+    const out = [];
+    for (let i = 1; i < rows.length; i++) {
+      const pv = (rows[i][pi] || '').trim(), cv = (rows[i][ci] || '').trim();
+      if (!pv && !cv) continue;
+      /* +1 because people count the header as row 1, as a spreadsheet does. */
+      if (!pv) throw new Error('Row ' + (i + 1) + ' of ' + name + ' has a context but no filler.');
+      out.push({ p: pv, c: cv });
+    }
+    return out;
+  }
+
+  /* A list of objects, or `{ "fillers": [...] }` around one. Keys are matched
+     without regard to case, and a bare string is a filler with no context. */
+  function fillersFromJson(text, name) {
+    let j;
+    try { j = JSON.parse(text.replace(/^\uFEFF/, '')); }
+    catch (ex) { throw new Error(name + ' is not valid JSON: ' + ex.message); }
+    const list = Array.isArray(j) ? j : (j && Array.isArray(j.fillers) ? j.fillers : null);
+    if (!list) throw new Error(name + ' should be a list like [{ "filler": "...", "context": "..." }].');
+    return list.map((it, i) => {
+      if (typeof it === 'string') return { p: it.trim(), c: '' };
+      if (!it || typeof it !== 'object') throw new Error('Item ' + (i + 1) + ' of ' + name + ' is not an object.');
+      const k = {};
+      Object.keys(it).forEach((x) => { k[x.toLowerCase()] = it[x]; });
+      const pv = k.filler == null ? '' : String(k.filler).trim();
+      const cv = k.context == null ? '' : String(k.context).trim();
+      if (!pv && cv) throw new Error('Item ' + (i + 1) + ' of ' + name + ' has a context but no filler.');
+      return { p: pv, c: cv };
+    }).filter((f) => f.p);
+  }
+
+  /* Same phrase, ignoring case, spacing and the closing full stop. */
+  const flKey = (v) => String(v).toLowerCase().replace(/\s+/g, ' ').replace(/[.!?]+$/, '').trim();
+
+  function readFillerFile(file) {
+    const md = MODAL;
+    if (!md || md.kind !== 'fillers' || !file) return;
+    const fail = (m) => { md.upErr = m; md.upNote = ''; repaintFillers(); };
+    const isCsv = /\.csv$/i.test(file.name), isJson = /\.json$/i.test(file.name);
+    if (!isCsv && !isJson) return fail('Use a .csv or .json file. ' + file.name + ' is neither.');
+    if (file.size > FL_MAX) return fail(file.name + ' is ' + kb(file.size) + '. A filler file can be up to 64 KB.');
+    const rd = new FileReader();
+    rd.onload = () => {
+      let got;
+      try { got = isCsv ? fillersFromCsv(String(rd.result || ''), file.name)
+                        : fillersFromJson(String(rd.result || ''), file.name); }
+      catch (ex) { return fail(ex.message); }
+      if (!got.length) return fail(file.name + ' has no fillers in it.');
+      /* The empty row a new list opens on is a prompt, not a filler; it would
+         otherwise sit above everything the file brought in. */
+      md.rows = md.rows.filter((f) => f.p.trim() || f.c.trim());
+      const seen = new Set(md.rows.map((f) => flKey(f.p)));
+      let added = 0, skipped = 0;
+      got.forEach((f) => {
+        const k = flKey(f.p);
+        if (seen.has(k)) { skipped++; return; }
+        seen.add(k); md.rows.push(f); added++;
+      });
+      md.bad = null; md.upErr = '';
+      md.upNote = (added ? 'Added ' + added + ' filler' + (added === 1 ? '' : 's') + ' from ' + file.name + '.'
+                         : 'Nothing new in ' + file.name + '.')
+        + (skipped ? ' Skipped ' + skipped + ' already in the list.' : '')
+        + (added ? ' Save to keep them.' : '');
+      repaintFillers();
+      const bd = $('.set2-fl-modal .set2-modal-bd');
+      if (bd && added) bd.scrollTop = bd.scrollHeight;
+    };
+    rd.onerror = () => fail('Could not read ' + file.name + '.');
+    rd.readAsText(file);
+  }
+
+  const FL_TEMPLATE = {
+    csv: ['fillers-template.csv', 'text/csv;charset=utf-8',
+      'filler,context\n'
+      + 'Hold on a second.,Before any lookup that takes more than a moment\n'
+      + '"Let me check that, one moment.",When the answer has to come from several sources\n'
+      + 'Thanks for waiting.,\n'],
+    json: ['fillers-template.json', 'application/json;charset=utf-8',
+      JSON.stringify([
+        { filler: 'Hold on a second.', context: 'Before any lookup that takes more than a moment' },
+        { filler: 'Let me check that, one moment.', context: 'When the answer has to come from several sources' },
+        { filler: 'Thanks for waiting.', context: '' }
+      ], null, 2) + '\n']
+  };
+  function downloadFillerTemplate(kind) {
+    const t = FL_TEMPLATE[kind];
+    if (!t) return;
+    const url = URL.createObjectURL(new Blob([t[2]], { type: t[1] }));
+    const a = document.createElement('a');
+    a.href = url; a.download = t[0];
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   function saveFillers() {
@@ -7656,7 +7831,10 @@
     const flO = e.target.closest('[data-fl-open]');
     if (flO) { openFillers(flO.getAttribute('data-fl-open')); return; }
     if (MODAL && MODAL.kind === 'fillers') {
+      const flT = e.target.closest('[data-fl-tpl]');
+      if (flT) { downloadFillerTemplate(flT.getAttribute('data-fl-tpl')); return; }
       if (e.target.closest('[data-fl-add]')) {
+        MODAL.upNote = ''; MODAL.upErr = '';
         MODAL.rows.push({ p: '', c: '' });
         repaintFillers('[data-fl-p="' + (MODAL.rows.length - 1) + '"]');
         return;
@@ -9060,6 +9238,12 @@
       afterSwitch(t, render);
       return;
     }
+    const ff = e.target.closest('[data-fl-file]');
+    if (ff) {
+      if (ff.files && ff.files[0]) readFillerFile(ff.files[0]);
+      ff.value = '';
+      return;
+    }
     const tf = e.target.closest('[data-tone-file]');
     if (tf) {
       if (tf.files && tf.files[0]) readToneFile(tf.files[0], tf.getAttribute('data-tone-file'));
@@ -9076,7 +9260,7 @@
      navigates to the file instead of handing it over. */
   /* Two kinds of zone: a skill upload (`data-drop`) and an agent's tone file
      (`data-tone-drop`, which names the agent it belongs to). */
-  const dropZone = (e) => e.target.closest && e.target.closest('[data-drop], [data-tone-drop]');
+  const dropZone = (e) => e.target.closest && e.target.closest('[data-drop], [data-tone-drop], [data-fl-drop]');
   document.addEventListener('dragover', (e) => {
     const z = dropZone(e);
     if (!z) return;
@@ -9092,7 +9276,8 @@
     e.preventDefault(); z.classList.remove('is-over');
     const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
     if (!file) return;
-    if (z.hasAttribute('data-tone-drop')) readToneFile(file, z.getAttribute('data-tone-drop'));
+    if (z.hasAttribute('data-fl-drop')) readFillerFile(file);
+    else if (z.hasAttribute('data-tone-drop')) readToneFile(file, z.getAttribute('data-tone-drop'));
     else readSkillFile(file);
   });
 
