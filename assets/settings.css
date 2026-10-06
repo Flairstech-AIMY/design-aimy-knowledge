@@ -4560,10 +4560,20 @@ input.set2-fld[type="password"] {
 .set2-us-seg .seg-btn.active .set2-us-unit { color: var(--ink-secondary); }
 
 /* ── Where this level stands ── */
+/* ── The card wears AiMY's surface ──
+   The AiMY block's background and colours, on the whole card: the wash
+   (`--aimy-wash`), its accent edge (`--aimy-wash-edge`, also the dividers
+   above), and the accent underline on names. Its VOICE is not borrowed:
+   no "AiMY noticed" head, no first person, no mark. Nour: "just the
+   background and colors". Both tokens are defined per theme in
+   knowledge.css and resolve lazily, so the card follows the theme toggle
+   with no rule here; no background transition, for the stale-fill reason
+   recorded above the Agents block. */
 .set2-us-hero {
   display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
-  margin-top: 1rem; background: var(--card-bg); border-radius: var(--r-xl);
-  box-shadow: inset 0 0 0 0.0625rem var(--card-border);
+  margin-top: 1rem; border-radius: var(--r-xl);
+  background: var(--aimy-wash);
+  box-shadow: inset 0 0 0 0.0625rem var(--aimy-wash-edge);
 }
 .set2-us-now { padding: 1.25rem 1.5rem 1.125rem; min-width: 0; }
 .set2-us-k {
@@ -4571,6 +4581,8 @@ input.set2-fld[type="password"] {
   font-size: var(--ty-micro); color: var(--ink-quiet);
   letter-spacing: var(--ls-wide); text-transform: uppercase;
 }
+/* The AiMY mark heading the card; it keeps its size when the row wraps. */
+.set2-us-k > svg { flex: none; }
 .set2-us-k .set2-pill { text-transform: none; letter-spacing: 0; }
 .set2-us-big {
   display: flex; align-items: baseline; gap: 0.625rem; flex-wrap: wrap;
@@ -4602,16 +4614,19 @@ input.set2-fld[type="password"] {
 .set2-us-left b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
 .set2-us-dot { margin: 0 0.25rem; color: var(--ink-quiet); }
 
+/* ── The facts beside the meter ──
+   Pace, who is blocked, who is spending (or the session limit on an
+   organisation). A state reads in its word AND its ink, never in a fade. */
 .set2-us-facts {
   margin: 0; padding: 0.375rem 1.5rem; min-width: 0;
-  border-left: 0.0625rem solid var(--hairline);
+  border-left: 0.0625rem solid var(--aimy-wash-edge);
   display: flex; flex-direction: column; justify-content: center;
 }
 .set2-us-fact {
   display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center;
-  column-gap: 0.75rem; padding: 0.75rem 0;
+  column-gap: 0.75rem; padding: 0.625rem 0;
 }
-.set2-us-fact + .set2-us-fact { border-top: 0.0625rem solid var(--hairline); }
+.set2-us-fact + .set2-us-fact { border-top: 0.0625rem solid var(--aimy-wash-edge); }
 .set2-us-fact dt {
   grid-column: 1; display: flex; align-items: center; gap: 0.25rem;
   font-size: var(--ty-micro); color: var(--ink-quiet);
@@ -4620,6 +4635,9 @@ input.set2-fld[type="password"] {
 .set2-us-fact dt .set2-tip { text-transform: none; letter-spacing: 0; }
 .set2-us-fact dd { grid-column: 1; margin: 0.25rem 0 0; display: flex; flex-direction: column; gap: 0.125rem; min-width: 0; }
 .set2-us-fact dd b { font-size: var(--ty-meta); font-weight: var(--fw-semibold); color: var(--ink-primary); }
+.set2-us-fact dd b.is-ok   { color: var(--ink-ok); }
+.set2-us-fact dd b.is-warn { color: var(--ink-warn); }
+.set2-us-fact dd b.is-err  { color: var(--ink-err); }
 .set2-us-fact dd > span { font-size: var(--ty-micro); color: var(--ink-quiet); }
 .set2-us-fact-ed { grid-column: 2; grid-row: 1 / span 2; }
 .set2-us-fact.is-edit dd { gap: 0.375rem; }
@@ -4628,6 +4646,18 @@ input.set2-fld[type="password"] {
 .set2-us-per { font-size: var(--ty-micro); color: var(--ink-secondary); }
 .set2-us-fact .set2-hint { margin-top: 0; }
 .set2-us-sess-act { display: flex; gap: 0.375rem; justify-content: flex-end; }
+/* A name you can press: it lands on the level where its limit is a row.
+   The AiMY block's own clause underline, accent-tinted. */
+.set2-us-who {
+  appearance: none; border: 0; background: none; padding: 0; margin: 0;
+  font: inherit; color: var(--ink-secondary); cursor: pointer;
+  text-decoration: underline; text-decoration-color: rgba(var(--accent-rgb), 0.45);
+  text-underline-offset: 3px; text-decoration-thickness: 1px;
+}
+.set2-us-who:hover { color: var(--ink-action); text-decoration-color: rgba(var(--accent-rgb), 0.9); }
+.set2-us-who.is-strong { color: var(--ink-primary); font-weight: var(--fw-semibold); }
+.set2-us-who:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; border-radius: var(--r-xs); }
+
 
 /* ── The split ── */
 .set2-us-alloc { margin-top: 2rem; }
@@ -4759,7 +4789,7 @@ input.set2-fld[type="password"] {
 /* The card goes to one column on the surface's own narrow rung. */
 @media (max-width: 52rem) {
   .set2-us-hero { grid-template-columns: minmax(0, 1fr); }
-  .set2-us-facts { border-left: 0; border-top: 0.0625rem solid var(--hairline); padding: 0.25rem 1.25rem; }
+  .set2-us-facts { border-left: 0; border-top: 0.0625rem solid var(--aimy-wash-edge); padding: 0.25rem 1.25rem; }
   .set2-us-now { padding: 1.125rem 1.25rem 1rem; }
 }
 /* Below the shell's 735 rung a row is the name on top and use and limit
@@ -4785,3 +4815,11 @@ input.set2-fld[type="password"] {
 
 /* The employee avatar carries a photo over its initials (.av-photo, knowledge.css). */
 .set2-us-av { position: relative; overflow: hidden; }
+
+/* Today, on the meter: where an even month would be by now. Fill past the
+   tick is ahead of pace, which is the forecast before you read it. */
+.set2-us-today {
+  position: absolute; top: 0; bottom: 0; left: calc(var(--x) * 100%);
+  width: 0.125rem; margin-left: -0.0625rem;
+  background: var(--ink-primary); opacity: 0.85;
+}

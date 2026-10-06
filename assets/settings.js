@@ -3183,7 +3183,9 @@
 
   /* The period. Monthly, and the page says when it turns over rather than
      leaving the reader to work out whose month it is. */
-  const US_PERIOD = { name: 'October', resets: '1 Nov', left: 26 };
+  /* `day` is today's place in the month (6 Oct), counted inclusively, so
+     the pace is what was used over the days that have happened. */
+  const US_PERIOD = { name: 'October', short: 'Oct', resets: '1 Nov', left: 26, day: 6, days: 31 };
 
   /* People, once each. A person in two products is ONE entry here and two
      employee rows there, because a limit is per product: Tarek's FileBound
@@ -3332,21 +3334,37 @@
      Stored on the leaves and summed upward, so a company's figure is always
      its products' figures added and can never drift from them. Seeded once
      from the starting limits with a fixed spread — a week into the month,
-     most people well under, two close, one out. */
+     most people well under, two close, one out.
+
+     ── EACH ORGANISATION HAS ITS OWN PACE ──
+     An even month is 19% used by 6 Oct. The first seed sat on or over that
+     everywhere, so every level forecast running out, and a forecast that
+     always says the same thing teaches the reader to stop reading it. So the
+     spread is scaled per organisation, per meter: one runs hot, the others
+     run comfortably under, and which one is hot differs between Copilot, QA
+     and Voice. The people pinned below (at or near their limit) are not
+     scaled; they are the point. */
   const US_USED = { copilot: {}, qa: {}, voice: {} };
   (function seedUse() {
     const RATIO = [0.14, 0.23, 0.09, 0.31, 0.17, 0.36, 0.07, 0.21, 0.12, 0.27, 0.19, 0.05, 0.24];
+    const PACE = { copilot: { upland: 1.25, valsoft: 0.55, flairstech: 0.6 },
+                   qa:      { upland: 0.6, valsoft: 1.3, flairstech: 0.5 },
+                   voice:   { upland: 0.55, valsoft: 1.35, flairstech: 0.6 } };
+    /* The organisation a node sits under. usPath is declared further down
+       and this runs at load, so it climbs with usAt instead. */
+    const orgOf = (id) => { let x = id; while (usAt(x).parent) x = usAt(x).parent; return x; };
     const PIN = { copilot: { 'filebound.omar': 1, 'filebound.karim': 0.91, 'ultriva.zaki': 0.87,
                              'interfax.farida': 1, 'helpdesk.nour': 0.31 },
                   qa: { 'kapost.hazem': 0.93, 'macpractice.ravi': 1 },
-                  voice: { interfax: 0.88 } };
+                  voice: { macpractice: 0.88 } };
     US_METERS.forEach((m) => {
       let i = 0;
       const walk = (id) => {
         const kids = usKids(m, id);
         if (!kids.length) {
           if (!id) return;
-          const r = PIN[m.id][id] != null ? PIN[m.id][id] : RATIO[i++ % RATIO.length];
+          const r = PIN[m.id][id] != null ? PIN[m.id][id]
+            : RATIO[i++ % RATIO.length] * (PACE[m.id][orgOf(id)] || 1);
           US_USED[m.id][id] = Math.round(usLimit(m, id) * r);
           return;
         }
@@ -3408,6 +3426,14 @@
   let US_EDIT = null;          /* { meter, pool, vals: { childId: 'typed' } } */
   let US_SESS_ED = null;       /* { meter, org, v, err } */
   let US_LAST = '';            /* the meter|pool last painted, to play the entrance once */
+
+  function usStartEdit(m, pool) {
+    US_EDIT = { meter: m.id, pool: pool, vals: {} };
+    usKids(m, pool).forEach((k) => {
+      const v = US_SET[m.id][k.id];
+      US_EDIT.vals[k.id] = v == null ? '' : usFmt(v);
+    });
+  }
 
   function usDraft() {
     const out = {};
@@ -3491,9 +3517,27 @@
 
   /* ── WHERE THIS LEVEL STANDS ──
      The figure the screenshot from the Operations Hub leads with, used of
-     limit, then the three facts that explain the limit: where it came from,
-     the session cap, and when it turns over. One card, two columns, the
-     number getting the wide one. */
+     limit, and beside it the facts an admin can ACT on.
+
+     ── THE FACTS USED TO RESTATE THE PAGE ──
+     The column said "Limit: Plan, your Copilot plan" on the plan, and
+     "Resets 1 Nov" one line under a header that already said it. Nour: "the
+     data in it is not even data." What it says now is derived, not
+     restated: where this level lands at the rate it is going, who under it
+     is blocked or about to be, and which part of it is doing the spending,
+     which is where a limit gets moved from. Where the limit came from is
+     not gone; it rides the "of 70,000 tokens" line, beside the number it
+     explains. The session limit stays on an organisation: it is a setting,
+     and this is where it is set.
+
+     ── THE CARD WEARS AIMY'S SURFACE, NOT AIMY'S VOICE ──
+     Nour asked for "the aimy block design", then narrowed it: "just the
+     background and colors", not the way of writing. One pass rewrote the
+     facts as an "AiMY noticed" band in first person; that was the wrong
+     half. So the facts keep their labels and their status inks, and the
+     CARD takes the AiMY block's wash, accent edge and accent dividers
+     (`--aimy-wash`, `--aimy-wash-edge`, knowledge.css). See settings.css,
+     "The card wears AiMY's surface". */
   function usHero(m, id) {
     const x = usAt(id);
     const L = usLimit(m, id);
@@ -3501,36 +3545,122 @@
     const bad = usStanding(used, L);
     const p = usPct(used, L);
     const parent = x.parent != null ? usAt(x.parent).n : null;
-    const src = !id ? ['Plan', 'Your ' + m.name + ' plan, each month']
-      : US_SET[m.id][id] != null ? ['Set by admin', 'Set on ' + (parent.id ? parent.name : 'the plan')]
-      : ['Equal share', 'An equal share of ' + (parent.id ? parent.name : 'the plan')];
+    const where = parent && parent.id ? parent.name : 'the plan';
+    const src = !id ? 'your monthly plan'
+      : US_SET[m.id][id] != null ? 'set by admin on ' + where : 'an equal share of ' + where;
+    const today = US_PERIOD.day / US_PERIOD.days;
     return `
       <div class="set2-us-hero">
         <div class="set2-us-now">
-          <span class="set2-us-k">${id ? esc(x.n.name) + ' · ' : ''}Used in ${US_PERIOD.name}
+          <!-- The mark first in the head, which is where the AiMY block puts
+               it: the card is AiMY's, said once, at the top, in the brand's
+               own symbol rather than a word. -->
+          <span class="set2-us-k">${AIMY_MK(12, 14)}<span>${id ? esc(x.n.name) + ' · ' : ''}Used in ${
+            US_PERIOD.name}</span>
             ${bad ? pill(bad[0], bad[1]) : ''}</span>
           <p class="set2-us-big"><b class="set2-num">${usFmt(used)}</b>
-            <span>of ${usFmt(L)} ${esc(m.unit)}</span></p>
+            <span>of ${usFmt(L)} ${esc(m.unit)}, ${esc(src)}</span></p>
           <div class="set2-us-m is-lg" role="meter" aria-valuemin="0" aria-valuemax="${L}"
                aria-valuenow="${used}" aria-label="${esc(m.unit)} used">
             <i class="set2-us-fill${usFillCls(used, L)}" style="--p:${p.toFixed(4)}"></i>
+            <i class="set2-us-today" style="--x:${today.toFixed(4)}"></i>
           </div>
           <div class="set2-us-scale" aria-hidden="true"><span>0</span><span>25%</span><span>50%</span>
             <span>75%</span><span>100%</span></div>
           <p class="set2-us-left"><b class="set2-num">${usFmt(Math.max(0, L - used))}</b> left
-            <span class="set2-us-dot">·</span> ${Math.round(p * 100)}% used</p>
+            <span class="set2-us-dot">·</span> ${Math.round(p * 100)}% used
+            <span class="set2-us-dot">·</span> the tick is today, ${Math.round(today * 100)}% into ${US_PERIOD.name}</p>
         </div>
         <dl class="set2-us-facts">
-          <div class="set2-us-fact">
-            <dt>Limit</dt>
-            <dd><b>${esc(src[0])}</b><span>${esc(src[1])}</span></dd>
-          </div>
-          ${x.depth === 1 ? usSessFact(m, id) : ''}
-          <div class="set2-us-fact">
-            <dt>Resets</dt>
-            <dd><b>${US_PERIOD.resets}</b><span>in ${US_PERIOD.left} days, for everyone</span></dd>
-          </div>
+          ${usPaceFact(m, used, L)}
+          ${usWatchFact(m, id)}
+          ${x.depth === 1 ? usSessFact(m, id) : usTopFact(m, id, used)}
         </dl>
+      </div>`;
+  }
+
+  /* ── PACE ──
+     Straight-line from the days gone: honest about being a projection (the
+     caption says "at this pace"), and the one number that turns a limit
+     from a figure you read into a date you plan around. */
+  function usPaceFact(m, used, L) {
+    const P = US_PERIOD;
+    const rate = used / P.day;
+    let b, s, cls;
+    if (used >= L) {
+      b = 'Spent'; cls = 'is-err';
+      s = 'Nothing left until ' + P.resets;
+    } else if (!rate) {
+      b = 'Nothing used yet'; cls = '';
+      s = 'No pace to project from';
+    } else if (rate * P.days > L) {
+      const out = Math.floor(P.day + (L - used) / rate);
+      b = 'Runs out around ' + out + ' ' + P.short; cls = 'is-warn';
+      s = (P.days - out) + ' days before the reset, at ' + usFmt(rate) + ' a day';
+    } else {
+      /* "On pace for 99%" left the reader to work out 99% OF WHAT, BY WHEN.
+         It says the month and "used" now, and the caption gives the figure
+         it was worked from. And 99% is not good news: it lasts, with nothing
+         to spare, so from 90% it is amber and the caption says so in words,
+         not only in colour. Green is kept for real headroom. */
+      const proj = rate * P.days;
+      const pct = Math.round(proj / L * 100);
+      const close = pct >= 90;
+      b = 'Ends ' + P.name + ' at ' + pct + '% used'; cls = close ? 'is-warn' : 'is-ok';
+      s = (close ? 'Little to spare: about ' : 'About ') + usFmt(Math.round(proj / 100) * 100)
+        + ' of ' + usFmt(L) + ', at ' + usFmt(rate) + ' a day';
+    }
+    return `
+      <div class="set2-us-fact">
+        <dt>At this pace</dt>
+        <dd><b class="${cls}">${esc(b)}</b><span>${esc(s)}</span></dd>
+      </div>`;
+  }
+
+  /* ── WHO IS BLOCKED ──
+     Counted in the things that actually stop: people, or products for Voice.
+     The first two are named and pressable, landing on the level where their
+     limit is the row you would edit. */
+  function usWatchFact(m, id) {
+    const leaves = Object.keys(US_IDX).filter((k) => k && usAt(k).depth === m.depth
+      && (!id || usPath(k).indexOf(id) > -1));
+    const out = [], near = [];
+    leaves.forEach((k) => {
+      const s = usStanding(usUsed(m, k), usLimit(m, k));
+      if (s && s[0] === 'is-err') out.push(k); else if (s) near.push(k);
+    });
+    const who = m.depth === 4 ? ['person', 'people'] : ['product', 'products'];
+    const list = out.concat(near);
+    const b = out.length ? out.length + ' at limit' + (near.length ? ', ' + near.length + ' near' : '')
+      : near.length ? near.length + ' near limit' : 'No ' + who[0] + ' near a limit';
+    const cls = out.length ? 'is-err' : near.length ? 'is-warn' : 'is-ok';
+    const names = list.slice(0, 2).map((k) => `<button class="set2-us-who" type="button"
+        data-us-go="${esc(usAt(k).parent)}">${esc(usAt(k).n.name)}</button>`).join(', ');
+    return `
+      <div class="set2-us-fact">
+        <dt>Blocked or close</dt>
+        <dd><b class="${cls}">${esc(b)}</b><span>${list.length
+          ? names + (list.length > 2 ? ` and ${list.length - 2} more` : '')
+          : `All ${leaves.length} ${who[1]} under 85% of their limit`}</span></dd>
+      </div>`;
+  }
+
+  /* ── WHO IS SPENDING ──
+     The child carrying the most of this level's use, because that is where
+     a limit is moved from or to. */
+  function usTopFact(m, id, used) {
+    const kids = usKids(m, id);
+    if (kids.length < 2 || !used) return '';
+    const top = kids.map((k) => ({ k: k, u: usUsed(m, k.id) }))
+      .sort((a, b) => b.u - a.u)[0];
+    const deeper = usAt(top.k.id).depth < m.depth;
+    return `
+      <div class="set2-us-fact">
+        <dt>Most used by</dt>
+        <dd><b>${deeper ? `<button class="set2-us-who is-strong" type="button"
+              data-us-go="${esc(top.k.id)}">${esc(top.k.name)}</button>` : esc(top.k.name)}</b>
+          <span>${Math.round(top.u / used * 100)}% of ${esc(id ? usAt(id).n.name : 'the plan')}’s use,
+            ${usFmt(top.u)} ${esc(m.unit)}</span></dd>
       </div>`;
   }
 
@@ -8515,11 +8645,7 @@
     }
     if (e.target.closest('[data-us-edit]')) {
       const pl = usPlace(st);
-      US_EDIT = { meter: pl.m.id, pool: pl.id, vals: {} };
-      usKids(pl.m, pl.id).forEach((k) => {
-        const v = US_SET[pl.m.id][k.id];
-        US_EDIT.vals[k.id] = v == null ? '' : usFmt(v);
-      });
+      usStartEdit(pl.m, pl.id);
       render(() => { const f = $('[data-us-in]'); if (f) f.focus(); });
       return;
     }
