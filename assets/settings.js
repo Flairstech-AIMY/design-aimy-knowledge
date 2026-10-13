@@ -2819,7 +2819,7 @@
     return `<textarea class="agv-ed" data-agv-ta="${id}" aria-label="How ${nm} speaks">${esc(a.tone.text || '')}</textarea>
           <div class="agv-pre">${TONE_TEMPLATES.map((p) => `<button type="button" data-agv-pre="${id}|${esc(p.id)}" title="${esc(p.text)}">${esc(p.name)}</button>`).join('')}</div>
           ${msg}
-          <div class="agv-tone-f"><button class="agv-btn is-brand" type="button" data-agv-done="${id}">Done</button><span>Saves as you type</span>
+          <div class="agv-tone-f"><button class="agv-btn is-brand" type="button" data-agv-done="${id}">Done</button>
             ${pick('Upload a file instead')}
             ${f ? `<button class="agv-lnk" type="button" data-tone-src="${id}|file">Use ${esc(f.name)}</button>` : ''}</div>`;
   }
