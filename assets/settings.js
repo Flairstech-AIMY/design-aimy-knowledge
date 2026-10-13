@@ -2759,7 +2759,7 @@
             </span></div></div></div>
       <div class="agv-t agv-tone"><p class="agv-k">How ${nm} speaks</p>
         ${AGV_EDIT[a.id] ? `<textarea class="agv-ed" data-agv-ta="${id}" aria-label="How ${nm} speaks">${esc(toneOf(a))}</textarea>
-          <div class="agv-pre">${TONE_TEMPLATES.map((p) => `<button type="button" data-agv-pre="${id}|${esc(p.id)}">Start from ${esc(p.name)}</button>`).join('')}</div>
+          <div class="agv-pre">${TONE_TEMPLATES.map((p) => `<button type="button" data-agv-pre="${id}|${esc(p.id)}" title="${esc(p.text)}">${esc(p.name)}</button>`).join('')}</div>
           <div class="agv-tone-f"><button class="agv-btn is-brand" type="button" data-agv-done="${id}">Done</button><span>Saves as you type</span></div>`
         : `<h3>${esc(toneTitle(a) || 'No tone yet')}</h3><p>${esc(toneOf(a))}</p>
           <div class="agv-tone-f"><button class="agv-lnk" type="button" data-agv-edit="${id}">Change how ${nm} speaks</button><span>${changed}</span></div>`}
