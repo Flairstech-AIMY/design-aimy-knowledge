@@ -3522,6 +3522,7 @@
     US_LAST = key;
     return `
       <section class="set2-sec is-headless set2-us${enter ? ' is-enter' : ''}" id="st-usage">
+        ${pl.people ? usBack(m, id) : ''}
         <div class="set2-us-top">
           <div class="seg set2-ag-seg set2-us-seg" role="radiogroup" aria-label="Which AiMY product">
             ${US_METERS.map((x) => `
@@ -3650,6 +3651,19 @@
             ${free > 0 ? `<span class="set2-us-sl is-free" style="flex-grow:${free}">${
               free / L >= 0.07 ? `<b>Unallocated</b> ${usShort(free)}` : ''}</span>` : ''}
           </div>` : ''}
+      </div>`;
+  }
+
+  /* The employees page's way out: one back button to the path with this
+     product unfolded, the same 28px square the agent and skill pages use.
+     Nour asked for a back button here, not a breadcrumb. */
+  function usBack(m, id) {
+    const n = usAt(id).n.name;
+    return `
+      <div class="set2-us-back">
+        <button class="set2-back" type="button" data-us-go="${esc(id)}"
+                aria-label="Back to ${esc(n)}" title="Back to ${esc(n)}">${I.left}</button>
+        <h2 class="set2-us-back-t">${esc(n)} employees</h2>
       </div>`;
   }
 
@@ -4112,23 +4126,10 @@
     render(() => { const b = $('[data-us-sess-open]'); if (b) b.focus(); });
   }
 
-  /* The header's scope slot. On the path it says nothing: the folded
-     levels ARE the breadcrumb, with their numbers, and a second one 40px
-     above would be two answers to "where am I". The employees page has no
-     path on it, so there the trail comes back, every step pressable and
-     landing on the path with that level unfolded. */
-  function usageScope(st) {
-    const pl = usPlace(st);
-    if (!pl.people) return '';
-    const sep = '<span class="set2-scope-s">&rsaquo;</span>';
-    const step = (id, label) => `<button class="set2-us-crumb" type="button" data-us-go="${esc(id)}">${esc(label)}</button>`;
-    return `
-      <nav class="set2-scope set2-us-crumbs" aria-label="Where in the split">
-        ${step('', pl.m.name + ' plan')}
-        ${usPath(pl.id).map((id) => sep + step(id, usAt(id).n.name)).join('')}
-        ${sep}<span class="set2-scope-i" aria-current="page"><b>Employees</b></span>
-      </nav>`;
-  }
+  /* The header's scope slot says nothing on Usage. On the path the folded
+     levels ARE the breadcrumb; on the employees page a back button does the
+     job (usBack), at Nour's request, rather than a trail. */
+  function usageScope() { return ''; }
 
   /* After a level unfolds, its head is where the eye goes next. Folding the
      level above usually leaves it under the pointer; when the page had been

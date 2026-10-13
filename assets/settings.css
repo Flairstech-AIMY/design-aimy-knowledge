@@ -4766,14 +4766,13 @@ input.set2-fld[type="password"] {
 .set2-us-none { margin: 0.875rem 0.5rem; font-size: var(--ty-micro); color: var(--ink-secondary); }
 .set2-us-empty { margin-top: 2rem; }
 
-/* The path to this level, in the header's scope slot. */
-.set2-us-crumb {
-  appearance: none; border: 0; background: none; padding: 0.125rem 0.1875rem; margin: 0 -0.1875rem;
-  font: inherit; font-size: var(--ty-micro); color: var(--ink-quiet); cursor: pointer;
-  border-radius: var(--r-xs); white-space: nowrap;
+/* The employees page's head: back to the product on the path, and whose
+   people these are. */
+.set2-us-back { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; }
+.set2-us-back-t {
+  margin: 0; font-size: var(--ty-title); font-weight: var(--fw-bold); color: var(--ink-primary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.set2-us-crumb:hover { color: var(--ink-primary); text-decoration: underline; text-underline-offset: 0.1875rem; }
-.set2-us-crumb:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.0625rem; }
 
 /* ── The path, as accordions ──
    The plan down to the level you are on, one item each. A rail runs through
