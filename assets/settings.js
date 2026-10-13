@@ -2751,7 +2751,7 @@
         <div class="agv-orb-b"><p class="agv-orb-n">${nm}</p><p class="agv-orb-r">${esc(voiceName(a.voice))} voice${a.role ? ', ' + esc(a.role) : ''}</p>
           <div class="agv-orb-c">${window.speechSynthesis ? `<button class="agv-btn is-brand" type="button" data-voice-play="${id}|${esc(a.voice || 'female')}">Hear ${nm}</button>` : ''}
             <!-- Female / Male, the two voices side by side; the ring slides to
-                 the one in use, and picking one plays it. -->
+                 the one in use. Picking one does not play it; Hear does. -->
             <span class="agv-vsw" role="radiogroup" aria-label="${nm}’s voice" style="--i:${a.voice === 'male' ? 1 : 0}">
               <span class="agv-vth" aria-hidden="true"></span>
               ${VOICES.map(([v, n, ico]) => `<button class="agv-vb" type="button" role="radio" aria-checked="${a.voice === v}"
@@ -9289,7 +9289,10 @@
       if (a0 && a0.voice !== v) {
         a0.voice = v; a0.when = 'just now'; a0.by = USER.name;
         DIRTY.add('voice:' + aid);
-        if (window.speechSynthesis) playSample(aid, v); else render();
+        /* No sample on a switch (Nour): Hear plays the voice when asked. A
+           sample already playing in the old voice is stopped. */
+        if (window.speechSynthesis && VOICE_PLAYING) { window.speechSynthesis.cancel(); VOICE_PLAYING = null; }
+        render();
         /* Focus follows only a keyboard pick; a mouse pick would otherwise
            draw the focus ring on top of the thumb's. */
         if (!e.detail) { const b = $('[data-agv-voice="' + aid + '|' + v + '"]'); if (b) b.focus(); }
