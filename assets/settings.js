@@ -1374,7 +1374,7 @@
      three. `general` rather than `aimy`, which is already the id of the
      "AiMY agents" branch in TREE. */
   const AGENTS = [
-    { id: 'nova', name: 'Nova', d: 'Answers MacPractice support questions.',
+    { id: 'nova', name: 'Nova', d: 'Answers MacPractice support questions.', role: 'MacPractice support',
       voice: 'female', by: 'A. Mahfouz', when: '28 Aug',
       fillers: [
         { p: 'Let me check that for you.', c: 'Before searching the knowledge base' },
@@ -1385,7 +1385,7 @@
         text: 'Calm and direct. Lead with the answer, then name the article it came from. '
           + 'Plain words over support jargon. When the knowledge base has nothing, say so '
           + 'in one sentence instead of guessing.' } },
-    { id: 'trinity', name: 'Trinity', d: 'Answers XLDent questions.',
+    { id: 'trinity', name: 'Trinity', d: 'Answers XLDent questions.', role: 'XLDent support',
       voice: 'male', by: 'Nour Wael', when: '2 Sep',
       fillers: [],
       tone: { src: 'file',
@@ -1404,7 +1404,7 @@
             + '- Clinical or billing advice the documents do not back up.\n'
             + '- Guessing at a fix when no article covers the error.\n'
             + '- Exclamation marks.\n' } } },
-    { id: 'general', name: 'AiMY', d: 'Answers general questions.',
+    { id: 'general', name: 'AiMY', d: 'Answers general questions.', role: 'General questions',
       voice: 'female', by: 'A. Mahfouz', when: '19 Aug',
       fillers: [
         { p: 'Hold on a second.', c: 'Before any lookup that takes more than a moment' },
@@ -2835,7 +2835,7 @@
         <span class="set2-agp-orb-c" data-ag-orb="${esc(a.id)}" aria-hidden="true"></span>
         <div class="set2-agp-orb-b">
           <p class="set2-agp-name">${esc(a.name)}</p>
-          <p class="set2-agp-sub" id="voiceLbl-${esc(a.id)}">Speaks with a ${esc(voiceName(a.voice).toLowerCase())} voice in voice mode</p>
+          <p class="set2-agp-sub" id="voiceLbl-${esc(a.id)}">${esc(voiceName(a.voice))} voice${a.role ? ', ' + esc(a.role) : ''}</p>
           <!-- One capsule (Nour: the switch attached to Hear): play on the
                left, the voice on the right as a two-way switch whose thumb
                slides between the venus and mars marks. The line above says
@@ -2844,7 +2844,7 @@
             ${canPlay && a.voice ? `
               <button class="set2-agp-hear" type="button" data-voice-play="${esc(a.id)}|${esc(a.voice)}"
                       aria-label="${playing ? 'Stop the sample' : 'Hear ' + esc(a.name)}">
-                ${playing ? I.stop : I.play}<span>${playing ? 'Stop' : 'Hear ' + esc(a.name)}</span></button>` : ''}
+                <span>${playing ? 'Stop' : 'Hear ' + esc(a.name)}</span></button>` : ''}
             <span class="set2-agp-vsw" role="radiogroup" aria-labelledby="voiceLbl-${esc(a.id)}"
                   style="--i:${a.voice === 'male' ? 1 : 0}">
               <span class="set2-agp-vth" aria-hidden="true"></span>
@@ -2997,19 +2997,11 @@
      on this page last changed. */
   function agSkillsTile(a) {
     const list = skillsRun(a);
-    const idle = skillsOn(a).length - list.length;
     return `
       <section class="set2-agp-t set2-agp-skills">
-        <div class="set2-agp-skh">
-          <p class="set2-agp-k">Skills ${esc(a.name)} uses</p>
-          <button class="set2-lnk" type="button" data-ag-skills="${esc(a.id)}"
-                  aria-label="Open the skills ${esc(a.name)} runs">View</button>
-        </div>
-        <div class="set2-agp-sk">
-          ${list.length ? list.map((s) => `<span class="set2-agp-chip">${esc(s.name)}</span>`).join('')
-            : `<span class="set2-sp-note">None running. Give a skill this agent on the Skills page.</span>`}
-        </div>
-        ${idle ? `<p class="set2-agp-upd">Plus ${idle} that ${idle === 1 ? 'is' : 'are'} off or overridden.</p>` : ''}
+        <p class="set2-agp-k">Skills ${esc(a.name)} uses</p>
+        ${list.length ? list.map((s) => `<span class="set2-agp-chip">${esc(s.name)}</span>`).join('')
+          : `<span class="set2-agp-chip">None running</span>`}
       </section>`;
   }
 
