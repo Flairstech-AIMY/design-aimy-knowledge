@@ -4547,14 +4547,16 @@ input.set2-fld[type="password"] {
    Nour, 13 Oct: the agent page as a character rather than a form. Six
    columns: the orb down the left, how it speaks and what the last change
    did on the right, then the fillers and the skills across the bottom.
-   One column on the surface's narrow rung. The only AiMY-wash tile is the
-   one AiMY writes (what the change did); the tone is the admin's words. */
+   One column on the surface's narrow rung. As in the explored variant
+   (Nour: "the same background and design"): 20px tiles, how it speaks and
+   what the change did on the AiMY wash, the rest on the card, and the
+   skills as outlined pills. */
 .set2-agp {
   display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.875rem;
   margin-top: 1.5rem;
 }
 .set2-agp-t {
-  position: relative; min-width: 0; padding: 1.25rem; border-radius: var(--r-xl);
+  position: relative; min-width: 0; padding: 1.25rem; border-radius: 1.25rem;
   background: var(--card-bg); box-shadow: inset 0 0 0 0.0625rem var(--card-border);
 }
 .set2-agp-k {
@@ -4609,8 +4611,8 @@ input.set2-fld[type="password"] {
 }
 
 /* How it speaks. Read, it is the tone's name and its words. */
-.set2-agp-tone { grid-column: 3 / span 4; }
-.set2-agp-title { margin: 0 0 0.625rem; font-size: 1.75rem; line-height: 1.15; font-weight: var(--fw-bold); letter-spacing: -0.02em; color: var(--ink-primary); }
+.set2-agp-tone { grid-column: 3 / span 4; background: var(--aimy-wash); box-shadow: inset 0 0 0 0.0625rem var(--aimy-wash-edge); }
+.set2-agp-title { margin: 0 0 0.75rem; font-size: 2rem; line-height: 1.15; font-weight: var(--fw-bold); letter-spacing: -0.02em; color: var(--ink-primary); }
 .set2-agp-quote { margin: 0; font-size: var(--ty-body); line-height: 1.65; color: var(--ink-primary); max-width: 42rem; }
 .set2-agp-from { margin: 0 0 0.5rem; font-size: var(--ty-micro); color: var(--ink-secondary); }
 .set2-agp-file {
@@ -4689,6 +4691,10 @@ input.set2-fld[type="password"] {
 /* The skills it runs, and when the page last changed. */
 .set2-agp-skills { grid-column: 5 / span 2; }
 .set2-agp-skills .set2-ov-chips { margin-top: 0.5rem; }
+.set2-agp-skills .set2-chip {
+  background: transparent; box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover);
+  border-radius: var(--r-pill); padding: 0.3125rem 0.75rem; font-size: var(--ty-micro); color: var(--ink-primary);
+}
 .set2-agp-upd { margin: 1rem 0 0; font-size: var(--ty-micro); color: var(--ink-secondary); }
 
 @media (max-width: 52rem) {
