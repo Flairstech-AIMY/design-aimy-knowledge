@@ -2799,8 +2799,12 @@
     const id = esc(a.id), nm = esc(a.name);
     const f = a.tone.file;
     const err = TONE_ERR[a.id];
-    const pick = (label) => `<label class="agv-lnk agv-up" title="A .md, .txt, .json or .yaml file, up to 64 KB">${AGV_ICO.upload}${label}<input type="file"
-      accept=".md,.markdown,.txt,.json,.yaml,.yml" hidden data-tone-file="${id}"></label>`;
+    /* The accepted types sit behind an info icon beside the link, opening
+       upward: the card clips anything that would hang below it. */
+    const pick = (label) => `<span class="agv-upw"><label class="agv-lnk agv-up">${AGV_ICO.upload}${label}<input type="file"
+      accept=".md,.markdown,.txt,.json,.yaml,.yml" hidden data-tone-file="${id}"></label>${
+      tip('toneFileTip-' + a.id, 'tone files', 'Accepted files: .md, .txt, .json or .yaml, up to 64 KB. '
+        + 'You can also drop the file on this card.').replace('set2-tip is-below', 'set2-tip is-above')}</span>`;
     const msg = err ? `<p class="agv-err" role="alert">${esc(err)}</p>` : '';
     if (a.tone.src === 'file' && f) return `
           <div class="agv-file">
