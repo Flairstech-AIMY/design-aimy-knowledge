@@ -4723,6 +4723,29 @@ input.set2-fld[type="password"] {
   outline: none; border-bottom-color: transparent; box-shadow: inset 0 -0.125rem 0 var(--brand);
 }
 
+/* ── Tweak 8 (Nour): Hear while it plays. The fill gives way to the brand
+   wash with a brand ring, three bars move as the voice does, and the word
+   is Stop. The two labels share one grid cell so the width never changes.
+   Reduced motion: the bars stand still at mixed heights. ── */
+.agv-hear-l { display: grid; }
+.agv-hear-a, .agv-hear-b { grid-area: 1 / 1; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
+.agv-hear-b, .agv-hear.is-playing .agv-hear-a { visibility: hidden; opacity: 0; }
+.agv-hear.is-playing .agv-hear-b { visibility: visible; opacity: 1; }
+.agv-btn.agv-hear.is-playing { background: rgba(var(--accent-rgb), 0.16); color: var(--ink-primary); box-shadow: inset 0 0 0 0.0625rem var(--brand); }
+.agv-eq { display: inline-flex; align-items: center; gap: 0.125rem; height: 0.875rem; }
+.agv-eq i { width: 0.1875rem; height: 100%; border-radius: 0.125rem; background: var(--brand); transform-origin: center; }
+.agv-eq i:nth-child(1) { transform: scaleY(0.45); }
+.agv-eq i:nth-child(2) { transform: scaleY(0.9); }
+.agv-eq i:nth-child(3) { transform: scaleY(0.6); }
+@media (prefers-reduced-motion: no-preference) {
+  .agv-hear-a, .agv-hear-b { transition: opacity 150ms ease-in-out, visibility 150ms; }
+  .agv-btn.agv-hear { transition: background-color 150ms ease-out, box-shadow 150ms ease-out, color 150ms ease-out, transform 150ms cubic-bezier(0.22, 1, 0.36, 1); }
+  .agv-hear.is-playing .agv-eq i { animation: agv-eq 900ms ease-in-out infinite; }
+  .agv-hear.is-playing .agv-eq i:nth-child(2) { animation-delay: -300ms; }
+  .agv-hear.is-playing .agv-eq i:nth-child(3) { animation-delay: -600ms; }
+}
+@keyframes agv-eq { 0%, 100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
+
 /* ── Tweak 7 (Nour): each skill pill opens its skill. A button now, with the
    variant's look kept, and a hover that says it goes somewhere. ── */
 button.agv-chip { appearance: none; border: 0; background: transparent; cursor: pointer; font: inherit; font-size: 0.75rem; color: var(--ink-primary); }

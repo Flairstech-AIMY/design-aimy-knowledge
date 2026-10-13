@@ -2760,7 +2760,17 @@
     return `<div class="agv">
       <div class="agv-t agv-orb"><span class="agv-orb-slot" data-ag-orb="${id}" aria-hidden="true"></span>
         <div class="agv-orb-b"><p class="agv-orb-n">${nm}</p><p class="agv-orb-r${fx.voice ? ' agv-in' : ''}">${esc(voiceName(a.voice))} voice${a.role ? ', ' + esc(a.role) : ''}</p>
-          <div class="agv-orb-c">${window.speechSynthesis ? `<button class="agv-btn is-brand" type="button" data-voice-play="${id}|${esc(a.voice || 'female')}">Hear ${nm}</button>` : ''}
+          <div class="agv-orb-c">${window.speechSynthesis ? `${(() => {
+            /* Tweak 8 (Nour): Hear shows that it is playing. Both labels sit in
+               one grid cell, so the button keeps the wider one's width and the
+               switcher beside it never moves; the live one fades in. */
+            const on = VOICE_PLAYING === a.id + '|' + (a.voice || 'female');
+            return `<button class="agv-btn is-brand agv-hear${on ? ' is-playing' : ''}" type="button"
+              data-voice-play="${id}|${esc(a.voice || 'female')}" aria-pressed="${on}"
+              aria-label="${on ? 'Stop the sample' : 'Hear ' + nm}"><span class="agv-hear-l">
+              <span class="agv-hear-a">Hear ${nm}</span>
+              <span class="agv-hear-b"><span class="agv-eq" aria-hidden="true"><i></i><i></i><i></i></span>Stop</span></span></button>`;
+          })()}` : ''}
             <!-- Female / Male, the two voices side by side; the ring slides to
                  the one in use. Picking one does not play it; Hear does. -->
             <span class="agv-vsw" role="radiogroup" aria-label="${nm}’s voice" style="--i:${a.voice === 'male' ? 1 : 0}">
