@@ -2697,6 +2697,15 @@
      are no longer rendered; they stay until the tweaks settle what comes
      back (the config-file source, Save and Discard, the Phrase header). */
   const AGV_EDIT = {};
+  /* ── Motion that survives a repaint (transitions-polish pass) ──
+     The cards repaint as a whole, so anything that should move on a change
+     is marked here by the click that caused it and played once by the next
+     paint: the tone card's content on opening or closing its editor, the
+     voice line on a switch, the "Kept" note, a filler that was just added.
+     agvCards reads the marks and clears them, so a later repaint is still. */
+  const AGV_FX = {};
+  const agvFx = (aid, k) => { (AGV_FX[aid] = AGV_FX[aid] || {})[k] = true; };
+  const AGV_REDUCED = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
   const AGV_ICO = {
     play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></svg>',
     x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
@@ -2705,6 +2714,8 @@
   };
   function agvCards(a) {
     const id = esc(a.id), nm = esc(a.name);
+    const fx = AGV_FX[a.id] || {};
+    delete AGV_FX[a.id];
     const h = TONE_HIST[a.id];
     const live = !!h && toneOf(a) === h.text;
     const prev = h && TONE_TEMPLATES.filter((x) => x.id === h.prev)[0];
@@ -2730,7 +2741,7 @@
           </svg>
           <div class="agv-chart-l"><span>Follow-up questions a day, ${esc(h.from)}</span><span style="color:var(--ink-action)">Tone changed ${esc(h.at)}</span><span>Today</span></div>
         </div>
-        <div class="agv-how-a">${h.kept ? `<span style="margin:0;color:var(--ink-ok)">Kept. AiMY will tell you if this turns.</span>`
+        <div class="agv-how-a${fx.kept ? ' agv-in' : ''}">${h.kept ? `<span style="margin:0;color:var(--ink-ok)">Kept. AiMY will tell you if this turns.</span>`
           : `<button class="agv-btn is-brand" type="button" data-tone-keep="${id}">Keep it</button>
              ${prev ? `<button class="agv-btn is-ghost" type="button" data-tone-back="${id}">Go back to \u201c${esc(prev.name)}\u201d</button>
              <span>The tone before ${esc(h.at)}</span>` : ''}`}</div>
@@ -2748,7 +2759,7 @@
     const fl = a.fillers || [];
     return `<div class="agv">
       <div class="agv-t agv-orb"><span class="agv-orb-slot" data-ag-orb="${id}" aria-hidden="true"></span>
-        <div class="agv-orb-b"><p class="agv-orb-n">${nm}</p><p class="agv-orb-r">${esc(voiceName(a.voice))} voice${a.role ? ', ' + esc(a.role) : ''}</p>
+        <div class="agv-orb-b"><p class="agv-orb-n">${nm}</p><p class="agv-orb-r${fx.voice ? ' agv-in' : ''}">${esc(voiceName(a.voice))} voice${a.role ? ', ' + esc(a.role) : ''}</p>
           <div class="agv-orb-c">${window.speechSynthesis ? `<button class="agv-btn is-brand" type="button" data-voice-play="${id}|${esc(a.voice || 'female')}">Hear ${nm}</button>` : ''}
             <!-- Female / Male, the two voices side by side; the ring slides to
                  the one in use. Picking one does not play it; Hear does. -->
@@ -2757,7 +2768,7 @@
               ${VOICES.map(([v, n, ico]) => `<button class="agv-vb" type="button" role="radio" aria-checked="${a.voice === v}"
                 tabindex="${a.voice === v ? 0 : -1}" data-agv-voice="${id}|${v}" aria-label="${n} voice" title="${n} voice">${ico}</button>`).join('')}
             </span></div></div></div>
-      <div class="agv-t agv-tone"${AGV_EDIT[a.id] ? ` data-tone-drop="${id}"` : ''}><p class="agv-k">How ${nm} speaks</p>
+      <div class="agv-t agv-tone${fx.tone ? ' agv-in-c' : ''}"${AGV_EDIT[a.id] ? ` data-tone-drop="${id}"` : ''}><p class="agv-k">How ${nm} speaks</p>
         ${AGV_EDIT[a.id] ? agvToneEdit(a) : `<h3>${esc(toneTitle(a) || 'No tone yet')}</h3><p>${esc(toneOf(a))}</p>
           <div class="agv-tone-f"><button class="agv-lnk" type="button" data-agv-edit="${id}">Change how ${nm} speaks</button><span>${changed}</span></div>`}
       </div>
@@ -2768,8 +2779,8 @@
         ${fl.length ? `<div class="agv-flh" aria-hidden="true"><span></span>
           <span class="agv-fx"><b>Phrase</b><span>Context, when it fits</span></span><span></span></div>` : ''}
         <ul class="agv-fl">${fl.map((f, i) => `
-          <li class="agv-fr${VOICE_PLAYING === a.id + '|fl|' + i ? ' is-said' : ''}">
-            <button class="agv-ib is-play" type="button" data-fl-say="${id}|${i}" aria-label="Hear \u201c${esc(f.p)}\u201d">${AGV_ICO.play}</button>
+          <li class="agv-fr${VOICE_PLAYING === a.id + '|fl|' + i ? ' is-said' : ''}${fx['row' + i] ? ' agv-in-row' : ''}">
+            <button class="agv-ib is-play" type="button" data-fl-say="${id}|${i}" aria-label="${VOICE_PLAYING === a.id + '|fl|' + i ? 'Stop' : 'Hear'} \u201c${esc(f.p)}\u201d">${VOICE_PLAYING === a.id + '|fl|' + i ? I.stop : AGV_ICO.play}</button>
             <span class="agv-fx"><input class="agv-fp" data-agv-f="${id}|${i}|p" value="${esc(f.p)}" placeholder="What ${nm} says" aria-label="Filler ${i + 1}, what ${nm} says">
             <input class="agv-fc" data-agv-f="${id}|${i}|c" value="${esc(f.c)}" placeholder="When it fits" aria-label="Filler ${i + 1}, when it fits"></span>
             <button class="agv-ib" type="button" data-agv-fdel="${id}|${i}" aria-label="Remove this filler">${AGV_ICO.x}</button>
@@ -9154,6 +9165,7 @@
       const a0 = agentById(aid);
       if (a0 && a0.tone.src !== v) {
         a0.tone.src = v; a0.when = 'just now'; a0.by = USER.name;
+        agvFx(aid, 'tone');
         delete TONE_ERR[aid];
         DIRTY.add('tone:' + aid);
         render(() => { const b = $('[data-tone-src="' + aid + '|' + v + '"]'); if (b) b.focus(); });
@@ -9218,7 +9230,7 @@
     const tKeep = e.target.closest('[data-tone-keep]');
     if (tKeep) {
       const h = TONE_HIST[tKeep.getAttribute('data-tone-keep')];
-      if (h) { h.kept = true; render(); }
+      if (h) { h.kept = true; agvFx(tKeep.getAttribute('data-tone-keep'), 'kept'); render(); }
       return;
     }
     /* Going back is one click with an undo, the house rule for a change
@@ -9289,6 +9301,7 @@
       if (a0 && a0.voice !== v) {
         a0.voice = v; a0.when = 'just now'; a0.by = USER.name;
         DIRTY.add('voice:' + aid);
+        agvFx(aid, 'voice');
         /* No sample on a switch (Nour): Hear plays the voice when asked. A
            sample already playing in the old voice is stopped. */
         if (window.speechSynthesis && VOICE_PLAYING) { window.speechSynthesis.cancel(); VOICE_PLAYING = null; }
@@ -9303,11 +9316,12 @@
     if (agEd) {
       const aid = agEd.getAttribute('data-agv-edit');
       AGV_EDIT[aid] = true;
+      agvFx(aid, 'tone');
       render(() => { const t = $('[data-agv-ta="' + aid + '"]'); if (t) t.focus(); });
       return;
     }
     const agDn = e.target.closest('[data-agv-done]');
-    if (agDn) { delete AGV_EDIT[agDn.getAttribute('data-agv-done')]; render(); return; }
+    if (agDn) { const aid = agDn.getAttribute('data-agv-done'); delete AGV_EDIT[aid]; agvFx(aid, 'tone'); render(); return; }
     const agPre = e.target.closest('[data-agv-pre]');
     if (agPre) {
       const [aid, tid] = agPre.getAttribute('data-agv-pre').split('|');
@@ -9325,6 +9339,7 @@
       const a0 = agentById(agFa.getAttribute('data-agv-fadd'));
       if (a0) {
         a0.fillers = (a0.fillers || []).concat([{ p: '', c: '' }]);
+        agvFx(a0.id, 'row' + (a0.fillers.length - 1));
         const sel = '[data-agv-f="' + a0.id + '|' + (a0.fillers.length - 1) + '|p"]';
         render(() => { const f = $(sel); if (f) f.focus(); });
       }
@@ -9335,11 +9350,19 @@
       const [aid, si] = agFd.getAttribute('data-agv-fdel').split('|');
       const a0 = agentById(aid);
       if (a0 && a0.fillers && a0.fillers[+si]) {
-        const was = a0.fillers.map((f) => ({ p: f.p, c: f.c }));
-        const gone = a0.fillers.splice(+si, 1)[0];
-        a0.when = 'just now'; a0.by = USER.name; DIRTY.add('fillers:' + aid);
-        render();
-        if (API && API.toast) API.toast('Removed \u201c' + (gone.p || 'an empty filler') + '\u201d', () => { a0.fillers = was; render(); });
+        const go = () => {
+          if (!a0.fillers[+si]) return;
+          const was = a0.fillers.map((f) => ({ p: f.p, c: f.c }));
+          const gone = a0.fillers.splice(+si, 1)[0];
+          a0.when = 'just now'; a0.by = USER.name; DIRTY.add('fillers:' + aid);
+          render();
+          if (API && API.toast) API.toast('Removed \u201c' + (gone.p || 'an empty filler') + '\u201d', () => { a0.fillers = was; render(); });
+        };
+        const row = agFd.closest('.agv-fr');
+        if (!row || AGV_REDUCED()) { go(); return; }
+        row.style.pointerEvents = 'none';
+        row.animate([{ opacity: 1 }, { opacity: 0, filter: 'blur(2px)', transform: 'translateY(-4px)' }],
+          { duration: 150, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' }).finished.then(go, go);
       }
       return;
     }
