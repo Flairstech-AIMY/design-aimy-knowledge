@@ -4723,6 +4723,17 @@ input.set2-fld[type="password"] {
   outline: none; border-bottom-color: transparent; box-shadow: inset 0 -0.125rem 0 var(--brand);
 }
 
+/* ── Tweak 9 (Nour): more than three fillers scroll inside the card. The
+   height is set from the rows in settings.js (agvFit); the bottom fades
+   until the end is reached. ── */
+.agv-fl.is-scroll {
+  overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
+  scrollbar-color: var(--card-border-hover) transparent;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 2rem), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 2rem), transparent);
+}
+.agv-fl.is-scroll.is-end { -webkit-mask-image: none; mask-image: none; }
+
 /* ── Tweak 8 (Nour): Hear while it plays. The fill gives way to the brand
    wash with a brand ring, three bars move as the voice does, and the word
    is Stop. The two labels share one grid cell so the width never changes.

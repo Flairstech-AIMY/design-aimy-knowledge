@@ -2788,7 +2788,7 @@
         <p class="agv-fill-d">Short phrases ${nm} says to cover a pause. The moment under each one tells ${nm} when it fits, so write it the way you would brief a person.</p>
         ${fl.length ? `<div class="agv-flh" aria-hidden="true"><span></span>
           <span class="agv-fx"><b>Phrase</b><span>Context, when it fits</span></span><span></span></div>` : ''}
-        <ul class="agv-fl">${fl.map((f, i) => `
+        <ul class="agv-fl${fl.length > 3 ? ' is-scroll' : ''}" data-agv-fl="${id}">${fl.map((f, i) => `
           <li class="agv-fr${VOICE_PLAYING === a.id + '|fl|' + i ? ' is-said' : ''}${fx['row' + i] ? ' agv-in-row' : ''}">
             <button class="agv-ib is-play" type="button" data-fl-say="${id}|${i}" title="${VOICE_PLAYING === a.id + '|fl|' + i ? 'Stop' : 'Hear ' + nm + ' say this'}" aria-label="${VOICE_PLAYING === a.id + '|fl|' + i ? 'Stop' : 'Hear'} \u201c${esc(f.p)}\u201d">${VOICE_PLAYING === a.id + '|fl|' + i ? I.stop : AGV_ICO.play}</button>
             <span class="agv-fx"><input class="agv-fp" data-agv-f="${id}|${i}|p" value="${esc(f.p)}" placeholder="What ${nm} says" aria-label="Filler ${i + 1}, what ${nm} says">
@@ -2880,7 +2880,29 @@
      does not draw a two-line box and then grow it. */
   function agvFit() {
     $$('[data-agv-ta]').forEach((t) => { t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; });
+    /* Tweak 9 (Nour): past three fillers the list scrolls inside the card.
+       It is cut at exactly three rows, measured (rows grow with the type), a
+       fade at the bottom says there is more, and the scroll position
+       survives a repaint (an edit, a removal). */
+    $$('[data-agv-fl].is-scroll').forEach((ul) => {
+      const rows = ul.children;
+      if (rows.length < 4) return;
+      ul.style.maxHeight = (rows[3].offsetTop - rows[0].offsetTop) + 'px';
+      const k = ul.getAttribute('data-agv-fl');
+      if (AGV_FL_TOP[k] != null) ul.scrollTop = AGV_FL_TOP[k];
+      agvFlEdge(ul);
+    });
   }
+  const AGV_FL_TOP = {};
+  function agvFlEdge(ul) {
+    ul.classList.toggle('is-end', ul.scrollTop + ul.clientHeight >= ul.scrollHeight - 2);
+  }
+  document.addEventListener('scroll', (e) => {
+    const ul = e.target && e.target.closest && e.target.closest('[data-agv-fl].is-scroll');
+    if (!ul || e.target !== ul) return;
+    AGV_FL_TOP[ul.getAttribute('data-agv-fl')] = ul.scrollTop;
+    agvFlEdge(ul);
+  }, true);
 
   /* A filler file, straight into the agent's list (the variant has no Save):
      new phrases are added, ones already there are skipped, and the toast
@@ -9376,7 +9398,8 @@
         a0.fillers = (a0.fillers || []).concat([{ p: '', c: '' }]);
         agvFx(a0.id, 'row' + (a0.fillers.length - 1));
         const sel = '[data-agv-f="' + a0.id + '|' + (a0.fillers.length - 1) + '|p"]';
-        render(() => { const f = $(sel); if (f) f.focus(); });
+        AGV_FL_TOP[a0.id] = 1e6;
+        render(() => { const f = $(sel); if (f) f.focus({ preventScroll: true }); });
       }
       return;
     }
