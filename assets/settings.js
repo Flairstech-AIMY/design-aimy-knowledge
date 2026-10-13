@@ -2680,14 +2680,133 @@
           </span>
           ${bad ? `<span class="set2-doc-end">${pill(bad[0], bad[1])}</span>` : ''}
         </div>
-        <div class="set2-agp">
-          ${agOrbTile(a)}
-          ${toneBlock(a)}
-          ${agSinceTile(a)}
-          ${fillerBlock(a)}
-          ${agSkillsTile(a)}
-        </div>
+        ${agvCards(a)}
       </div>`;
+  }
+
+  /* ══ THE VARIANT'S CARDS, LITERALLY ══
+     Nour, 13 Oct: "port the variant cards as it is in the real product
+     without changes. same buttons same radii same backgrounds same edit
+     inputs same everything then let's start tweaking from there." This is
+     concept 3's G() from explore-settings.html with its classes renamed to
+     agv- (CSS ported the same way, see settings.css) and its fixtures
+     replaced by the agent's own data. Its behaviour too: the tone and the
+     fillers save as you type, a preset or a removal has a toast with Undo,
+     "Switch to male" switches with one click. The older tile functions
+     above (agOrbTile, toneBlock, agSinceTile, fillerBlock, agSkillsTile)
+     are no longer rendered; they stay until the tweaks settle what comes
+     back (the config-file source, Save and Discard, the Phrase header). */
+  const AGV_EDIT = {};
+  const AGV_ICO = {
+    play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></svg>',
+    x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+    plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>',
+    upload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>'
+  };
+  function agvCards(a) {
+    const id = esc(a.id), nm = esc(a.name);
+    const h = TONE_HIST[a.id];
+    const live = !!h && toneOf(a) === h.text;
+    const prev = h && TONE_TEMPLATES.filter((x) => x.id === h.prev)[0];
+    const other = a.voice === 'male' ? 'female' : 'male';
+    let how;
+    if (live) {
+      const W = 100, Hh = 40, max = 24, n = h.series.length;
+      const xy = (v, i) => (i / (n - 1) * W).toFixed(2) + ',' + (Hh - v / max * Hh).toFixed(2);
+      const before = h.series.slice(0, h.cut + 1).map(xy).join(' ');
+      const after = h.series.slice(h.cut).map((v, i) => xy(v, i + h.cut)).join(' ');
+      const mx = (h.cut / (n - 1) * W).toFixed(2);
+      how = `
+      <div class="agv-t agv-how">
+        <p class="agv-how-h"><svg class="agv-mk" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>Since ${nm}\u2019s tone changed to \u201c${esc(toneTitle(a))}\u201d</p>
+        <p class="agv-how-s">${esc(h.at)}, by ${esc(h.by)}. Compared with the three weeks before.</p>
+        <div class="agv-mx">
+          ${h.m.map((x) => `<div class="agv-m"><b${x[4] ? ' class="is-ok"' : ''}>${x[2]}${esc(x[3])}</b><span>${esc(x[0])}, <i>${x[2] < x[1] ? 'down' : 'up'} from ${x[1]}${x[3] === '%' ? '%' : ''}</i></span></div>`).join('')}
+        </div>
+        <div class="agv-chart">
+          <svg class="agv-spark" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="Follow-up questions per day, about ${h.m[0][1]}% before ${esc(h.at)} and about ${h.m[0][2]}% after">
+            <line x1="${mx}" x2="${mx}" y1="0" y2="40" stroke="var(--ink-action)" stroke-width="1" stroke-dasharray="2 2" vector-effect="non-scaling-stroke"/>
+            <polyline points="${before}" fill="none" stroke="var(--ink-secondary)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
+            <polyline points="${after}" fill="none" stroke="var(--brand)" stroke-width="2" vector-effect="non-scaling-stroke"/>
+          </svg>
+          <div class="agv-chart-l"><span>Follow-up questions a day, ${esc(h.from)}</span><span style="color:var(--ink-action)">Tone changed ${esc(h.at)}</span><span>Today</span></div>
+        </div>
+        <div class="agv-how-a">${h.kept ? `<span style="margin:0;color:var(--ink-ok)">Kept. AiMY will tell you if this turns.</span>`
+          : `<button class="agv-btn is-brand" type="button" data-tone-keep="${id}">Keep it</button>
+             ${prev ? `<button class="agv-btn is-ghost" type="button" data-tone-back="${id}">Go back to \u201c${esc(prev.name)}\u201d</button>
+             <span>The tone before ${esc(h.at)}</span>` : ''}`}</div>
+      </div>`;
+    } else {
+      how = `
+      <div class="agv-t agv-how">
+        <p class="agv-how-h"><svg class="agv-mk" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>${h ? 'Since the tone changed' : 'What tone changes do'}</p>
+        <p class="agv-how-s" style="margin-bottom:0">${h
+          ? 'Changed just now. Once a week of answers is in, AiMY compares them with the weeks before.'
+          : 'When ' + nm + '\u2019s tone changes, AiMY compares the answers before and after here, so you can keep the change or go back.'}</p>
+      </div>`;
+    }
+    const changed = live ? 'Changed ' + esc(h.at) + ' by ' + esc(h.by) : 'Changed ' + esc(a.when) + ' by ' + esc(a.by);
+    const fl = a.fillers || [];
+    return `<div class="agv">
+      <div class="agv-t agv-orb"><span class="agv-orb-slot" data-ag-orb="${id}" aria-hidden="true"></span>
+        <div class="agv-orb-b"><p class="agv-orb-n">${nm}</p><p class="agv-orb-r">${esc(voiceName(a.voice))} voice${a.role ? ', ' + esc(a.role) : ''}</p>
+          <div class="agv-orb-c">${window.speechSynthesis ? `<button class="agv-btn is-brand" type="button" data-voice-play="${id}|${esc(a.voice || 'female')}">Hear ${nm}</button>` : ''}
+            <button class="agv-lnk" type="button" data-agv-swap="${id}">Switch to ${other}</button></div></div></div>
+      <div class="agv-t agv-tone"><p class="agv-k">How ${nm} speaks</p>
+        ${AGV_EDIT[a.id] ? `<textarea class="agv-ed" data-agv-ta="${id}" aria-label="How ${nm} speaks">${esc(toneOf(a))}</textarea>
+          <div class="agv-pre">${TONE_TEMPLATES.map((p) => `<button type="button" data-agv-pre="${id}|${esc(p.id)}">Start from ${esc(p.name)}</button>`).join('')}</div>
+          <div class="agv-tone-f"><button class="agv-btn is-brand" type="button" data-agv-done="${id}">Done</button><span>Saves as you type</span></div>`
+        : `<h3>${esc(toneTitle(a) || 'No tone yet')}</h3><p>${esc(toneOf(a))}</p>
+          <div class="agv-tone-f"><button class="agv-lnk" type="button" data-agv-edit="${id}">Change how ${nm} speaks</button><span>${changed}</span></div>`}
+      </div>
+      ${how}
+      <div class="agv-t agv-fill">
+        <div class="agv-fill-hd"><p class="agv-k">While ${nm} looks something up</p></div>
+        <p class="agv-fill-d">Short phrases ${nm} says to cover a pause. The moment under each one tells ${nm} when it fits, so write it the way you would brief a person.</p>
+        <ul class="agv-fl">${fl.map((f, i) => `
+          <li class="agv-fr${VOICE_PLAYING === a.id + '|fl|' + i ? ' is-said' : ''}">
+            <button class="agv-ib is-play" type="button" data-fl-say="${id}|${i}" aria-label="Hear \u201c${esc(f.p)}\u201d">${AGV_ICO.play}</button>
+            <span class="agv-fx"><input class="agv-fp" data-agv-f="${id}|${i}|p" value="${esc(f.p)}" placeholder="What ${nm} says" aria-label="Filler ${i + 1}, what ${nm} says">
+            <input class="agv-fc" data-agv-f="${id}|${i}|c" value="${esc(f.c)}" placeholder="When it fits" aria-label="Filler ${i + 1}, when it fits"></span>
+            <button class="agv-ib" type="button" data-agv-fdel="${id}|${i}" aria-label="Remove this filler">${AGV_ICO.x}</button>
+          </li>`).join('')}</ul>
+        <div class="agv-fill-f">
+          <button class="agv-lnk" type="button" data-agv-fadd="${id}">${AGV_ICO.plus}Add a filler</button>
+          <label class="agv-lnk" style="cursor:pointer">${AGV_ICO.upload}Import CSV or JSON<input type="file" accept=".csv,.json,text/csv,application/json" hidden data-agv-file="${id}"></label>
+          <span class="agv-tpl">Download a template:
+            <button class="agv-lnk" type="button" data-fl-tpl="csv" aria-label="Download the CSV template">CSV</button>
+            <button class="agv-lnk" type="button" data-fl-tpl="json" aria-label="Download the JSON template">JSON</button></span>
+        </div>
+      </div>
+      <div class="agv-t agv-skills"><p class="agv-k">Skills ${nm} uses</p>${skillsRun(a).map((s) => `<span class="agv-chip">${esc(s.name)}</span>`).join('')}</div>
+    </div>`;
+  }
+  /* A filler file, straight into the agent's list (the variant has no Save):
+     new phrases are added, ones already there are skipped, and the toast
+     says what happened. The parsers are the ones the dialog used. */
+  function agvImport(file, aid) {
+    const a = agentById(aid);
+    if (!a || !file) return;
+    const say = (m, undo) => { if (API && API.toast) API.toast(m, undo); };
+    const isCsv = /\.csv$/i.test(file.name), isJson = /\.json$/i.test(file.name);
+    if (!isCsv && !isJson) return say('Use a .csv or .json file. ' + file.name + ' is neither.');
+    if (file.size > FL_MAX) return say(file.name + ' is ' + kb(file.size) + '. A filler file can be up to 64 KB.');
+    const rd = new FileReader();
+    rd.onload = () => {
+      let got;
+      try { got = isCsv ? fillersFromCsv(String(rd.result || ''), file.name)
+                        : fillersFromJson(String(rd.result || ''), file.name); }
+      catch (ex) { return say(ex.message); }
+      const was = (a.fillers || []).map((f) => ({ p: f.p, c: f.c }));
+      const seen = new Set(was.map((f) => flKey(f.p)));
+      const add = got.filter((f) => { const k = flKey(f.p); if (seen.has(k)) return false; seen.add(k); return true; });
+      if (!add.length) return say('Nothing new in ' + file.name + '.');
+      a.fillers = was.concat(add); a.when = 'just now'; a.by = USER.name;
+      DIRTY.add('fillers:' + a.id);
+      render();
+      say('Added ' + add.length + ' filler' + (add.length === 1 ? '' : 's') + ' from ' + file.name, () => { a.fillers = was; render(); });
+    };
+    rd.readAsText(file);
   }
 
   /* ── TONE ──
@@ -9069,6 +9188,66 @@
       }
       return;
     }
+    /* ── The variant's cards ── */
+    const agSw = e.target.closest('[data-agv-swap]');
+    if (agSw) {
+      const a0 = agentById(agSw.getAttribute('data-agv-swap'));
+      if (a0) {
+        const was = a0.voice;
+        a0.voice = was === 'male' ? 'female' : 'male';
+        a0.when = 'just now'; a0.by = USER.name;
+        DIRTY.add('voice:' + a0.id);
+        render();
+        if (API && API.toast) API.toast(a0.name + ' now speaks with a ' + a0.voice + ' voice', () => { a0.voice = was; render(); });
+        if (window.speechSynthesis) playSample(a0.id, a0.voice);
+      }
+      return;
+    }
+    const agEd = e.target.closest('[data-agv-edit]');
+    if (agEd) {
+      const aid = agEd.getAttribute('data-agv-edit');
+      AGV_EDIT[aid] = true;
+      render(() => { const t = $('[data-agv-ta="' + aid + '"]'); if (t) { t.style.height = t.scrollHeight + 'px'; t.focus(); } });
+      return;
+    }
+    const agDn = e.target.closest('[data-agv-done]');
+    if (agDn) { delete AGV_EDIT[agDn.getAttribute('data-agv-done')]; render(); return; }
+    const agPre = e.target.closest('[data-agv-pre]');
+    if (agPre) {
+      const [aid, tid] = agPre.getAttribute('data-agv-pre').split('|');
+      const a0 = agentById(aid), x = TONE_TEMPLATES.filter((y) => y.id === tid)[0];
+      if (a0 && x) {
+        const was = { src: a0.tone.src, text: a0.tone.text };
+        a0.tone.src = 'text'; a0.tone.text = x.text; a0.when = 'just now'; a0.by = USER.name;
+        DIRTY.add('tone:' + aid);
+        render(() => { const t = $('[data-agv-ta="' + aid + '"]'); if (t) t.style.height = t.scrollHeight + 'px'; });
+        if (API && API.toast) API.toast('Started from ' + x.name, () => { a0.tone.src = was.src; a0.tone.text = was.text; render(); });
+      }
+      return;
+    }
+    const agFa = e.target.closest('[data-agv-fadd]');
+    if (agFa) {
+      const a0 = agentById(agFa.getAttribute('data-agv-fadd'));
+      if (a0) {
+        a0.fillers = (a0.fillers || []).concat([{ p: '', c: '' }]);
+        const sel = '[data-agv-f="' + a0.id + '|' + (a0.fillers.length - 1) + '|p"]';
+        render(() => { const f = $(sel); if (f) f.focus(); });
+      }
+      return;
+    }
+    const agFd = e.target.closest('[data-agv-fdel]');
+    if (agFd) {
+      const [aid, si] = agFd.getAttribute('data-agv-fdel').split('|');
+      const a0 = agentById(aid);
+      if (a0 && a0.fillers && a0.fillers[+si]) {
+        const was = a0.fillers.map((f) => ({ p: f.p, c: f.c }));
+        const gone = a0.fillers.splice(+si, 1)[0];
+        a0.when = 'just now'; a0.by = USER.name; DIRTY.add('fillers:' + aid);
+        render();
+        if (API && API.toast) API.toast('Removed \u201c' + (gone.p || 'an empty filler') + '\u201d', () => { a0.fillers = was; render(); });
+      }
+      return;
+    }
     /* ── Fillers, inline ── */
     const flT = e.target.closest('[data-fl-tpl]');
     if (flT) { downloadFillerTemplate(flT.getAttribute('data-fl-tpl')); return; }
@@ -10160,6 +10339,22 @@
     if (usSI && US_SESS_ED) { US_SESS_ED.v = usSI.value; return; }
     /* An agent's tone. Stored, and the bar under it told — never repainted,
        which would take the caret out of the sentence being written. */
+    const agTa = e.target.closest && e.target.closest('[data-agv-ta]');
+    if (agTa) {
+      const a0 = agentById(agTa.getAttribute('data-agv-ta'));
+      if (a0) { a0.tone.src = 'text'; a0.tone.text = agTa.value; a0.when = 'just now'; a0.by = USER.name; DIRTY.add('tone:' + a0.id); }
+      agTa.style.height = 'auto'; agTa.style.height = agTa.scrollHeight + 'px';
+      return;
+    }
+    const agF = e.target.closest && e.target.closest('[data-agv-f]');
+    if (agF) {
+      const [aid, si, k] = agF.getAttribute('data-agv-f').split('|');
+      const a0 = agentById(aid);
+      if (a0 && a0.fillers && a0.fillers[+si]) {
+        a0.fillers[+si][k] = agF.value; a0.when = 'just now'; a0.by = USER.name; DIRTY.add('fillers:' + aid);
+      }
+      return;
+    }
     /* A filler. Stored in the working copy; repainted only when that turns
        the Save bar on or off, with the caret put back where it was. */
     const flI = e.target.closest && e.target.closest('[data-fl-p], [data-fl-c]');
@@ -10535,6 +10730,12 @@
       /* See afterSwitch: the repaint waits for the thumb, or the transition
          never runs at all. */
       afterSwitch(t, render);
+      return;
+    }
+    const agFile = e.target.closest('[data-agv-file]');
+    if (agFile) {
+      if (agFile.files && agFile.files[0]) agvImport(agFile.files[0], agFile.getAttribute('data-agv-file'));
+      agFile.value = '';
       return;
     }
     const ff = e.target.closest('[data-fl-file]');

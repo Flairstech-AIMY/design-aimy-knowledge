@@ -4544,187 +4544,88 @@ input.set2-fld[type="password"] {
 
 
 /* ══ AN AGENT, AS A PROFILE ══════════════════════════════════════════════
-   Nour, 13 Oct: the agent page as a character rather than a form, and then:
-   "I like the variant design exactly as you built it". So this block is the
-   variant's CSS (explore-settings.html, concept 3) value for value, measured
-   against it at 1536: its 20px tiles, backgrounds and type in fixed sizes,
-   because the Console's --ty-* tokens run a step larger than the page the
-   variant was drawn on. The grid keeps the page's full width (Nour: the
-   cards take the variant's styles, the page is not narrowed). Poppins throughout, as everywhere.
-   Two things the variant did not have, both asked for since: the voice
-   switch fused to Hear, and the Phrase / Context header over the fillers. */
-.set2-agp {
-  --agp-micro: 0.75rem; --agp-meta: 0.875rem; --agp-body: 1rem;
-  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.875rem;
-  margin-top: 2.25rem;
-}
-.set2-agp-t {
-  position: relative; min-width: 0; padding: 1.25rem; overflow: hidden; border-radius: 1.25rem;
-  background: var(--card-bg); box-shadow: inset 0 0 0 0.0625rem var(--card-border);
-}
-.set2-agp-k {
-  margin: 0 0 0.75rem; font-size: var(--agp-micro); font-weight: var(--fw-semibold); color: var(--ink-secondary);
-  letter-spacing: var(--ls-wide); text-transform: uppercase;
-}
-.set2-agp-t .set2-lbl-row { margin-bottom: 0; align-items: flex-start; }
-.set2-agp-t .set2-tip-wrap { text-transform: none; letter-spacing: 0; }
-.set2-agp-d { margin: 0.375rem 0 0.875rem; font-size: var(--agp-micro); line-height: 1.5; color: var(--ink-secondary); max-width: 34rem; }
-.set2-agp .set2-lnk {
-  appearance: none; border: 0; background: none; padding: 0; min-height: 0; cursor: pointer;
-  font: inherit; font-size: inherit; color: var(--ink-action); text-decoration: none;
-}
-.set2-agp .set2-lnk:hover { text-decoration: underline; text-underline-offset: 0.1875rem; }
+   Nour, 13 Oct: "port the variant cards as it is in the real product without
+   changes ... then let's start tweaking from there." This is concept 3 of
+   explore-settings.html transplanted literally: the same rules with the
+   selectors renamed to agv-, and the type tokens written as the 12, 14 and
+   16px they are on that page. Tweaks start from here. */
+/* The variant's bare `button { font: inherit }`, kept as weak as it was
+   there (:where) so its .btn-a sizes still win. */
+:where(.agv) button { font: inherit; }
+.agv-k { margin: 0; font-size: 0.75rem; font-weight: var(--fw-semibold); color: var(--ink-secondary); letter-spacing: var(--ls-wide); text-transform: uppercase; }
+.agv-lnk { appearance: none; border: 0; background: none; padding: 0; cursor: pointer; color: var(--ink-action); font-size: inherit; }
+.agv-lnk:hover { text-decoration: underline; text-underline-offset: 0.1875rem; }
+.agv-btn { appearance: none; border: 0; cursor: pointer; font-size: 0.875rem; font-weight: var(--fw-semibold); padding: 0.5rem 1rem; border-radius: var(--r-pill); }
+.agv-btn.is-brand { background: var(--brand); color: #fff; }
+.agv-btn.is-ghost { background: transparent; color: var(--ink-primary); box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover); }
+.agv-btn:active { transform: scale(0.98); }
+.agv-mk { width: 0.8125rem; height: 0.9375rem; flex: none; }
+.agv { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.875rem; }
+.agv-t { position: relative; border-radius: 1.25rem; background: var(--card-bg); box-shadow: inset 0 0 0 0.0625rem var(--card-border); padding: 1.25rem; overflow: hidden; }
+.agv-t .agv-k { margin-bottom: 0.75rem; }
+.agv-orb { grid-column: span 2; grid-row: span 2; min-height: 22rem; padding: 0; background: radial-gradient(120% 90% at 50% 40%, rgba(var(--accent-rgb), 0.18), transparent 70%), var(--card-bg); }
+.agv-orb canvas { position: absolute; left: 0; right: 0; top: 0; bottom: 8.5rem; width: 100%; height: calc(100% - 8.5rem); }
+.agv-orb-b { position: absolute; left: 1.25rem; right: 1.25rem; bottom: 1.25rem; }
+.agv-orb-n { font-size: 1.75rem; font-weight: var(--fw-bold); letter-spacing: -0.02em; margin: 0; }
+.agv-orb-r { font-size: 0.875rem; color: var(--ink-secondary); margin: 0.125rem 0 0.875rem; }
+.agv-orb-c { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.agv-tone { grid-column: span 4; background: var(--aimy-wash); box-shadow: inset 0 0 0 0.0625rem var(--aimy-wash-edge); }
+.agv-tone h3 { margin: 0 0 0.75rem; font-size: 2rem; line-height: 1.1; font-weight: var(--fw-bold); letter-spacing: -0.02em; }
+.agv-tone p { margin: 0; font-size: 1rem; line-height: 1.65; color: var(--ink-primary); max-width: 40rem; }
+.agv-tone-f { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-top: 1.125rem; font-size: 0.75rem; color: var(--ink-secondary); }
+.agv-ed { width: 100%; border: 0; outline: 0; resize: none; overflow: hidden; background: transparent; color: var(--ink-primary); font: inherit; font-size: 1rem; line-height: 1.65; padding: 0; }
+.agv-pre { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-top: 0.875rem; }
+.agv-pre button { appearance: none; border: 0; cursor: pointer; font-size: 0.75rem; padding: 0.3125rem 0.75rem; border-radius: var(--r-pill); color: var(--ink-primary); background: var(--card-bg); box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover); }
+/* The fillers, edited where they are read: a row each, the phrase as it
+   is said and the moment it fits, with a play to hear it. */
+.agv-fill { grid-column: 1 / span 4; }
+.agv-fill-hd { display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+.agv-fill-hd .agv-k { margin: 0; }
+.agv-fill-d { margin: 0.375rem 0 0.875rem; font-size: 0.75rem; color: var(--ink-secondary); max-width: 34rem; line-height: 1.5; }
+.agv-fl { list-style: none; margin: 0; padding: 0; }
+.agv-fr { display: grid; grid-template-columns: 1.75rem minmax(0, 1fr) 1.75rem; align-items: center; gap: 0.75rem; padding: 0.375rem 0.5rem; border-radius: var(--r-lg); transition: background 200ms; }
+.agv-fr + .agv-fr { margin-top: 0.125rem; }
+.agv-fr:focus-within, .agv-fr.is-said { background: var(--card-bg-raised); }
+.agv-fr.is-said .agv-fp { color: var(--ink-action); }
+.agv-fx { display: flex; flex-direction: column; min-width: 0; }
+.agv-fr input { min-width: 0; width: 100%; border: 0; outline: 0; background: transparent; font: inherit; padding: 0.1875rem 0; border-bottom: 0.0625rem solid transparent; }
+.agv-fr input:hover { border-bottom-color: var(--card-border-hover); }
+.agv-fr input:focus { border-bottom-color: var(--brand); }
+.agv-fp { font-size: 0.875rem; color: var(--ink-primary); }
+.agv-fc { font-size: 0.75rem; color: var(--ink-secondary); }
+.agv-fr input::placeholder { color: var(--ink-secondary); }
+.agv-ib { width: 1.75rem; height: 1.75rem; display: grid; place-items: center; appearance: none; border: 0; background: none; cursor: pointer; border-radius: var(--r-md); color: var(--ink-secondary); }
+.agv-ib:hover { background: var(--card-bg-raised); color: var(--ink-primary); }
+.agv-ib svg { width: 0.875rem; height: 0.875rem; }
+.agv-ib.is-play { color: var(--ink-action); }
+.agv-fill-f { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 1.25rem; margin-top: 0.75rem; padding-left: 0.5rem; font-size: 0.75rem; }
+.agv-fill-f .agv-tpl { margin-left: auto; color: var(--ink-secondary); display: inline-flex; gap: 0.5rem; }
+.agv-fill-f .agv-lnk { display: inline-flex; align-items: center; gap: 0.375rem; }
+.agv-fill-f svg { width: 0.875rem; height: 0.875rem; }
 
-/* The orb: the voice. */
-.set2-agp-orb {
-  grid-column: span 2; grid-row: span 2; min-height: 22rem; padding: 0;
-  background: radial-gradient(120% 90% at 50% 40%, rgba(var(--accent-rgb), 0.18), transparent 70%), var(--card-bg);
-}
-.set2-agp-orb-c { position: absolute; left: 0; right: 0; top: 0; bottom: 8.5rem; }
-.set2-agp-silk { display: block; width: 100%; height: 100%; }
-.set2-agp-orb-b { position: absolute; left: 1.25rem; right: 1.25rem; bottom: 1.25rem; }
-.set2-agp-name { margin: 0; font-size: 1.75rem; font-weight: var(--fw-bold); letter-spacing: -0.02em; color: var(--ink-primary); }
-.set2-agp-sub { margin: 0.125rem 0 0.875rem; font-size: var(--agp-meta); color: var(--ink-secondary); }
-/* Hear, with the voice switch fused to it (Nour, after the variant). Hear is
-   the variant's brand pill; the switch slides a ring between the marks. */
-.set2-agp-vo {
-  display: inline-flex; align-items: center; padding: 0.1875rem; border-radius: var(--r-pill);
-  background: var(--card-bg-raised); box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover);
-}
-.set2-agp-hear {
-  display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem;
-  appearance: none; border: 0; cursor: pointer; border-radius: var(--r-pill);
-  background: var(--brand); color: #fff; font: inherit; font-size: var(--agp-meta); font-weight: var(--fw-semibold);
-}
-.set2-agp-hear svg { width: 0.75rem; height: 0.75rem; }
-.set2-agp-hear:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
-.set2-agp-vsw { position: relative; display: inline-flex; margin-left: 0.25rem; }
-.set2-agp-vth {
-  position: absolute; top: 0; left: 0; width: 2.125rem; height: 2.125rem; border-radius: 50%;
-  background: rgba(var(--accent-rgb), 0.18); box-shadow: inset 0 0 0 0.0625rem var(--brand);
-  transform: translateX(calc(var(--i, 0) * 2.125rem));
-}
-.set2-agp-vb {
-  position: relative; z-index: 1; width: 2.125rem; height: 2.125rem; display: grid; place-items: center; padding: 0;
-  appearance: none; border: 0; background: none; cursor: pointer; border-radius: 50%; color: var(--ink-secondary);
-}
-.set2-agp-vb svg { width: 0.9375rem; height: 0.9375rem; }
-.set2-agp-vb[aria-checked="true"], .set2-agp-vb:hover { color: var(--ink-primary); }
-.set2-agp-vb:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.0625rem; }
-@media (prefers-reduced-motion: no-preference) {
-  .set2-agp-vth { transition: transform var(--t-base) cubic-bezier(.2, .9, .25, 1.05); }
-  .set2-agp-hear:active, .set2-agp-pill:active { transform: scale(0.98); }
-}
-
-/* How it speaks. The variant's label reads at body size and full ink
-   (its `.g-tone p` rule reached the label too), and Nour liked it so. */
-.set2-agp-tone { grid-column: span 4; background: var(--aimy-wash); box-shadow: inset 0 0 0 0.0625rem var(--aimy-wash-edge); }
-.set2-agp-tone > .set2-lbl-row .set2-agp-k {
-  font-size: var(--agp-body); line-height: 1.65; color: var(--ink-primary); margin-bottom: 0.75rem;
-}
-.set2-agp-title { margin: 0 0 0.75rem; font-size: 2rem; line-height: 1.1; font-weight: var(--fw-bold); letter-spacing: -0.02em; color: var(--ink-primary); }
-.set2-agp-quote { margin: 0; font-size: var(--agp-body); line-height: 1.65; color: var(--ink-primary); max-width: 40rem; }
-.set2-agp-from { margin: 0 0 0.5rem; font-size: var(--agp-micro); color: var(--ink-secondary); }
-.set2-agp-file {
-  margin: 0; max-height: 8.5rem; overflow: hidden; white-space: pre-wrap;
-  font-family: var(--font-mono, ui-monospace, monospace); font-size: var(--agp-micro); line-height: 1.6; color: var(--ink-primary);
-}
-.set2-agp-ft { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-top: 1.125rem; font-size: var(--agp-micro); color: var(--ink-secondary); }
-
-/* What the last change did. AiMY's block. */
-.set2-agp-since { grid-column: 3 / span 4; background: var(--aimy-wash); box-shadow: inset 0 0 0 0.0625rem var(--aimy-wash-edge); }
-.set2-agp-sh { display: flex; align-items: center; gap: 0.5rem; margin: 0; font-size: var(--agp-meta); font-weight: var(--fw-semibold); color: var(--ink-primary); }
-.set2-agp-sh > svg { flex: none; width: 0.8125rem; height: 0.9375rem; }
-.set2-agp-since > .set2-agp-d { margin: 0.25rem 0 1rem; line-height: normal; max-width: none; }
-.set2-agp-mx { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 0 0 1rem; }
-.set2-agp-m b { display: block; font-size: 1.375rem; font-weight: var(--fw-bold); letter-spacing: -0.01em; color: var(--ink-primary); }
-.set2-agp-m b.is-ok { color: var(--ink-ok); }
-.set2-agp-m span { display: block; margin-top: 0.125rem; font-size: var(--agp-micro); color: var(--ink-secondary); }
-.set2-agp-m i { font-style: normal; color: var(--ink-primary); }
-.set2-agp-line { display: block; width: 100%; height: 3.5rem; overflow: visible; }
-.set2-agp-line polyline { fill: none; }
-.set2-agp-line .is-before { stroke: var(--ink-secondary); stroke-width: 1.5; }
-.set2-agp-line .is-after { stroke: var(--brand); stroke-width: 2; }
-.set2-agp-line .is-cut { stroke: var(--ink-action); stroke-width: 1; stroke-dasharray: 2 2; }
-.set2-agp-ll { display: flex; justify-content: space-between; margin-top: 0.25rem; font-size: var(--agp-micro); color: var(--ink-secondary); }
-.set2-agp-ll .is-cut { color: var(--ink-action); }
-.set2-agp-act { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
-.set2-agp-act span { margin-left: 0.25rem; font-size: var(--agp-micro); color: var(--ink-secondary); }
-.set2-agp-act .is-ok { margin: 0; color: var(--ink-ok); font-size: var(--agp-meta); }
-.set2-agp-pill {
-  appearance: none; border: 0; cursor: pointer; font: inherit; font-size: var(--agp-meta); font-weight: var(--fw-semibold);
-  padding: 0.5rem 1rem; border-radius: var(--r-pill); color: var(--ink-primary); background: transparent;
-  box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover);
-}
-.set2-agp-pill.is-brand { background: var(--brand); color: #fff; box-shadow: none; }
-.set2-agp-pill:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
-.set2-agp-since.is-empty { background: var(--card-bg); box-shadow: inset 0 0 0 0.0625rem var(--card-border); }
-.set2-agp-since.is-empty > .set2-agp-d { margin-bottom: 0; line-height: 1.5; }
-
-/* The fillers, edited where they are read. */
-.set2-agp-fill { grid-column: 1 / span 4; }
-.set2-agp-fill > .set2-agp-k { margin: 0; }
-.set2-agp-fill.is-over { outline: 0.09375rem dashed var(--brand); outline-offset: -0.09375rem; }
-.set2-agp-flh {
-  display: grid; grid-template-columns: 1.75rem minmax(0, 1fr) 1.75rem; gap: 0.75rem;
-  padding: 0 0.5rem 0.375rem; border-bottom: 0.0625rem solid var(--hairline);
-}
-.set2-agp-flh b { font-size: var(--agp-micro); font-weight: var(--fw-semibold); color: var(--ink-primary); }
-.set2-agp-flh .set2-agp-fx span { font-size: var(--agp-micro); color: var(--ink-secondary); }
-.set2-agp-fl { list-style: none; margin: 0.375rem 0 0; padding: 0; }
-.set2-agp-fr {
-  display: grid; grid-template-columns: 1.75rem minmax(0, 1fr) 1.75rem; align-items: center; gap: 0.75rem;
-  padding: 0.375rem 0.5rem; border-radius: var(--r-lg);
-}
-.set2-agp-fr + .set2-agp-fr { margin-top: 0.125rem; }
-.set2-agp-fr:focus-within, .set2-agp-fr.is-said { background: var(--card-bg-raised); }
-.set2-agp-fr.is-said .set2-agp-fp { color: var(--ink-action); }
-.set2-agp-fr.is-bad { box-shadow: inset 0.125rem 0 0 var(--err); }
-.set2-agp-fx { display: flex; flex-direction: column; min-width: 0; }
-.set2-agp-fx input {
-  min-width: 0; width: 100%; padding: 0.1875rem 0; border: 0; outline: 0; background: transparent; font: inherit;
-  border-bottom: 0.0625rem solid transparent;
-}
-.set2-agp-fx input:hover { border-bottom-color: var(--card-border-hover); }
-.set2-agp-fx input:focus { border-bottom-color: var(--brand); }
-.set2-agp-fx input::placeholder { color: var(--ink-secondary); opacity: 1; }
-.set2-agp-fp { font-size: var(--agp-meta); color: var(--ink-primary); }
-.set2-agp-fc { font-size: var(--agp-micro); color: var(--ink-secondary); }
-.set2-agp-ib {
-  width: 1.75rem; height: 1.75rem; display: grid; place-items: center; padding: 0;
-  appearance: none; border: 0; background: none; cursor: pointer; border-radius: var(--r-md); color: var(--ink-secondary);
-}
-.set2-agp-ib svg { width: 0.875rem; height: 0.875rem; }
-.set2-agp-ib:hover:not(:disabled) { background: var(--card-bg-raised); color: var(--ink-primary); }
-.set2-agp-ib.is-play { color: var(--ink-action); }
-.set2-agp-ib:disabled { cursor: default; color: var(--ink-quiet); }
-.set2-agp-ib:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0; }
-.set2-agp-none { margin: 0; font-size: var(--agp-meta); color: var(--ink-secondary); }
-.set2-agp-msg { margin: 0.75rem 0 0; }
-.set2-agp-flf { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 1.25rem; margin-top: 0.75rem; padding-left: 0.5rem; font-size: var(--agp-micro); }
-.set2-agp-flf .set2-lnk { display: inline-flex; align-items: center; gap: 0.375rem; }
-.set2-agp-flf .set2-lnk svg { width: 0.875rem; height: 0.875rem; }
-.set2-agp-tpl { margin-left: auto; display: inline-flex; align-items: center; gap: 0.5rem; color: var(--ink-secondary); }
-.set2-agp-fill .set2-ag-bar { margin-top: 0.875rem; }
-
-/* The skills it runs. */
-.set2-agp-skills { grid-column: 5 / span 2; display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; }
-.set2-agp-skills > .set2-agp-k { margin: 0 0 0.25rem; }
-.set2-agp-chip {
-  padding: 0.3125rem 0.75rem; border-radius: var(--r-pill); font-size: var(--agp-micro); color: var(--ink-primary);
-  box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover);
-}
-
-@media (max-width: 52rem) {
-  .set2-agp { grid-template-columns: minmax(0, 1fr); }
-  .set2-agp > .set2-agp-t { grid-column: auto; grid-row: auto; }
-  .set2-agp-orb { min-height: 18rem; }
-}
-@media (max-width: 735.98px) {
-  .set2-agp-mx { grid-template-columns: minmax(0, 1fr); gap: 0.5rem; }
-  .set2-agp-tpl { margin-left: 0; }
-  .set2-agp-ll .is-cut { display: none; }
-}
+/* Did the last change work: the tone change marked on the line it was
+   meant to move, the before and after in figures, and the two decisions
+   that follow (keep it, or go back). */
+.agv-how { grid-column: 3 / span 4; background: var(--aimy-wash); box-shadow: inset 0 0 0 0.0625rem var(--aimy-wash-edge); }
+.agv-how-h { display: flex; align-items: center; gap: 0.5rem; margin: 0; font-size: 0.875rem; font-weight: var(--fw-semibold); }
+.agv-how-s { margin: 0.25rem 0 1rem; font-size: 0.75rem; color: var(--ink-secondary); }
+.agv-mx { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.agv-m b { display: block; font-size: 1.375rem; font-weight: var(--fw-bold); letter-spacing: -0.01em; }
+.agv-m b.is-ok { color: var(--ink-ok); }
+.agv-m span { display: block; font-size: 0.75rem; color: var(--ink-secondary); margin-top: 0.125rem; }
+.agv-m i { font-style: normal; color: var(--ink-primary); }
+.agv-chart { position: relative; }
+.agv-spark { width: 100%; height: 3.5rem; display: block; overflow: visible; }
+.agv-chart-l { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--ink-secondary); margin-top: 0.25rem; }
+.agv-how-a { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
+.agv-how-a span { font-size: 0.75rem; color: var(--ink-secondary); margin-left: 0.25rem; }
+.agv-skills { grid-column: 5 / span 2; display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+.agv-skills .agv-k { margin: 0 0 0.25rem; }
+.agv-chip { font-size: 0.75rem; padding: 0.3125rem 0.75rem; border-radius: var(--r-pill); box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover); }
+@media (max-width: 52rem) { .agv { grid-template-columns: minmax(0, 1fr); } .agv-t { grid-column: auto !important; grid-row: auto !important; } .agv-orb { min-height: 18rem; } }
+.agv-orb-slot { position: absolute; inset: 0; }
+/* The variant's page head kept 2.25rem above its cards. */
+.set2-ag-doc .agv { margin-top: 2.25rem; }
 
 
 /* ══ USAGE ═══════════════════════════════════════════════════════════════
