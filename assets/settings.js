@@ -2780,7 +2780,7 @@
           <span class="agv-fx"><b>Phrase</b><span>Context, when it fits</span></span><span></span></div>` : ''}
         <ul class="agv-fl">${fl.map((f, i) => `
           <li class="agv-fr${VOICE_PLAYING === a.id + '|fl|' + i ? ' is-said' : ''}${fx['row' + i] ? ' agv-in-row' : ''}">
-            <button class="agv-ib is-play" type="button" data-fl-say="${id}|${i}" aria-label="${VOICE_PLAYING === a.id + '|fl|' + i ? 'Stop' : 'Hear'} \u201c${esc(f.p)}\u201d">${VOICE_PLAYING === a.id + '|fl|' + i ? I.stop : AGV_ICO.play}</button>
+            <button class="agv-ib is-play" type="button" data-fl-say="${id}|${i}" title="${VOICE_PLAYING === a.id + '|fl|' + i ? 'Stop' : 'Hear ' + nm + ' say this'}" aria-label="${VOICE_PLAYING === a.id + '|fl|' + i ? 'Stop' : 'Hear'} \u201c${esc(f.p)}\u201d">${VOICE_PLAYING === a.id + '|fl|' + i ? I.stop : AGV_ICO.play}</button>
             <span class="agv-fx"><input class="agv-fp" data-agv-f="${id}|${i}|p" value="${esc(f.p)}" placeholder="What ${nm} says" aria-label="Filler ${i + 1}, what ${nm} says">
             <input class="agv-fc" data-agv-f="${id}|${i}|c" value="${esc(f.c)}" placeholder="When it fits" aria-label="Filler ${i + 1}, when it fits"></span>
             <button class="agv-ib" type="button" data-agv-fdel="${id}|${i}" aria-label="Remove this filler">${AGV_ICO.x}</button>
@@ -2795,7 +2795,8 @@
       </div>
       <div class="agv-t agv-skills"><div class="agv-skh"><p class="agv-k">Skills ${nm} uses</p>
         <button class="agv-btn is-ghost agv-btn-sm" type="button" data-ag-skills="${id}"
-                aria-label="Open the skills ${nm} uses on the Skills page">View</button></div>${skillsRun(a).map((s) => `<span class="agv-chip">${esc(s.name)}</span>`).join('')}</div>
+                aria-label="Open the skills ${nm} uses on the Skills page">View</button></div>${skillsRun(a).map((s) => `<button class="agv-chip" type="button" data-agv-skill="${esc(s.id)}"
+        title="Open ${esc(s.name)}">${esc(s.name)}</button>`).join('')}</div>
     </div>`;
   }
   /* ── Tweak 5 (Nour): a file while editing the tone ──
@@ -4475,12 +4476,33 @@
     const v = voiceFor(gender);
     if (v) { u.voice = v; u.lang = v.lang; }
     else { u.lang = 'en-US'; u.pitch = gender === 'female' ? 1.25 : 0.8; }
-    const done = () => { if (VOICE_PLAYING === key) { VOICE_PLAYING = null; render(); } };
-    u.onend = done; u.onerror = done;
+    /* ── A sample that never plays must not look like it is playing ──
+       Some browsers (and the Claude preview pane) take the utterance and
+       never speak it, and then never fire end or error either, so the row
+       stayed lit on "Stop" for good. Two guards: nothing started within 2s,
+       or it ran far past what the line could take. Either one stops it,
+       clears the state, and says so in a toast. */
+    let started = false;
+    const words = String(u.text).split(/\s+/).length;
+    const clear = () => { clearTimeout(PLAY_GUARD.a); clearTimeout(PLAY_GUARD.b); };
+    const done = () => { clear(); if (VOICE_PLAYING === key) { VOICE_PLAYING = null; render(); } };
+    const fail = () => {
+      clear();
+      if (VOICE_PLAYING !== key) return;
+      tts.cancel(); VOICE_PLAYING = null; render();
+      if (API && API.toast) API.toast('This browser could not play the voice. Try Chrome or Edge with sound on.');
+    };
+    u.onstart = () => { started = true; };
+    u.onend = done;
+    u.onerror = (ev) => { if (ev && ev.error === 'interrupted') done(); else fail(); };
+    clear();
     VOICE_PLAYING = key;
     render();
     tts.speak(u);
+    PLAY_GUARD.a = setTimeout(() => { if (!started) fail(); }, 2000);
+    PLAY_GUARD.b = setTimeout(fail, 3000 + words * 600);
   }
+  const PLAY_GUARD = { a: 0, b: 0 };
   /* Chrome fills the voice list after first asking for it. Asking once at
      load means the first press of Sample already has names to match. */
   if (window.speechSynthesis) { try { window.speechSynthesis.getVoices(); } catch (e) {} }
@@ -9312,6 +9334,9 @@
       }
       return;
     }
+    /* A skill pill opens that skill's page under Agents > Skills. */
+    const agSk = e.target.closest('[data-agv-skill]');
+    if (agSk) { patch({ sec: 'skills', agent: '', skill: agSk.getAttribute('data-agv-skill'), part: '' }); return; }
     const agEd = e.target.closest('[data-agv-edit]');
     if (agEd) {
       const aid = agEd.getAttribute('data-agv-edit');

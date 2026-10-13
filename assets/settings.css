@@ -4723,6 +4723,16 @@ input.set2-fld[type="password"] {
   outline: none; border-bottom-color: transparent; box-shadow: inset 0 -0.125rem 0 var(--brand);
 }
 
+/* ── Tweak 7 (Nour): each skill pill opens its skill. A button now, with the
+   variant's look kept, and a hover that says it goes somewhere. ── */
+button.agv-chip { appearance: none; border: 0; background: transparent; cursor: pointer; font: inherit; font-size: 0.75rem; color: var(--ink-primary); }
+button.agv-chip:hover { box-shadow: inset 0 0 0 0.0625rem var(--brand); color: var(--ink-action); }
+button.agv-chip:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
+@media (prefers-reduced-motion: no-preference) {
+  button.agv-chip { transition: box-shadow 150ms ease-out, color 150ms ease-out, transform 150ms cubic-bezier(0.22, 1, 0.36, 1); }
+  button.agv-chip:active { transform: scale(0.98); }
+}
+
 /* ── Tweak 2 (Nour): the fillers' two fields named once, at the top, in the
    same stack and type the rows use. ── */
 .agv-flh {
