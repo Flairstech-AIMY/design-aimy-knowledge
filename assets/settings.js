@@ -3443,6 +3443,7 @@
   let US_EDIT = null;          /* { meter, pool, key, vals: { childId: 'typed' } } */
   let US_SESS_ED = null;       /* { meter, org, v, err } */
   let US_LAST = '';            /* the meter|pool last painted, to play the entrance once */
+  let US_LAND = false;         /* this paint is an arrival on Usage, not a move inside it */
 
   /* `key` tells the product's card on the path from its employees page:
      the same node, two different pages, and a draft belongs to one. */
@@ -3519,6 +3520,9 @@
     usForget();
     const key = m.id + '|' + ek;
     const enter = key !== US_LAST;
+    /* Arriving on the page (a load, a pasted link, a rail click), as against
+       unfolding within it: the old stage has no Usage section yet. */
+    US_LAND = !document.getElementById('st-usage');
     US_LAST = key;
     return `
       <section class="set2-sec is-headless set2-us${enter ? ' is-enter' : ''}" id="st-usage">
@@ -8682,7 +8686,18 @@
     if (M) M.after(layer, off, { ms: ms }); else setTimeout(off, ms);
   }
 
-  function painted() { seatTabindex(); focusDraft(); landFix(); seatMap(); }
+  function painted() { seatTabindex(); focusDraft(); landFix(); seatMap(); usLand(); }
+
+  /* A link to KMC opens with the plan and Upland folded above it, so on
+     arrival the unfolded card is scrolled to the top, under the bar, rather
+     than left below the fold. Instant: this is where the page starts, not a
+     move. The plan needs nothing, it is already at the top. */
+  function usLand() {
+    if (!US_LAND) return;
+    US_LAND = false;
+    const open = $('.set2-us-lv.is-open');
+    if (open && open.previousElementSibling) open.scrollIntoView({ block: 'start', behavior: 'auto' });
+  }
 
   /* ── ARRIVING AT A FIX ──
      A quick action navigates and then has to finish the job: the page it asked
