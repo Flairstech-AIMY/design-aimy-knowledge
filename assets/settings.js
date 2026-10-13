@@ -92,7 +92,13 @@
     org:  '<svg class="set2-row-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12h4"/><path d="M10 8h4"/><path d="M14 21v-3a2 2 0 0 0-4 0v3"/><path d="M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/><path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/></svg>',
     co:   '<svg class="set2-row-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M12 6h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M16 6h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/><path d="M8 6h.01"/><path d="M9 22v-3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/><rect x="4" y="2" width="16" height="20" rx="2"/></svg>',
     pkg:  '<svg class="set2-row-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/></svg>',
-    reset: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>'
+    reset: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>',
+    /* The usage path. Lucide 1.52 `gauge` (the plan), `users`, `arrow-right`,
+       `chevron-down`. */
+    gauge: '<svg class="set2-row-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>',
+    users: '<svg class="set2-row-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+    arrowR: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>',
+    chevD: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>'
   };
 
   /* ═══ WHO ═══ */
@@ -3406,14 +3412,25 @@
     return s ? (s[0] === 'is-err' ? ' is-err' : ' is-warn') : '';
   };
 
-  /* Where the page stands: a meter and a node, both from the URL. A node
-     the meter cannot reach (a product's people, under Voice) falls back to
-     its parent rather than rendering a level with nothing in it. */
+  /* Where the page stands, all from the URL.
+       tip     the deepest level on the path (`pool`): the plan, an
+               organization, a company or a product. An employee id, from an
+               old link, lands on its product.
+       path    the plan down to the tip, one folded level each.
+       id      the level that is unfolded (`at`): the tip when absent, `plan`
+               for the plan, or any id on the path. An `at` off the path is
+               ignored rather than drawing a level nobody is on.
+       people  `at=people`: the product's employees, on their own page. Only
+               a product of a meter that has employees (not Voice) has one. */
   function usPlace(st) {
     const m = usMeter(st.meter);
-    let id = usAt(st.pool) ? st.pool : '';
-    while (id && usAt(id).depth >= m.depth) id = usAt(id).parent;
-    return { m: m, id: id };
+    let tip = usAt(st.pool) ? st.pool : '';
+    while (tip && usAt(tip).depth > Math.min(3, m.depth)) tip = usAt(tip).parent;
+    const path = [''].concat(usPath(tip));
+    const people = st.at === 'people' && !!tip && usAt(tip).depth === 3 && m.depth === 4;
+    const at = st.at === 'plan' ? '' : st.at;
+    const id = !people && st.at && path.indexOf(at) > -1 ? at : tip;
+    return { m: m, id: id, tip: tip, path: path, people: people };
   }
   const usPath = (id) => {
     const out = [];
@@ -3423,12 +3440,14 @@
 
   /* The editor's working copy. Not URL state, for the reason a tone draft is
      not: a link should open the saved split, not somebody's half-typed one. */
-  let US_EDIT = null;          /* { meter, pool, vals: { childId: 'typed' } } */
+  let US_EDIT = null;          /* { meter, pool, key, vals: { childId: 'typed' } } */
   let US_SESS_ED = null;       /* { meter, org, v, err } */
   let US_LAST = '';            /* the meter|pool last painted, to play the entrance once */
 
-  function usStartEdit(m, pool) {
-    US_EDIT = { meter: m.id, pool: pool, vals: {} };
+  /* `key` tells the product's card on the path from its employees page:
+     the same node, two different pages, and a draft belongs to one. */
+  function usStartEdit(m, pool, key) {
+    US_EDIT = { meter: m.id, pool: pool, key: key, vals: {} };
     usKids(m, pool).forEach((k) => {
       const v = US_SET[m.id][k.id];
       US_EDIT.vals[k.id] = v == null ? '' : usFmt(v);
@@ -3494,10 +3513,11 @@
     const pl = usPlace(st);
     const m = pl.m;
     const id = pl.id;
-    if (US_EDIT && (US_EDIT.meter !== m.id || US_EDIT.pool !== id)) US_EDIT = null;
-    if (US_SESS_ED && (US_SESS_ED.meter !== m.id || US_SESS_ED.org !== id)) US_SESS_ED = null;
+    const ek = (pl.people ? 'people:' : '') + id;
+    if (US_EDIT && (US_EDIT.meter !== m.id || US_EDIT.key !== ek)) US_EDIT = null;
+    if (US_SESS_ED && (US_SESS_ED.meter !== m.id || US_SESS_ED.org !== id || pl.people)) US_SESS_ED = null;
     usForget();
-    const key = m.id + '|' + id;
+    const key = m.id + '|' + ek;
     const enter = key !== US_LAST;
     US_LAST = key;
     return `
@@ -3510,9 +3530,145 @@
                       data-us-meter="${x.id}">${esc(x.name)}<span class="set2-us-unit">${esc(x.unit)}</span></button>`).join('')}
           </div>
         </div>
-        ${usHero(m, id)}
-        ${usAlloc(m, id, st)}
+        ${pl.people ? usHero(m, id) + usAlloc(m, id, st) : usLadder(pl, st)}
       </section>`;
+  }
+
+  /* ══ THE PATH, AS ACCORDIONS ══
+     It used to be a page per level: the plan, then Upland, then KMC, then
+     FileBound, each a click and a full repaint, with a breadcrumb in the
+     header as the only trace of where you had been. Comparing Upland with
+     the plan it sits in meant going back up to read it, then down again.
+
+     Now the plan, the organization, the company and the product are one
+     stack (Nour, 13 Oct: "a smarter breadcrumb"). One level is unfolded,
+     with its AiMY card and its split. Every other level on the path stays,
+     FOLDED, not gone: its name, its use of its limit, its pace in its own
+     ink, and its split as a small bar with the child you went into lit. So
+     the whole chain, plan to product, is on screen with its numbers, and
+     moving sideways (Upland to Valsoft) is one press on the plan's bar,
+     not up-and-down.
+
+     Employees stay a page of their own, as they were: ten rows of people
+     with fields in them is a page, not a fold. An unfolded product shows
+     their split as the bar alone and a button to that page. */
+  function usLadder(pl, st) {
+    return `
+      <ol class="set2-us-path" aria-label="The ${esc(pl.m.name)} plan, down to the level you are on">
+        ${pl.path.map((id, i) => usLv(pl.m, id, pl.path[i + 1], id === pl.id, st)).join('')}
+      </ol>`;
+  }
+
+  function usLv(m, id, next, open, st) {
+    const x = usAt(id);
+    const d = x.depth;
+    const name = id ? x.n.name : m.name + ' plan';
+    const ico = `<span class="set2-us-lv-ico" aria-hidden="true">${d ? I[US_ICO[d]] : I.gauge}</span>`;
+    const head = `<span class="set2-us-lv-k">${esc(US_LEVEL[d])}</span><span class="set2-us-lv-n">${esc(name)}</span>`;
+    if (open) return `
+      <li class="set2-us-lv is-open" aria-current="location">
+        ${ico}
+        <div class="set2-us-lv-box">
+          <h3 class="set2-us-lv-hd">${head}</h3>
+          <div class="set2-us-lv-body">
+            ${usHero(m, id)}
+            ${d === 3 ? usPeek(m, id) : usAlloc(m, id, st, next)}
+          </div>
+        </div>
+      </li>`;
+    const L = usLimit(m, id);
+    const used = usUsed(m, id);
+    const pace = usPaceWord(used, L);
+    const lock = US_EDIT ? ' disabled title="Save or cancel the limits you are editing first"' : '';
+    return `
+      <li class="set2-us-lv${next != null ? ' is-path' : ''}">
+        ${ico}
+        <div class="set2-us-lv-box">
+          <div class="set2-us-lv-hd">
+            <button class="set2-us-lv-go" type="button" data-us-go="${esc(id)}" aria-expanded="false"${lock}>${head}</button>
+            <span class="set2-us-lv-fig"><b class="set2-num">${usFmt(used)}</b> of ${usFmt(L)} ${esc(m.unit)}</span>
+            <span class="set2-us-lv-pace ${pace[0]}">${esc(pace[1])}</span>
+            <span class="set2-us-lv-ch">${I.chevD}</span>
+          </div>
+          ${usStrip(m, id, next)}
+        </div>
+      </li>`;
+  }
+
+  /* The pace headline, short enough for a folded level's line. The card's
+     own "At this pace" says the same thing at length when it is unfolded. */
+  function usPaceWord(used, L) {
+    const P = US_PERIOD;
+    const rate = used / P.day;
+    if (used >= L) return ['is-err', 'Spent'];
+    if (!rate) return ['', 'Nothing used yet'];
+    if (rate * P.days > L) return ['is-warn', 'Runs out around ' + Math.floor(P.day + (L - used) / rate) + ' ' + P.short];
+    const pct = Math.round(rate * P.days / L * 100);
+    return [pct >= 90 ? 'is-warn' : 'is-ok', 'Ends ' + P.name + ' at ' + pct + '%'];
+  }
+
+  /* A folded level's split, small: each child's share with its use in it,
+     the one on your path lit and always named. The names are buttons, so a
+     sibling is one press away. A product under Voice has nobody under it,
+     so its bar is just its own use of its limit. */
+  function usStrip(m, id, next) {
+    const kids = usKids(m, id);
+    const sp = usSplit(m, id);
+    const L = sp.L || 1;
+    const segs = kids.length ? kids.map((k) => ({ id: k.id, name: k.name, lim: sp.lim[k.id], used: usUsed(m, k.id) }))
+      : [{ id: id, name: '', lim: L, used: usUsed(m, id) }];
+    const free = kids.length ? sp.free : 0;
+    const go = kids.length && usAt(kids[0].id).depth <= 3;
+    const seg = (s) => `
+      <span class="set2-us-sg${s.id === next ? ' is-path' : ''}" style="flex-grow:${s.lim}">
+        <i class="set2-us-fill${usFillCls(s.used, s.lim)}" style="--p:${usPct(s.used, s.lim).toFixed(4)}"></i></span>`;
+    const lab = (s) => {
+      const on = s.id === next;
+      const t = s.lim / L >= 0.07 || on
+        ? `<b>${esc(usAt(s.id).depth === 4 ? s.name.split(' ')[0] : s.name)}</b> ${usShort(s.lim)}` : '';
+      return go && t
+        ? `<button class="set2-us-sl${on ? ' is-path' : ''}" type="button" style="flex-grow:${s.lim}"
+                   data-us-go="${esc(s.id)}"${US_EDIT ? ' disabled' : ''}
+                   aria-label="Open ${esc(s.name)}: ${usFmt(s.used)} of ${usFmt(s.lim)} ${esc(m.unit)} used">${t}</button>`
+        : `<span class="set2-us-sl${on ? ' is-path' : ''}" style="flex-grow:${s.lim}">${t}</span>`;
+    };
+    return `
+      <div class="set2-us-lv-split">
+        <div class="set2-us-stack" aria-hidden="true">
+          ${segs.map(seg).join('')}
+          ${free > 0 ? `<span class="set2-us-sg is-free" style="flex-grow:${free}"></span>` : ''}
+        </div>
+        ${kids.length ? `
+          <div class="set2-us-stack-l">
+            ${segs.map(lab).join('')}
+            ${free > 0 ? `<span class="set2-us-sl is-free" style="flex-grow:${free}">${
+              free / L >= 0.07 ? `<b>Unallocated</b> ${usShort(free)}` : ''}</span>` : ''}
+          </div>` : ''}
+      </div>`;
+  }
+
+  /* An unfolded product: its card, then its people as the bar alone and
+     the way to their page, where each one's limit is a row and a field. */
+  function usPeek(m, id) {
+    const kids = usKids(m, id);
+    if (!kids.length) return '';
+    const sp = usSplit(m, id);
+    const set = kids.filter((k) => US_SET[m.id][k.id] != null).length;
+    const when = (US_WHEN[m.id] || {})[id];
+    const how = set ? set + ' set by admin, ' + (kids.length - set) + ' on an equal share of the rest.'
+      : 'All ' + kids.length + ' on an equal share.';
+    return `
+      <div class="set2-us-alloc">
+        <div class="set2-lbl-row set2-us-hd">
+          <p class="set2-lbl">Split across employees</p>
+          <span class="set2-us-hd-end">
+            <button class="btn btn-ghost btn-sm set2-us-ppl" type="button" data-us-people="${esc(id)}">${
+              I.users.replace('class="set2-row-ico"', 'width="14" height="14" aria-hidden="true"')}Open ${kids.length} employees ${I.arrowR}</button>
+          </span>
+        </div>
+        <div>${usStack(m, kids, sp)}</div>
+        <p class="set2-us-when">${esc(how)}${when ? ' Split last changed ' + esc(when[0]) + ' by ' + esc(when[1]) + '.' : ''}</p>
+      </div>`;
   }
 
   /* ── WHERE THIS LEVEL STANDS ──
@@ -3634,8 +3790,11 @@
     const b = out.length ? out.length + ' at limit' + (near.length ? ', ' + near.length + ' near' : '')
       : near.length ? near.length + ' near limit' : 'No ' + who[0] + ' near a limit';
     const cls = out.length ? 'is-err' : near.length ? 'is-warn' : 'is-ok';
+    /* A person opens their product's employees page; a product (Voice)
+       unfolds itself on the path. */
     const names = list.slice(0, 2).map((k) => `<button class="set2-us-who" type="button"
-        data-us-go="${esc(usAt(k).parent)}">${esc(usAt(k).n.name)}</button>`).join(', ');
+        ${usAt(k).depth === 4 ? `data-us-people="${esc(usAt(k).parent)}"` : `data-us-go="${esc(k)}"`}>${
+        esc(usAt(k).n.name)}</button>`).join(', ');
     return `
       <div class="set2-us-fact">
         <dt>Blocked or close</dt>
@@ -3653,7 +3812,7 @@
     if (kids.length < 2 || !used) return '';
     const top = kids.map((k) => ({ k: k, u: usUsed(m, k.id) }))
       .sort((a, b) => b.u - a.u)[0];
-    const deeper = usAt(top.k.id).depth < m.depth;
+    const deeper = usAt(top.k.id).depth <= 3;
     return `
       <div class="set2-us-fact">
         <dt>Most used by</dt>
@@ -3705,7 +3864,7 @@
      what that child has used. Labels sit UNDER the bar on the same flex, so
      they line up with their segment and never have to fight the fill for
      contrast. Unallocated is hatched and says it. */
-  function usAlloc(m, id, st) {
+  function usAlloc(m, id, st, next) {
     const kids = usKids(m, id);
     const depth = usAt(id).depth;
     const noun = US_PLURAL[depth + 1];
@@ -3746,7 +3905,7 @@
           <div class="set2-us-r is-hd" aria-hidden="true">
             <span></span><span>${esc(US_LEVEL[depth + 1])}</span><span>Used</span><span class="set2-us-r-lim">Limit</span><span></span>
           </div>
-          ${rows.map((k) => usRow(m, k, sp, ck)).join('')}
+          ${rows.map((k) => usRow(m, k, sp, ck, next)).join('')}
           ${rows.length ? '' : `<p class="set2-us-none">No ${esc(noun)} in ${esc(name)} match
             “${esc(readF(st).uq)}”.</p>`}
         </div>
@@ -3783,13 +3942,15 @@
       ${sp.free > 0 && sp.free / L < 0.07 ? `<p class="set2-us-free">${usFmt(sp.free)} ${esc(m.unit)} unallocated</p>` : ''}`;
   }
 
-  /* One row. A level with a level under it is a destination; an employee
-     is not, and gets initials instead of a chevron. In edit mode the names
+  /* One row. Anything down to a product is a destination (it unfolds on
+     the path); an employee is not, and gets a photo instead of a chevron.
+     The row you went into is marked, so the split under an unfolded plan
+     still says which organization is open below. In edit mode the names
      stop being links: leaving would lose the draft, and a click aimed at a
      field should never navigate. */
-  function usRow(m, k, sp, ck) {
+  function usRow(m, k, sp, ck, next) {
     const x = usAt(k.id);
-    const deeper = x.depth < m.depth;
+    const deeper = x.depth <= 3;
     const lim = sp.lim[k.id];
     const used = usUsed(m, k.id);
     const bad = usStanding(used, lim);
@@ -3813,7 +3974,8 @@
     const flag = ck && ck.row[k.id];
     const initials = k.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join('');
     return `
-      <div class="set2-us-r${bad ? ' ' + bad[0] : ''}${flag ? ' has-' + flag[0].slice(3) : ''}" role="listitem"
+      <div class="set2-us-r${bad ? ' ' + bad[0] : ''}${flag ? ' has-' + flag[0].slice(3) : ''}${
+        k.id === next ? ' is-path' : ''}" role="listitem"
            data-us-row="${esc(k.id)}">
         <span class="set2-us-ico">${x.depth === 4 ? `<span class="set2-us-av">${esc(initials)}${US_PHOTO[k.person]
           ? `<img class="av-photo" src="${esc(US_PHOTO[k.person])}" alt="" loading="lazy" decoding="async">` : ''}</span>` : I[US_ICO[x.depth]]}</span>
@@ -3944,21 +4106,37 @@
     render(() => { const b = $('[data-us-sess-open]'); if (b) b.focus(); });
   }
 
-  /* The header's scope slot: the path from the plan to here, each step
-     pressable. The last step is where you are, so it is not a link. */
+  /* The header's scope slot. On the path it says nothing: the folded
+     levels ARE the breadcrumb, with their numbers, and a second one 40px
+     above would be two answers to "where am I". The employees page has no
+     path on it, so there the trail comes back, every step pressable and
+     landing on the path with that level unfolded. */
   function usageScope(st) {
     const pl = usPlace(st);
+    if (!pl.people) return '';
     const sep = '<span class="set2-scope-s">&rsaquo;</span>';
-    const path = usPath(pl.id);
     const step = (id, label) => `<button class="set2-us-crumb" type="button" data-us-go="${esc(id)}">${esc(label)}</button>`;
     return `
       <nav class="set2-scope set2-us-crumbs" aria-label="Where in the split">
-        ${pl.id ? step('', pl.m.name + ' plan') : `<span class="set2-scope-i"><b>${esc(pl.m.name)} plan</b></span>`}
-        ${path.map((id, i) => sep + (i === path.length - 1
-          ? `<span class="set2-scope-i" aria-current="page"><b>${esc(usAt(id).n.name)}</b>
-               ${esc(US_LEVEL[usAt(id).depth].toLowerCase())}</span>`
-          : step(id, usAt(id).n.name))).join('')}
+        ${step('', pl.m.name + ' plan')}
+        ${usPath(pl.id).map((id) => sep + step(id, usAt(id).n.name)).join('')}
+        ${sep}<span class="set2-scope-i" aria-current="page"><b>Employees</b></span>
       </nav>`;
+  }
+
+  /* After a level unfolds, its head is where the eye goes next. Folding the
+     level above usually leaves it under the pointer; when the page had been
+     scrolled past it, it is brought back. */
+  function usSeat() {
+    const go = () => {
+      const h = $('.set2-us-lv.is-open') || $('.set2-us-hero');
+      if (!h) return;
+      const top = h.getBoundingClientRect().top;
+      if (top < 64 || top > innerHeight * 0.6) h.scrollIntoView({ block: 'start',
+        behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    };
+    const M = window.AIMY_MOTION;
+    if (M && M.afterPaint) M.afterPaint(go); else setTimeout(go, 0);
   }
 
   /* Rail note: the worst thing on the meter you were last looking at,
@@ -8636,16 +8814,31 @@
       }
       return;
     }
+    /* A level already on the path unfolds and keeps what is under it
+       folded; one off it starts a new path from there. */
     const usG = e.target.closest('[data-us-go]');
     if (usG) {
       if (US_EDIT) return;
       US_SESS_ED = null;
-      patch({ pool: usG.getAttribute('data-us-go'), f: withF(st, 'uq', null) });
+      const to = usG.getAttribute('data-us-go');
+      const pl = usPlace(st);
+      patch(pl.path.indexOf(to) > -1
+        ? { at: to === pl.tip ? '' : to || 'plan', f: withF(st, 'uq', null) }
+        : { pool: to, at: '', f: withF(st, 'uq', null) });
+      usSeat();
+      return;
+    }
+    const usP = e.target.closest('[data-us-people]');
+    if (usP) {
+      if (US_EDIT) return;
+      US_SESS_ED = null;
+      patch({ pool: usP.getAttribute('data-us-people'), at: 'people', f: withF(st, 'uq', null) });
+      usSeat();
       return;
     }
     if (e.target.closest('[data-us-edit]')) {
       const pl = usPlace(st);
-      usStartEdit(pl.m, pl.id);
+      usStartEdit(pl.m, pl.id, (pl.people ? 'people:' : '') + pl.id);
       render(() => { const f = $('[data-us-in]'); if (f) f.focus(); });
       return;
     }

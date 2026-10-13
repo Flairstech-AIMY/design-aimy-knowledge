@@ -4775,16 +4775,119 @@ input.set2-fld[type="password"] {
 .set2-us-crumb:hover { color: var(--ink-primary); text-decoration: underline; text-underline-offset: 0.1875rem; }
 .set2-us-crumb:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.0625rem; }
 
+/* ── The path, as accordions ──
+   The plan down to the level you are on, one item each. A rail runs through
+   the level icons so the stack reads as one path, not as a list of cards.
+   Folded levels are quiet boxes with their figures on one line and their
+   split under it; the unfolded one drops the box and carries the AiMY card
+   and its split. */
+.set2-us-path { list-style: none; margin: 1.25rem 0 0; padding: 0; }
+.set2-us-lv { position: relative; padding: 0 0 0.5rem 3rem; scroll-margin-top: 5rem; }
+.set2-us-lv:last-child { padding-bottom: 0; }
+.set2-us-lv.is-open { padding-bottom: 1.5rem; }
+.set2-us-lv.is-open:last-child { padding-bottom: 0; }
+.set2-us-lv::before {
+  content: ''; position: absolute; left: 1rem; top: 0; bottom: 0;
+  width: 0.0625rem; margin-left: -0.03125rem; background: var(--card-border-hover);
+}
+.set2-us-lv:first-child::before { top: 1.75rem; }
+.set2-us-lv:last-child::before { bottom: auto; height: 1.75rem; }
+.set2-us-lv:only-child::before { display: none; }
+.set2-us-lv-ico {
+  position: absolute; left: 0; top: 0.75rem; z-index: 1;
+  width: 2rem; height: 2rem; border-radius: var(--r-pill);
+  display: grid; place-items: center;
+  background: var(--body-bg); box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover);
+  color: var(--ink-secondary);
+}
+.set2-us-lv-ico .set2-row-ico { color: inherit; }
+.set2-us-lv.is-open .set2-us-lv-ico {
+  background: linear-gradient(var(--aimy-wash), var(--aimy-wash)), var(--body-bg);
+  box-shadow: inset 0 0 0 0.0625rem var(--brand); color: var(--ink-action);
+}
+
+/* A folded level. The whole box opens it (the name button's ::after covers
+   it); the sibling names on its bar sit above that cover and go sideways. */
+.set2-us-lv:not(.is-open) .set2-us-lv-box {
+  position: relative; padding: 0.75rem 1rem 0.875rem; border-radius: var(--r-lg);
+  background: var(--card-bg); box-shadow: inset 0 0 0 0.0625rem var(--card-border);
+}
+.set2-us-lv:not(.is-open) .set2-us-lv-box:has(.set2-us-lv-go:hover:not(:disabled)) {
+  box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover);
+}
+.set2-us-lv-hd {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto 1rem;
+  align-items: center; column-gap: 1.5rem; min-height: 2.5rem; margin: 0;
+}
+.set2-us-lv-go {
+  appearance: none; border: 0; background: none; padding: 0; margin: 0;
+  font: inherit; color: inherit; text-align: left; cursor: pointer;
+  display: flex; flex-direction: column; gap: 0.125rem; min-width: 0;
+}
+.set2-us-lv-go::after { content: ''; position: absolute; inset: 0; border-radius: var(--r-lg); }
+.set2-us-lv-go:focus-visible { outline: none; }
+.set2-us-lv-go:focus-visible::after { box-shadow: 0 0 0 0.125rem var(--brand); }
+.set2-us-lv-go:disabled { cursor: not-allowed; }
+.set2-us-lv-k {
+  font-size: var(--ty-micro); color: var(--ink-quiet);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+}
+.set2-us-lv-n {
+  font-size: var(--ty-meta); font-weight: var(--fw-semibold); color: var(--ink-primary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.set2-us-lv-go:hover:not(:disabled) .set2-us-lv-n { color: var(--ink-action); }
+.set2-us-lv-fig { font-size: var(--ty-meta); color: var(--ink-secondary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.set2-us-lv-fig b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
+.set2-us-lv-pace { font-size: var(--ty-meta); font-weight: var(--fw-semibold); color: var(--ink-primary); white-space: nowrap; }
+.set2-us-lv-pace.is-ok   { color: var(--ink-ok); }
+.set2-us-lv-pace.is-warn { color: var(--ink-warn); }
+.set2-us-lv-pace.is-err  { color: var(--ink-err); }
+.set2-us-lv-ch { display: flex; color: var(--ink-secondary); }
+
+/* Its split, small. The child on the path is ringed and its name inked. */
+.set2-us-lv-split { margin-top: 0.625rem; }
+.set2-us-lv-split .set2-us-stack { height: 0.5rem; }
+.set2-us-lv-split .set2-us-stack-l { margin-top: 0.3125rem; }
+.set2-us-sg.is-path { box-shadow: 0 0 0 0.125rem var(--brand); }
+button.set2-us-sl {
+  position: relative; z-index: 1;
+  appearance: none; border: 0; background: none; margin: 0; padding: 0.125rem 0;
+  font: inherit; font-size: var(--ty-micro); text-align: left; cursor: pointer;
+}
+button.set2-us-sl:hover:not(:disabled) b { color: var(--ink-action); text-decoration: underline; text-underline-offset: 0.1875rem; }
+button.set2-us-sl:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.0625rem; border-radius: var(--r-xs); }
+button.set2-us-sl:disabled { cursor: not-allowed; }
+.set2-us-sl.is-path b { color: var(--ink-action); }
+
+/* The unfolded level: no box, a bigger name, the body under it. */
+.set2-us-lv.is-open .set2-us-lv-hd {
+  display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
+  gap: 0.125rem; min-height: 3.5rem; text-align: left;
+}
+.set2-us-lv.is-open .set2-us-lv-n { font-size: var(--ty-title); font-weight: var(--fw-bold); }
+.set2-us-lv-body > .set2-us-hero { margin-top: 0.5rem; }
+/* The row you went into, under an unfolded level: an accent edge. */
+.set2-us-r.is-path { box-shadow: inset 0.125rem 0 0 var(--brand); }
+.set2-us-ppl { gap: 0.375rem; }
+
 /* Entrance, once per meter and level, not on every repaint. The bars grow
-   from the left in a short stagger; nothing moves that is not a fill. */
+   from the left in a short stagger; nothing moves that is not a fill. A
+   folded level's bar does not regrow: it did not change. The unfolded
+   level's body settles in under its head. */
 @media (prefers-reduced-motion: no-preference) {
   .set2-us.is-enter .set2-us-fill {
     animation: set2-us-grow var(--t-emphasis) var(--ease-out) both;
+  }
+  .set2-us.is-enter .set2-us-lv:not(.is-open) .set2-us-fill { animation: none; }
+  .set2-us.is-enter .set2-us-lv.is-open .set2-us-lv-body {
+    animation: set2-us-unfold var(--t-base) var(--ease-out) both;
   }
   .set2-us.is-enter .set2-us-sg .set2-us-fill { animation-delay: calc(var(--i, 0) * var(--t-stagger)); }
   .set2-us.is-enter .set2-us-list .set2-us-fill { animation-delay: 120ms; }
 }
 @keyframes set2-us-grow { from { transform: scaleX(0); } }
+@keyframes set2-us-unfold { from { opacity: 0; transform: translateY(-0.375rem); } }
 
 /* The card goes to one column on the surface's own narrow rung. */
 @media (max-width: 52rem) {
@@ -4811,6 +4914,14 @@ input.set2-fld[type="password"] {
   /* Past four segments the labels shrink to one letter and an ellipsis,
      which is noise; the rows underneath carry every name. */
   .set2-us-stack-l:has(> :nth-child(5)) { display: none; }
+  /* The rail costs 48px a phone cannot spare; the boxes alone still read
+     as a path, top to bottom. A folded level's figures go under its name. */
+  .set2-us-lv { padding-left: 0; }
+  .set2-us-lv::before, .set2-us-lv-ico { display: none; }
+  .set2-us-lv:not(.is-open) .set2-us-lv-hd { grid-template-columns: minmax(0, 1fr) 1rem; row-gap: 0.375rem; }
+  .set2-us-lv-fig { grid-column: 1; grid-row: 2; }
+  .set2-us-lv-pace { grid-column: 1; grid-row: 3; }
+  .set2-us-lv-ch { grid-column: 2; grid-row: 1; }
 }
 
 /* The employee avatar carries a photo over its initials (.av-photo, knowledge.css). */

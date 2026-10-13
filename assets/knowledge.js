@@ -1596,7 +1596,7 @@
   /* The settings view's own keys, kept apart from ALL_KEYS on purpose: those
      are FILTERS, and changing one re-composes the working set. These are a
      PLACE YOU ARE. The two clear each other in `patch` for that reason. */
-  const SET_KEYS  = ['m', 'skill', 'agent', 'meter', 'pool', 'part', 'node', 'role', 'vs', 'sc', 'sp', 'crm', 'f', 'who', 'sec'];
+  const SET_KEYS  = ['m', 'skill', 'agent', 'meter', 'pool', 'at', 'part', 'node', 'role', 'vs', 'sc', 'sp', 'crm', 'f', 'who', 'sec'];
 
   /* Parse a query string into the full state object. Split out from `readURL`
      so a stored conversation can be turned back into state by the same code
@@ -1662,6 +1662,10 @@
                     question people ask by pasting a URL. */
                  meter: p.get('meter') || '',
                  pool: p.get('pool') || '',
+                 /* Which level of that path is unfolded: absent is the
+                    deepest, `plan` the plan, an id one on the path, and
+                    `people` the product's own employees page. */
+                 at: p.get('at') || '',
                  /* Which part of the open skill is showing — Instructions,
                     Precedence or Reach. A place you are, like `skill` and
                     `sec`, so it is linkable: the chain that explains why an
@@ -1774,6 +1778,7 @@
     if (st.agent) p.set('agent', st.agent);
     if (st.meter) p.set('meter', st.meter);
     if (st.pool) p.set('pool', st.pool);
+    if (st.at) p.set('at', st.at);
     if (st.part) p.set('part', st.part);
     if (st.node) p.set('node', st.node);
     if (st.role) p.set('role', st.role);
@@ -1881,6 +1886,7 @@
       if (changes.agent === undefined) st.agent = '';
       if (changes.meter === undefined) st.meter = '';
       if (changes.pool === undefined) st.pool = '';
+      if (changes.at === undefined) st.at = '';
       /* `sp` deliberately SURVIVES a module change — it is the page's scope,
          not the module's, and re-asking which product on every rail click is
          the flow this replaced. `crm` does not: it means nothing outside
@@ -10793,6 +10799,11 @@
   function placeOf(st) {
     const p = new URLSearchParams(serialize(st));
     QUIET_KEYS.forEach((k) => p.delete(k));
+    /* Usage's path passes the same test: unfolding KMC keeps the plan and
+       Upland on screen, folded, so `pool` and `at` choose within a surface
+       that stays. A product's employees page does not (the path goes), so
+       there they are a place again. */
+    if (p.get('at') !== 'people') { p.delete('pool'); p.delete('at'); }
     return p.toString();
   }
 
