@@ -2757,11 +2757,8 @@
               ${VOICES.map(([v, n, ico]) => `<button class="agv-vb" type="button" role="radio" aria-checked="${a.voice === v}"
                 tabindex="${a.voice === v ? 0 : -1}" data-agv-voice="${id}|${v}" aria-label="${n} voice" title="${n} voice">${ico}</button>`).join('')}
             </span></div></div></div>
-      <div class="agv-t agv-tone"><p class="agv-k">How ${nm} speaks</p>
-        ${AGV_EDIT[a.id] ? `<textarea class="agv-ed" data-agv-ta="${id}" aria-label="How ${nm} speaks">${esc(toneOf(a))}</textarea>
-          <div class="agv-pre">${TONE_TEMPLATES.map((p) => `<button type="button" data-agv-pre="${id}|${esc(p.id)}" title="${esc(p.text)}">${esc(p.name)}</button>`).join('')}</div>
-          <div class="agv-tone-f"><button class="agv-btn is-brand" type="button" data-agv-done="${id}">Done</button><span>Saves as you type</span></div>`
-        : `<h3>${esc(toneTitle(a) || 'No tone yet')}</h3><p>${esc(toneOf(a))}</p>
+      <div class="agv-t agv-tone"${AGV_EDIT[a.id] ? ` data-tone-drop="${id}"` : ''}><p class="agv-k">How ${nm} speaks</p>
+        ${AGV_EDIT[a.id] ? agvToneEdit(a) : `<h3>${esc(toneTitle(a) || 'No tone yet')}</h3><p>${esc(toneOf(a))}</p>
           <div class="agv-tone-f"><button class="agv-lnk" type="button" data-agv-edit="${id}">Change how ${nm} speaks</button><span>${changed}</span></div>`}
       </div>
       ${how}
@@ -2790,6 +2787,39 @@
                 aria-label="Open the skills ${nm} uses on the Skills page">View</button></div>${skillsRun(a).map((s) => `<span class="agv-chip">${esc(s.name)}</span>`).join('')}</div>
     </div>`;
   }
+  /* ── Tweak 5 (Nour): a file while editing the tone ──
+     Writing it here and uploading a file are the two sources the agent can
+     read; the editor shows the one in use. Written: the text, the template
+     pills, and "Upload a file instead". A file: its name, who uploaded it,
+     its text, Replace, and "Write it here instead". Switching keeps the
+     other source, so "Use trinity-tone.md" brings a file back. Files can
+     also be dropped on the card. readToneFile does the checks (type, 64 KB,
+     empty, JSON that parses) and its message shows under the card. */
+  function agvToneEdit(a) {
+    const id = esc(a.id), nm = esc(a.name);
+    const f = a.tone.file;
+    const err = TONE_ERR[a.id];
+    const pick = (label) => `<label class="agv-lnk agv-up" title="A .md, .txt, .json or .yaml file, up to 64 KB">${AGV_ICO.upload}${label}<input type="file"
+      accept=".md,.markdown,.txt,.json,.yaml,.yml" hidden data-tone-file="${id}"></label>`;
+    const msg = err ? `<p class="agv-err" role="alert">${esc(err)}</p>` : '';
+    if (a.tone.src === 'file' && f) return `
+          <div class="agv-file">
+            <div class="agv-file-hd">${I.doc}<span class="agv-file-id"><b>${esc(f.name)}</b>
+              <span>${esc(kb(f.size))}, uploaded ${esc(f.when)} by ${esc(f.by)}</span></span></div>
+            <pre class="agv-file-b">${esc(f.body)}</pre>
+          </div>
+          ${msg}
+          <div class="agv-tone-f"><button class="agv-btn is-brand" type="button" data-agv-done="${id}">Done</button>
+            ${pick('Replace the file')}
+            <button class="agv-lnk" type="button" data-tone-src="${id}|text">Write it here instead</button></div>`;
+    return `<textarea class="agv-ed" data-agv-ta="${id}" aria-label="How ${nm} speaks">${esc(a.tone.text || '')}</textarea>
+          <div class="agv-pre">${TONE_TEMPLATES.map((p) => `<button type="button" data-agv-pre="${id}|${esc(p.id)}" title="${esc(p.text)}">${esc(p.name)}</button>`).join('')}</div>
+          ${msg}
+          <div class="agv-tone-f"><button class="agv-btn is-brand" type="button" data-agv-done="${id}">Done</button><span>Saves as you type</span>
+            ${pick('Upload a file instead')}
+            ${f ? `<button class="agv-lnk" type="button" data-tone-src="${id}|file">Use ${esc(f.name)}</button>` : ''}</div>`;
+  }
+
   /* A filler file, straight into the agent's list (the variant has no Save):
      new phrases are added, ones already there are skipped, and the toast
      says what happened. The parsers are the ones the dialog used. */

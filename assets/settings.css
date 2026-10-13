@@ -4655,6 +4655,24 @@ input.set2-fld[type="password"] {
 .agv-skills .agv-skh .agv-k { margin: 0; }
 .agv-btn.agv-btn-sm { padding: 0.3125rem 0.875rem; font-size: 0.75rem; }
 
+/* ── Tweak 5 (Nour): a file while editing the tone. The file sits on the
+   card as the variant's own surfaces would: a card-ground panel with the
+   name over who uploaded it, and its text in mono under a hairline. ── */
+.agv-tone.is-over { box-shadow: inset 0 0 0 0.09375rem var(--brand); }
+.agv-up { display: inline-flex; align-items: center; gap: 0.375rem; cursor: pointer; }
+.agv-up svg { width: 0.875rem; height: 0.875rem; }
+.agv-file { border-radius: var(--r-lg); background: var(--card-bg); box-shadow: inset 0 0 0 0.0625rem var(--card-border); overflow: hidden; }
+.agv-file-hd { display: flex; align-items: center; gap: 0.625rem; padding: 0.75rem 0.875rem; border-bottom: 0.0625rem solid var(--hairline); }
+.agv-file-hd > svg { width: 1rem; height: 1rem; flex: none; color: var(--ink-secondary); }
+.agv-file-id { display: flex; flex-direction: column; min-width: 0; }
+.agv-file-id b { font-size: 0.875rem; font-weight: var(--fw-semibold); color: var(--ink-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agv-file-id span { font-size: 0.75rem; color: var(--ink-secondary); }
+.agv-file-b {
+  margin: 0; padding: 0.75rem 0.875rem; max-height: 14rem; overflow: auto; white-space: pre-wrap;
+  font-family: var(--font-mono, ui-monospace, monospace); font-size: 0.75rem; line-height: 1.6; color: var(--ink-primary);
+}
+.agv-err { margin: 0.75rem 0 0; font-size: 0.75rem; color: var(--ink-err); }
+
 /* ── Tweak 4 (Nour): the filler being edited. The global focus ring drew a
    4px-round box around the field on top of the variant's underline. Now
    the row is the frame (raised, with a hairline edge), the field being
