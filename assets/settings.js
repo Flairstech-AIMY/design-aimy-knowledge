@@ -2707,9 +2707,9 @@
     const head = `
         <span class="set2-lbl-row">
           <p class="set2-agp-k" id="toneLbl-${esc(a.id)}">How ${esc(a.name)} speaks</p>
-          ${tip('toneTip', 'tone', 'How this agent answers, written or aloud. It is read before any skill, '
+          ${open ? tip('toneTip', 'tone', 'How this agent answers, written or aloud. It is read before any skill, '
             + 'on every answer. Only the selected source is used; switching keeps the other one, so '
-            + 'you can switch back.')}
+            + 'you can switch back.') : ''}
           ${open && toneOf(a) && !dirty ? `<span class="set2-ag-sec-end">
             <button class="btn btn-ghost btn-sm" type="button" data-tone-close="${esc(a.id)}">Done</button></span>` : ''}
         </span>`;
@@ -2725,7 +2725,11 @@
             : `<p class="set2-agp-quote">${esc(t.text)}</p>`}
         <div class="set2-agp-ft">
           <button class="set2-lnk" type="button" data-tone-open="${esc(a.id)}">Change how ${esc(a.name)} speaks</button>
-          ${tpl ? `<span>The \u201c${esc(tpl.name)}\u201d template</span>` : ''}
+          <span>${tpl ? 'The \u201c' + esc(tpl.name) + '\u201d template. ' : ''}${(() => {
+            const h = TONE_HIST[a.id];
+            return h && toneOf(a) === h.text ? 'Changed ' + esc(h.at) + ' by ' + esc(h.by)
+                                             : 'Last updated ' + esc(a.when) + ' by ' + esc(a.by);
+          })()}</span>
         </div>
       </section>`;
     }
@@ -2906,7 +2910,7 @@
         <div class="set2-agp-mx">
           ${h.m.map((x) => `
             <div class="set2-agp-m"><b class="${x[4] ? 'is-ok' : ''}">${x[2]}${esc(x[3])}</b>
-              <span>${esc(x[0])}, <i>${x[2] < x[1] ? 'down' : 'up'} from ${x[1]}${esc(x[3])}</i></span></div>`).join('')}
+              <span>${esc(x[0])}, <i>${x[2] < x[1] ? 'down' : 'up'} from ${x[1]}${x[3] === '%' ? '%' : ''}</i></span></div>`).join('')}
         </div>
         <svg class="set2-agp-line" viewBox="0 0 100 40" preserveAspectRatio="none" role="img"
              aria-label="People asking a follow-up each day: about ${h.m[0][1]}% before ${esc(h.at)}, about ${h.m[0][2]}% after">
@@ -2914,12 +2918,12 @@
           <polyline points="${before}" class="is-before" vector-effect="non-scaling-stroke"/>
           <polyline points="${after}" class="is-after" vector-effect="non-scaling-stroke"/>
         </svg>
-        <div class="set2-agp-ll"><span>Follow-up questions a day, from ${esc(h.from)}</span>
+        <div class="set2-agp-ll"><span>Follow-up questions a day, ${esc(h.from)}</span>
           <span class="is-cut">Tone changed ${esc(h.at)}</span><span>Today</span></div>
         <div class="set2-agp-act">${h.kept
           ? `<span class="is-ok">Kept. AiMY will say so here if this turns.</span>`
-          : `<button class="btn btn-brand btn-sm" type="button" data-tone-keep="${esc(a.id)}">Keep it</button>
-             ${prev ? `<button class="btn btn-ghost btn-sm" type="button" data-tone-back="${esc(a.id)}">Go back to \u201c${esc(prev.name)}\u201d</button>
+          : `<button class="set2-agp-pill is-brand" type="button" data-tone-keep="${esc(a.id)}">Keep it</button>
+             ${prev ? `<button class="set2-agp-pill" type="button" data-tone-back="${esc(a.id)}">Go back to \u201c${esc(prev.name)}\u201d</button>
              <span>The tone before ${esc(h.at)}</span>` : ''}`}</div>
       </section>`;
   }
@@ -2996,17 +3000,16 @@
     const idle = skillsOn(a).length - list.length;
     return `
       <section class="set2-agp-t set2-agp-skills">
-        <div class="set2-ov-h">
+        <div class="set2-agp-skh">
           <p class="set2-agp-k">Skills ${esc(a.name)} uses</p>
-          <button class="btn btn-ghost btn-sm" type="button" data-ag-skills="${esc(a.id)}"
+          <button class="set2-lnk" type="button" data-ag-skills="${esc(a.id)}"
                   aria-label="Open the skills ${esc(a.name)} runs">View</button>
         </div>
-        <div class="set2-ov-chips">
-          ${list.length ? list.map((s) => `<span class="set2-chip">${esc(s.name)}</span>`).join('')
+        <div class="set2-agp-sk">
+          ${list.length ? list.map((s) => `<span class="set2-agp-chip">${esc(s.name)}</span>`).join('')
             : `<span class="set2-sp-note">None running. Give a skill this agent on the Skills page.</span>`}
         </div>
-        ${idle ? `<p class="set2-ov-s">Plus ${idle} that ${idle === 1 ? 'is' : 'are'} off or overridden.</p>` : ''}
-        <p class="set2-agp-upd">Last updated ${esc(a.when)} by ${esc(a.by)}</p>
+        ${idle ? `<p class="set2-agp-upd">Plus ${idle} that ${idle === 1 ? 'is' : 'are'} off or overridden.</p>` : ''}
       </section>`;
   }
 

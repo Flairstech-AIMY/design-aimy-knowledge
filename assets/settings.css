@@ -4620,13 +4620,13 @@ input.set2-fld[type="password"] {
   font-family: var(--font-mono, ui-monospace, monospace); font-size: var(--ty-micro); line-height: 1.6; color: var(--ink-primary);
 }
 .set2-agp-ft { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; font-size: var(--ty-micro); color: var(--ink-secondary); }
-.set2-agp-ft .set2-lnk { font-size: var(--ty-meta); }
+.set2-agp-ft .set2-lnk { font-size: var(--ty-micro); }
 
 /* What the last change did. AiMY's block. */
 .set2-agp-since { grid-column: 3 / span 4; background: var(--aimy-wash); box-shadow: inset 0 0 0 0.0625rem var(--aimy-wash-edge); }
 .set2-agp-sh { display: flex; align-items: center; gap: 0.5rem; margin: 0; font-size: var(--ty-meta); font-weight: var(--fw-semibold); color: var(--ink-primary); }
 .set2-agp-sh > svg { flex: none; }
-.set2-agp-mx { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 1rem 0; }
+.set2-agp-mx { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.75rem 2rem; margin: 1rem 0; }
 .set2-agp-m b { display: block; font-size: 1.375rem; font-weight: var(--fw-bold); letter-spacing: -0.01em; color: var(--ink-primary); }
 .set2-agp-m b.is-ok { color: var(--ink-ok); }
 .set2-agp-m span { display: block; margin-top: 0.125rem; font-size: var(--ty-micro); color: var(--ink-secondary); }
@@ -4639,6 +4639,17 @@ input.set2-fld[type="password"] {
 .set2-agp-ll { display: flex; justify-content: space-between; gap: 0.5rem; margin-top: 0.25rem; font-size: var(--ty-micro); color: var(--ink-secondary); }
 .set2-agp-ll .is-cut { color: var(--ink-action); }
 .set2-agp-act { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
+/* The variant's two pills: the decision is the point of this tile, so its
+   buttons are full size rather than the page's small ghost buttons. */
+.set2-agp-pill {
+  appearance: none; border: 0; cursor: pointer; font: inherit; font-size: var(--ty-meta); font-weight: var(--fw-semibold);
+  padding: 0.5rem 1rem; border-radius: var(--r-pill); color: var(--ink-primary); background: transparent;
+  box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover);
+}
+.set2-agp-pill.is-brand { background: var(--brand); color: #fff; box-shadow: none; }
+.set2-agp-pill:hover:not(.is-brand) { box-shadow: inset 0 0 0 0.0625rem var(--ink-rule); }
+.set2-agp-pill:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
+@media (prefers-reduced-motion: no-preference) { .set2-agp-pill:active { transform: scale(0.98); } }
 .set2-agp-act span { margin-left: 0.25rem; font-size: var(--ty-micro); color: var(--ink-secondary); }
 .set2-agp-act .is-ok { margin: 0; color: var(--ink-ok); font-size: var(--ty-meta); }
 .set2-agp-since.is-empty { background: var(--card-bg); box-shadow: inset 0 0 0 0.0625rem var(--card-border); }
@@ -4690,10 +4701,12 @@ input.set2-fld[type="password"] {
 
 /* The skills it runs, and when the page last changed. */
 .set2-agp-skills { grid-column: 5 / span 2; }
-.set2-agp-skills .set2-ov-chips { margin-top: 0.5rem; }
-.set2-agp-skills .set2-chip {
-  background: transparent; box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover);
-  border-radius: var(--r-pill); padding: 0.3125rem 0.75rem; font-size: var(--ty-micro); color: var(--ink-primary);
+.set2-agp-skh { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.set2-agp-skh .set2-lnk { font-size: var(--ty-micro); }
+.set2-agp-sk { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; margin-top: 0.75rem; }
+.set2-agp-chip {
+  padding: 0.3125rem 0.75rem; border-radius: var(--r-pill); font-size: var(--ty-micro); color: var(--ink-primary);
+  box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover);
 }
 .set2-agp-upd { margin: 1rem 0 0; font-size: var(--ty-micro); color: var(--ink-secondary); }
 
@@ -4704,7 +4717,7 @@ input.set2-fld[type="password"] {
   .set2-agp-orb-c { bottom: 9rem; }
 }
 @media (max-width: 735.98px) {
-  .set2-agp-mx { grid-template-columns: minmax(0, 1fr); gap: 0.5rem; }
+  .set2-agp-mx { flex-direction: column; gap: 0.5rem; }
   .set2-agp-tpl { margin-left: 0; }
   .set2-agp-ll .is-cut { display: none; }
 }
