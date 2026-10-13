@@ -2882,13 +2882,14 @@
   function agvFit() {
     $$('[data-agv-ta]').forEach((t) => { t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; });
     /* Tweak 9 (Nour): past three fillers the list scrolls inside the card.
-       It is cut at exactly three rows, measured (rows grow with the type), a
-       fade at the bottom says there is more, and the scroll position
-       survives a repaint (an edit, a removal). */
+       Continuity (Nour): three full rows and the top of the fourth, cut
+       mid-row and fading, so the list reads as going on rather than ending
+       at a clean edge. Measured, since rows grow with the type. The scroll
+       position survives a repaint (an edit, a removal). */
     $$('[data-agv-fl].is-scroll').forEach((ul) => {
       const rows = ul.children;
       if (rows.length < 4) return;
-      ul.style.maxHeight = (rows[3].offsetTop - rows[0].offsetTop) + 'px';
+      ul.style.maxHeight = Math.round(rows[3].offsetTop - rows[0].offsetTop + rows[3].offsetHeight * 0.45) + 'px';
       const k = ul.getAttribute('data-agv-fl');
       if (AGV_FL_TOP[k] != null) ul.scrollTop = AGV_FL_TOP[k];
       agvFlEdge(ul);
@@ -2903,6 +2904,11 @@
     if (!ul || e.target !== ul) return;
     AGV_FL_TOP[ul.getAttribute('data-agv-fl')] = ul.scrollTop;
     agvFlEdge(ul);
+    /* The scrollbar shows only while the list moves and fades 800ms after
+       it stops (Nour: hidden on stillness). */
+    ul.classList.add('is-moving');
+    clearTimeout(ul._still);
+    ul._still = setTimeout(() => ul.classList.remove('is-moving'), 800);
   }, true);
 
   /* A filler file, straight into the agent's list (the variant has no Save):
