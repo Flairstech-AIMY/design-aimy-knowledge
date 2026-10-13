@@ -3552,10 +3552,16 @@
      Employees stay a page of their own, as they were: ten rows of people
      with fields in them is a page, not a fold. An unfolded product shows
      their split as the bar alone and a button to that page. */
+  /* The stack ends at the unfolded level. Levels deeper on the path are
+     not drawn under it: the open split already lists them as rows, and a
+     folded copy below repeated the same level twice (Nour, 13 Oct). They
+     are still remembered in `pool`, so the marked row unfolds the path
+     back down to where it was. */
   function usLadder(pl, st) {
+    const path = pl.path.slice(0, pl.path.indexOf(pl.id) + 1);
     return `
       <ol class="set2-us-path" aria-label="The ${esc(pl.m.name)} plan, down to the level you are on">
-        ${pl.path.map((id, i) => usLv(pl.m, id, pl.path[i + 1], id === pl.id, st)).join('')}
+        ${path.map((id, i) => usLv(pl.m, id, pl.path[i + 1], id === pl.id, st)).join('')}
       </ol>`;
   }
 
