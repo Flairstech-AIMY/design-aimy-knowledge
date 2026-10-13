@@ -2755,7 +2755,7 @@
             <span class="agv-vsw" role="radiogroup" aria-label="${nm}’s voice" style="--i:${a.voice === 'male' ? 1 : 0}">
               <span class="agv-vth" aria-hidden="true"></span>
               ${VOICES.map(([v, n, ico]) => `<button class="agv-vb" type="button" role="radio" aria-checked="${a.voice === v}"
-                tabindex="${a.voice === v ? 0 : -1}" data-agv-voice="${id}|${v}">${ico}<span>${n}</span></button>`).join('')}
+                tabindex="${a.voice === v ? 0 : -1}" data-agv-voice="${id}|${v}" aria-label="${n} voice" title="${n} voice">${ico}</button>`).join('')}
             </span></div></div></div>
       <div class="agv-t agv-tone"><p class="agv-k">How ${nm} speaks</p>
         ${AGV_EDIT[a.id] ? `<textarea class="agv-ed" data-agv-ta="${id}" aria-label="How ${nm} speaks">${esc(toneOf(a))}</textarea>
@@ -2785,7 +2785,9 @@
             <button class="agv-lnk" type="button" data-fl-tpl="json" aria-label="Download the JSON template">JSON</button></span>
         </div>
       </div>
-      <div class="agv-t agv-skills"><p class="agv-k">Skills ${nm} uses</p>${skillsRun(a).map((s) => `<span class="agv-chip">${esc(s.name)}</span>`).join('')}</div>
+      <div class="agv-t agv-skills"><div class="agv-skh"><p class="agv-k">Skills ${nm} uses</p>
+        <button class="agv-btn is-ghost agv-btn-sm" type="button" data-ag-skills="${id}"
+                aria-label="Open the skills ${nm} uses on the Skills page">View</button></div>${skillsRun(a).map((s) => `<span class="agv-chip">${esc(s.name)}</span>`).join('')}</div>
     </div>`;
   }
   /* A filler file, straight into the agent's list (the variant has no Save):
@@ -9218,7 +9220,9 @@
         a0.voice = v; a0.when = 'just now'; a0.by = USER.name;
         DIRTY.add('voice:' + aid);
         if (window.speechSynthesis) playSample(aid, v); else render();
-        const b = $('[data-agv-voice="' + aid + '|' + v + '"]'); if (b) b.focus();
+        /* Focus follows only a keyboard pick; a mouse pick would otherwise
+           draw the focus ring on top of the thumb's. */
+        if (!e.detail) { const b = $('[data-agv-voice="' + aid + '|' + v + '"]'); if (b) b.focus(); }
       }
       return;
     }

@@ -4626,28 +4626,34 @@ input.set2-fld[type="password"] {
 .agv-orb-slot { position: absolute; inset: 0; }
 
 /* ── Tweak 1 (Nour): Female / Male as a switcher beside Hear, in place of
-   "Switch to male". The variant's ghost pill, holding both voices; a ring
-   slides to the one in use and its word goes full ink. ── */
+   "Switch to male", icons only (the venus and mars marks, named for screen
+   readers and on hover). The variant's ghost pill, the height of Hear; a
+   ring slides to the voice in use, and the line above says it in words. ── */
 .agv-vsw {
   position: relative; display: inline-flex; padding: 0.1875rem; border-radius: var(--r-pill);
   box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover);
 }
 .agv-vth {
-  position: absolute; top: 0.1875rem; bottom: 0.1875rem; left: 0.1875rem; width: calc((100% - 0.375rem) / 2);
+  position: absolute; top: 0.1875rem; left: 0.1875rem; width: 1.9375rem; height: 1.9375rem;
   border-radius: var(--r-pill); background: rgba(var(--accent-rgb), 0.16); box-shadow: inset 0 0 0 0.0625rem var(--brand);
   transform: translateX(calc(var(--i, 0) * 100%));
 }
 .agv-vb {
-  position: relative; z-index: 1; flex: 1 1 0; display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem;
-  padding: 0.3125rem 0.875rem; appearance: none; border: 0; background: none; cursor: pointer; border-radius: var(--r-pill);
-  font-size: 0.875rem; font-weight: var(--fw-semibold); color: var(--ink-secondary);
+  position: relative; z-index: 1; width: 1.9375rem; height: 1.9375rem; display: grid; place-items: center; padding: 0;
+  appearance: none; border: 0; background: none; cursor: pointer; border-radius: 50%; color: var(--ink-secondary);
 }
-.agv-vb svg { width: 0.875rem; height: 0.875rem; }
+.agv-vb svg { width: 1rem; height: 1rem; }
 .agv-vb[aria-checked="true"], .agv-vb:hover { color: var(--ink-primary); }
 .agv-vb:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
 @media (prefers-reduced-motion: no-preference) {
   .agv-vth { transition: transform var(--t-base) cubic-bezier(.2, .9, .25, 1.05); }
 }
+
+/* ── Tweak 3 (Nour): View on the skills card, opening this agent's skills
+   on the Skills page; the variant's ghost pill at a small size. ── */
+.agv-skh { display: flex; align-items: center; justify-content: space-between; gap: 1rem; align-self: stretch; margin-bottom: 0.25rem; }
+.agv-skills .agv-skh .agv-k { margin: 0; }
+.agv-btn.agv-btn-sm { padding: 0.3125rem 0.875rem; font-size: 0.75rem; }
 
 /* ── Tweak 2 (Nour): the fillers' two fields named once, at the top, in the
    same stack and type the rows use. ── */
