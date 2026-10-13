@@ -3444,6 +3444,12 @@
   let US_SESS_ED = null;       /* { meter, org, v, err } */
   let US_LAST = '';            /* the meter|pool last painted, to play the entrance once */
   let US_LAND = false;         /* this paint is an arrival on Usage, not a move inside it */
+  /* { meter, tip } when the person climbed UP the path this visit: from
+     FileBound they opened the plan, say. Only then does the open split mark
+     the row that leads back down, and say so in words. A link or a reload
+     that lands on the plan with a deeper `pool` marks nothing: nobody was
+     anywhere yet, so "you were in FileBound" would not be true. */
+  let US_BACK = null;
 
   /* `key` tells the product's card on the path from its employees page:
      the same node, two different pages, and a draft belongs to one. */
@@ -3523,6 +3529,7 @@
     /* Arriving on the page (a load, a pasted link, a rail click), as against
        unfolding within it: the old stage has no Usage section yet. */
     US_LAND = !document.getElementById('st-usage');
+    if (US_LAND || (US_BACK && (US_BACK.meter !== m.id || US_BACK.tip !== pl.tip))) US_BACK = null;
     US_LAST = key;
     return `
       <section class="set2-sec is-headless set2-us${enter ? ' is-enter' : ''}" id="st-usage">
@@ -3583,7 +3590,7 @@
           <h3 class="set2-us-lv-hd">${head}</h3>
           <div class="set2-us-lv-body">
             ${usHero(m, id)}
-            ${d === 3 ? usPeek(m, id) : usAlloc(m, id, st, next)}
+            ${d === 3 ? usPeek(m, id) : usAlloc(m, id, st, US_BACK && next ? { id: next, tip: US_BACK.tip } : null)}
           </div>
         </div>
       </li>`;
@@ -3888,7 +3895,7 @@
      what that child has used. Labels sit UNDER the bar on the same flex, so
      they line up with their segment and never have to fight the fill for
      contrast. Unallocated is hatched and says it. */
-  function usAlloc(m, id, st, next) {
+  function usAlloc(m, id, st, back) {
     const kids = usKids(m, id);
     const depth = usAt(id).depth;
     const noun = US_PLURAL[depth + 1];
@@ -3929,7 +3936,7 @@
           <div class="set2-us-r is-hd" aria-hidden="true">
             <span></span><span>${esc(US_LEVEL[depth + 1])}</span><span>Used</span><span class="set2-us-r-lim">Limit</span><span></span>
           </div>
-          ${rows.map((k) => usRow(m, k, sp, ck, next)).join('')}
+          ${rows.map((k) => usRow(m, k, sp, ck, back)).join('')}
           ${rows.length ? '' : `<p class="set2-us-none">No ${esc(noun)} in ${esc(name)} match
             “${esc(readF(st).uq)}”.</p>`}
         </div>
@@ -3968,12 +3975,14 @@
 
   /* One row. Anything down to a product is a destination (it unfolds on
      the path); an employee is not, and gets a photo instead of a chevron.
-     The row you went into is marked, so the split under an unfolded plan
-     still says which organization is open below. In edit mode the names
+     After climbing up (US_BACK), the row that leads back down to where
+     you were carries an accent edge AND says it: "You were here" on the
+     level you left, "You were in FileBound" on the way to it. In edit mode the names
      stop being links: leaving would lose the draft, and a click aimed at a
      field should never navigate. */
-  function usRow(m, k, sp, ck, next) {
+  function usRow(m, k, sp, ck, back) {
     const x = usAt(k.id);
+    const was = !!back && k.id === back.id;
     const deeper = x.depth <= 3;
     const lim = sp.lim[k.id];
     const used = usUsed(m, k.id);
@@ -3999,14 +4008,18 @@
     const initials = k.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join('');
     return `
       <div class="set2-us-r${bad ? ' ' + bad[0] : ''}${flag ? ' has-' + flag[0].slice(3) : ''}${
-        k.id === next ? ' is-path' : ''}" role="listitem"
+        was ? ' is-path' : ''}" role="listitem"
            data-us-row="${esc(k.id)}">
         <span class="set2-us-ico">${x.depth === 4 ? `<span class="set2-us-av">${esc(initials)}${US_PHOTO[k.person]
           ? `<img class="av-photo" src="${esc(US_PHOTO[k.person])}" alt="" loading="lazy" decoding="async">` : ''}</span>` : I[US_ICO[x.depth]]}</span>
         <span class="set2-us-main">
-          ${deeper && !US_EDIT
-            ? `<button class="set2-sk-go" type="button" data-us-go="${esc(k.id)}">${esc(k.name)}</button>`
-            : `<span class="set2-us-n">${esc(k.name)}</span>`}
+          <span class="set2-us-nrow">
+            ${deeper && !US_EDIT
+              ? `<button class="set2-sk-go" type="button" data-us-go="${esc(k.id)}">${esc(k.name)}</button>`
+              : `<span class="set2-us-n">${esc(k.name)}</span>`}
+            ${was ? `<span class="set2-us-was">${back.tip === k.id ? 'You were here'
+              : 'You were in ' + esc(usAt(back.tip).n.name)}</span>` : ''}
+          </span>
           ${sub ? `<span class="set2-us-sub">${esc(sub)}</span>` : ''}
         </span>
         <span class="set2-us-use">
@@ -8844,6 +8857,10 @@
       US_SESS_ED = null;
       const to = usG.getAttribute('data-us-go');
       const pl = usPlace(st);
+      /* Climbing up the path remembers where from; leaving it forgets. */
+      const at = pl.path.indexOf(to);
+      if (at < 0) US_BACK = null;
+      else if (!pl.people && at < pl.path.indexOf(pl.id)) US_BACK = { meter: pl.m.id, tip: pl.tip };
       patch(pl.path.indexOf(to) > -1
         ? { at: to === pl.tip ? '' : to || 'plan', f: withF(st, 'uq', null) }
         : { pool: to, at: '', f: withF(st, 'uq', null) });
