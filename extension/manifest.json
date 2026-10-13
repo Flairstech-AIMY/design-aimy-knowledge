@@ -7,7 +7,7 @@
     "default_title": "Open AiMY"
   },
   "side_panel": {
-    "default_path": "panel.html"
+    "default_path": "index.html"
   },
   "permissions": ["sidePanel", "storage", "tabs"],
   "host_permissions": ["https://fonts.googleapis.com/*", "https://fonts.gstatic.com/*"],
