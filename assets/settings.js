@@ -2708,7 +2708,6 @@
     const h = TONE_HIST[a.id];
     const live = !!h && toneOf(a) === h.text;
     const prev = h && TONE_TEMPLATES.filter((x) => x.id === h.prev)[0];
-    const other = a.voice === 'male' ? 'female' : 'male';
     let how;
     if (live) {
       const W = 100, Hh = 40, max = 24, n = h.series.length;
@@ -2751,7 +2750,13 @@
       <div class="agv-t agv-orb"><span class="agv-orb-slot" data-ag-orb="${id}" aria-hidden="true"></span>
         <div class="agv-orb-b"><p class="agv-orb-n">${nm}</p><p class="agv-orb-r">${esc(voiceName(a.voice))} voice${a.role ? ', ' + esc(a.role) : ''}</p>
           <div class="agv-orb-c">${window.speechSynthesis ? `<button class="agv-btn is-brand" type="button" data-voice-play="${id}|${esc(a.voice || 'female')}">Hear ${nm}</button>` : ''}
-            <button class="agv-lnk" type="button" data-agv-swap="${id}">Switch to ${other}</button></div></div></div>
+            <!-- Female / Male, the two voices side by side; the ring slides to
+                 the one in use, and picking one plays it. -->
+            <span class="agv-vsw" role="radiogroup" aria-label="${nm}’s voice" style="--i:${a.voice === 'male' ? 1 : 0}">
+              <span class="agv-vth" aria-hidden="true"></span>
+              ${VOICES.map(([v, n, ico]) => `<button class="agv-vb" type="button" role="radio" aria-checked="${a.voice === v}"
+                tabindex="${a.voice === v ? 0 : -1}" data-agv-voice="${id}|${v}">${ico}<span>${n}</span></button>`).join('')}
+            </span></div></div></div>
       <div class="agv-t agv-tone"><p class="agv-k">How ${nm} speaks</p>
         ${AGV_EDIT[a.id] ? `<textarea class="agv-ed" data-agv-ta="${id}" aria-label="How ${nm} speaks">${esc(toneOf(a))}</textarea>
           <div class="agv-pre">${TONE_TEMPLATES.map((p) => `<button type="button" data-agv-pre="${id}|${esc(p.id)}">Start from ${esc(p.name)}</button>`).join('')}</div>
@@ -2763,6 +2768,8 @@
       <div class="agv-t agv-fill">
         <div class="agv-fill-hd"><p class="agv-k">While ${nm} looks something up</p></div>
         <p class="agv-fill-d">Short phrases ${nm} says to cover a pause. The moment under each one tells ${nm} when it fits, so write it the way you would brief a person.</p>
+        ${fl.length ? `<div class="agv-flh" aria-hidden="true"><span></span>
+          <span class="agv-fx"><b>Phrase</b><span>Context, when it fits</span></span><span></span></div>` : ''}
         <ul class="agv-fl">${fl.map((f, i) => `
           <li class="agv-fr${VOICE_PLAYING === a.id + '|fl|' + i ? ' is-said' : ''}">
             <button class="agv-ib is-play" type="button" data-fl-say="${id}|${i}" aria-label="Hear \u201c${esc(f.p)}\u201d">${AGV_ICO.play}</button>
@@ -9203,6 +9210,18 @@
       }
       return;
     }
+    const agVo = e.target.closest('[data-agv-voice]');
+    if (agVo) {
+      const [aid, v] = agVo.getAttribute('data-agv-voice').split('|');
+      const a0 = agentById(aid);
+      if (a0 && a0.voice !== v) {
+        a0.voice = v; a0.when = 'just now'; a0.by = USER.name;
+        DIRTY.add('voice:' + aid);
+        if (window.speechSynthesis) playSample(aid, v); else render();
+        const b = $('[data-agv-voice="' + aid + '|' + v + '"]'); if (b) b.focus();
+      }
+      return;
+    }
     const agEd = e.target.closest('[data-agv-edit]');
     if (agEd) {
       const aid = agEd.getAttribute('data-agv-edit');
@@ -10845,9 +10864,9 @@
        Arrows move AND select, which is what a radiogroup does; one tab stop
        per group (roving tabindex in the markup). Ctrl/Cmd+Enter in the tone
        saves it, the way a comment box does. */
-    const rad = e.target.closest && e.target.closest('[data-tone-src], [data-voice-pick]');
+    const rad = e.target.closest && e.target.closest('[data-tone-src], [data-voice-pick], [data-agv-voice]');
     if (rad && /^Arrow(Left|Right|Up|Down)$/.test(e.key)) {
-      const attr = rad.hasAttribute('data-tone-src') ? 'data-tone-src' : 'data-voice-pick';
+      const attr = ['data-tone-src', 'data-voice-pick', 'data-agv-voice'].filter((x) => rad.hasAttribute(x))[0];
       const group = $$('[' + attr + ']', rad.closest('[role="radiogroup"]'));
       const step = /Right|Down/.test(e.key) ? 1 : -1;
       const next = group[(group.indexOf(rad) + step + group.length) % group.length];
