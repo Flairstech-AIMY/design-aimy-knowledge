@@ -1417,6 +1417,25 @@
           + 'came from. When a question belongs to one product, name the agent that owns it.' } }
   ];
 
+  /* ── WHAT THE LAST TONE CHANGE DID ──
+     Per agent, the change that is in force now: when, by whom, the tone it
+     replaced, and the answers either side of it. `text` is the tone the
+     figures were measured on; once the tone is edited again they describe a
+     tone that is gone, so the page stops showing them (see agSinceTile).
+     Follow-up rate per day over six weeks; the change is day `cut`.
+     Fixture, shaped like the metric the production analytics would give. */
+  const TONE_HIST = {
+    nova: { at: '28 Aug', by: 'A. Mahfouz', prev: 'professional', kept: false,
+      text: 'Calm and direct. Lead with the answer, then name the article it came from. '
+        + 'Plain words over support jargon. When the knowledge base has nothing, say so '
+        + 'in one sentence instead of guessing.',
+      m: [['ask a follow-up', 19, 12, '%', true], ['ask for a person', 9, 7, '%', true],
+          ['per answer', 96, 61, ' words', null]],
+      series: [19, 21, 18, 20, 19, 22, 18, 20, 21, 19, 18, 20, 22, 19, 18, 21, 20, 19, 18, 20, 19,
+               16, 15, 14, 13, 13, 12, 13, 11, 12, 12, 11, 13, 12, 11, 12, 12, 11, 12, 13, 12, 12],
+      cut: 21, from: '7 Aug' }
+  };
+
   const COLS = [
     { id: 'policies', name: 'Policies', d: 'Owned by A. Mahfouz · 1,204 documents', on: true },
     { id: 'support', name: 'Support', d: 'Owned by N. Wael · 118 documents', on: true },
@@ -2639,6 +2658,13 @@
   const TONE_ERR = {};
   let VOICE_PLAYING = null;   /* 'agentId|female' while a sample speaks */
 
+  /* ── THE AGENT AS A PROFILE (Nour, 13 Oct) ──
+     The page was three stacked form sections with the skills in a side rail.
+     It is now the agent as a character, a tile per trait, each editing in
+     place: the voice as the Silk orb from voice mode, how it speaks under the
+     tone's name, what the last tone change did to its answers, the fillers it
+     says while it looks, and the skills it runs. Explored against three other
+     shapes in explore-settings.html; this is the one Nour picked. */
   function agentDoc(a) {
     const bad = agentStanding(a);
     return `
@@ -2654,21 +2680,12 @@
           </span>
           ${bad ? `<span class="set2-doc-end">${pill(bad[0], bad[1])}</span>` : ''}
         </div>
-
-        <div class="set2-ov">
-          <div class="set2-ov-main">
-            ${toneBlock(a)}
-            ${voiceBlock(a)}
-            ${fillerBlock(a)}
-          </div>
-          <aside class="set2-ov-side">
-            ${agentSkillsCard(a)}
-            <div class="set2-ov-card">
-              <p class="set2-ov-k">Last updated</p>
-              <p class="set2-ov-v">${esc(a.when)}</p>
-              <p class="set2-ov-s">by ${esc(a.by)}</p>
-            </div>
-          </aside>
+        <div class="set2-agp">
+          ${agOrbTile(a)}
+          ${toneBlock(a)}
+          ${agSinceTile(a)}
+          ${fillerBlock(a)}
+          ${agSkillsTile(a)}
         </div>
       </div>`;
   }
@@ -2677,18 +2694,44 @@
      Two sources behind one segmented switch. The switch IS the choice of
      which one the agent reads, so it commits on press; the text needs Save,
      because a tone half-typed is not a tone anyone chose. */
+  /* Read, it is the tone's name and its words; "Change how Nova speaks"
+     opens the same editor as before (source switch, templates, text or
+     file, Save and Discard) in the tile. It opens by itself when there is a
+     draft, an upload error, or no tone at all. */
+  const TONE_OPEN = {};
   function toneBlock(a) {
     const t = a.tone;
     const draft = TONE_DRAFT[a.id];
     const dirty = draft != null && draft.trim() !== (t.text || '').trim();
-    return `
-      <section class="set2-ag-sec" id="st-tone">
+    const open = !!TONE_OPEN[a.id] || draft != null || !!TONE_ERR[a.id] || !toneOf(a);
+    const head = `
         <span class="set2-lbl-row">
-          <p class="set2-lbl" id="toneLbl-${esc(a.id)}">Tone</p>
-          ${tip('toneTip', 'tone', 'How this agent writes. It is read before any skill, on every '
-            + 'answer. Only the selected source is used; switching keeps the other one, so you '
-            + 'can switch back.')}
-        </span>
+          <p class="set2-agp-k" id="toneLbl-${esc(a.id)}">How ${esc(a.name)} speaks</p>
+          ${tip('toneTip', 'tone', 'How this agent answers, written or aloud. It is read before any skill, '
+            + 'on every answer. Only the selected source is used; switching keeps the other one, so '
+            + 'you can switch back.')}
+          ${open && toneOf(a) && !dirty ? `<span class="set2-ag-sec-end">
+            <button class="btn btn-ghost btn-sm" type="button" data-tone-close="${esc(a.id)}">Done</button></span>` : ''}
+        </span>`;
+    if (!open) {
+      const f = t.src === 'file' ? t.file : null;
+      const tpl = toneTemplate(a);
+      return `
+      <section class="set2-agp-t set2-agp-tone" id="st-tone">
+        ${head}
+        <h3 class="set2-agp-title">${esc(toneTitle(a))}</h3>
+        ${f ? `<p class="set2-agp-from">From ${esc(f.name)}, uploaded ${esc(f.when)} by ${esc(f.by)}</p>
+               <pre class="set2-agp-file">${esc(f.body.split('\n').slice(0, 6).join('\n').trim())}</pre>`
+            : `<p class="set2-agp-quote">${esc(t.text)}</p>`}
+        <div class="set2-agp-ft">
+          <button class="set2-lnk" type="button" data-tone-open="${esc(a.id)}">Change how ${esc(a.name)} speaks</button>
+          ${tpl ? `<span>The \u201c${esc(tpl.name)}\u201d template</span>` : ''}
+        </div>
+      </section>`;
+    }
+    return `
+      <section class="set2-agp-t set2-agp-tone is-open" id="st-tone">
+        ${head}
         <div class="seg set2-ag-seg" role="radiogroup" aria-label="Where ${esc(a.name)}’s tone comes from">
           ${[['text', 'Plain text'], ['file', 'Config file']].map(([v, n]) => `
             <button class="seg-btn${t.src === v ? ' active' : ''}" type="button" role="radio"
@@ -2701,7 +2744,7 @@
             ${tplRow(a, draft != null ? draft : t.text || '')}
             <textarea class="set2-ag-ta" data-tone-ta="${esc(a.id)}" rows="5"
                       aria-labelledby="toneLbl-${esc(a.id)}"
-                      placeholder="Describe how ${esc(a.name)} should write. For example: brief, warm, no jargon, and always name the source."
+                      placeholder="Describe how ${esc(a.name)} should speak. For example: brief, warm, no jargon, and always name the source."
             >${esc(draft != null ? draft : t.text || '')}</textarea>
             <div class="set2-ag-bar${dirty ? ' is-dirty' : ''}" data-tone-bar="${esc(a.id)}">
               <span class="set2-ag-state">${esc(toneState(a, dirty))}</span>
@@ -2774,191 +2817,197 @@
       ${err ? `<p class="set2-note is-err set2-ag-err" role="alert">${esc(err)}</p>` : ''}`;
   }
 
-  /* ── VOICE ──
-     Two options you can HEAR before choosing. A voice described in words is
-     a guess; the sample button sits on each card, so comparing them does not
-     mean switching the agent back and forth to find out. */
-  function voiceBlock(a) {
+  /* ── VOICE, AS THE ORB ──
+     The Silk orb from voice mode (voice.js makeSilk), so the agent looks the
+     way it does when you talk to it. It turns slowly at rest and speaks while
+     a sample plays. The canvas is kept across repaints (agOrb), so a repaint
+     does not restart the silk. Female and Male are a switch under the name;
+     Hear plays the real sample in the chosen voice. */
+  function agOrbTile(a) {
     const canPlay = !!window.speechSynthesis;
+    const playing = VOICE_PLAYING === a.id + '|' + a.voice;
     return `
-      <section class="set2-ag-sec" id="st-voice">
-        <span class="set2-lbl-row">
-          <p class="set2-lbl" id="voiceLbl-${esc(a.id)}">Voice</p>
-          ${tip('voiceTip', 'voice', 'How this agent sounds when it answers aloud in voice mode. '
-            + 'Written answers are not affected.')}
-        </span>
-        <div class="set2-ag-voices" role="radiogroup" aria-labelledby="voiceLbl-${esc(a.id)}">
-          ${VOICES.map(([v, n, ico]) => {
-            const on = a.voice === v;
-            const playing = VOICE_PLAYING === a.id + '|' + v;
-            return `
-            <div class="set2-ag-vo${on ? ' is-on' : ''}">
-              <button class="set2-ag-vo-pick" type="button" role="radio" aria-checked="${on}"
-                      tabindex="${on ? 0 : -1}" data-voice-pick="${esc(a.id)}|${v}">
-                <span class="set2-ag-vo-ico">${ico}</span>
-                <span class="set2-ag-vo-n">${n}</span>
-                <span class="set2-ag-vo-r" aria-hidden="true"></span>
-              </button>
-              ${canPlay ? `
-              <button class="set2-ag-vo-play${playing ? ' is-playing' : ''}" type="button"
-                      data-voice-play="${esc(a.id)}|${v}"
-                      aria-label="${playing ? 'Stop the sample' : 'Play a ' + n.toLowerCase() + ' voice sample'}">
-                ${playing ? I.stop : I.play}<span>${playing ? 'Stop' : 'Sample'}</span>
-              </button>` : ''}
-            </div>`;
-          }).join('')}
+      <section class="set2-agp-t set2-agp-orb" id="st-voice">
+        <span class="set2-agp-orb-c" data-ag-orb="${esc(a.id)}" aria-hidden="true"></span>
+        <div class="set2-agp-orb-b">
+          <p class="set2-agp-name">${esc(a.name)}</p>
+          <p class="set2-agp-sub" id="voiceLbl-${esc(a.id)}">Speaks with a ${esc(voiceName(a.voice).toLowerCase())} voice in voice mode</p>
+          <!-- One capsule (Nour: the switch attached to Hear): play on the
+               left, the voice on the right as a two-way switch whose thumb
+               slides between the venus and mars marks. The line above says
+               the voice in words, so the state never rests on an icon. -->
+          <div class="set2-agp-vo${playing ? ' is-playing' : ''}">
+            ${canPlay && a.voice ? `
+              <button class="set2-agp-hear" type="button" data-voice-play="${esc(a.id)}|${esc(a.voice)}"
+                      aria-label="${playing ? 'Stop the sample' : 'Hear ' + esc(a.name)}">
+                ${playing ? I.stop : I.play}<span>${playing ? 'Stop' : 'Hear ' + esc(a.name)}</span></button>` : ''}
+            <span class="set2-agp-vsw" role="radiogroup" aria-labelledby="voiceLbl-${esc(a.id)}"
+                  style="--i:${a.voice === 'male' ? 1 : 0}">
+              <span class="set2-agp-vth" aria-hidden="true"></span>
+              ${VOICES.map(([v, n, ico]) => `
+                <button class="set2-agp-vb" type="button" role="radio" aria-checked="${a.voice === v}"
+                        tabindex="${a.voice === v ? 0 : -1}" data-voice-pick="${esc(a.id)}|${v}"
+                        aria-label="${n} voice" title="${n} voice">${ico}</button>`).join('')}
+            </span>
+          </div>
         </div>
       </section>`;
   }
 
-  /* ── FILLERS ──
-     What the agent says while it is busy, so a pause is not silence. The page
-     shows the first few as they will be heard, phrase over the moment it
-     fits, and the editing happens in a dialog: a two-column list of free text
-     is a form, and a form this page would otherwise grow by a row per phrase.
-     Capped at three here for the same reason, the O(records) rule. */
-  const FILLER_PEEK = 3;
+  /* One orb, kept: the canvas moves into each repaint's slot instead of a
+     new silk starting from still every time a sample starts or stops. */
+  let AG_ORB = null;
+  function agOrb() {
+    const slot = $('[data-ag-orb]');
+    if (!slot) { if (AG_ORB) { AG_ORB.silk.stop(); AG_ORB = null; } return; }
+    const V = window.AIMY_VOICE;
+    if (!V || !V.silk) return;
+    const aid = slot.getAttribute('data-ag-orb');
+    if (!AG_ORB || AG_ORB.aid !== aid) {
+      if (AG_ORB) AG_ORB.silk.stop();
+      const c = document.createElement('canvas');
+      c.className = 'set2-agp-silk';
+      AG_ORB = { aid: aid, canvas: c, silk: V.silk(c) };
+    }
+    if (AG_ORB.canvas.parentNode !== slot) slot.appendChild(AG_ORB.canvas);
+    AG_ORB.silk.phase(VOICE_PLAYING && VOICE_PLAYING.indexOf(aid + '|') === 0 ? 'speaking' : 'listening');
+    AG_ORB.silk.start();
+  }
+
+  /* ── WHAT THE LAST TONE CHANGE DID ──
+     A tone change is a bet that answers will land better, and nothing on the
+     page used to say whether it did, so a tone got set once and never looked
+     at again, or changed on a hunch. This tile closes the loop where the
+     decision was made: the change against the weeks before it, in the three
+     things a tone moves (people asking a follow-up, asking for a person, and
+     answer length), the follow-up line with the day marked, then the two
+     decisions it leads to, keep it or go back. AiMY's block, because it is
+     AiMY reading the answers. */
+  function agSinceTile(a) {
+    const h = TONE_HIST[a.id];
+    const live = !!h && toneOf(a) === h.text;
+    if (!live) return `
+      <section class="set2-agp-t set2-agp-since is-empty">
+        <p class="set2-agp-k">${h ? 'Since the tone changed' : 'What tone changes do'}</p>
+        <p class="set2-agp-d">${h
+          ? 'Changed just now. Once a week of answers is in, AiMY compares them with the weeks before: how often people ask a follow-up, ask for a person, and how long answers are.'
+          : 'When ' + esc(a.name) + '\u2019s tone changes, AiMY compares the answers before and after here, so you can keep the change or go back.'}</p>
+      </section>`;
+    const prev = TONE_TEMPLATES.filter((x) => x.id === h.prev)[0];
+    const W = 100, H = 40, max = 24, n = h.series.length;
+    const xy = (v, i) => (i / (n - 1) * W).toFixed(2) + ',' + (H - v / max * H).toFixed(2);
+    const before = h.series.slice(0, h.cut + 1).map(xy).join(' ');
+    const after = h.series.slice(h.cut).map((v, i) => xy(v, i + h.cut)).join(' ');
+    const mx = (h.cut / (n - 1) * W).toFixed(2);
+    return `
+      <section class="set2-agp-t set2-agp-since">
+        <p class="set2-agp-sh">${AIMY_MK(12, 14)}<span>Since ${esc(a.name)}\u2019s tone changed to \u201c${esc(toneTitle(a))}\u201d</span></p>
+        <p class="set2-agp-d">${esc(h.at)}, by ${esc(h.by)}. Compared with the three weeks before.</p>
+        <div class="set2-agp-mx">
+          ${h.m.map((x) => `
+            <div class="set2-agp-m"><b class="${x[4] ? 'is-ok' : ''}">${x[2]}${esc(x[3])}</b>
+              <span>${esc(x[0])}, <i>${x[2] < x[1] ? 'down' : 'up'} from ${x[1]}${esc(x[3])}</i></span></div>`).join('')}
+        </div>
+        <svg class="set2-agp-line" viewBox="0 0 100 40" preserveAspectRatio="none" role="img"
+             aria-label="People asking a follow-up each day: about ${h.m[0][1]}% before ${esc(h.at)}, about ${h.m[0][2]}% after">
+          <line x1="${mx}" x2="${mx}" y1="0" y2="40" class="is-cut" vector-effect="non-scaling-stroke"/>
+          <polyline points="${before}" class="is-before" vector-effect="non-scaling-stroke"/>
+          <polyline points="${after}" class="is-after" vector-effect="non-scaling-stroke"/>
+        </svg>
+        <div class="set2-agp-ll"><span>Follow-up questions a day, from ${esc(h.from)}</span>
+          <span class="is-cut">Tone changed ${esc(h.at)}</span><span>Today</span></div>
+        <div class="set2-agp-act">${h.kept
+          ? `<span class="is-ok">Kept. AiMY will say so here if this turns.</span>`
+          : `<button class="btn btn-brand btn-sm" type="button" data-tone-keep="${esc(a.id)}">Keep it</button>
+             ${prev ? `<button class="btn btn-ghost btn-sm" type="button" data-tone-back="${esc(a.id)}">Go back to \u201c${esc(prev.name)}\u201d</button>
+             <span>The tone before ${esc(h.at)}</span>` : ''}`}</div>
+      </section>`;
+  }
+
+  /* ── FILLERS, EDITED WHERE THEY ARE READ ──
+     They were three lines and an "Edit fillers" dialog. Nour wanted the
+     editor on the page: a row per phrase, the phrase over the moment it
+     fits, a play on each to hear it in the agent's voice, and the way in for
+     files (import, and the two templates) under the list. Edits go to a
+     working copy (FL_EDIT) with the tone's Save and Discard bar, so nothing
+     reaches the agent half-typed. */
+  const FL_EDIT = {};
+  const flEdit = (a) => FL_EDIT[a.id] || (FL_EDIT[a.id] = {
+    rows: (a.fillers || []).map((f) => ({ p: f.p, c: f.c })), bad: null, upErr: '', upNote: '' });
+  const flSame = (x, y) => JSON.stringify(x.map((f) => [f.p.trim(), f.c.trim()]))
+    === JSON.stringify(y.map((f) => [f.p.trim(), f.c.trim()]));
+  const flDirty = (a) => !!FL_EDIT[a.id] && !flSame(FL_EDIT[a.id].rows, a.fillers || []);
   function fillerBlock(a) {
-    const list = a.fillers || [];
-    const more = list.length - FILLER_PEEK;
+    const ed = FL_EDIT[a.id];
+    const rows = ed ? ed.rows : (a.fillers || []);
+    const dirty = flDirty(a);
+    const canPlay = !!window.speechSynthesis;
+    const id = esc(a.id);
     return `
-      <section class="set2-ag-sec" id="st-fillers">
-        <span class="set2-lbl-row">
-          <p class="set2-lbl">Fillers</p>
-          ${tip('fillTip', 'fillers', 'Short phrases the agent says to cover a pause while it looks '
-            + 'something up, each with the moment it fits. The context is read by the agent, so '
-            + 'write it the way you would brief a person.')}
-          <span class="set2-ag-sec-end">
-            <button class="btn btn-ghost btn-sm" type="button" data-fl-open="${esc(a.id)}">${
-              list.length ? 'Edit fillers' : 'Add fillers'}</button>
-          </span>
-        </span>
-        ${list.length ? `
-          <div class="set2-ag-fl">
-            ${list.slice(0, FILLER_PEEK).map((f) => `
-              <div class="set2-ag-fl-r">
-                <span class="set2-ag-fl-p">\u201c${esc(f.p)}\u201d</span>
-                <span class="set2-ag-fl-c">${f.c ? esc(f.c) : 'Any pause'}</span>
-              </div>`).join('')}
-            ${more > 0 ? `
-              <button class="set2-ag-fl-more" type="button" data-fl-open="${esc(a.id)}">${
-                more} more</button>` : ''}
-          </div>` : `
-          <div class="set2-ag-fl is-empty">
-            <span class="set2-ag-fl-c">None yet, so a pause while the agent works is silent.</span>
-          </div>`}
+      <section class="set2-agp-t set2-agp-fill" id="st-fillers" data-fl-drop="${id}">
+        <p class="set2-agp-k">While ${esc(a.name)} looks something up</p>
+        <p class="set2-agp-d">Short phrases ${esc(a.name)} says to cover a pause, so it is never silent. The
+          context under each one tells ${esc(a.name)} when it fits, so write it the way you would brief a person.</p>
+        ${rows.length ? `
+          <!-- The rows have no labels of their own, so the two fields are
+               named once, here, in the same stack and type they use. -->
+          <div class="set2-agp-flh" aria-hidden="true"><span></span>
+            <span class="set2-agp-fx"><b>Phrase</b><span>Context, when it fits</span></span><span></span></div>
+          <ul class="set2-agp-fl">${rows.map((f, i) => {
+          const said = VOICE_PLAYING === a.id + '|fl|' + i;
+          return `
+          <li class="set2-agp-fr${said ? ' is-said' : ''}${ed && ed.bad === i ? ' is-bad' : ''}">
+            <button class="set2-agp-ib is-play" type="button" data-fl-say="${id}|${i}"${!canPlay || !f.p.trim() ? ' disabled' : ''}
+                    aria-label="${said ? 'Stop' : 'Hear'} \u201c${esc(f.p)}\u201d">${said ? I.stop : I.play}</button>
+            <span class="set2-agp-fx">
+              <input class="set2-agp-fp" data-fl-p="${id}|${i}" value="${esc(f.p)}" autocomplete="off"
+                     placeholder="What ${esc(a.name)} says" aria-label="Filler ${i + 1}, phrase: what ${esc(a.name)} says">
+              <input class="set2-agp-fc" data-fl-c="${id}|${i}" value="${esc(f.c)}" autocomplete="off"
+                     placeholder="When it fits, for example before a lookup" aria-label="Filler ${i + 1}, context: when it fits">
+            </span>
+            <button class="set2-agp-ib" type="button" data-fl-del="${id}|${i}" aria-label="Remove filler ${i + 1}">${I.x}</button>
+          </li>`; }).join('')}</ul>`
+          : `<p class="set2-agp-none">None yet, so a pause while ${esc(a.name)} works is silent.</p>`}
+        ${ed && ed.bad != null ? `<p class="set2-hint is-err" role="alert">Filler ${ed.bad + 1} has a moment but no
+          phrase. Write the phrase, or remove the row.</p>` : ''}
+        ${ed && ed.upErr ? `<p class="set2-note is-err set2-agp-msg" role="alert">${esc(ed.upErr)}</p>`
+          : ed && ed.upNote ? `<p class="set2-note set2-agp-msg" role="status">${esc(ed.upNote)}</p>` : ''}
+        <div class="set2-agp-flf">
+          <button class="set2-lnk" type="button" data-fl-add="${id}">${I.plus}Add a filler</button>
+          <label class="set2-lnk set2-agp-up">${I.up}Import CSV or JSON
+            <input type="file" accept=".csv,.json,text/csv,application/json" hidden data-fl-file="${id}"></label>
+          <span class="set2-agp-tpl">Download a template:
+            <button class="set2-lnk" type="button" data-fl-tpl="csv" aria-label="Download the CSV template">CSV</button>
+            <button class="set2-lnk" type="button" data-fl-tpl="json" aria-label="Download the JSON template">JSON</button></span>
+        </div>
+        ${dirty ? `
+          <div class="set2-ag-bar is-dirty">
+            <span class="set2-ag-state">Unsaved changes</span>
+            <button class="btn btn-ghost btn-sm" type="button" data-fl-discard="${id}">Discard</button>
+            <button class="btn btn-brand btn-sm" type="button" data-fl-save="${id}">Save</button>
+          </div>` : ''}
       </section>`;
   }
 
-  /* ── The dialog ──
-     A working copy, not the agent's list: Cancel, the X and Escape all leave
-     the agent exactly as it was, and only Save writes. A row with a context
-     and no phrase is the one thing refused, because it would be an
-     instruction to say nothing. Rows left empty in both columns are dropped
-     on save rather than complained about. */
-  function fillerModal(md) {
-    const a = agentById(md.aid);
-    const rows = md.rows;
+  /* The skills the agent runs, linking across to Skills, and when anything
+     on this page last changed. */
+  function agSkillsTile(a) {
+    const list = skillsRun(a);
+    const idle = skillsOn(a).length - list.length;
     return `
-      <div class="set2-scrim" data-scrim>
-        <div class="set2-modal is-wide set2-fl-modal" role="dialog" aria-modal="true" aria-labelledby="flT"
-             data-fl-drop>
-          <div class="set2-modal-hd">
-            <h2 class="set2-modal-t" id="flT">Fillers for ${esc(a ? a.name : '')}</h2>
-            <button class="set2-modal-x" type="button" data-close aria-label="Close">${I.x}</button>
-          </div>
-          <div class="set2-modal-bd">
-            <div class="set2-fl-grid" role="table" aria-label="Filler phrases">
-              <div class="set2-fl-hd" role="row">
-                <span role="columnheader">Filler</span>
-                <span role="columnheader">Context</span>
-                <span aria-hidden="true"></span>
-              </div>
-              ${rows.map((f, i) => `
-                <div class="set2-fl-row" role="row">
-                  <input class="set2-fld${md.bad === i ? ' is-bad' : ''}" data-fl-p="${i}" value="${esc(f.p)}"
-                         placeholder="Hold on a second" autocomplete="off"
-                         aria-label="Filler ${i + 1}">
-                  <input class="set2-fld" data-fl-c="${i}" value="${esc(f.c)}"
-                         placeholder="When it should be said, e.g. before a lookup" autocomplete="off"
-                         aria-label="Context for filler ${i + 1}">
-                  <button class="set2-fl-del" type="button" data-fl-del="${i}"
-                          aria-label="Remove filler ${i + 1}">${I.trash}</button>
-                </div>`).join('')}
-              ${rows.length ? '' : `
-                <p class="set2-fl-none">No fillers. Add one to give the agent something to say while it works.</p>`}
-            </div>
-            ${md.bad != null ? `<p class="set2-hint is-err" role="alert">Row ${md.bad + 1} has a context but no
-              filler. Write the phrase, or remove the row.</p>` : ''}
-            <!-- Add and Upload, the two ways in. The templates moved to the
-                 footer, under the format rule they illustrate. -->
-            <div class="set2-fl-bar">
-              <button class="btn btn-ghost btn-sm" type="button" data-fl-add>${
-                I.plus.replace('<svg', '<svg width="13" height="13" aria-hidden="true"')}Add filler</button>
-              <label class="btn btn-ghost btn-sm set2-fl-up">${
-                I.up.replace('<svg', '<svg width="13" height="13" aria-hidden="true"')}Upload file
-                <input type="file" accept=".csv,.json,text/csv,application/json" hidden data-fl-file>
-              </label>
-            </div>
-            ${md.upErr ? `<p class="set2-note is-err set2-fl-msg" role="alert">${esc(md.upErr)}</p>`
-              : md.upNote ? `<p class="set2-note set2-fl-msg" role="status">${esc(md.upNote)}</p>` : ''}
-          </div>
-          <div class="set2-modal-ft">
-            ${/* ── THE TEMPLATES CARRY THE FORMAT RULE ──
-                  A sentence first, then an info glyph labelled "CSV or JSON",
-                  then, on Nour's call, the two template downloads themselves
-                  with the glyph in front of them: the files ARE the format, so
-                  the rule belongs on the links that hand them over.
-
-                  In the footer because it does not scroll. Inside the body a
-                  tooltip, even an invisible one, adds to scrollHeight and left
-                  an 85px gap under the list; here it opens UPWARD over the
-                  list (`.is-above`) and moves nothing. Hovering anywhere on
-                  the group shows it; the glyph is the keyboard's way in, and
-                  the tooltip must stay its next sibling for the focus rule. */ ''}
-            <span class="set2-tip-wrap set2-fl-fmt">
-              <button class="set2-tip-b" type="button" aria-describedby="flFmtTip"
-                      aria-label="About filler files">${I.info}</button>
-              <span class="set2-tip is-above" role="tooltip" id="flFmtTip">
-                <span class="set2-tip-l"><b>CSV:</b> a header row naming the filler and context columns.</span>
-                <span class="set2-tip-l"><b>JSON:</b> a list of objects with filler and context keys.</span>
-                <span class="set2-tip-l">You can drop the file anywhere on this window.</span>
-              </span>
-              <span class="set2-fl-tpl">
-                Template
-                <button class="set2-lnk" type="button" data-fl-tpl="csv"
-                        aria-label="Download the CSV template">CSV</button>
-                <button class="set2-lnk" type="button" data-fl-tpl="json"
-                        aria-label="Download the JSON template">JSON</button>
-              </span>
-            </span>
-            <span class="set2-modal-end">
-              <button class="btn btn-ghost btn-sm" type="button" data-close>Cancel</button>
-              <button class="btn btn-brand btn-sm" type="button" data-fl-save>Save</button>
-            </span>
-          </div>
+      <section class="set2-agp-t set2-agp-skills">
+        <div class="set2-ov-h">
+          <p class="set2-agp-k">Skills ${esc(a.name)} uses</p>
+          <button class="btn btn-ghost btn-sm" type="button" data-ag-skills="${esc(a.id)}"
+                  aria-label="Open the skills ${esc(a.name)} runs">View</button>
         </div>
-      </div>`;
-  }
-
-  function openFillers(aid) {
-    const a = agentById(aid);
-    if (!a) return;
-    const rows = (a.fillers || []).map((f) => ({ p: f.p, c: f.c }));
-    /* An empty list opens on one empty row: the dialog was opened to add
-       something, and a blank table with a button under it is one click
-       further from that. */
-    if (!rows.length) rows.push({ p: '', c: '' });
-    MODAL = { kind: 'fillers', aid: aid, rows: rows, bad: null };
-    paintModal();
-  }
-
-  /* Repaint, then put the caret where the person was going. paintModal
-     focuses the first field by default, which after Add would be row one. */
-  function repaintFillers(focusSel) {
-    paintModal();
-    const f = focusSel && $(focusSel);
-    if (f) { f.focus(); if (f.setSelectionRange) f.setSelectionRange(f.value.length, f.value.length); }
+        <div class="set2-ov-chips">
+          ${list.length ? list.map((s) => `<span class="set2-chip">${esc(s.name)}</span>`).join('')
+            : `<span class="set2-sp-note">None running. Give a skill this agent on the Skills page.</span>`}
+        </div>
+        ${idle ? `<p class="set2-ov-s">Plus ${idle} that ${idle === 1 ? 'is' : 'are'} off or overridden.</p>` : ''}
+        <p class="set2-agp-upd">Last updated ${esc(a.when)} by ${esc(a.by)}</p>
+      </section>`;
   }
 
   /* ══ FILLER FILES ═════════════════════════════════════════════════════
@@ -3038,10 +3087,11 @@
   /* Same phrase, ignoring case, spacing and the closing full stop. */
   const flKey = (v) => String(v).toLowerCase().replace(/\s+/g, ' ').replace(/[.!?]+$/, '').trim();
 
-  function readFillerFile(file) {
-    const md = MODAL;
-    if (!md || md.kind !== 'fillers' || !file) return;
-    const fail = (m) => { md.upErr = m; md.upNote = ''; repaintFillers(); };
+  function readFillerFile(file, aid) {
+    const a = agentById(aid);
+    if (!a || !file) return;
+    const md = flEdit(a);
+    const fail = (m) => { md.upErr = m; md.upNote = ''; render(); };
     const isCsv = /\.csv$/i.test(file.name), isJson = /\.json$/i.test(file.name);
     if (!isCsv && !isJson) return fail('Use a .csv or .json file. ' + file.name + ' is neither.');
     if (file.size > FL_MAX) return fail(file.name + ' is ' + kb(file.size) + '. A filler file can be up to 64 KB.');
@@ -3067,9 +3117,7 @@
                          : 'Nothing new in ' + file.name + '.')
         + (skipped ? ' Skipped ' + skipped + ' already in the list.' : '')
         + (added ? ' Save to keep them.' : '');
-      repaintFillers();
-      const bd = $('.set2-fl-modal .set2-modal-bd');
-      if (bd && added) bd.scrollTop = bd.scrollHeight;
+      render();
     };
     rd.onerror = () => fail('Could not read ' + file.name + '.');
     rd.readAsText(file);
@@ -3098,42 +3146,22 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  function saveFillers() {
-    const md = MODAL;
-    const a = md && agentById(md.aid);
-    if (!a) return;
+  function saveFillers(aid) {
+    const a = agentById(aid);
+    const md = a && FL_EDIT[a.id];
+    if (!md) return;
     const rows = md.rows.map((f) => ({ p: f.p.trim(), c: f.c.trim() }));
     const bad = rows.findIndex((f) => !f.p && f.c);
-    if (bad > -1) { md.bad = bad; repaintFillers('[data-fl-p="' + bad + '"]'); return; }
+    if (bad > -1) {
+      md.bad = bad;
+      render(() => { const f = $('[data-fl-p="' + a.id + '|' + bad + '"]'); if (f) f.focus(); });
+      return;
+    }
     a.fillers = rows.filter((f) => f.p);
     a.when = 'just now'; a.by = USER.name;
+    delete FL_EDIT[a.id];
     DIRTY.add('fillers:' + a.id);
-    closeModal();
     render();
-  }
-
-  /* The other half of an agent, read-only here. Editing a skill's agents is a
-     Skills job, so the card links across with that agent already filtered
-     rather than growing a second editor for the same list. */
-  function agentSkillsCard(a) {
-    const list = skillsRun(a);
-    const shown = list.slice(0, 5);
-    const idle = skillsOn(a).length - list.length;
-    return `
-      <div class="set2-ov-card">
-        <div class="set2-ov-h">
-          <p class="set2-ov-k">Skills</p>
-          <button class="btn btn-ghost btn-sm" type="button" data-ag-skills="${esc(a.id)}"
-                  aria-label="Open the skills ${esc(a.name)} runs">View</button>
-        </div>
-        <div class="set2-ov-chips">
-          ${shown.length ? shown.map((s) => `<span class="set2-chip">${esc(s.name)}</span>`).join('')
-            + (list.length > shown.length ? `<span class="set2-chip">+${list.length - shown.length} more</span>` : '')
-            : `<span class="set2-sp-note">None running. Give a skill this agent on the Skills page.</span>`}
-        </div>
-        ${idle ? `<p class="set2-ov-s">Plus ${idle} that ${idle === 1 ? 'is' : 'are'} off or
-          overridden.</p>` : ''}
-      </div>`;
   }
 
   /* ═══ USAGE ═══════════════════════════════════════════════════════════════
@@ -4231,15 +4259,15 @@
     return null;
   }
 
-  function playSample(id, gender) {
+  function playSample(id, gender, line, k) {
     const tts = window.speechSynthesis;
     const a = agentById(id);
     if (!tts || !a) return;
-    const key = id + '|' + gender;
+    const key = k || id + '|' + gender;
     tts.cancel();
     if (VOICE_PLAYING === key) { VOICE_PLAYING = null; render(); return; }
-    const u = new SpeechSynthesisUtterance('Hi, I am ' + a.name
-      + '. This is how I sound when I answer you out loud.');
+    const u = new SpeechSynthesisUtterance(line || ('Hi, I am ' + a.name
+      + '. This is how I sound when I answer you out loud.'));
     const v = voiceFor(gender);
     if (v) { u.voice = v; u.lang = v.lang; }
     else { u.lang = 'en-US'; u.pitch = gender === 'female' ? 1.25 : 0.8; }
@@ -7405,7 +7433,6 @@
                    : MODAL.kind === 'adduser' ? addUserModal()
                    : MODAL.kind === 'rmpeople' ? removePeopleModal(MODAL)
                    : MODAL.kind === 'rotate' ? rotateModal(MODAL)
-                   : MODAL.kind === 'fillers' ? fillerModal(MODAL)
                    : deleteModal(MODAL);
     if (wasOpen) {
       const sc = $('.set2-scrim', host);
@@ -8699,7 +8726,7 @@
     if (M) M.after(layer, off, { ms: ms }); else setTimeout(off, ms);
   }
 
-  function painted() { seatTabindex(); focusDraft(); landFix(); seatMap(); usLand(); }
+  function painted() { seatTabindex(); focusDraft(); landFix(); seatMap(); usLand(); agOrb(); }
 
   /* A link to KMC opens with the plan and Upland folded above it, so on
      arrival the unfolded card is scrolled to the top, under the bar, rather
@@ -8951,6 +8978,7 @@
         DIRTY.add('tone:' + aid);
       }
       delete TONE_DRAFT[aid];
+      delete TONE_OPEN[aid];
       render();
       return;
     }
@@ -8971,7 +8999,55 @@
       return;
     }
     const tDis = e.target.closest('[data-tone-discard]');
-    if (tDis) { delete TONE_DRAFT[tDis.getAttribute('data-tone-discard')]; render(); return; }
+    if (tDis) {
+      const aid = tDis.getAttribute('data-tone-discard');
+      delete TONE_DRAFT[aid]; delete TONE_OPEN[aid];
+      render(); return;
+    }
+    const tOpen = e.target.closest('[data-tone-open]');
+    if (tOpen) {
+      const aid = tOpen.getAttribute('data-tone-open');
+      TONE_OPEN[aid] = true;
+      render(() => {
+        const ta = $('[data-tone-ta="' + aid + '"]');
+        if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+        else { const b = $('[data-tone-src="' + aid + '|file"]'); if (b) b.focus(); }
+      });
+      return;
+    }
+    const tClose = e.target.closest('[data-tone-close]');
+    if (tClose) {
+      const aid = tClose.getAttribute('data-tone-close');
+      delete TONE_OPEN[aid];
+      render(() => { const b = $('[data-tone-open="' + aid + '"]'); if (b) b.focus(); });
+      return;
+    }
+    const tKeep = e.target.closest('[data-tone-keep]');
+    if (tKeep) {
+      const h = TONE_HIST[tKeep.getAttribute('data-tone-keep')];
+      if (h) { h.kept = true; render(); }
+      return;
+    }
+    /* Going back is one click with an undo, the house rule for a change
+       made from a suggestion rather than typed. */
+    const tBack = e.target.closest('[data-tone-back]');
+    if (tBack) {
+      const aid = tBack.getAttribute('data-tone-back');
+      const a0 = agentById(aid), h = TONE_HIST[aid];
+      const prev = h && TONE_TEMPLATES.filter((x) => x.id === h.prev)[0];
+      if (a0 && prev) {
+        const was = { src: a0.tone.src, text: a0.tone.text, when: a0.when, by: a0.by };
+        a0.tone.src = 'text'; a0.tone.text = prev.text;
+        a0.when = 'just now'; a0.by = USER.name;
+        DIRTY.add('tone:' + aid);
+        render();
+        if (API && API.toast) API.toast('Back to the \u201c' + prev.name + '\u201d tone', () => {
+          a0.tone.src = was.src; a0.tone.text = was.text; a0.when = was.when; a0.by = was.by;
+          render();
+        });
+      }
+      return;
+    }
     const tRm = e.target.closest('[data-tone-remove]');
     if (tRm) {
       const aid = tRm.getAttribute('data-tone-remove');
@@ -8988,32 +9064,59 @@
       if (a0 && a0.voice !== v) {
         a0.voice = v; a0.when = 'just now'; a0.by = USER.name;
         DIRTY.add('voice:' + aid);
+        /* On the profile the new voice is heard as it is chosen. */
+        if (vPick.closest('.set2-agp-vsw') && window.speechSynthesis) {
+          playSample(aid, v);
+          const b = $('[data-voice-pick="' + aid + '|' + v + '"]'); if (b) b.focus();
+          return;
+        }
         render(() => { const b = $('[data-voice-pick="' + aid + '|' + v + '"]'); if (b) b.focus(); });
       }
       return;
     }
-    const flO = e.target.closest('[data-fl-open]');
-    if (flO) { openFillers(flO.getAttribute('data-fl-open')); return; }
-    if (MODAL && MODAL.kind === 'fillers') {
-      const flT = e.target.closest('[data-fl-tpl]');
-      if (flT) { downloadFillerTemplate(flT.getAttribute('data-fl-tpl')); return; }
-      if (e.target.closest('[data-fl-add]')) {
-        MODAL.upNote = ''; MODAL.upErr = '';
-        MODAL.rows.push({ p: '', c: '' });
-        repaintFillers('[data-fl-p="' + (MODAL.rows.length - 1) + '"]');
-        return;
+    /* ── Fillers, inline ── */
+    const flT = e.target.closest('[data-fl-tpl]');
+    if (flT) { downloadFillerTemplate(flT.getAttribute('data-fl-tpl')); return; }
+    const flA = e.target.closest('[data-fl-add]');
+    if (flA) {
+      const a0 = agentById(flA.getAttribute('data-fl-add'));
+      if (a0) {
+        const md = flEdit(a0);
+        md.upNote = ''; md.upErr = '';
+        md.rows.push({ p: '', c: '' });
+        const sel = '[data-fl-p="' + a0.id + '|' + (md.rows.length - 1) + '"]';
+        render(() => { const f = $(sel); if (f) f.focus(); });
       }
-      const flD = e.target.closest('[data-fl-del]');
-      if (flD) {
-        const i = +flD.getAttribute('data-fl-del');
-        MODAL.rows.splice(i, 1);
-        if (MODAL.bad === i) MODAL.bad = null;
-        else if (MODAL.bad > i) MODAL.bad -= 1;
-        const next = Math.min(i, MODAL.rows.length - 1);
-        repaintFillers(next > -1 ? '[data-fl-p="' + next + '"]' : '[data-fl-add]');
-        return;
+      return;
+    }
+    const flD = e.target.closest('[data-fl-del]');
+    if (flD) {
+      const [aid, si] = flD.getAttribute('data-fl-del').split('|');
+      const a0 = agentById(aid);
+      if (a0) {
+        const md = flEdit(a0), i = +si;
+        md.rows.splice(i, 1);
+        if (md.bad === i) md.bad = null; else if (md.bad > i) md.bad -= 1;
+        const next = Math.min(i, md.rows.length - 1);
+        render(() => {
+          const f = $(next > -1 ? '[data-fl-p="' + aid + '|' + next + '"]' : '[data-fl-add="' + aid + '"]');
+          if (f) f.focus();
+        });
       }
-      if (e.target.closest('[data-fl-save]')) { saveFillers(); return; }
+      return;
+    }
+    const flSv = e.target.closest('[data-fl-save]');
+    if (flSv) { saveFillers(flSv.getAttribute('data-fl-save')); return; }
+    const flX = e.target.closest('[data-fl-discard]');
+    if (flX) { delete FL_EDIT[flX.getAttribute('data-fl-discard')]; render(); return; }
+    const flY = e.target.closest('[data-fl-say]');
+    if (flY) {
+      const [aid, si] = flY.getAttribute('data-fl-say').split('|');
+      const a0 = agentById(aid);
+      const rows = a0 ? (FL_EDIT[aid] ? FL_EDIT[aid].rows : a0.fillers || []) : [];
+      const f = rows[+si];
+      if (a0 && f && f.p.trim()) playSample(aid, a0.voice || 'female', f.p.trim(), aid + '|fl|' + si);
+      return;
     }
     const vPlay = e.target.closest('[data-voice-play]');
     if (vPlay) {
@@ -10062,12 +10165,25 @@
     if (usSI && US_SESS_ED) { US_SESS_ED.v = usSI.value; return; }
     /* An agent's tone. Stored, and the bar under it told — never repainted,
        which would take the caret out of the sentence being written. */
+    /* A filler. Stored in the working copy; repainted only when that turns
+       the Save bar on or off, with the caret put back where it was. */
     const flI = e.target.closest && e.target.closest('[data-fl-p], [data-fl-c]');
-    if (flI && MODAL && MODAL.kind === 'fillers') {
+    if (flI) {
       const isP = flI.hasAttribute('data-fl-p');
-      const i = +flI.getAttribute(isP ? 'data-fl-p' : 'data-fl-c');
-      if (MODAL.rows[i]) MODAL.rows[i][isP ? 'p' : 'c'] = flI.value;
-      if (isP && MODAL.bad === i && flI.value.trim()) flI.classList.remove('is-bad');
+      const attr = isP ? 'data-fl-p' : 'data-fl-c';
+      const [aid, si] = flI.getAttribute(attr).split('|');
+      const a0 = agentById(aid);
+      if (!a0) return;
+      const was = flDirty(a0);
+      const md = flEdit(a0), i = +si;
+      if (md.rows[i]) md.rows[i][isP ? 'p' : 'c'] = flI.value;
+      let paint = flDirty(a0) !== was;
+      if (isP && md.bad === i && flI.value.trim()) { md.bad = null; paint = true; }
+      if (paint) {
+        const pos = flI.selectionStart;
+        const sel = '[' + attr + '="' + aid + '|' + i + '"]';
+        render(() => { const f = $(sel); if (f) { f.focus(); f.setSelectionRange(pos, pos); } });
+      }
       return;
     }
     const tta = e.target.closest && e.target.closest('[data-tone-ta]');
@@ -10428,7 +10544,7 @@
     }
     const ff = e.target.closest('[data-fl-file]');
     if (ff) {
-      if (ff.files && ff.files[0]) readFillerFile(ff.files[0]);
+      if (ff.files && ff.files[0]) readFillerFile(ff.files[0], ff.getAttribute('data-fl-file'));
       ff.value = '';
       return;
     }
@@ -10464,7 +10580,7 @@
     e.preventDefault(); z.classList.remove('is-over');
     const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
     if (!file) return;
-    if (z.hasAttribute('data-fl-drop')) readFillerFile(file);
+    if (z.hasAttribute('data-fl-drop')) readFillerFile(file, z.getAttribute('data-fl-drop'));
     else if (z.hasAttribute('data-tone-drop')) readToneFile(file, z.getAttribute('data-tone-drop'));
     else readSkillFile(file);
   });
@@ -10543,18 +10659,24 @@
       if (next) next.click();
       return;
     }
+    /* Enter in a phrase goes to its moment; Enter in a moment goes to the
+       next phrase, adding one after the last; Ctrl/Cmd+Enter saves. */
     const flK = e.target.closest && e.target.closest('[data-fl-p], [data-fl-c]');
-    if (flK && e.key === 'Enter' && MODAL && MODAL.kind === 'fillers') {
+    if (flK && e.key === 'Enter') {
       e.preventDefault();
-      if (e.ctrlKey || e.metaKey) { saveFillers(); return; }
-      if (flK.hasAttribute('data-fl-p')) {
-        const c = $('[data-fl-c="' + flK.getAttribute('data-fl-p') + '"]');
-        if (c) c.focus();
-        return;
-      }
-      const i = +flK.getAttribute('data-fl-c');
-      if (i === MODAL.rows.length - 1) MODAL.rows.push({ p: '', c: '' });
-      repaintFillers('[data-fl-p="' + (i + 1) + '"]');
+      const isP = flK.hasAttribute('data-fl-p');
+      const [aid, si] = flK.getAttribute(isP ? 'data-fl-p' : 'data-fl-c').split('|');
+      const i = +si;
+      if (e.ctrlKey || e.metaKey) { saveFillers(aid); return; }
+      if (isP) { const c = $('[data-fl-c="' + aid + '|' + i + '"]'); if (c) c.focus(); return; }
+      const a0 = agentById(aid);
+      if (!a0) return;
+      const md = flEdit(a0);
+      const sel = '[data-fl-p="' + aid + '|' + (i + 1) + '"]';
+      if (i === md.rows.length - 1) {
+        md.rows.push({ p: '', c: '' });
+        render(() => { const f = $(sel); if (f) f.focus(); });
+      } else { const f = $(sel); if (f) f.focus(); }
       return;
     }
     const tta = e.target.closest && e.target.closest('[data-tone-ta]');

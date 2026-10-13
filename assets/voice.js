@@ -989,5 +989,7 @@
 
   /* `_read` is exported so what gets spoken can be checked against a real
      answer without a speaker. */
-  window.AIMY_VOICE = { mount: mount, _state: S, _bars: BARS, _read: lastAnswer };
+  /* `silk` lends the orb to pages that show an agent (Knowledge's agent
+     profile), so the agent looks the way it does when you talk to it. */
+  window.AIMY_VOICE = { mount: mount, silk: makeSilk, _state: S, _bars: BARS, _read: lastAnswer };
 })();

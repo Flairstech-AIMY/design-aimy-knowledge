@@ -15969,6 +15969,8 @@
          knows only what it was handed. */
       window.AIMY_SETTINGS.init({
         patch: patch, readURL: readURL, render: render,
+        /* The house toast, with Undo when settings hands one over. */
+        toast: (msg, undo) => { toast(msg, undo ? 'Undo' : null); undoStack = undo || null; },
         offerings: () => ENTITLED
           /* Archived is the one exclusion. NOT drafts: you write the product,
              it is a draft for as long as it takes you to describe it, and a
