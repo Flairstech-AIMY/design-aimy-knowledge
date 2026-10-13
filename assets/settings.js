@@ -2817,11 +2817,47 @@
             ${pick('Replace the file')}
             <button class="agv-lnk" type="button" data-tone-src="${id}|text">Write it here instead</button></div>`;
     return `<textarea class="agv-ed" data-agv-ta="${id}" aria-label="How ${nm} speaks">${esc(a.tone.text || '')}</textarea>
-          <div class="agv-pre">${TONE_TEMPLATES.map((p) => `<button type="button" data-agv-pre="${id}|${esc(p.id)}" title="${esc(p.text)}">${esc(p.name)}</button>`).join('')}</div>
+          <div class="agv-pre">${TONE_TEMPLATES.map((p) => `<button type="button" data-agv-pre="${id}|${esc(p.id)}" aria-pressed="${(a.tone.text || '').trim() === p.text}" title="${esc(p.text)}">${esc(p.name)}</button>`).join('')}</div>
           ${msg}
           <div class="agv-tone-f"><button class="agv-btn is-brand" type="button" data-agv-done="${id}">Done</button>
             ${pick('Upload a file instead')}
             ${f ? `<button class="agv-lnk" type="button" data-tone-src="${id}|file">Use ${esc(f.name)}</button>` : ''}</div>`;
+  }
+
+  /* ── Tweak 6 (Nour): switching templates ──
+     A template used to repaint the whole page: the textarea came back at its
+     default height and was resized a frame later, so the card jumped, and
+     the words changed with no motion at all. Now it happens in place. The
+     words swap as text swaps do (150ms, ease-in-out, 4px rise, 2px blur), the
+     field eases to its new height as a resize does (250ms, smooth-out), and
+     the template whose words are in the box shows pressed. No toast: the
+     pressed pill says what happened, and the other pills are the way back.
+     Reduced motion: the words and height just change. */
+  function agvSwapText(ta, text) {
+    const from = ta.getBoundingClientRect().height;
+    ta.getAnimations().forEach((an) => an.cancel());
+    ta.value = text;
+    ta.style.height = 'auto';
+    const to = ta.scrollHeight;
+    ta.style.height = to + 'px';
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    ta.animate([{ height: from + 'px' }, { height: to + 'px' }],
+      { duration: 250, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' });
+    ta.animate([{ opacity: 0, filter: 'blur(2px)', transform: 'translateY(4px)' },
+                { opacity: 1, filter: 'blur(0)', transform: 'none' }],
+      { duration: 150, easing: 'ease-in-out' });
+  }
+  function agvPressed(aid, text) {
+    const v = String(text || '').trim();
+    $$('[data-agv-pre^="' + aid + '|"]').forEach((b) => {
+      const x = TONE_TEMPLATES.filter((y) => b.getAttribute('data-agv-pre') === aid + '|' + y.id)[0];
+      b.setAttribute('aria-pressed', String(!!x && x.text === v));
+    });
+  }
+  /* Sized as it is painted, before the first frame, so opening the editor
+     does not draw a two-line box and then grow it. */
+  function agvFit() {
+    $$('[data-agv-ta]').forEach((t) => { t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; });
   }
 
   /* A filler file, straight into the agent's list (the variant has no Save):
@@ -8883,7 +8919,7 @@
     if (M) M.after(layer, off, { ms: ms }); else setTimeout(off, ms);
   }
 
-  function painted() { seatTabindex(); focusDraft(); landFix(); seatMap(); usLand(); agOrb(); }
+  function painted() { seatTabindex(); focusDraft(); landFix(); seatMap(); usLand(); agOrb(); agvFit(); }
 
   /* A link to KMC opens with the plan and Upland folded above it, so on
      arrival the unfolded card is scrolled to the top, under the bar, rather
@@ -9264,7 +9300,7 @@
     if (agEd) {
       const aid = agEd.getAttribute('data-agv-edit');
       AGV_EDIT[aid] = true;
-      render(() => { const t = $('[data-agv-ta="' + aid + '"]'); if (t) { t.style.height = t.scrollHeight + 'px'; t.focus(); } });
+      render(() => { const t = $('[data-agv-ta="' + aid + '"]'); if (t) t.focus(); });
       return;
     }
     const agDn = e.target.closest('[data-agv-done]');
@@ -9274,11 +9310,10 @@
       const [aid, tid] = agPre.getAttribute('data-agv-pre').split('|');
       const a0 = agentById(aid), x = TONE_TEMPLATES.filter((y) => y.id === tid)[0];
       if (a0 && x) {
-        const was = { src: a0.tone.src, text: a0.tone.text };
         a0.tone.src = 'text'; a0.tone.text = x.text; a0.when = 'just now'; a0.by = USER.name;
         DIRTY.add('tone:' + aid);
-        render(() => { const t = $('[data-agv-ta="' + aid + '"]'); if (t) t.style.height = t.scrollHeight + 'px'; });
-        if (API && API.toast) API.toast('Started from ' + x.name, () => { a0.tone.src = was.src; a0.tone.text = was.text; render(); });
+        const ta = $('[data-agv-ta="' + aid + '"]');
+        if (ta) { agvSwapText(ta, x.text); agvPressed(aid, x.text); } else render();
       }
       return;
     }
@@ -10400,7 +10435,9 @@
     if (agTa) {
       const a0 = agentById(agTa.getAttribute('data-agv-ta'));
       if (a0) { a0.tone.src = 'text'; a0.tone.text = agTa.value; a0.when = 'just now'; a0.by = USER.name; DIRTY.add('tone:' + a0.id); }
+      agTa.getAnimations().forEach((an) => an.cancel());
       agTa.style.height = 'auto'; agTa.style.height = agTa.scrollHeight + 'px';
+      agvPressed(agTa.getAttribute('data-agv-ta'), agTa.value);
       return;
     }
     const agF = e.target.closest && e.target.closest('[data-agv-f]');

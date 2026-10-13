@@ -4655,6 +4655,17 @@ input.set2-fld[type="password"] {
 .agv-skills .agv-skh .agv-k { margin: 0; }
 .agv-btn.agv-btn-sm { padding: 0.3125rem 0.875rem; font-size: 0.75rem; }
 
+/* ── Tweak 6 (Nour): the template in the box shows pressed (the brand ring
+   and wash the explored pills used), and the press settles in 150ms. ── */
+.agv-pre button[aria-pressed="true"] {
+  color: var(--ink-primary); background: rgba(var(--accent-rgb), 0.12); box-shadow: inset 0 0 0 0.0625rem var(--brand);
+}
+.agv-pre button:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
+@media (prefers-reduced-motion: no-preference) {
+  .agv-pre button { transition: background-color 150ms ease-out, box-shadow 150ms ease-out, color 150ms ease-out; }
+  .agv-pre button:active { transform: scale(0.97); }
+}
+
 /* ── Tweak 5 (Nour): a file while editing the tone. The file sits on the
    card as the variant's own surfaces would: a card-ground panel with the
    name over who uploaded it, and its text in mono under a hairline. ── */
