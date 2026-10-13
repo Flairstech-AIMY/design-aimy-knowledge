@@ -1379,7 +1379,8 @@
       fillers: [
         { p: 'Let me check that for you.', c: 'Before searching the knowledge base' },
         { p: 'One moment while I pull that up.', c: 'When opening a specific article or ticket' },
-        { p: 'Good question, give me a second.', c: 'When the answer needs more than one source' }
+        { p: 'Good question, give me a second.', c: 'When the answer needs more than one source' },
+        { p: 'Thanks for waiting, nearly there.', c: 'When a lookup runs past five seconds' }
       ],
       tone: { src: 'text', file: null,
         text: 'Calm and direct. Lead with the answer, then name the article it came from. '
