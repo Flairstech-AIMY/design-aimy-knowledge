@@ -92,6 +92,7 @@
     org:  '<svg class="set2-row-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12h4"/><path d="M10 8h4"/><path d="M14 21v-3a2 2 0 0 0-4 0v3"/><path d="M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/><path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/></svg>',
     co:   '<svg class="set2-row-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M12 6h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M16 6h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/><path d="M8 6h.01"/><path d="M9 22v-3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/><rect x="4" y="2" width="16" height="20" rx="2"/></svg>',
     pkg:  '<svg class="set2-row-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/></svg>',
+    calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>',
     pencil: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>',
     reset: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>',
     /* The usage path. Lucide 1.52 `gauge` (the plan), `users`, `arrow-right`,
@@ -3817,11 +3818,13 @@
         ${pl.people ? usBack(m, id) : ''}
         <div class="set2-us-top">
           <div class="seg set2-ag-seg set2-us-seg" role="radiogroup" aria-label="Which AiMY product">
+            <span class="set2-us-ind" aria-hidden="true"></span>
             ${US_METERS.map((x) => `
               <button class="seg-btn${x.id === m.id ? ' active' : ''}" type="button" role="radio"
                       aria-checked="${x.id === m.id}" tabindex="${x.id === m.id ? 0 : -1}"
                       data-us-meter="${x.id}">${esc(x.name)}<span class="set2-us-unit">${esc(x.unit)}</span></button>`).join('')}
           </div>
+          <p class="set2-us-reset">${I.calendar}<span>Resets <b>${US_PERIOD.resets}</b>, in ${US_PERIOD.left} days</span></p>
         </div>
         ${pl.people ? usHero(m, id) + usAlloc(m, id, st) : usLadder(pl, st)}
       </section>`;
@@ -4444,6 +4447,49 @@
      levels ARE the breadcrumb; on the employees page a back button does the
      job (usBack), at Nour's request, rather than a trail. */
   function usageScope() { return ''; }
+
+  /* ── The product switch's highlight ──
+     One highlight under the three products, placed on the chosen one after
+     every paint. A switch slides it there from the product you left (250ms,
+     smooth-out, the tabs token) instead of one fill vanishing and another
+     appearing. Without this script the button's own fill still shows
+     (`.has-ind` is what hands the fill over), and reduced motion just moves
+     it. The observer re-places it when the switch changes width (the units
+     drop out below 735px, fonts land late). */
+  let US_IND_FROM = null;
+  function usSegInd() {
+    const seg = $('.set2-us-seg');
+    const ind = seg && seg.querySelector('.set2-us-ind');
+    const on = seg && seg.querySelector('.seg-btn.active');
+    if (!ind || !on) { US_IND_FROM = null; return; }
+    /* Measured, not offset*: offsets round to whole pixels and the fill
+       came up half a pixel short of the button. */
+    const box = () => {
+      const a = on.getBoundingClientRect(), b = seg.getBoundingClientRect(), cs = getComputedStyle(seg);
+      return { l: a.left - b.left - parseFloat(cs.borderLeftWidth), t: a.top - b.top - parseFloat(cs.borderTopWidth),
+               w: a.width, h: a.height };
+    };
+    const place = () => {
+      const r = box();
+      ind.style.top = r.t + 'px';
+      ind.style.height = r.h + 'px';
+      ind.style.width = r.w + 'px';
+      ind.style.transform = 'translateX(' + r.l + 'px)';
+      ind.style.borderRadius = getComputedStyle(on).borderRadius;
+    };
+    place();
+    seg.classList.add('has-ind');
+    if (!seg._usRO && window.ResizeObserver) { seg._usRO = new ResizeObserver(place); seg._usRO.observe(seg); }
+    const from = US_IND_FROM;
+    US_IND_FROM = null;
+    if (!from || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const to = box();
+    if (from.l === to.l && from.w === to.w) return;
+    ind.animate([
+      { transform: 'translateX(' + from.l + 'px)', width: from.w + 'px' },
+      { transform: 'translateX(' + to.l + 'px)', width: to.w + 'px' }
+    ], { duration: 250, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' });
+  }
 
   /* After a level unfolds, its head is where the eye goes next. Folding the
      level above usually leaves it under the pointer; when the page had been
@@ -8440,7 +8486,9 @@
     },
     /* When the period turns over, because every number on the page is
        "so far this month" and the page should say how far that is. */
-    usage: () => `<span class="set2-num">Resets <b>${US_PERIOD.resets}</b></span>`
+    /* Moved onto the product switch's row (14 Oct): it floated alone at the
+       header's right edge, a line above the thing it dates. */
+    usage: () => ''
   };
 
   /* ── A PAGE'S ONE ACTION, ON ITS TITLE ROW ──
@@ -9016,7 +9064,7 @@
     if (M) M.after(layer, off, { ms: ms }); else setTimeout(off, ms);
   }
 
-  function painted() { seatTabindex(); focusDraft(); landFix(); seatMap(); usLand(); agOrb(); agvFit(); }
+  function painted() { seatTabindex(); focusDraft(); landFix(); seatMap(); usLand(); usSegInd(); agOrb(); agvFit(); }
 
   /* A link to KMC opens with the plan and Upland folded above it, so on
      arrival the unfolded card is scrolled to the top, under the bar, rather
@@ -9160,6 +9208,8 @@
     if (usM) {
       const v = usM.getAttribute('data-us-meter');
       if (v !== usPlace(st).m.id) {
+        const ind = $('.set2-us-ind');
+        if (ind && ind.style.width) US_IND_FROM = { l: parseFloat(ind.style.transform.slice(11)), w: parseFloat(ind.style.width) };
         US_EDIT = null; US_SESS_ED = null;
         patch({ meter: v === 'copilot' ? '' : v, f: withF(st, 'uq', null) });
         render(() => { const b = $('[data-us-meter="' + v + '"]'); if (b) b.focus(); });

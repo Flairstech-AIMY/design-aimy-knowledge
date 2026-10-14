@@ -4793,13 +4793,33 @@ button.agv-chip:focus-visible { outline: 0.125rem solid var(--brand); outline-of
    anything that rests on a theme token: a theme toggle does not re-resolve
    a transitioning var(), and the row keeps the previous theme's fill. */
 .set2-us { margin-top: 1.25rem; }
-.set2-us-top { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
-.set2-us-seg { margin-bottom: 0; }
+.set2-us-top { display: flex; align-items: center; gap: 0.75rem 1rem; flex-wrap: wrap; }
+/* ── The product switch (polish, 14 Oct) ──
+   One highlight slides under the chosen product (usSegInd); the buttons sit
+   above it in the switch's own stacking context. The unit is a word to read,
+   so it is secondary ink, never quiet. */
+.set2-us-seg { position: relative; isolation: isolate; margin-bottom: 0; }
+.set2-us-ind {
+  position: absolute; left: 0; top: 0; z-index: -1; pointer-events: none; opacity: 0;
+  background: var(--brand-dim); box-shadow: inset 0 0 0 0.0625rem rgba(var(--brand-rgb), 0.32);
+}
+.set2-us-seg.has-ind .set2-us-ind { opacity: 1; }
+.set2-us-seg.has-ind .seg-btn.active { background: transparent; }
+.set2-us-seg .seg-btn { display: inline-flex; align-items: baseline; }
 .set2-us-unit {
-  margin-left: 0.375rem; font-size: var(--ty-micro); color: var(--ink-quiet);
+  margin-left: 0.375rem; font-size: var(--ty-micro); color: var(--ink-secondary);
   font-weight: var(--fw-regular);
 }
-.set2-us-seg .seg-btn.active .set2-us-unit { color: var(--ink-secondary); }
+.set2-us-seg .seg-btn:hover .set2-us-unit,
+.set2-us-seg .seg-btn.active .set2-us-unit { color: var(--ink-primary); }
+/* When the month turns over, beside the switch it dates rather than alone
+   at the header's edge. */
+.set2-us-reset {
+  margin: 0 0 0 auto; display: flex; align-items: center; gap: 0.5rem;
+  font-size: var(--ty-meta); color: var(--ink-secondary); font-variant-numeric: tabular-nums;
+}
+.set2-us-reset b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
+.set2-us-reset svg { width: 0.9375rem; height: 0.9375rem; flex: none; }
 
 /* ── Where this level stands ── */
 /* ── The card wears AiMY's surface ──
@@ -5247,6 +5267,7 @@ button.set2-us-sl:disabled { cursor: not-allowed; }
   /* With units the switch is 410px and ran off a 375 screen. The card
      under it says "of 70,000 tokens", so the unit is not lost. */
   .set2-us-unit { display: none; }
+  .set2-us-reset { margin-left: 0; flex-basis: 100%; }
   /* Past four segments the labels shrink to one letter and an ellipsis,
      which is noise; the rows underneath carry every name. */
   .set2-us-stack-l:has(> :nth-child(5)) { display: none; }
