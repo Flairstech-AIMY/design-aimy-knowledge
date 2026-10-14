@@ -4978,13 +4978,12 @@ button.agv-chip:focus-visible { outline: 0.125rem solid var(--brand); outline-of
 .set2-us-flag.is-warn { color: var(--ink-warn); }
 .set2-us-end { display: flex; justify-content: flex-end; }
 
-.set2-us-in-wrap { display: flex; align-items: center; gap: 0.25rem; width: 100%; }
 .set2-us-in { text-align: right; font-variant-numeric: tabular-nums; padding-block: 0.3125rem; }
 .set2-us-in::placeholder { color: var(--ink-quiet); }
 .set2-us-rs {
-  flex: none; width: 1.75rem; height: 1.75rem; display: grid; place-items: center;
+  flex: none; width: 1.625rem; height: 1.625rem; margin-left: 0.1875rem; display: grid; place-items: center;
   appearance: none; border: 0; background: none; cursor: pointer;
-  border-radius: var(--r-md); color: var(--ink-quiet);
+  border-radius: var(--r-sm); color: var(--ink-secondary);
 }
 /* Holds its place while hidden, so the field does not jump sideways the
    moment a number is typed into it. */
@@ -4993,17 +4992,91 @@ button.agv-chip:focus-visible { outline: 0.125rem solid var(--brand); outline-of
 .set2-us-rs:hover { color: var(--ink-primary); background: var(--card-bg-raised); }
 .set2-us-rs:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0; }
 
-.set2-us-bar {
-  display: flex; align-items: center; gap: 0.5rem; margin-top: 0.875rem;
-  padding: 0.625rem 0.75rem 0.625rem 1rem; border-radius: var(--r-lg);
-  background: var(--card-bg); box-shadow: inset 0 0 0 0.0625rem var(--card-border);
+/* ── Editing the split (polish pass, 14 Oct) ──
+   Editing is a mode, and now it looks like one: the split sits on a brand-
+   tinted panel with an "Editing" tag in words. The panel's padding is paid
+   back by negative margins, so the heading and every column stay exactly
+   where they were and only the frame appears. Each limit is one control:
+   dashed while it takes an equal share, solid and brand-edged once a number
+   is set by hand, red or amber when the row is refused or warned, and the
+   way back to an equal share sits inside it. The save bar sticks above the
+   assistant (the scroll port's own bottom padding already clears it), so a
+   long list never hides Save. */
+.set2-us-alloc { border-radius: var(--r-lg); }
+.set2-us-alloc.is-edit {
+  margin: 1rem -1rem 0; padding: 1rem 1rem 1rem;
+  background: rgba(var(--brand-rgb), 0.04);
+  box-shadow: inset 0 0 0 0.0625rem rgba(var(--brand-rgb), 0.3);
 }
-.set2-us-bar-s { flex: 1 1 auto; min-width: 0; font-size: var(--ty-micro); color: var(--ink-secondary); }
-.set2-us-bar-s.is-dirty { color: var(--ink-warn); }
+.set2-us-mode {
+  font-size: var(--ty-micro); font-weight: var(--fw-semibold); color: var(--ink-action);
+  background: var(--brand-dim); border-radius: var(--r-pill); padding: 0.1875rem 0.5625rem;
+}
+.set2-us-hb { gap: 0.375rem; }
+.set2-us-hb svg { width: 0.875rem; height: 0.875rem; flex: none; }
+.set2-us-hb[disabled] { opacity: 1; color: var(--ink-quiet); cursor: default; }
+.set2-us-list.is-edit .set2-us-r:last-child { border-bottom: 0; }
+.set2-us-list.is-edit .set2-us-src.is-set { color: var(--ink-action); }
+
+.set2-us-fx {
+  display: flex; align-items: center; width: 100%;
+  border: 0.0625rem dashed var(--card-border-hover); border-radius: var(--r-md);
+  background: transparent;
+  transition: border-color 150ms ease-out, background-color 150ms ease-out, box-shadow 150ms ease-out;
+}
+.set2-us-fx:hover { border-color: var(--ink-quiet); }
+.set2-us-fx.is-set { border-style: solid; border-color: rgba(var(--brand-rgb), 0.5); background: var(--card-bg-raised); }
+.set2-us-fx:focus-within {
+  border-style: solid; border-color: var(--brand); background: var(--card-bg-raised);
+  box-shadow: 0 0 0 0.1875rem var(--brand-dim);
+}
+.set2-us-fx.is-warn { border-style: solid; border-color: var(--warn); }
+.set2-us-fx.is-bad { border-style: solid; border-color: var(--err); }
+.set2-us-fx.is-warn:focus-within { box-shadow: 0 0 0 0.1875rem var(--warn-bg); }
+.set2-us-fx.is-bad:focus-within { box-shadow: 0 0 0 0.1875rem var(--err-bg); }
+.set2-us-fx-i {
+  appearance: none; flex: 1 1 auto; min-width: 0; border: 0; background: none; outline: none;
+  padding: 0.375rem 0.6875rem 0.375rem 0.25rem;
+  font: inherit; font-size: var(--ty-meta); font-weight: var(--fw-semibold); color: var(--ink-primary);
+  text-align: right; font-variant-numeric: tabular-nums;
+}
+/* The frame draws the focus ring. aimy-ds's global `input:focus-visible`
+   (0,1,1) outranks the class above, so the input is quieted at 0,2,0. */
+.set2-us-fx-i:focus, .set2-us-fx-i:focus-visible { outline: none; }
+/* The equal share it would get, readable: it is a value, not a hint. */
+.set2-us-fx-i::placeholder { color: var(--ink-secondary); font-weight: var(--fw-regular, 400); opacity: 1; }
+
+.set2-us-bar {
+  position: sticky; bottom: 0; z-index: 6;
+  display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem;
+  padding: 0.625rem 0.75rem 0.625rem 1rem; border-radius: var(--r-lg);
+  background: var(--card-bg-raised); border: 0.0625rem solid var(--hairline);
+  box-shadow: 0 0.5rem 1.5rem rgba(0,0,0,0.18);
+}
+.set2-us-bar-s {
+  flex: 1 1 auto; min-width: 0; display: flex; align-items: flex-start; gap: 0.5rem;
+  font-size: var(--ty-meta); color: var(--ink-secondary);
+}
+.set2-us-bar-s b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
+.set2-us-bar-ic { display: flex; flex: none; padding-top: 0.1875rem; }
+.set2-us-bar-ic svg { width: 0.9375rem; height: 0.9375rem; }
 .set2-us-bar-s.is-warn { color: var(--ink-warn); }
 .set2-us-bar-s.is-err { color: var(--ink-err); }
-.set2-us-more { margin-left: 0.375rem; font-weight: var(--fw-semibold); }
+.set2-us-more { margin-left: 0.375rem; font-weight: var(--fw-semibold); text-decoration: underline dotted; text-underline-offset: 3px; cursor: help; }
+.set2-us-bar .btn { flex: none; }
 .set2-us-bar .btn[disabled] { cursor: not-allowed; }
+
+/* Opening: the frame fades in, the fields settle, the bar rises (250ms,
+   smooth-out; the fields 150ms). Closing is a plain repaint: quick. */
+@media (prefers-reduced-motion: no-preference) {
+  .set2-us-alloc.is-fresh { animation: set2-us-panel 250ms cubic-bezier(0.22, 1, 0.36, 1); }
+  .set2-us-alloc.is-fresh .set2-us-fx,
+  .set2-us-alloc.is-fresh .set2-us-mode { animation: set2-us-fade 150ms ease-out both; }
+  .set2-us-alloc.is-fresh .set2-us-bar { animation: set2-us-rise 250ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+}
+@keyframes set2-us-panel { from { background-color: transparent; box-shadow: inset 0 0 0 0.0625rem transparent; } }
+@keyframes set2-us-fade { from { opacity: 0; transform: translateY(0.125rem); } }
+@keyframes set2-us-rise { from { opacity: 0; transform: translateY(0.5rem); } }
 .set2-us-when { margin: 0.75rem 0 0; font-size: var(--ty-micro); color: var(--ink-quiet); }
 .set2-us-none { margin: 0.875rem 0.5rem; font-size: var(--ty-micro); color: var(--ink-secondary); }
 .set2-us-empty { margin-top: 2rem; }
@@ -5152,6 +5225,10 @@ button.set2-us-sl:disabled { cursor: not-allowed; }
   .set2-us-r-lim { grid-column: 3; grid-row: 1; }
   .set2-us-end { display: none; }
   .set2-us-list.is-edit .set2-us-r-lim { width: 9rem; }
+  .set2-us-alloc.is-edit { margin-inline: -0.5rem; padding-inline: 0.5rem; }
+  .set2-us-bar { flex-wrap: wrap; }
+  .set2-us-bar-s { flex-basis: 100%; }
+  .set2-us-bar [data-us-cancel] { margin-left: auto; }
   .set2-us-hd { flex-wrap: wrap; }
   .set2-us-hd-end { width: 100%; margin-left: 0; }
   .set2-us-q { flex: 1 1 auto; width: auto; }

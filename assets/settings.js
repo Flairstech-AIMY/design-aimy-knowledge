@@ -92,6 +92,7 @@
     org:  '<svg class="set2-row-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12h4"/><path d="M10 8h4"/><path d="M14 21v-3a2 2 0 0 0-4 0v3"/><path d="M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/><path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/></svg>',
     co:   '<svg class="set2-row-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M12 6h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M16 6h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/><path d="M8 6h.01"/><path d="M9 22v-3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/><rect x="4" y="2" width="16" height="20" rx="2"/></svg>',
     pkg:  '<svg class="set2-row-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/></svg>',
+    pencil: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>',
     reset: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>',
     /* The usage path. Lucide 1.52 `gauge` (the plan), `users`, `arrow-right`,
        `chevron-down`. */
@@ -3722,6 +3723,7 @@
      that lands on the plan with a deeper `pool` marks nothing: nobody was
      anywhere yet, so "you were in FileBound" would not be true. */
   let US_BACK = null;
+  let US_ED_IN = false;        /* the next paint is the editor opening: play its entrance once */
 
   /* `key` tells the product's card on the path from its employees page:
      the same node, two different pages, and a draft belongs to one. */
@@ -3730,6 +3732,13 @@
     usKids(m, pool).forEach((k) => {
       const v = US_SET[m.id][k.id];
       US_EDIT.vals[k.id] = v == null ? '' : usFmt(v);
+    });
+  }
+
+  function usAnySet() {
+    return !!US_EDIT && Object.keys(US_EDIT.vals).some((k) => {
+      const v = usParse(US_EDIT.vals[k]);
+      return v != null && !isNaN(v);
     });
   }
 
@@ -4181,8 +4190,10 @@
     const q = (readF(st).uq || '').trim().toLowerCase();
     const rows = q ? kids.filter((k) => k.name.toLowerCase().indexOf(q) > -1) : kids;
     const when = (US_WHEN[m.id] || {})[id];
+    const fresh = ed && US_ED_IN;
+    US_ED_IN = false;
     return `
-      <div class="set2-us-alloc">
+      <div class="set2-us-alloc${ed ? ' is-edit' : ''}${fresh ? ' is-fresh' : ''}">
         <div class="set2-lbl-row set2-us-hd">
           <p class="set2-lbl">Split across ${esc(noun)}</p>
           ${tip('usSplitTip', 'how the split works', 'Anyone not set by hand gets an equal share of '
@@ -4198,9 +4209,10 @@
                 ${q ? `<button class="k-search-x" type="button" data-fq-clear data-fq-key="uq"
                          aria-label="Clear search">${I.x.replace('<svg', '<svg width="11" height="11"')}</button>` : ''}
               </div>` : ''}
-            ${ed ? `<button class="btn btn-ghost btn-sm" type="button" data-us-even
-                            title="Clear every hand-set limit on this level">Split equally</button>`
-                 : `<button class="btn btn-ghost btn-sm" type="button" data-us-edit>Edit limits</button>`}
+            ${ed ? `<span class="set2-us-mode">Editing</span>
+                   <button class="btn btn-ghost btn-sm set2-us-hb" type="button" data-us-even${usAnySet() ? '' : ' disabled'}
+                            title="Clear every hand-set limit on this level">${I.reset}Split equally</button>`
+                 : `<button class="btn btn-ghost btn-sm set2-us-hb" type="button" data-us-edit>${I.pencil}Edit limits</button>`}
           </span>
         </div>
         <div data-us-stack>${usStack(m, kids, sp)}</div>
@@ -4301,13 +4313,13 @@
         </span>
         <span class="set2-us-r-lim">
           ${US_EDIT ? `
-            <span class="set2-us-in-wrap">
-              <input class="set2-fld set2-us-in${flag && flag[0] === 'is-err' ? ' is-bad' : ''}"
+            <span class="set2-us-fx${usFxCls(isSet, flag)}" data-us-fx="${esc(k.id)}">
+              <button class="set2-us-rs" type="button" data-us-rs="${esc(k.id)}"${isSet ? '' : ' hidden'}
+                      aria-label="Give ${esc(k.name)} an equal share" title="Back to an equal share">${I.reset}</button>
+              <input class="set2-us-fx-i${flag && flag[0] === 'is-err' ? ' is-bad' : ''}"
                      data-us-in="${esc(k.id)}" value="${esc(US_EDIT.vals[k.id] != null ? US_EDIT.vals[k.id] : '')}"
                      placeholder="${usFmt(lim)}" inputmode="numeric" autocomplete="off"
                      aria-label="${esc(k.name)}’s limit, in ${esc(m.unit)}. Empty for an equal share.">
-              <button class="set2-us-rs" type="button" data-us-rs="${esc(k.id)}"${isSet ? '' : ' hidden'}
-                      aria-label="Give ${esc(k.name)} an equal share" title="Back to an equal share">${I.reset}</button>
             </span>
             <span class="set2-us-src${isSet ? ' is-set' : ''}" data-us-src="${esc(k.id)}">${
               flag ? `<span class="set2-us-flag ${flag[0]}">${esc(flag[1])}</span>`
@@ -4329,13 +4341,15 @@
       const was = US_SET[US_EDIT.meter][k];
       return (v == null || isNaN(v)) ? was != null || (US_EDIT.vals[k] || '').trim() !== '' : v !== was;
     }).length;
-    const msg = ck.errs[0] || ck.warns[0]
-      || (n ? n + (n === 1 ? ' change' : ' changes') + ', not saved' : 'No changes yet');
+    const said = ck.errs[0] || ck.warns[0];
+    const msg = said ? esc(said)
+      : n ? `<b>${n + (n === 1 ? ' change' : ' changes')}</b>, not saved yet` : 'No changes yet';
     const cls = ck.errs.length ? ' is-err' : ck.warns.length ? ' is-warn' : n ? ' is-dirty' : '';
     return `
-      <span class="set2-us-bar-s${cls}"${ck.errs.length ? ' role="alert"' : ''}>${esc(msg)}${
+      <span class="set2-us-bar-s${cls}"${ck.errs.length ? ' role="alert"' : ''}>${
+        said ? `<span class="set2-us-bar-ic" aria-hidden="true">${I.warn}</span>` : ''}<span class="set2-us-bar-t">${msg}${
         ck.errs.length + ck.warns.length > 1 ? ` <span class="set2-us-more" title="${esc(ck.errs.concat(ck.warns).slice(1).join(' '))}">+${
-          ck.errs.length + ck.warns.length - 1} more</span>` : ''}</span>
+          ck.errs.length + ck.warns.length - 1} more</span>` : ''}</span></span>
       <button class="btn btn-ghost btn-sm" type="button" data-us-cancel>Cancel</button>
       <button class="btn btn-brand btn-sm" type="button" data-us-save${ck.errs.length ? ' disabled aria-disabled="true"' : ''}>Save limits</button>`;
   }
@@ -4353,6 +4367,8 @@
     if (stack) stack.innerHTML = usStack(m, usKids(m, id), ck.sp);
     const bar = $('[data-us-bar]');
     if (bar) bar.innerHTML = usBar(ck);
+    const even = $('[data-us-even]');
+    if (even) even.disabled = !usAnySet();
     usKids(m, id).forEach((k) => {
       const inp = $('[data-us-in="' + k.id + '"]');
       if (!inp) return;
@@ -4363,6 +4379,8 @@
       inp.classList.toggle('is-bad', !!flag && flag[0] === 'is-err');
       const rs = $('[data-us-rs="' + k.id + '"]');
       if (rs) rs.hidden = !isSet;
+      const fx = $('[data-us-fx="' + k.id + '"]');
+      if (fx) fx.className = 'set2-us-fx' + usFxCls(isSet, flag);
       const src = $('[data-us-src="' + k.id + '"]');
       if (src) {
         src.classList.toggle('is-set', isSet);
@@ -4375,6 +4393,13 @@
         r.classList.toggle('has-warn', !!flag && flag[0] === 'is-warn');
       }
     });
+  }
+
+  /* The field's frame says its state: dashed while it takes an equal share,
+     solid and brand-edged once a number is set by hand, red or amber when
+     the row is refused or warned. */
+  function usFxCls(isSet, flag) {
+    return (isSet ? ' is-set' : '') + (flag ? (flag[0] === 'is-err' ? ' is-bad' : ' is-warn') : '');
   }
 
   function usSave() {
@@ -9170,6 +9195,7 @@
     if (e.target.closest('[data-us-edit]')) {
       const pl = usPlace(st);
       usStartEdit(pl.m, pl.id, (pl.people ? 'people:' : '') + pl.id);
+      US_ED_IN = true;
       render(() => { const f = $('[data-us-in]'); if (f) f.focus(); });
       return;
     }
@@ -9186,6 +9212,8 @@
         Object.keys(US_EDIT.vals).forEach((k) => { US_EDIT.vals[k] = ''; });
         $$('[data-us-in]').forEach((f) => { f.value = ''; });
         usLive();
+        const f0 = $('[data-us-in]');
+        if (f0) f0.focus();
       }
       return;
     }
