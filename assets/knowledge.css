@@ -2245,36 +2245,6 @@ span.topnav-tab:hover { background: none; }
   background: rgba(16,24,40,0.04); border-color: rgba(16,24,40,0.10);
 }
 
-/* ── Version link ──────────────────────────────────────────────────
-   A destination, not a state you toggle, so it is quieter than a product tab
-   and reads as chrome. One link rather than a segmented pair: you are on V2,
-   so the only thing worth offering is the way out.
-
-   Same component as QA's, on this file's tokens — QA's --wash-6 is what
-   --glass-border already is here, and the focus ring follows .topnav-tab. */
-.ver-link {
-  display: inline-flex; align-items: center; gap: 0.25rem; flex-shrink: 0;
-  padding: 0.25rem 0.75rem; border-radius: var(--r-pill);
-  font-family: var(--font-sans);
-  font-size: var(--ty-micro); font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-wide); line-height: var(--lh-snug);
-  color: var(--ink-faint); text-decoration: none;
-  border: 0.0625rem solid var(--glass-border);
-  transition: background-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out);
-}
-.ver-link:hover { background: rgba(255,255,255,0.08); color: var(--d100); border-color: var(--card-border); }
-:root[data-theme="light"] .ver-link:hover { background: rgba(16,24,40,0.07); }
-.ver-link:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
-.ver-link-ico { width: 0.625rem; height: 0.625rem; opacity: 0.75; }
-/* The flanks split what the six tabs leave, and the right one runs out first:
-   below this the pill crosses the tabs strip rather than sitting beside it.
-   V1 is the only thing in the topnav that goes somewhere else rather than
-   carrying state, so it is the one that drops — the same call the user's name
-   already makes 120px earlier. */
-@media (max-width: 1000px) {
-  .ver-link { display: none; }
-}
-
 /* ══ THE CHEVRON ON THE MARK ═══════════════════════════════════════
    The account pill's chevron, in its size and its ink, because it makes the
    same promise: the thing beside me opens. It is the same Lucide glyph the
