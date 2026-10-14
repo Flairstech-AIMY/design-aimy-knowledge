@@ -5225,6 +5225,17 @@ button.set2-us-sl:disabled { cursor: not-allowed; }
   .set2-us-r-lim { grid-column: 3; grid-row: 1; }
   .set2-us-end { display: none; }
   .set2-us-list.is-edit .set2-us-r-lim { width: 9rem; }
+  /* Editing on a phone: the 9rem field left the name about 60px, so it was
+     cut to "Uplan…". Each part gets its own line now: the name, then use,
+     then the field with what it is ("Set by hand") beside it. */
+  .set2-us-list.is-edit .set2-us-ico { grid-row: 1; }
+  .set2-us-list.is-edit .set2-us-main { grid-column: 2 / -1; grid-row: 1; }
+  .set2-us-list.is-edit .set2-us-use { grid-column: 2 / -1; grid-row: 2; }
+  .set2-us-list.is-edit .set2-us-r-lim {
+    grid-column: 2 / -1; grid-row: 3; width: auto;
+    flex-direction: row-reverse; justify-content: space-between; align-items: center; gap: 0.75rem;
+  }
+  .set2-us-list.is-edit .set2-us-fx { width: 9rem; }
   .set2-us-alloc.is-edit { margin-inline: -0.5rem; padding-inline: 0.5rem; }
   .set2-us-bar { flex-wrap: wrap; }
   .set2-us-bar-s { flex-basis: 100%; }
