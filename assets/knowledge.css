@@ -8031,7 +8031,7 @@ button.aimy-float-icon:focus-visible { outline: 0.125rem solid var(--brand); out
 /* The popover. The skill picker's surface, so the two things that open
    above this composer read as one family. */
 .use-pop {
-  position: fixed; z-index: 700; width: 16.5rem;
+  position: fixed; z-index: 700; width: 17.5rem;
   border: 0.0625rem solid var(--card-border-hover);
   border-radius: var(--r-lg);
   background: var(--panel-bg);
@@ -8040,7 +8040,7 @@ button.aimy-float-icon:focus-visible { outline: 0.125rem solid var(--brand); out
   overflow: hidden;
   animation: sk-in var(--t-base) var(--ease-out) both;
 }
-.use-pop-g { padding: 0.6875rem 0.875rem; }
+.use-pop-g { padding: 0.875rem 1rem; }
 .use-pop-g + .use-pop-g { border-top: 0.0625rem solid var(--hairline); }
 .use-pop-r {
   display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem;
@@ -8053,15 +8053,39 @@ button.aimy-float-icon:focus-visible { outline: 0.125rem solid var(--brand); out
 .use-pop-r b.is-warn { color: var(--ink-warn); }
 .use-pop-r b.is-err  { color: var(--ink-err); }
 .use-pop-s {
-  margin: 0.1875rem 0 0; font-size: var(--ty-micro); color: var(--ink-quiet);
+  margin: 0.4375rem 0 0; font-size: var(--ty-micro); color: var(--ink-secondary);
   font-variant-numeric: tabular-nums;
 }
-.use-pop-a {
-  display: block; padding: 0.6875rem 0.875rem;
-  border-top: 0.0625rem solid var(--hairline);
-  font-size: var(--ty-meta); color: var(--ink-primary); text-decoration: none;
+.use-pop-s b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
+/* The ring on the mark, unrolled: same brand fill, amber from 85%, red when
+   spent. Scaled, never sized, so the fill moves on the compositor. */
+.use-pop-m {
+  display: block; height: 0.25rem; margin-top: 0.5625rem; overflow: hidden;
+  border-radius: var(--r-pill); background: var(--brand-dim);
 }
-.use-pop-a:hover { background: var(--card-bg-raised); }
+.use-pop-m > i {
+  display: block; height: 100%; border-radius: inherit; background: var(--brand);
+  transform: scaleX(var(--p)); transform-origin: left center;
+}
+.use-pop-m.is-warn > i { background: var(--warn); }
+.use-pop-m.is-err > i  { background: var(--err); }
+@media (prefers-reduced-motion: no-preference) {
+  .use-pop.is-fresh .use-pop-m > i { animation: use-pop-fill 400ms cubic-bezier(0.22, 1, 0.36, 1) 60ms both; }
+}
+@keyframes use-pop-fill { from { transform: scaleX(0); } }
+.use-pop-a {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-top: 0.0625rem solid var(--hairline);
+  font-size: var(--ty-meta); font-weight: var(--fw-semibold); color: var(--ink-primary); text-decoration: none;
+}
+.use-pop-a svg { width: 0.9375rem; height: 0.9375rem; flex: none; color: var(--ink-secondary); }
+.use-pop-a:hover { background: var(--card-bg-raised); color: var(--ink-action); }
+.use-pop-a:hover svg { color: var(--ink-action); }
+@media (prefers-reduced-motion: no-preference) {
+  .use-pop-a svg { transition: transform 150ms ease-out; }
+  .use-pop-a:hover svg { transform: translateX(0.125rem); }
+}
 .use-pop-a:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: -0.125rem; }
 @media (prefers-reduced-motion: reduce) { .use-pop { animation: none; } }
 

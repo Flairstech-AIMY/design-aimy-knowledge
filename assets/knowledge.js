@@ -15634,24 +15634,36 @@
     paintUseMark();
   }
 
+  /* ── Polish (14 Oct) ──
+     The two limits read the same way now: the name, how much of it is gone
+     as a share, a meter drawn like the ring on the mark, and the numbers
+     under it in readable ink (they were quiet). A session without a limit
+     has nothing to fill, so it says so and draws no meter. The way out is a
+     link that leaves, so it ends in an arrow, not an ellipsis (an ellipsis
+     promises a dialog). */
+  const useMeter = (p, lv) => `<span class="use-pop-m ${lv}" aria-hidden="true"><i style="--p:${Math.min(1, Math.max(0, p)).toFixed(4)}"></i></span>`;
   function usePopBody(u) {
     const pct = u.limit > 0 ? Math.min(100, Math.round(u.used / u.limit * 100)) : 100;
     const plan = useLevel(u.used, u.limit);
     const sess = useLevel(USE_SESSION, u.sessLimit);
+    const sPct = u.sessLimit > 0 ? Math.min(100, Math.round(USE_SESSION / u.sessLimit * 100)) : 100;
     return `
       <div class="use-pop-g">
         <div class="use-pop-r"><span>Plan</span>
           <b class="${plan}">${plan === 'is-err' ? 'Limit reached' : pct + '% used'}</b></div>
-        <p class="use-pop-s">${useFmt(u.used)} of ${useFmt(u.limit)} ${esc(u.unit)}, resets ${esc(u.resets)}</p>
+        ${useMeter(u.limit > 0 ? u.used / u.limit : 1, plan)}
+        <p class="use-pop-s"><b>${useFmt(u.used)}</b> of ${useFmt(u.limit)} ${esc(u.unit)}, resets ${esc(u.resets)}</p>
       </div>
       <div class="use-pop-g">
         <div class="use-pop-r"><span>Session</span>
-          <b class="${sess}">${useFmt(USE_SESSION)} ${esc(u.unit)}</b></div>
+          <b class="${sess}">${u.sessLimit == null ? useFmt(USE_SESSION) + ' ' + esc(u.unit)
+            : sess === 'is-err' ? 'Limit reached' : sPct + '% used'}</b></div>
+        ${u.sessLimit == null ? '' : useMeter(u.sessLimit > 0 ? USE_SESSION / u.sessLimit : 1, sess)}
         <p class="use-pop-s">${u.sessLimit == null ? 'No session limit'
-          : sess === 'is-err' ? 'Session limit reached. Start a new conversation.'
-          : 'Up to ' + useFmt(u.sessLimit) + ' ' + esc(u.sessPer)}</p>
+          : sess === 'is-err' ? 'Start a new conversation to keep going.'
+          : `<b>${useFmt(USE_SESSION)}</b> of ${useFmt(u.sessLimit)} ${esc(u.unit)} this ${esc(String(u.sessPer || 'per session').replace(/^per /, ''))}`}</p>
       </div>
-      <a class="use-pop-a" href="${esc(u.link)}">View usage and plan…</a>`;
+      <a class="use-pop-a" href="${esc(u.link)}"><span>Usage and plan</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>`;
   }
 
   /* The ring shows the WORSE of the two limits, because either one is the
@@ -15710,6 +15722,8 @@
     pop.setAttribute('role', 'dialog');
     pop.setAttribute('aria-label', 'Your usage');
     pop.innerHTML = usePopBody(useNow());
+    pop.classList.add('is-fresh');
+    setTimeout(() => pop.classList.remove('is-fresh'), 600);
     document.body.appendChild(pop);
     const r = btn.getBoundingClientRect();
     const w = pop.offsetWidth;
