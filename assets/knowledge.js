@@ -9107,6 +9107,7 @@
 
     show(basis) {
       if (!this.inline && !this.open) {
+        peek.hide();
         /* Opening the canvas is reading it, so the count goes. */
         bumpCanvasBadge(0);
         this.overlay.classList.add('open');
@@ -9256,7 +9257,10 @@
         open.blank = false;
         open.state = snapshot();
       }
-      this.show(basis);
+      /* A float-bar ask answers in the peek and leaves the canvas shut; any
+         other ask opens it, which also puts the card away. */
+      const pk = peek.claim();
+      if (pk) peek.think(basis); else this.show(basis);
       /* `show` only rebuilds on the OPEN transition, so a conversation begun
          while the canvas was already up would otherwise append its first turn
          underneath the previous conversation's thread. */
@@ -9284,7 +9288,7 @@
       const ph = document.getElementById(id);
       const phMsg = ph && ph.closest('.chat-msg');
       if (phMsg) phMsg.classList.add('is-thinking');
-      startThinking();
+      startThinking(pk ? peek.mark() : null);
       /* ══ THE TURN REMEMBERS ITS QUESTION ═══════════════════════════════
          `answerFor` returns an opaque HTML string, so nothing downstream can
          ask a finished answer which documents it stood on. `answerIds(q)`
@@ -9312,6 +9316,7 @@
           ? `<div class="sk-used">${ICO.skill.replace('<svg', '<svg width="11" height="11"')}Shaped by <b>${esc(shaped.name)}</b></div>`
           : '') + (typeof answer === 'function' ? answer() : answer) + activityLog(text, readURL());
         if (turn) turn.html = finalHtml;
+        if (pk) peek.answer(typeof answer === 'function' ? answer() : answer);
 
         stopThinking();
         if (turn) turn.thinking = false;
@@ -9419,6 +9424,7 @@
         timer();
         stopStream();
         stopThinking();
+        if (pk) peek.stopped();
         const el = document.getElementById(id);
         const msg = el && el.closest('.chat-msg');
         const kept = (turn && turn.thinking) ? '' : (el ? el.innerHTML : '');
@@ -9475,6 +9481,7 @@
              the TURN is what holds the answer — only the caption is missing. */
           const host = document.getElementById(id);
           if (host) swapLabel(host.querySelector('.ai-thinking-label'), label);
+          if (pk) peek.label(label);
         }, land);
       } else {
         const t = setTimeout(land, 3000);
@@ -11699,13 +11706,17 @@
 
     /* Submit */
     const fb = $('#floatInput');
+    /* A question typed here answers in the card above the bar (peek.claim
+       reads the flag in `canvas.ask`); the flag is cleared whatever route
+       the words took. */
+    const floatSubmit = (v) => { peek.next = true; try { submit(v); } finally { peek.next = false; } };
     if (fb) fb.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); const v = fb.value.trim(); fb.value = ''; submit(v); }
+      if (e.key === 'Enter') { e.preventDefault(); const v = fb.value.trim(); fb.value = ''; floatSubmit(v); }
     });
     const fs = $('#floatSend');
     if (fs) fs.addEventListener('click', () => {
       if (generating.on) { generating.cancel(); return; }
-      const v = fb.value.trim(); fb.value = ''; submit(v);
+      const v = fb.value.trim(); fb.value = ''; floatSubmit(v);
     });
 
     /* The canvas input runs the same router as the float bar. Typing a filter
@@ -15825,14 +15836,290 @@
     window.addEventListener('resize', () => closeUsePop());
   })();
 
+  /* ══ THE PEEK: THE ANSWER ARRIVES ABOVE THE BAR FIRST ══════════════════
+     Ported from AiMY Sales (bdr.js "THE PEEK", index.html #aimyPeek, bdr.css
+     47d-e) at Nour's request, 14 Oct. A question asked from the float bar used
+     to throw the canvas over the whole surface before the answer existed: you
+     asked about the page and the page went away. It lands here now, in a card
+     above the bar, with as much of itself as fits (three lines, then a fade),
+     and the canvas is one press away for the rest of it and the thread it
+     belongs to.
+
+     THE THREAD STILL GETS EVERYTHING. `canvas.ask` runs exactly as before:
+     the turn is pushed, thought about, typed in and saved. The only thing a
+     peek ask skips is `show`, so the canvas stays shut while it happens.
+     Asks from anywhere else (the canvas's own input, a citation, the bell)
+     open the canvas as they always did, and put the card away.
+
+     WHAT IT HOLDS IS THE PROSE. An answer here is blocks: results, sources,
+     a disclosure, an apply bar. The card is a glance, so it takes the prose
+     blocks (the same `isProse` the typewriter uses) and flattens them to text
+     and bold; everything else is in the canvas, one press up.
+
+     Three rungs, one handle, the Sales ladder: behind the composer (the lip
+     only), the card, the canvas. The grip toggles the first two on a press;
+     a pull up opens the canvas, a pull down tucks it. A press back on the page
+     tucks it too; the × dismisses. Built here rather than written into the
+     two shells' markup, so the console and the workbench cannot drift. */
+  const peek = {
+    el: null, next: false, basis: null, raf: 0, drag: null, dragged: false, greeted: false,
+    STEP: 40, FAR: 150,
+
+    mount() {
+      const wrap = $('#aimyFloatWrap');
+      if (!wrap || this.el || canvas.inline) return;
+      wrap.insertAdjacentHTML('afterbegin', `
+        <div class="aimy-peek" id="aimyPeek" hidden>
+          <div class="aimy-peek-card">
+            <div class="aimy-peek-lip">
+              <button class="aimy-peek-grip" type="button" id="peekGrip" aria-expanded="true" aria-controls="peekMain">
+                <span class="aimy-peek-grip-bar" aria-hidden="true"></span>
+                <span class="aimy-peek-sr" id="peekGripSay">Put this answer away</span>
+              </button>
+              <button class="aimy-peek-x" type="button" id="peekClose" aria-label="Dismiss this answer">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+            <div class="aimy-peek-main" id="peekMain">
+              <button class="aimy-peek-open" type="button" id="peekOpen">
+                <span class="aimy-peek-body" id="peekBody" role="status" aria-live="polite"></span>
+                <span class="aimy-peek-sr">Open in the AiMY canvas</span>
+              </button>
+            </div>
+          </div>
+        </div>`);
+      this.el = $('#aimyPeek');
+      $('#peekOpen').addEventListener('click', () => this.open());
+      $('#peekClose').addEventListener('click', () => this.hide());
+      const grip = $('#peekGrip');
+      grip.addEventListener('click', () => {
+        if (this.dragged) { this.dragged = false; return; }
+        const shut = !this.el.classList.contains('is-shut');
+        if (shut) this.all();
+        this.shut(shut);
+      });
+      grip.addEventListener('pointerdown', (e) => this.dragStart(e));
+      grip.addEventListener('pointermove', (e) => this.dragMove(e));
+      grip.addEventListener('pointerup', (e) => this.dragEnd(e, false));
+      grip.addEventListener('pointercancel', (e) => this.dragEnd(e, true));
+      /* Going back to the page puts it away. It SHUTS rather than dismisses:
+         a click on the page should not be able to throw away the thing you
+         asked for. `pointerdown`, because a press that ends in a selection
+         never fires a click. The composer and the canvas are not "away". */
+      document.addEventListener('pointerdown', (e) => {
+        if (!this.el || this.el.hidden || this.el.classList.contains('is-shut')) return;
+        const t = e.target;
+        if (!(t instanceof Element) || t.closest('.aimy-float-wrap') || t.closest('.aimy-overlay')) return;
+        this.shut(true);
+      });
+    },
+
+    /* Only a float-bar ask, and only while the canvas is shut. */
+    claim() {
+      const mine = this.next && !!this.el && !canvas.inline && !canvas.open;
+      this.next = false;
+      return mine;
+    },
+
+    up() {
+      const el = this.el;
+      el.hidden = false;
+      el.classList.remove('is-thinking', 'is-clipped');
+      this.shut(false);
+      const body = $('#peekBody');
+      body.style.maxHeight = '';
+      $('#aimyFloatWrap').classList.add('has-peek');
+      return body;
+    },
+
+    /* Hello, before anything is asked. Only in the card: a greeting is not a
+       conversation, so it starts none, and pressing it opens the canvas on
+       whatever thread the URL names (the canvas's openers when there is
+       none). Once a load, and not over a canvas somebody arrived in. */
+    welcome() {
+      if (!this.el || this.greeted || canvas.open || readURL().chat) return;
+      this.greeted = true;
+      const first = String(USER.name || '').trim().split(/\s+/)[0] || 'there';
+      this.stream(this.up(), `Welcome, <b>${esc(first)}</b>. How can I help you today?`, () => this.settle());
+    },
+
+    think(basis) {
+      this.stopStream();
+      this.basis = basis || null;
+      const body = this.up();
+      this.el.classList.add('is-thinking');
+      body.innerHTML = '<span class="ai-thinking"><canvas class="think-mark" width="26" height="26" aria-hidden="true"></canvas>'
+        + '<span class="ai-thinking-label">Searching the corpus</span></span>';
+    },
+    mark() { return this.el && $('.think-mark', this.el); },
+    label(text) {
+      const l = this.el && !this.el.hidden && $('.ai-thinking-label', this.el);
+      if (l) swapLabel(l, text);
+    },
+
+    /* The answer's prose, as text and bold. */
+    prose(html) {
+      const src = document.createElement('div');
+      src.innerHTML = html;
+      const SKIP = 'button, svg, canvas, script, style, .msg-acts, .msg-follow, .sk-used, .act-log, .cite-wrap, [role="tooltip"]';
+      const flat = (n) => {
+        if (n.nodeType === 3) return esc(n.nodeValue);
+        if (n.nodeType !== 1 || n.matches(SKIP)) return '';
+        const inner = Array.from(n.childNodes).map(flat).join('');
+        if (/^(B|STRONG)$/.test(n.tagName)) return `<b>${inner}</b>`;
+        return /^(P|DIV|LI|H[1-6]|BR|UL|OL)$/.test(n.tagName) ? inner + ' ' : inner;
+      };
+      let blocks = [];
+      Array.from(src.children).forEach((b) => {
+        if (b.classList.contains('answer-surface')) blocks = blocks.concat(Array.from(b.children));
+        else blocks.push(b);
+      });
+      const said = blocks.filter(isProse).map(flat).join(' ').replace(/\s+/g, ' ').trim();
+      return said || flat(src).replace(/\s+/g, ' ').trim();
+    },
+
+    answer(html) {
+      if (!this.el || this.el.hidden) return;
+      const body = $('#peekBody');
+      this.el.classList.remove('is-thinking');
+      this.stream(body, this.prose(html), () => this.settle());
+    },
+
+    /* Written once, whole, with its text nodes emptied and refilled, so no
+       tag is ever cut in half; budgeted to finish in about ninety frames
+       whatever the length. Reduced motion puts it down at once. */
+    stream(host, html, done) {
+      this.stopStream();
+      host.innerHTML = html;
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) { if (done) done(); return; }
+      const walk = document.createTreeWalker(host, NodeFilter.SHOW_TEXT, null);
+      const runs = [];
+      let n;
+      while ((n = walk.nextNode())) if (n.nodeValue) runs.push({ node: n, full: n.nodeValue });
+      if (!runs.length) { if (done) done(); return; }
+      runs.forEach((r) => { r.node.__full = r.full; r.node.nodeValue = ''; });
+      const per = Math.max(2, Math.ceil(runs.reduce((a, r) => a + r.full.length, 0) / 90));
+      let at = 0, ch = 0;
+      const tick = () => {
+        let budget = per;
+        while (budget > 0 && at < runs.length) {
+          const r = runs[at];
+          if (ch >= r.full.length) { at++; ch = 0; continue; }
+          ch++; budget--;
+          r.node.nodeValue = r.full.slice(0, ch);
+        }
+        if (at < runs.length) { this.raf = requestAnimationFrame(tick); return; }
+        this.raf = 0;
+        if (done) done();
+      };
+      tick();
+    },
+    stopStream() { if (this.raf) cancelAnimationFrame(this.raf); this.raf = 0; },
+
+    /* The cut is measured once the words are down: past half a line over the
+       three, it fades; under that the box simply gives the room. */
+    settle() {
+      if (!this.el || this.el.hidden) return;
+      const body = $('#peekBody');
+      body.style.maxHeight = '';
+      const lh = parseFloat(getComputedStyle(body).lineHeight) || 24;
+      if (body.scrollHeight - body.clientHeight > lh / 2) this.el.classList.add('is-clipped');
+      else if (body.scrollHeight > body.clientHeight) body.style.maxHeight = 'none';
+    },
+
+    /* Every word, now: a press mid-stream finishes the sentence. */
+    all() {
+      if (!this.raf || !this.el) return;
+      this.stopStream();
+      const walk = document.createTreeWalker($('#peekBody'), NodeFilter.SHOW_TEXT, null);
+      let n;
+      while ((n = walk.nextNode())) if (n.__full) n.nodeValue = n.__full;
+      this.settle();
+    },
+
+    /* The run was called off. Before the answer, nothing was said and the
+       card goes; mid-stream, the words that exist are finished. */
+    stopped() {
+      if (!this.el || this.el.hidden) return;
+      if (this.el.classList.contains('is-thinking')) this.hide(); else this.all();
+    },
+
+    open() {
+      this.all();
+      canvas.show(this.basis);
+    },
+
+    shut(on) {
+      if (!this.el) return;
+      this.el.classList.toggle('is-shut', !!on);
+      const main = $('#peekMain');
+      if (on) main.setAttribute('inert', ''); else main.removeAttribute('inert');
+      $('#peekGrip').setAttribute('aria-expanded', on ? 'false' : 'true');
+      $('#peekGripSay').textContent = on ? 'Bring this answer back' : 'Put this answer away';
+    },
+
+    hide() {
+      if (!this.el) return;
+      this.stopStream();
+      this.el.hidden = true;
+      this.el.classList.remove('is-thinking', 'is-clipped');
+      /* Emptied, so a parked think-mark is never the first one
+         `startThinking` finds for a thread. */
+      $('#peekBody').innerHTML = '';
+      this.shut(false);
+      const wrap = $('#aimyFloatWrap');
+      if (wrap) wrap.classList.remove('has-peek');
+    },
+
+    /* The pull. The card follows the pointer, overshooting both ends with
+       resistance, and the release picks the rung by direction and distance. */
+    dragStart(e) {
+      if (e.button || !this.el || this.el.hidden) return;
+      const card = $('.aimy-peek-card', this.el);
+      const cs = getComputedStyle(this.el);
+      this.dragged = false;
+      this.drag = { y: e.clientY, moved: false, shut: this.el.classList.contains('is-shut'), card: card,
+        down: card.offsetHeight - parseFloat(cs.getPropertyValue('--peek-lip')) + parseFloat(cs.getPropertyValue('--peek-tuck')) };
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) { /* tracked anyway */ }
+    },
+    dragMove(e) {
+      const d = this.drag;
+      if (!d) return;
+      const dy = e.clientY - d.y;
+      if (!d.moved) {
+        if (Math.abs(dy) < 3) return;
+        d.moved = true;
+        this.el.classList.add('is-dragging');
+      }
+      let y = (d.shut ? d.down : 0) + dy;
+      if (y < 0) y = -Math.min(28, Math.sqrt(-y) * 4);
+      else if (y > d.down) y = d.down + Math.min(20, Math.sqrt(y - d.down) * 3);
+      d.card.style.transform = 'translate3d(0, ' + y + 'px, 0)';
+    },
+    dragEnd(e, cancelled) {
+      const d = this.drag;
+      if (!d) return;
+      this.drag = null;
+      this.el.classList.remove('is-dragging');
+      d.card.style.transform = '';
+      if (!d.moved) return;
+      this.dragged = true;
+      const dy = cancelled ? 0 : e.clientY - d.y;
+      if (dy <= -this.FAR || (dy <= -this.STEP && !d.shut)) this.open();
+      else if (dy <= -this.STEP) this.shut(false);
+      else if (dy >= this.STEP) { if (!d.shut) this.all(); this.shut(true); }
+      else this.shut(d.shut);
+    }
+  };
+
   function stoppedNote() {
     return '<div class="msg-stopped">' + ICO.slash.replace('<svg', '<svg width="12" height="12"') +
            'Stopped</div>';
   }
 
-  function startThinking() {
+  function startThinking(el) {
     stopThinking();
-    const cv = $('.think-mark');
+    const cv = el || $('.think-mark');
     if (!cv) return;
     const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     /* The one layout read, here rather than in the frame loop. */
@@ -15909,6 +16196,8 @@
     }
 
     canvas.init();
+    peek.mount();
+    setTimeout(() => peek.welcome(), 700);
     /* Before the first render, so the column has something in it the moment the
        canvas can be opened. */
     seedSessions();
