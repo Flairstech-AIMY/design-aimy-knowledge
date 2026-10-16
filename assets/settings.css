@@ -4777,57 +4777,44 @@ input.set2-fld[type="password"] {
 .agv-orb-v { display: flex; align-items: center; gap: 0.625rem; }
 .agv-orb-v .agv-vsw { flex: none; }
 
-/* The speed slider, after the effort sliders in Grok, X and Perplexity:
-   a pill track the switcher's height with a ruler of small dots, the
-   three stops larger and the recommended one a ring. A soft brand fill
-   grows to the thumb, and the ruler inside it is lit, so the dots light up
-   as the thumb passes. The thumb names the pace and is the switcher's own
-   thumb (brand wash, brand ring), never solid blue, so the row reads as
-   one set; it springs onto each stop. */
+/* The speed slider, the voice wave (direction 4 of explore-speed.html,
+   ported value for value). A pill the switcher's height: the pace's icon,
+   then the wave, brand up to the playhead. The range sits on the wave,
+   unseen. The popover is the house tooltip's surface in plain ink, above
+   the stop nearest the pointer. */
 .agv-spd {
-  --I: 0.1875rem; --T: 4.25rem;
-  position: relative; flex: 1 1 0; min-width: 7rem; height: 2.3125rem; border-radius: var(--r-pill);
+  position: relative; flex: 1 1 0; min-width: 6rem; height: 2.3125rem; border-radius: var(--r-pill);
   box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover);
+  display: flex; align-items: center; padding: 0 0.75rem 0 0.75rem; gap: 0.625rem;
 }
-.agv-spd-b, .agv-spd-f { position: absolute; inset: var(--I); border-radius: var(--r-pill); }
-.agv-spd-f {
-  background: linear-gradient(90deg, rgba(var(--accent-rgb), 0), rgba(var(--accent-rgb), 0.14));
-  clip-path: inset(0 calc((100% - var(--T)) * (1 - var(--p))) 0 0 round 999px);
-}
-.agv-spd-r { position: absolute; top: 50%; left: calc(var(--T) / 2); right: calc(var(--T) / 2); }
-.agv-spd-r i {
-  position: absolute; top: 0; width: 0.1875rem; height: 0.1875rem; margin: -0.09375rem 0 0 -0.09375rem;
-  border-radius: 50%; background: var(--card-border-hover);
-}
-.agv-spd-r i.is-stop { width: 0.3125rem; height: 0.3125rem; margin: -0.15625rem 0 0 -0.15625rem; background: var(--ink-secondary); }
-.agv-spd-r i.is-rec { width: 0.5rem; height: 0.5rem; margin: -0.25rem 0 0 -0.25rem; background: transparent; box-shadow: inset 0 0 0 0.09375rem var(--ink-secondary); }
-.agv-spd-f .agv-spd-r i { background: var(--brand); }
-.agv-spd-f .agv-spd-r i.is-rec { background: transparent; box-shadow: inset 0 0 0 0.09375rem var(--brand); }
-.agv-spd-t {
-  position: absolute; top: var(--I); left: calc(var(--I) + (100% - 2 * var(--I) - var(--T)) * var(--p));
-  width: var(--T); height: 1.9375rem; display: grid; place-items: center; border-radius: var(--r-pill); overflow: hidden;
-  background: color-mix(in srgb, var(--brand) 16%, var(--card-bg)); box-shadow: inset 0 0 0 0.0625rem var(--brand);
-  font-size: 0.75rem; font-weight: var(--fw-semibold); color: var(--ink-primary); pointer-events: none;
-}
-.agv-spd-t > span { grid-area: 1 / 1; opacity: 0; transform: translateY(0.5rem); }
-.agv-spd-t > span.is-on { opacity: 1; transform: none; }
-.agv-spd-in {
-  position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer;
-  -webkit-appearance: none; appearance: none; background: none;
-}
-/* The unseen native thumb is the drawn thumb plus its inset on both
-   sides, so each stop's centre lands where the drawn thumb's does. */
-.agv-spd-in::-webkit-slider-thumb { -webkit-appearance: none; width: 4.625rem; height: 2.3125rem; }
-.agv-spd-in::-moz-range-thumb { width: 4.625rem; height: 2.3125rem; border: 0; }
 .agv-spd:hover { box-shadow: inset 0 0 0 0.0625rem rgba(var(--accent-rgb), 0.5); }
-.agv-spd:hover .agv-spd-t { box-shadow: inset 0 0 0 0.0625rem var(--brand), 0 0 0.875rem rgba(var(--accent-rgb), 0.35); }
 .agv-spd:has(.agv-spd-in:focus-visible) { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
-.agv-spd:has(.agv-spd-in:active) .agv-spd-t { transform: scale(0.95); }
+.agv-spd-in { position: absolute; inset: 0; left: 2.375rem; width: calc(100% - 3.125rem); height: 100%; margin: 0; opacity: 0; cursor: pointer; -webkit-appearance: none; appearance: none; background: none; z-index: 3; }
+.agv-spd-in::-webkit-slider-thumb { -webkit-appearance: none; width: 1px; height: 2.3125rem; }
+.agv-spd-in::-moz-range-thumb { width: 1px; height: 2.3125rem; border: 0; }
+.agv-spd-i { display: grid; place-items: center; color: var(--ink-primary); width: 1rem; flex: none; }
+.agv-spd-i > span { grid-area: 1 / 1; display: grid; opacity: 0; transform: scale(0.6) rotate(-12deg); }
+.agv-spd-i > span.is-on { opacity: 1; transform: none; }
+.agv-spd-i svg { width: 1rem; height: 1rem; display: block; }
+.agv-spd-a { position: relative; flex: 1; height: 100%; }
+.agv-spd-a svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.agv-spd-h { position: absolute; top: 0.375rem; bottom: 0.375rem; width: 0.125rem; margin-left: -0.0625rem; border-radius: 0.125rem; background: var(--brand); left: calc(var(--p) * 100%); box-shadow: 0 0 0.5rem rgba(var(--accent-rgb), 0.6); }
+.agv-spd-d { position: absolute; bottom: 0.1875rem; width: 0.25rem; height: 0.25rem; margin-left: -0.125rem; border-radius: 50%; background: var(--card-border-hover); }
+.agv-spd-d.is-rec { background: transparent; box-shadow: inset 0 0 0 0.0625rem var(--ink-secondary); width: 0.3125rem; height: 0.3125rem; margin-left: -0.15625rem; }
+.agv-spd-tip {
+  position: absolute; bottom: calc(100% + 0.5rem); left: var(--tx, 50%); transform: translate(-50%, 0.25rem);
+  width: max-content; padding: 0.3125rem 0.625rem; border-radius: var(--r-md);
+  background: var(--card-bg-raised); border: 0.0625rem solid var(--card-border); box-shadow: var(--shadow-md);
+  font-size: 0.75rem; font-weight: 500; line-height: 1.4; color: var(--ink-primary);
+  opacity: 0; pointer-events: none; z-index: 5; white-space: nowrap;
+}
+.agv-spd-tip b { font-weight: 500; color: var(--ink-action); }
+.agv-spd.is-tip .agv-spd-tip { opacity: 1; transform: translate(-50%, 0); }
 @media (prefers-reduced-motion: no-preference) {
-  .agv-spd-t { transition: left 360ms cubic-bezier(0.34, 1.45, 0.64, 1), transform 150ms ease-out, box-shadow 200ms ease-out; }
-  .agv-spd-f { transition: clip-path 360ms cubic-bezier(0.34, 1.45, 0.64, 1); }
-  .agv-spd-t > span { transition: opacity 180ms ease-out, transform 260ms cubic-bezier(0.34, 1.45, 0.64, 1); }
-  .agv-spd { transition: box-shadow 150ms ease-out; }
+  .agv-spd-i > span { transition: opacity 160ms ease-out, transform 300ms cubic-bezier(0.34, 1.45, 0.64, 1); }
+  .agv-spd-tip { transition: opacity 150ms ease-out 300ms, transform 200ms cubic-bezier(0.22, 1, 0.36, 1) 300ms, left 200ms cubic-bezier(0.22, 1, 0.36, 1); }
+  .agv-spd.is-now .agv-spd-tip { transition-delay: 0ms; }
+  .agv-spd:not(.is-drag) .agv-spd-h { transition: left 380ms cubic-bezier(0.34, 1.45, 0.64, 1), width 380ms cubic-bezier(0.34, 1.45, 0.64, 1); }
 }
 
 /* ── Tweak 7 (Nour): each skill pill opens its skill. A button now, with the

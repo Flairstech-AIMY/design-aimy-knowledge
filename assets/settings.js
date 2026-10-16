@@ -85,6 +85,10 @@
     /* Agents. Lucide 1.52 `bot`, `venus`, `mars`, `play`, `square`. */
     bot:  '<svg class="set2-row-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>',
     venus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15v7"/><path d="M9 19h6"/><circle cx="12" cy="9" r="6"/></svg>',
+    /* Voice speed. Lucide `turtle`, `footprints`, `rabbit`. */
+    turtle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 10 2 4v3a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-3a8 8 0 1 0-16 0v3a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-3l2-4h4Z"/><path d="M4.82 7.9 8 10"/><path d="M15.18 7.9 12 10"/><path d="M16.93 10H20a2 2 0 0 1 0 4H2"/></svg>',
+    footprints: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z"/><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z"/><path d="M16 17h4"/><path d="M4 13h4"/></svg>',
+    rabbit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 16a3 3 0 0 1 2.24 5"/><path d="M18 12h.01"/><path d="M18 21h-8a4 4 0 0 1-4-4 7 7 0 0 1 7-7h.2L9.6 6.4a1 1 0 1 1 2.8-2.8L15.8 7h.2c3.3 0 6 2.7 6 6v1a2 2 0 0 1-2 2h-1a3 3 0 0 0-3 3"/><path d="M20 8.54V4a2 2 0 1 0-4 0v3"/><path d="M7.612 12.524a3 3 0 1 0-1.6 4.3"/></svg>',
     mars: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="m21 3-6.75 6.75"/><circle cx="10" cy="14" r="6"/></svg>',
     play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></svg>',
     stop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>',
@@ -2512,7 +2516,7 @@
   const voiceName = (v) => ((VOICES.filter((x) => x[0] === v)[0] || [])[1] || 'Not set');
   /* How fast the agent talks, three stops on a slider (Nour). Balanced is
      the recommended pace and the default; the rate goes to the speech. */
-  const SPEEDS = [['slow', 'Slow', 0.85], ['balanced', 'Balanced', 1], ['fast', 'Fast', 1.2]];
+  const SPEEDS = [['slow', 'Slow', 0.85, I.turtle], ['balanced', 'Balanced', 1, I.footprints], ['fast', 'Fast', 1.2, I.rabbit]];
   const SPEED_REC = 1;
   const speedIdx = (a) => { const i = SPEEDS.map((s) => s[0]).indexOf(a && a.speed); return i < 0 ? SPEED_REC : i; };
 
@@ -2713,41 +2717,129 @@
      agvCards reads the marks and clears them, so a later repaint is still. */
   const AGV_FX = {};
   const agvFx = (aid, k) => { (AGV_FX[aid] = AGV_FX[aid] || {})[k] = true; };
-  /* ── Voice speed, the effort-slider way (Nour, after Grok, Perplexity, Pi) ──
-     A pill track the height of the voice switcher, a dot per stop, and a
-     thumb that carries the stop's name and springs to it. The track fills
-     up to the thumb. A native range sits on top, unseen, so a drag, a click
-     on the track and the arrow keys all work; the picture follows --p while
-     dragging and the pick is stored on release. */
+  /* ── Voice speed, the voice wave (Nour 16 Oct, direction 4 of
+     explore-speed.html, ported value for value) ──
+     The pace as an icon (turtle, footprints, rabbit), then the voice drawn
+     as a wave that tightens and runs faster as the pace rises, brand up to
+     the playhead and plain after it. Three dots under the wave are the
+     stops; the ring is Balanced, the recommended pace. Hovering names the
+     stop nearest the pointer ("Fast pace"); a drag or a key names it at
+     once. A native range sits on the wave, unseen, so a drag, a click and
+     the arrow keys all work; a drag is smooth and lets go onto the nearest
+     stop, which is what gets stored. */
   function agvSpeed(a) {
-    const si = speedIdx(a), n = SPEEDS.length - 1;
-    /* A ruler of small dots between the stops, the stops larger and the
-       recommended one a ring. It is drawn twice: plain on the track, and
-       lit in the fill, which is clipped at the thumb, so the dots light up
-       as the thumb passes them. */
-    const R = 12, ruler = Array.from({ length: R + 1 }, (_, k) => {
-      const st = k % (R / n) === 0;
-      return `<i class="${st ? 'is-stop' : ''}${st && k / (R / n) === SPEED_REC ? ' is-rec' : ''}" style="left:${(k / R * 100).toFixed(4)}%"></i>`;
-    }).join('');
-    return `<span class="agv-spd" style="--p:${si / n}" data-agv-spd>
-      <span class="agv-spd-b" aria-hidden="true"><span class="agv-spd-r">${ruler}</span></span>
-      <span class="agv-spd-f" aria-hidden="true"><span class="agv-spd-r">${ruler}</span></span>
-      <span class="agv-spd-t" aria-hidden="true">${SPEEDS.map((s, i) => `<span${i === si ? ' class="is-on"' : ''}>${s[1]}</span>`).join('')}</span>
-      <input class="agv-spd-in" type="range" min="0" max="${n}" step="1" value="${si}"
-        data-agv-spd-in="${esc(a.id)}" aria-label="How fast ${esc(a.name)} talks" aria-valuetext="${SPEEDS[si][1]}${si === SPEED_REC ? ', recommended' : ''}">
+    const si = speedIdx(a), id = esc(a.id), p = si / (SPEEDS.length - 1);
+    return `<span class="agv-spd" style="--p:${p}" data-agv-spd="${id}">
+      <span class="agv-spd-i" aria-hidden="true">${SPEEDS.map((s, i) => `<span${i === si ? ' class="is-on"' : ''}>${s[3]}</span>`).join('')}</span>
+      <span class="agv-spd-a" aria-hidden="true"><svg preserveAspectRatio="none"><defs><linearGradient id="agv-spd-g-${id}" gradientUnits="userSpaceOnUse" x1="0" x2="100" y1="0" y2="0"><stop offset="0" stop-color="var(--brand)" stop-opacity="0.35"/><stop class="g-a" offset="${p}" stop-color="var(--brand)"/><stop class="g-b" offset="${p}" stop-color="var(--card-border-hover)"/><stop offset="1" stop-color="var(--card-border-hover)"/></linearGradient></defs><path class="w2" fill="none" stroke-width="1.25" stroke-linecap="round" opacity="0.45"/><path class="w1" fill="none" stroke-width="1.75" stroke-linecap="round"/></svg>${SPEEDS.map((s, i) => `<i class="agv-spd-d${i === SPEED_REC ? ' is-rec' : ''}" style="left:${i / (SPEEDS.length - 1) * 100}%"></i>`).join('')}<span class="agv-spd-h"></span></span>
+      <span class="agv-spd-tip" role="tooltip"></span>
+      <input class="agv-spd-in" type="range" min="0" max="1000" step="1" value="${p * 1000}"
+        data-agv-spd-in="${id}" aria-label="How fast ${esc(a.name)} talks" aria-valuetext="${SPEEDS[si][1]} pace${si === SPEED_REC ? ', recommended' : ''}">
     </span>`;
   }
-  /* The picture of the slider at stop i, without a render, so a drag is
-     never cut off half way. */
-  function agvSpeedPaint(box, i) {
-    const n = SPEEDS.length - 1;
-    box.style.setProperty('--p', i / n);
-    $$('.agv-spd-t > span', box).forEach((t, k) => t.classList.toggle('is-on', k === i));
+  const spdNear = (p) => Math.round(p * (SPEEDS.length - 1));
+  /* The picture at p (0 to 1), without a render, so a drag is never cut
+     off half way. */
+  function agvSpeedPaint(box, p) {
+    const i = spdNear(p);
+    box._p = p;
+    box.style.setProperty('--p', p);
+    $$('.agv-spd-i > span', box).forEach((s, k) => s.classList.toggle('is-on', k === i));
+    $$('linearGradient .g-a, linearGradient .g-b', box).forEach((s) => s.setAttribute('offset', p));
+    $('.agv-spd-in', box).setAttribute('aria-valuetext', SPEEDS[i][1] + ' pace' + (i === SPEED_REC ? ', recommended' : ''));
+  }
+  /* The popover over stop i, or none. Hover waits the intent delay; a drag
+     or a key shows it at once. */
+  function agvSpeedTip(box, i, how) {
+    if (i === null) { box.classList.remove('is-tip', 'is-now'); return; }
+    const inp = $('.agv-spd-in', box), n = SPEEDS.length - 1, tip = $('.agv-spd-tip', box);
+    tip.innerHTML = SPEEDS[i][1] + ' pace' + (i === SPEED_REC ? ', <b>recommended</b>' : '');
+    /* Over the stop, but never past the card's edges: the card clips
+       (overflow hidden), and on a narrow card the Slow and Fast stops sit
+       closer to its edge than half the popover's width. 8px in from each
+       side. */
+    const cx = inp.offsetLeft + inp.offsetWidth * i / n, w = tip.offsetWidth;
+    const bx = box.getBoundingClientRect(), card = (box.closest('.agv-t') || box).getBoundingClientRect();
+    const lo = card.left - bx.left + 8 + w / 2, hi = card.right - bx.left - 8 - w / 2;
+    box.style.setProperty('--tx', Math.max(lo, Math.min(hi, cx)) + 'px');
+    if (how !== 'hover') box.classList.add('is-now');
+    box.classList.add('is-tip');
+  }
+  /* Wired once per slider, from painted(). */
+  function agvSpeedBind() {
+    $$('[data-agv-spd]').forEach((box) => {
+      if (box._b) return;
+      box._b = true;
+      const aid = box.getAttribute('data-agv-spd'), inp = $('.agv-spd-in', box), n = SPEEDS.length - 1;
+      box._p = speedIdx(agentById(aid)) / n;
+      let drag = false;
+      const settle = () => {
+        if (!drag) return;
+        drag = false; box.classList.remove('is-drag');
+        const i = spdNear(box._p);
+        agvSpeedPaint(box, i / n); inp.value = i / n * 1000;
+        agvSpeedSet(aid, i);
+      };
+      inp.addEventListener('pointerdown', () => { drag = true; box.classList.add('is-drag'); });
+      inp.addEventListener('input', () => { agvSpeedPaint(box, inp.value / 1000); if (drag) agvSpeedTip(box, spdNear(box._p), 'drag'); });
+      inp.addEventListener('change', settle);
+      inp.addEventListener('pointerup', settle);
+      inp.addEventListener('keydown', (e) => {
+        const i = spdNear(box._p);
+        const to = { ArrowLeft: i - 1, ArrowDown: i - 1, ArrowRight: i + 1, ArrowUp: i + 1, Home: 0, End: n }[e.key];
+        if (to === undefined) return;
+        e.preventDefault();
+        const k = Math.max(0, Math.min(n, to));
+        agvSpeedPaint(box, k / n); inp.value = k / n * 1000;
+        agvSpeedSet(aid, k);
+      });
+      box.addEventListener('pointermove', (e) => {
+        if (drag) return;
+        const x = e.clientX - box.getBoundingClientRect().left;
+        let i = 0;
+        for (let k = 1; k <= n; k++) {
+          const xk = inp.offsetLeft + inp.offsetWidth * k / n, xi = inp.offsetLeft + inp.offsetWidth * i / n;
+          if (Math.abs(xk - x) < Math.abs(xi - x)) i = k;
+        }
+        agvSpeedTip(box, i, 'hover');
+      });
+      box.addEventListener('pointerleave', () => { if (!drag) agvSpeedTip(box, null); });
+      inp.addEventListener('focus', () => { if (inp.matches(':focus-visible')) agvSpeedTip(box, spdNear(box._p), 'key'); });
+      inp.addEventListener('blur', () => agvSpeedTip(box, null));
+    });
+    if (!AGV_WAVE.raf && $('[data-agv-spd]')) AGV_WAVE.raf = requestAnimationFrame(agvWave);
+  }
+  /* The wave, redrawn each frame while a slider is on the page: tighter
+     and faster as the pace rises. Its phase carries across repaints, so a
+     render never restarts it. Reduced motion: drawn, never moving. */
+  const AGV_WAVE = { raf: 0, ph: 0, t: 0 };
+  function agvWave(t) {
+    const boxes = $$('[data-agv-spd]');
+    if (!boxes.length) { AGV_WAVE.raf = 0; AGV_WAVE.t = 0; return; }
+    const dt = AGV_WAVE.t ? t - AGV_WAVE.t : 0;
+    AGV_WAVE.t = t;
+    boxes.forEach((box) => {
+      const a = $('.agv-spd-a', box), svg = $('svg', a), p = box._p || 0;
+      const W = a.clientWidth, H = a.clientHeight, mid = H / 2 - 1;
+      if (!W) return;
+      if (!AGV_REDUCED()) AGV_WAVE.ph += (0.0025 + 0.006 * p) * dt / boxes.length;
+      const f = 2 + 4.5 * p, A = 6.5, ph = AGV_WAVE.ph;
+      const pts = (fr, amp, sh) => { let d = ''; for (let x = 0; x <= W; x += 2) {
+        const env = Math.pow(Math.sin(Math.PI * x / W), 0.9);
+        d += (x ? 'L' : 'M') + x.toFixed(1) + ' ' + (mid + amp * env * Math.sin(2 * Math.PI * fr * x / W - sh)).toFixed(2); } return d; };
+      const g = $('linearGradient', svg);
+      g.setAttribute('x2', W);
+      const url = 'url(#' + g.id + ')';
+      const w1 = $('.w1', svg), w2 = $('.w2', svg);
+      w1.setAttribute('d', pts(f, A, ph)); w1.setAttribute('stroke', url);
+      w2.setAttribute('d', pts(f * 0.62, A * 0.7, ph * 0.7 + 1.3)); w2.setAttribute('stroke', url);
+    });
+    AGV_WAVE.raf = requestAnimationFrame(agvWave);
   }
   function agvSpeedSet(aid, i) {
     const a0 = agentById(aid);
     if (!a0 || speedIdx(a0) === i) return;
-    const was = a0.speed;
+    /* No toast (Nour): the wave, the icon and the popover already say it. */
     a0.speed = SPEEDS[i][0]; a0.when = 'just now'; a0.by = USER.name;
     DIRTY.add('speed:' + aid);
     if (window.speechSynthesis && VOICE_PLAYING) { window.speechSynthesis.cancel(); VOICE_PLAYING = null; }
@@ -2755,7 +2847,6 @@
     render();
     /* Arrow keys keep the slider in hand across the render. */
     if (kb) { const r = $('[data-agv-spd-in="' + aid + '"]'); if (r) r.focus(); }
-    if (API && API.toast) API.toast(a0.name + ' now talks at a ' + SPEEDS[i][1].toLowerCase() + ' pace', () => { a0.speed = was; render(); });
   }
   const AGV_REDUCED = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
   const AGV_ICO = {
@@ -9118,7 +9209,7 @@
     if (M) M.after(layer, off, { ms: ms }); else setTimeout(off, ms);
   }
 
-  function painted() { seatTabindex(); focusDraft(); landFix(); seatMap(); usLand(); usSegInd(); agOrb(); agvFit(); }
+  function painted() { seatTabindex(); focusDraft(); landFix(); seatMap(); usLand(); usSegInd(); agOrb(); agvFit(); agvSpeedBind(); }
 
   /* A link to KMC opens with the plan and Upland folded above it, so on
      arrival the unfolded card is scrolled to the top, under the bar, rather
@@ -10643,9 +10734,6 @@
   });
 
   document.addEventListener('input', (e) => {
-    /* The voice speed while it is dragged: the picture only. */
-    const spd = e.target.closest && e.target.closest('[data-agv-spd-in]');
-    if (spd) { agvSpeedPaint(spd.closest('[data-agv-spd]'), +spd.value); return; }
     /* A usage limit. Stored, and the split re-divided in place. */
     const usI = e.target.closest && e.target.closest('[data-us-in]');
     if (usI && US_EDIT) {
@@ -11030,9 +11118,6 @@
   });
 
   document.addEventListener('change', (e) => {
-    /* The voice speed, stored once the thumb is let go. */
-    const spd = e.target.closest('[data-agv-spd-in]');
-    if (spd) { agvSpeedSet(spd.getAttribute('data-agv-spd-in'), +spd.value); return; }
     const fs = e.target.closest('[data-f]');
     if (fs) { const st = readURL();
       patch({ f: withF(st, fs.getAttribute('data-f'), fs.value) }); return; }
