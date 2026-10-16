@@ -4763,6 +4763,73 @@ input.set2-fld[type="password"] {
 }
 @keyframes agv-eq { 0%, 100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
 
+/* ── Hear on its own row, then voice and speed (Nour 16 Oct) ──
+   Hear takes the full width; under it the speed slider and the voice
+   switcher share a row, the slider first and taking what is left. The card
+   is a column now: the orb takes whatever height the controls leave, so
+   it is never covered, whatever the card's width. */
+.agv-orb { display: flex; flex-direction: column; }
+.agv-orb-slot { position: relative; inset: auto; flex: 1; min-height: 8rem; }
+.agv-orb canvas { top: 0; bottom: 0; height: 100%; }
+.agv-orb-b { position: relative; left: auto; right: auto; bottom: auto; padding: 0 1.25rem 1.25rem; }
+.agv-orb-c { flex-direction: column; align-items: stretch; gap: 0.625rem; }
+.agv-orb-c .agv-hear { width: 100%; }
+.agv-orb-v { display: flex; align-items: center; gap: 0.625rem; }
+.agv-orb-v .agv-vsw { flex: none; }
+
+/* The speed slider, after the effort sliders in Grok, X and Perplexity:
+   a pill track the switcher's height with a ruler of small dots, the
+   three stops larger and the recommended one a ring. A soft brand fill
+   grows to the thumb, and the ruler inside it is lit, so the dots light up
+   as the thumb passes. The thumb names the pace and is the switcher's own
+   thumb (brand wash, brand ring), never solid blue, so the row reads as
+   one set; it springs onto each stop. */
+.agv-spd {
+  --I: 0.1875rem; --T: 4.25rem;
+  position: relative; flex: 1 1 0; min-width: 7rem; height: 2.3125rem; border-radius: var(--r-pill);
+  box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover);
+}
+.agv-spd-b, .agv-spd-f { position: absolute; inset: var(--I); border-radius: var(--r-pill); }
+.agv-spd-f {
+  background: linear-gradient(90deg, rgba(var(--accent-rgb), 0), rgba(var(--accent-rgb), 0.14));
+  clip-path: inset(0 calc((100% - var(--T)) * (1 - var(--p))) 0 0 round 999px);
+}
+.agv-spd-r { position: absolute; top: 50%; left: calc(var(--T) / 2); right: calc(var(--T) / 2); }
+.agv-spd-r i {
+  position: absolute; top: 0; width: 0.1875rem; height: 0.1875rem; margin: -0.09375rem 0 0 -0.09375rem;
+  border-radius: 50%; background: var(--card-border-hover);
+}
+.agv-spd-r i.is-stop { width: 0.3125rem; height: 0.3125rem; margin: -0.15625rem 0 0 -0.15625rem; background: var(--ink-secondary); }
+.agv-spd-r i.is-rec { width: 0.5rem; height: 0.5rem; margin: -0.25rem 0 0 -0.25rem; background: transparent; box-shadow: inset 0 0 0 0.09375rem var(--ink-secondary); }
+.agv-spd-f .agv-spd-r i { background: var(--brand); }
+.agv-spd-f .agv-spd-r i.is-rec { background: transparent; box-shadow: inset 0 0 0 0.09375rem var(--brand); }
+.agv-spd-t {
+  position: absolute; top: var(--I); left: calc(var(--I) + (100% - 2 * var(--I) - var(--T)) * var(--p));
+  width: var(--T); height: 1.9375rem; display: grid; place-items: center; border-radius: var(--r-pill); overflow: hidden;
+  background: color-mix(in srgb, var(--brand) 16%, var(--card-bg)); box-shadow: inset 0 0 0 0.0625rem var(--brand);
+  font-size: 0.75rem; font-weight: var(--fw-semibold); color: var(--ink-primary); pointer-events: none;
+}
+.agv-spd-t > span { grid-area: 1 / 1; opacity: 0; transform: translateY(0.5rem); }
+.agv-spd-t > span.is-on { opacity: 1; transform: none; }
+.agv-spd-in {
+  position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer;
+  -webkit-appearance: none; appearance: none; background: none;
+}
+/* The unseen native thumb is the drawn thumb plus its inset on both
+   sides, so each stop's centre lands where the drawn thumb's does. */
+.agv-spd-in::-webkit-slider-thumb { -webkit-appearance: none; width: 4.625rem; height: 2.3125rem; }
+.agv-spd-in::-moz-range-thumb { width: 4.625rem; height: 2.3125rem; border: 0; }
+.agv-spd:hover { box-shadow: inset 0 0 0 0.0625rem rgba(var(--accent-rgb), 0.5); }
+.agv-spd:hover .agv-spd-t { box-shadow: inset 0 0 0 0.0625rem var(--brand), 0 0 0.875rem rgba(var(--accent-rgb), 0.35); }
+.agv-spd:has(.agv-spd-in:focus-visible) { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
+.agv-spd:has(.agv-spd-in:active) .agv-spd-t { transform: scale(0.95); }
+@media (prefers-reduced-motion: no-preference) {
+  .agv-spd-t { transition: left 360ms cubic-bezier(0.34, 1.45, 0.64, 1), transform 150ms ease-out, box-shadow 200ms ease-out; }
+  .agv-spd-f { transition: clip-path 360ms cubic-bezier(0.34, 1.45, 0.64, 1); }
+  .agv-spd-t > span { transition: opacity 180ms ease-out, transform 260ms cubic-bezier(0.34, 1.45, 0.64, 1); }
+  .agv-spd { transition: box-shadow 150ms ease-out; }
+}
+
 /* ── Tweak 7 (Nour): each skill pill opens its skill. A button now, with the
    variant's look kept, and a hover that says it goes somewhere. ── */
 button.agv-chip { appearance: none; border: 0; background: transparent; cursor: pointer; font: inherit; font-size: 0.75rem; color: var(--ink-primary); }

@@ -2510,6 +2510,11 @@
 
   const VOICES = [['female', 'Female', I.venus], ['male', 'Male', I.mars]];
   const voiceName = (v) => ((VOICES.filter((x) => x[0] === v)[0] || [])[1] || 'Not set');
+  /* How fast the agent talks, three stops on a slider (Nour). Balanced is
+     the recommended pace and the default; the rate goes to the speech. */
+  const SPEEDS = [['slow', 'Slow', 0.85], ['balanced', 'Balanced', 1], ['fast', 'Fast', 1.2]];
+  const SPEED_REC = 1;
+  const speedIdx = (a) => { const i = SPEEDS.map((s) => s[0]).indexOf(a && a.speed); return i < 0 ? SPEED_REC : i; };
 
   /* ── THE TONE, NAMED ──
      The row said "Tone: Plain text", which is where a tone comes from and not
@@ -2708,6 +2713,50 @@
      agvCards reads the marks and clears them, so a later repaint is still. */
   const AGV_FX = {};
   const agvFx = (aid, k) => { (AGV_FX[aid] = AGV_FX[aid] || {})[k] = true; };
+  /* ── Voice speed, the effort-slider way (Nour, after Grok, Perplexity, Pi) ──
+     A pill track the height of the voice switcher, a dot per stop, and a
+     thumb that carries the stop's name and springs to it. The track fills
+     up to the thumb. A native range sits on top, unseen, so a drag, a click
+     on the track and the arrow keys all work; the picture follows --p while
+     dragging and the pick is stored on release. */
+  function agvSpeed(a) {
+    const si = speedIdx(a), n = SPEEDS.length - 1;
+    /* A ruler of small dots between the stops, the stops larger and the
+       recommended one a ring. It is drawn twice: plain on the track, and
+       lit in the fill, which is clipped at the thumb, so the dots light up
+       as the thumb passes them. */
+    const R = 12, ruler = Array.from({ length: R + 1 }, (_, k) => {
+      const st = k % (R / n) === 0;
+      return `<i class="${st ? 'is-stop' : ''}${st && k / (R / n) === SPEED_REC ? ' is-rec' : ''}" style="left:${(k / R * 100).toFixed(4)}%"></i>`;
+    }).join('');
+    return `<span class="agv-spd" style="--p:${si / n}" data-agv-spd>
+      <span class="agv-spd-b" aria-hidden="true"><span class="agv-spd-r">${ruler}</span></span>
+      <span class="agv-spd-f" aria-hidden="true"><span class="agv-spd-r">${ruler}</span></span>
+      <span class="agv-spd-t" aria-hidden="true">${SPEEDS.map((s, i) => `<span${i === si ? ' class="is-on"' : ''}>${s[1]}</span>`).join('')}</span>
+      <input class="agv-spd-in" type="range" min="0" max="${n}" step="1" value="${si}"
+        data-agv-spd-in="${esc(a.id)}" aria-label="How fast ${esc(a.name)} talks" aria-valuetext="${SPEEDS[si][1]}${si === SPEED_REC ? ', recommended' : ''}">
+    </span>`;
+  }
+  /* The picture of the slider at stop i, without a render, so a drag is
+     never cut off half way. */
+  function agvSpeedPaint(box, i) {
+    const n = SPEEDS.length - 1;
+    box.style.setProperty('--p', i / n);
+    $$('.agv-spd-t > span', box).forEach((t, k) => t.classList.toggle('is-on', k === i));
+  }
+  function agvSpeedSet(aid, i) {
+    const a0 = agentById(aid);
+    if (!a0 || speedIdx(a0) === i) return;
+    const was = a0.speed;
+    a0.speed = SPEEDS[i][0]; a0.when = 'just now'; a0.by = USER.name;
+    DIRTY.add('speed:' + aid);
+    if (window.speechSynthesis && VOICE_PLAYING) { window.speechSynthesis.cancel(); VOICE_PLAYING = null; }
+    const kb = document.activeElement && document.activeElement.matches('[data-agv-spd-in]');
+    render();
+    /* Arrow keys keep the slider in hand across the render. */
+    if (kb) { const r = $('[data-agv-spd-in="' + aid + '"]'); if (r) r.focus(); }
+    if (API && API.toast) API.toast(a0.name + ' now talks at a ' + SPEEDS[i][1].toLowerCase() + ' pace', () => { a0.speed = was; render(); });
+  }
   const AGV_REDUCED = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
   const AGV_ICO = {
     play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></svg>',
@@ -2774,13 +2823,17 @@
               <span class="agv-hear-a">Hear ${nm}</span>
               <span class="agv-hear-b"><span class="agv-eq" aria-hidden="true"><i></i><i></i><i></i></span>Stop</span></span></button>`;
           })()}` : ''}
+            <!-- Hear has its own row, full width (Nour). Under it how fast
+                 the agent talks, then the voice switcher on the right. -->
+            <div class="agv-orb-v">${agvSpeed(a)}
             <!-- Female / Male, the two voices side by side; the ring slides to
                  the one in use. Picking one does not play it; Hear does. -->
             <span class="agv-vsw" role="radiogroup" aria-label="${nm}’s voice" style="--i:${a.voice === 'male' ? 1 : 0}">
               <span class="agv-vth" aria-hidden="true"></span>
               ${VOICES.map(([v, n, ico]) => `<button class="agv-vb" type="button" role="radio" aria-checked="${a.voice === v}"
                 tabindex="${a.voice === v ? 0 : -1}" data-agv-voice="${id}|${v}" aria-label="${n} voice" title="${n} voice">${ico}</button>`).join('')}
-            </span></div></div></div>
+            </span></div></div>
+          </div></div>
       <div class="agv-t agv-tone${fx.tone ? ' agv-in-c' : ''}"${AGV_EDIT[a.id] ? ` data-tone-drop="${id}"` : ''}><p class="agv-k">How ${nm} speaks</p>
         ${AGV_EDIT[a.id] ? agvToneEdit(a) : `<h3>${esc(toneTitle(a) || 'No tone yet')}</h3><p>${esc(toneOf(a))}</p>
           <div class="agv-tone-f"><button class="agv-lnk" type="button" data-agv-edit="${id}">Change how ${nm} speaks</button><span>${changed}</span></div>`}
@@ -4586,6 +4639,7 @@
     const v = voiceFor(gender);
     if (v) { u.voice = v; u.lang = v.lang; }
     else { u.lang = 'en-US'; u.pitch = gender === 'female' ? 1.25 : 0.8; }
+    u.rate = SPEEDS[speedIdx(a)][2];
     /* ── A sample that never plays must not look like it is playing ──
        Some browsers (and the Claude preview pane) take the utterance and
        never speak it, and then never fire end or error either, so the row
@@ -10589,6 +10643,9 @@
   });
 
   document.addEventListener('input', (e) => {
+    /* The voice speed while it is dragged: the picture only. */
+    const spd = e.target.closest && e.target.closest('[data-agv-spd-in]');
+    if (spd) { agvSpeedPaint(spd.closest('[data-agv-spd]'), +spd.value); return; }
     /* A usage limit. Stored, and the split re-divided in place. */
     const usI = e.target.closest && e.target.closest('[data-us-in]');
     if (usI && US_EDIT) {
@@ -10973,6 +11030,9 @@
   });
 
   document.addEventListener('change', (e) => {
+    /* The voice speed, stored once the thumb is let go. */
+    const spd = e.target.closest('[data-agv-spd-in]');
+    if (spd) { agvSpeedSet(spd.getAttribute('data-agv-spd-in'), +spd.value); return; }
     const fs = e.target.closest('[data-f]');
     if (fs) { const st = readURL();
       patch({ f: withF(st, fs.getAttribute('data-f'), fs.value) }); return; }
