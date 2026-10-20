@@ -3914,7 +3914,11 @@
       const over = sh && (full || cur) && hi > sh;
       const end = sh && lo <= sh && sh <= hi;
       const fc = !full && !cur && lo <= fore;
-      out += `<span class="set2-us-cell${full ? ' is-full' : ''}${fc ? ' is-fore' : ''}${over ? ' is-over' : ''}${end ? ' is-share' : ''}"><i style="--p:${p.toFixed(3)}"></i></span>`;
+      /* What this cell holds, said inside it on hover: the units used of
+         the slice (or slices) it stands for, out of its size. */
+      const cap = q * z, inside = Math.max(0, Math.min(cap, used - (lo - 1) * z));
+      const f = (n) => n >= 100000 ? usShort(n) : usFmt(n);
+      out += `<span class="set2-us-cell${full ? ' is-full' : ''}${fc ? ' is-fore' : ''}${over ? ' is-over' : ''}${end ? ' is-share' : ''}"><i style="--p:${p.toFixed(3)}"></i><b>${f(inside)} / ${f(cap)}</b></span>`;
     }
     return { html: out, q: q, n: n, fore: fore, sh: sh };
   }
