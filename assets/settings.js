@@ -6985,6 +6985,8 @@
     ticket: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>',
     flask: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></svg>',
     left: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>',
+    down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>',
+    up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>',
     spark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>'
   };
   const dcN = (n) => Number(n).toLocaleString('en-US');
@@ -7280,7 +7282,7 @@
       const other = r.mode === 'Keep' ? 'Don’t sync' : 'Only sync';
       const end = bad ? `<button class="agv-btn is-brand" type="button" data-dc="remap" data-dc-remap>Map again</button>`
         : r.sys ? `<span class="set2-dc-lock" title="Set by AiMY">${I.lock}</span>`
-        : `<button class="agv-btn is-ghost set2-dc-mv" type="button" data-dc="move" data-r="${r.id}" title="Move to ${other}">Move</button>${dcTog(r.on, 'Condition on', 'data-dc-on="' + r.id + '"')}${dcIb('rmRule', 'Delete condition', I.trash, 'data-r="' + r.id + '"')}`;
+        : `<button class="agv-btn is-ghost set2-dc-mv" type="button" data-dc="move" data-r="${r.id}" title="Move this condition to ${other} tickets where" aria-label="Move ${esc(f.a)} to ${other} tickets where">${r.mode === 'Keep' ? DCI.down : DCI.up}${other}</button>${dcTog(r.on, 'Condition on', 'data-dc-on="' + r.id + '"')}${dcIb('rmRule', 'Delete condition', I.trash, 'data-r="' + r.id + '"')}`;
       const hit = DCU.hitRid === r.id;
       return `<div class="set2-dc-r is-rule${bad ? ' is-err' : ''}${r.on ? '' : ' is-off'}${hit ? ' is-hit' : ''}">
         <span class="set2-dc-n">${esc(f.a)}${hit ? `<span class="set2-dc-at is-hit">decides #${DC_TICKETS[DCU.tt].no}</span>` : ''}${(r.sys || f.t === 'tags') ? '<span class="set2-dc-at" title="AiMY reads the ticket, then drops it">after fetch</span>' : ''}</span>
