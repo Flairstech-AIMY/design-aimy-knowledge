@@ -7702,7 +7702,10 @@
        row carries its own switch, and the Copilot details open in the panel. */
     const sf = (DC_SAVED[d.cid] || d).focus;
     const keep = v === 'copi' ? (id) => d.focus[id] != null || !!sf[id] : v === 'no' ? (id) => !!dcGuard(DCF[id]).bad : null;
-    return seg + dcMap(d, keep);
+    /* One toolbar row (Nour 20 Oct): the views on the left, find and Add
+       field on the right. One search for every view, over the same rows. */
+    const tools = `<div class="set2-dc-tools">${seg}<span class="set2-dc-row"><label class="set2-dc-find">${I.search}<input class="set2-dc-u" id="dcq" placeholder="Find a field" value="${esc(DCU.q)}" aria-label="Find a mapped field"></label><button class="agv-btn is-brand" type="button" data-dc="addField">Add field</button></span></div>`;
+    return tools + dcMap(d, keep);
   }
   function dcBlocked(d) {
     const no = d.fields.map((id) => DCF[id]).filter((f) => dcGuard(f).bad);
@@ -7859,9 +7862,7 @@
     if (DCU.step === 2) { DCU.step = 0; DCU.mv = 'copi'; }
     const pan = dcPanel(d), n = dcDirty(d), i = DCU.step;
     const where = DC_CH[d.cid].map((x, k) => x ? DC_STEPS[k === 2 ? 0 : k] : null).filter((x, k, a) => x && a.indexOf(x) === k).join(', ');
-    const mv = DCU.mv || 'all';
-    const act = { 0: !d.fields.length ? '' : mv === 'copi' ? `<label class="set2-dc-find">${I.search}<input class="set2-dc-u" id="dcqf" placeholder="Find a field" value="${esc(DCU.qf || '')}" aria-label="Find a field to search by"></label>`
-        : mv === 'no' ? '' : `<label class="set2-dc-find">${I.search}<input class="set2-dc-u" id="dcq" placeholder="Find a field" value="${esc(DCU.q)}" aria-label="Find a mapped field"></label><button class="agv-btn is-brand" type="button" data-dc="addField">Add field</button>`,
+    const act = { 0: '',
       2: d.fields.length ? `<label class="set2-dc-find">${I.search}<input class="set2-dc-u" id="dcqf" placeholder="Find a field" value="${esc(DCU.qf || '')}" aria-label="Find a field to search by"></label>` : '' }[i] || '';
     const cat = d.cat.down
       ? `<div class="set2-dc-cat is-err"><i></i><span>Can’t reach <b>${esc(d.cat.host)}</b></span><button class="agv-lnk" type="button" data-dc="retry">Reconnect</button></div>`

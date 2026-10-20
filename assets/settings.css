@@ -5988,7 +5988,9 @@ body.is-settings .set2-pop .set2-pop-f:focus, body.is-settings .set2-pop .set2-p
    Three steps on the strip; a view switch over the mapping table; searched
    fields carry an AiMY pill on their row that opens the Copilot view. */
 .set2-dc-strip.is-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.set2-dc-mvs { display: inline-flex; width: auto; max-width: 100%; justify-self: start; align-self: flex-start; margin: 0 0 0.875rem; flex-wrap: wrap; }
+.set2-dc-mvs { display: inline-flex; width: auto; max-width: 100%; margin: 0; flex-wrap: wrap; }
+.set2-dc-tools { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem 1rem; margin: 0 0 0.875rem; }
+.set2-dc-tools > .set2-dc-row { margin-left: auto; }
 .set2-dc-th.is-map > span { white-space: nowrap; }
 .set2-dc-mvs b { margin-left: 0.375rem; font-weight: var(--fw-semibold); color: var(--ink-secondary); font-variant-numeric: tabular-nums; }
 .set2-dc-mvs button[aria-pressed="true"] b { color: var(--ink-primary); }
