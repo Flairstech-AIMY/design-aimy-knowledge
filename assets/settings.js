@@ -7502,14 +7502,14 @@
       b += `<div class="set2-dc-ps"><span class="agv-k">How ${esc(f.a)} shows</span>
         <span class="set2-dc-seg" role="group" aria-label="How ${esc(f.a)} shows"><button type="button" data-dc="setRes" data-id="${id}" data-v="1" aria-pressed="${on}">By name</button><button type="button" data-dc="setRes" data-id="${id}" data-v="0" aria-pressed="${!on}">By ID</button></span>
         <span class="set2-dc-meta">${on ? esc(d.crm) + ' sends an ID. AiMY looks up the name, so rules and answers say \u201c' + esc(list[0] || 'the name') + '\u201d.' : 'Rules and answers use the ID ' + esc(d.crm) + ' sends, like 48000123456.'}</span>
-        ${on && list.length ? `<span class="agv-k">${dcN(f.n)} in ${esc(d.crm)}</span><input class="set2-dc-u" id="dcqn" placeholder="Find one" aria-label="Find one"><div class="set2-dc-vl" id="dcnl">${list.map((n) => `<span class="set2-dc-vr is-1" data-name="${esc(n.toLowerCase())}">${esc(n)}</span>`).join('')}</div>` : ''}
         <button class="agv-lnk set2-dc-sm" type="button" data-dc="startMap" data-id="${id}">Label values by hand instead</button></div>`;
     }
     if (DC_SUB[id]) {
-      const have = (d.subs || {})[id] || [], free = DC_SUB[id].filter((x) => have.indexOf(x[0]) < 0);
-      b = `<div class="set2-dc-ps"><span class="agv-k">Subfields</span>
-        ${have.length ? `<div class="set2-dc-vl">${have.map((k) => `<span class="set2-dc-sr"><span><b>${esc(dcSubName(id, k))}</b><i>${esc(dcSubKey(d, id, k))}</i></span>${dcIb('ask', 'Remove ' + dcSubName(id, k), I.x, 'data-what="rmSub" data-id="' + id + '" data-sub="' + k + '"')}</span>`).join('')}</div>` : `<span class="set2-dc-meta">None yet. Add the parts of the ${esc(f.a.toLowerCase())} AiMY should read.</span>`}
-        ${free.length ? `<span class="set2-dc-vals">${free.map((x) => `<button class="agv-chip set2-dc-seen" type="button" data-dc="subAdd" data-id="${id}" data-sub="${x[0]}">${I.plus}${esc(x[1])}</button>`).join('')}</span>` : ''}</div>` + b;
+      /* One list, one switch per part of the record: on, AiMY reads it. */
+      const have = (d.subs || {})[id] || [];
+      b = `<div class="set2-dc-ps"><span class="agv-k">Also read from each ${esc(f.a.toLowerCase())}</span>
+        <div class="set2-dc-vl">${DC_SUB[id].map(([k, nm]) => { const on = have.indexOf(k) > -1;
+          return `<div class="set2-dc-sr is-sw"><span><b>${esc(nm)}</b><i>${esc(dcSubKey(d, id, k))}</i></span>${dcTog(on, (on ? 'Stop reading ' : 'Read ') + f.a + ' ' + nm, 'data-dc-sub="' + id + ':' + k + '"')}</div>`; }).join('')}</div></div>` + b;
     }
     return dcPanHead(esc(f.a) + (DC_SUB[id] ? '' : ' values')) + `<div class="set2-dc-pan-b">${b}</div>`;
   }
@@ -12246,6 +12246,14 @@
     const d = dcCur(); if (!d) return;
     if (t.hasAttribute('data-dc-on')) { const r = d.rules.filter((x) => x.id === t.getAttribute('data-dc-on'))[0]; r.on = t.checked; dcBump(d, 1); afterSwitch(t, render); return; }
     if (t.hasAttribute('data-dc-foc')) { const id = t.getAttribute('data-dc-foc'); if (t.checked) d.focus[id] = DCF[id].a; else delete d.focus[id]; dcBump(d, 2); afterSwitch(t, render); return; }
+    if (t.hasAttribute('data-dc-sub')) {
+      const [id, k] = t.getAttribute('data-dc-sub').split(':'), u = dcSnap(d);
+      d.subs = d.subs || {}; const cur = d.subs[id] || [];
+      d.subs[id] = t.checked ? DC_SUB[id].map((x) => x[0]).filter((x) => x === k || cur.indexOf(x) > -1) : cur.filter((x) => x !== k);
+      dcBump(d, 0); afterSwitch(t, render);
+      if (!t.checked) dcToast('Stopped reading ' + DCF[id].a + ' \u203a ' + dcSubName(id, k) + '.', u);
+      return;
+    }
     if (t.hasAttribute('data-dc-res')) { const id = t.getAttribute('data-dc-res'); d.resolve[id] = t.checked; dcBump(d, 0); afterSwitch(t, render); return; }
     if (t.hasAttribute('data-dc-fname')) { const id = t.getAttribute('data-dc-fname'); d.focus[id] = t.value.trim() || DCF[id].a; dcBump(d, 2); render(); return; }
     if (t.hasAttribute('data-dc-vlab')) { const id = t.dataset.id, p = d.vals[id].filter((v) => v[0] === t.getAttribute('data-dc-vlab'))[0]; if (p && t.value.trim() && t.value.trim() !== p[1]) { p[1] = t.value.trim(); dcBump(d, 0); render(); } return; }

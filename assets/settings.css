@@ -5627,6 +5627,8 @@ button.set2-us-sl:disabled { cursor: not-allowed; }
 .set2-dc-vr { display: grid; grid-template-columns: 3.5rem minmax(0, 1fr) auto; gap: 0.625rem; align-items: center; min-height: 2rem; }
 /* a subfield in the column: name, then its key under it */
 .set2-dc-sr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.625rem; align-items: center; padding: 0.25rem 0; }
+.set2-dc-sr.is-sw { padding: 0.375rem 0.5rem; border-radius: var(--r-lg); }
+.set2-dc-sr.is-sw:hover { background: var(--card-bg-raised); }
 .set2-dc-sr b { display: block; font-weight: var(--fw-semibold); color: var(--ink-primary); }
 .set2-dc-sr i { display: block; font-style: normal; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-secondary); overflow-wrap: anywhere; }
 .set2-dc-vr > i { font-style: normal; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-secondary); }
