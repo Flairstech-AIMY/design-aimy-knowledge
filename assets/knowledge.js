@@ -15633,7 +15633,7 @@
      disagree; the gate, which has no settings.js, carries the same row as a
      fixture. A question costs a rough estimate, added to the session and to
      the plan, so the ring moves as you use it. */
-  const USE_FALLBACK = { limit: 6000, used: 1860, unit: 'tokens', sessLimit: 5000,
+  const USE_FALLBACK = { limit: 6000, used: 1860, unit: 'tokens', slice: 10000, month: 'October', sessLimit: 5000,
                          sessPer: 'per session', resets: '1 Nov',
                          link: 'console.html?m=agents&sec=usage' };
   let USE_SESSION = 1240;
@@ -15642,9 +15642,15 @@
     return S && S.usageMine ? S.usageMine() : USE_FALLBACK;
   };
   const useFmt = (n) => Math.round(n).toLocaleString('en-US');
-  /* Near at 85%, out at 100, the thresholds the Usage page uses. */
-  const useLevel = (used, lim) => lim == null ? ''
-    : (lim <= 0 || used >= lim) ? 'is-err' : used / lim >= 0.85 ? 'is-warn' : '';
+  /* ── Rolling slices (AIMY-2663) ──
+     Nothing runs out. Use is measured in slices, a fixed step per product;
+     the ring is the slice you are in, filling, and it starts again when it
+     fills. What was a limit is a share: past it, the ring and the word turn
+     amber so you know your admin will see it, and nothing stops. There is
+     no red, because there is nothing to be stopped by. */
+  const useLevel = (used, share) => share == null || share <= 0 ? '' : used > share ? 'is-warn' : '';
+  const useSliceN = (u) => Math.floor(u.used / (u.slice || 10000)) + 1;
+  const useSliceP = (u) => (u.used % (u.slice || 10000)) / (u.slice || 10000);
 
   function useSpend(text) {
     /* A question in and an answer out, roughly: a base for the answer plus
@@ -15666,42 +15672,41 @@
      promises a dialog). */
   const useMeter = (p, lv) => `<span class="use-pop-m ${lv}" aria-hidden="true"><i style="--p:${Math.min(1, Math.max(0, p)).toFixed(4)}"></i></span>`;
   function usePopBody(u) {
-    const pct = u.limit > 0 ? Math.min(100, Math.round(u.used / u.limit * 100)) : 100;
-    const plan = useLevel(u.used, u.limit);
+    const past = useLevel(u.used, u.limit);
     const sess = useLevel(USE_SESSION, u.sessLimit);
-    const sPct = u.sessLimit > 0 ? Math.min(100, Math.round(USE_SESSION / u.sessLimit * 100)) : 100;
+    const sp = useSliceP(u);
     return `
       <div class="use-pop-g">
-        <div class="use-pop-r"><span>Plan</span>
-          <b class="${plan}">${plan === 'is-err' ? 'Limit reached' : pct + '% used'}</b></div>
-        ${useMeter(u.limit > 0 ? u.used / u.limit : 1, plan)}
-        <p class="use-pop-s"><b>${useFmt(u.used)}</b> of ${useFmt(u.limit)} ${esc(u.unit)}, resets ${esc(u.resets)}</p>
+        <div class="use-pop-r"><span>${esc(u.month || 'This month')}</span>
+          <b>Slice ${useSliceN(u)}, ${Math.round(sp * 100)}% full</b></div>
+        ${useMeter(sp, '')}
+        <p class="use-pop-s"><b>${useFmt(u.used)}</b> ${esc(u.unit)} so far. ${past
+          ? `<span class="is-warn">${useFmt(u.used - u.limit)} past your share of ${useFmt(u.limit)}</span>; you can keep going.`
+          : `Your share is ${useFmt(u.limit)}.`}</p>
       </div>
       <div class="use-pop-g">
-        <div class="use-pop-r"><span>Session</span>
-          <b class="${sess}">${u.sessLimit == null ? useFmt(USE_SESSION) + ' ' + esc(u.unit)
-            : sess === 'is-err' ? 'Limit reached' : sPct + '% used'}</b></div>
-        ${u.sessLimit == null ? '' : useMeter(u.sessLimit > 0 ? USE_SESSION / u.sessLimit : 1, sess)}
-        <p class="use-pop-s">${u.sessLimit == null ? 'No session limit'
-          : sess === 'is-err' ? 'Start a new conversation to keep going.'
-          : `<b>${useFmt(USE_SESSION)}</b> of ${useFmt(u.sessLimit)} ${esc(u.unit)} this ${esc(String(u.sessPer || 'per session').replace(/^per /, ''))}`}</p>
+        <div class="use-pop-r"><span>This conversation</span>
+          <b class="${sess}">${useFmt(USE_SESSION)} ${esc(u.unit)}</b></div>
+        <p class="use-pop-s">${u.sessLimit == null ? 'No session share'
+          : sess ? `<span class="is-warn">Past the ${useFmt(u.sessLimit)} share for one session</span>; you can keep going.`
+          : `Share for one session: ${useFmt(u.sessLimit)} ${esc(u.unit)}`}</p>
       </div>
-      <a class="use-pop-a" href="${esc(u.link)}"><span>Usage and plan</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>`;
+      <a class="use-pop-a" href="${esc(u.link)}"><span>Usage</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>`;
   }
 
   /* The ring shows the WORSE of the two limits, because either one is the
      one that stops you: a session can run out long before the month does. */
   function paintUseMark() {
     const u = useNow();
-    const p = u.limit > 0 ? Math.min(1, u.used / u.limit) : 1;
+    const p = useSliceP(u);
     const lv = [useLevel(u.used, u.limit), useLevel(USE_SESSION, u.sessLimit)];
-    const worst = lv.indexOf('is-err') > -1 ? 'is-err' : lv.indexOf('is-warn') > -1 ? 'is-warn' : '';
-    const pct = Math.round(p * 100) + '% of your plan used'
-      + (worst === 'is-err' ? ', limit reached' : worst === 'is-warn' ? ', near the limit' : '');
+    const worst = lv.indexOf('is-warn') > -1 ? 'is-warn' : '';
+    const pct = 'slice ' + useSliceN(u) + ', ' + Math.round(p * 100) + '% full'
+      + (worst ? ', past your share' : '');
     $$(USE_MARK).forEach((el) => {
       el.classList.add('has-use');
       el.classList.toggle('is-warn', worst === 'is-warn');
-      el.classList.toggle('is-err', worst === 'is-err');
+      el.classList.remove('is-err');
       el.style.setProperty('--use', p.toFixed(4));
       /* The workbench's mark keeps saying what pressing it does; the usage
          is added after, so a screen reader hears both. */

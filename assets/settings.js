@@ -3643,15 +3643,15 @@
      nothing. */
   const US_METERS = [
     { id: 'copilot', name: 'Copilot', unit: 'tokens', depth: 4,
-      sess: { per: 'per session', d: 'The most one Copilot session can use, for anyone in this '
-        + 'organization. A session that reaches it ends, and the person starts a new one.' } },
+      sess: { per: 'per session', d: 'What one Copilot session is expected to use, for anyone in this '
+        + 'organization. A session that goes past it keeps going and is flagged here.' } },
     { id: 'qa', name: 'QA', unit: 'tickets', depth: 4,
-      sess: { per: 'per working day', d: 'A QA session is a whole working day, so this is the most '
-        + 'tickets one person in this organization can take in a day.' } },
+      sess: { per: 'per working day', d: 'A QA session is a whole working day, so this is how many '
+        + 'tickets one person in this organization is expected to take in a day. Past it, nobody is stopped.' } },
     { id: 'voice', name: 'Voice', unit: 'minutes', depth: 3, sess: null }
   ];
   const usMeter = (id) => US_METERS.filter((x) => x.id === id)[0] || US_METERS[0];
-  const US_LEVEL = ['Plan', 'Organization', 'Company', 'Product', 'Employee'];
+  const US_LEVEL = ['Workspace', 'Organization', 'Company', 'Product', 'Employee'];
   const US_PLURAL = ['plans', 'organizations', 'companies', 'products', 'employees'];
   const US_ICO = ['', 'org', 'co', 'pkg', ''];
 
@@ -3871,18 +3871,57 @@
     if (!mt) return NaN;
     return Math.round(parseFloat(mt[1]) * (mt[2] === 'k' ? 1e3 : mt[2] === 'm' ? 1e6 : 1));
   }
-  /* Near at 85%, out at 100. Said in a pill, never by fading the row. */
+  /* ── ROLLING SLICES (AIMY-2663, Nour 20 Oct: the slice strip) ──
+     There is no ceiling. Use is counted in units and measured in slices, a
+     fixed step per product that is the same for the whole workspace; when
+     one fills the next begins and nothing stops. A slice is a measuring
+     step, not something bought. What used to be a limit is a SHARE: what a
+     company or person is expected to use this month. Going past it is
+     flagged for an admin, never blocked. The top level's number is what
+     everyone is expected to use, so the shares under it still split
+     something, but the page never draws it as an end. */
+  const US_SLICE = { copilot: 10000, qa: 500, voice: 250 };
+  /* last month, for the pace to be read against */
+  const US_PREV = { name: 'September', copilot: 431000, qa: 9180, voice: 3920 };
+  const usSliceN = (m, u) => Math.floor(u / US_SLICE[m.id]) + 1;     /* the slice the next unit lands in */
+  const usSliceP = (m, u) => (u % US_SLICE[m.id]) / US_SLICE[m.id];   /* how full it is */
+  const usSlices = (m, u) => Math.max(1, Math.ceil(u / US_SLICE[m.id]));
+  /* Past a share, or close to it. Said in a pill and in words, never by
+     fading the row; amber, not red, because nothing has stopped. */
   function usStanding(used, lim) {
-    if (lim <= 0) return used > 0 ? ['is-err', 'No allowance'] : null;
+    if (lim <= 0) return used > 0 ? ['is-warn', 'Past share'] : null;
     const r = used / lim;
-    if (r >= 1) return ['is-err', 'At limit'];
-    if (r >= 0.85) return ['is-warn', 'Near limit'];
+    if (r > 1) return ['is-warn', 'Past share'];
+    if (r >= 0.85) return ['is-info', 'Close to share'];
     return null;
+  }
+  /* The strip: one cell per slice. Full ones solid, the current one filling
+     from the bottom, the rest of the month at today's pace dashed. With a
+     share, a mark sits after the cell where the share ends and cells past
+     it turn amber. Past `max` cells, one cell stands for several slices and
+     the key says so. */
+  function usCells(m, used, share, max) {
+    const z = US_SLICE[m.id], n = usSliceN(m, used);
+    const fore = Math.max(n, Math.ceil(used / US_PERIOD.day * US_PERIOD.days / z));
+    const sh = share ? Math.max(1, Math.ceil(share / z)) : 0;
+    const tot = Math.max(fore, sh);
+    const q = Math.max(1, Math.ceil(tot / max));
+    let out = '';
+    for (let i = 1; i <= Math.ceil(tot / q); i++) {
+      const hi = i * q, lo = hi - q + 1;
+      const full = hi < n, cur = !full && lo <= n && n <= hi;
+      const p = full ? 1 : cur ? Math.max(0.04, usSliceP(m, used)) : 0;
+      const over = sh && (full || cur) && hi > sh;
+      const end = sh && lo <= sh && sh <= hi;
+      const fc = !full && !cur && lo <= fore;
+      out += `<span class="set2-us-cell${full ? ' is-full' : ''}${fc ? ' is-fore' : ''}${over ? ' is-over' : ''}${end ? ' is-share' : ''}"><i style="--p:${p.toFixed(3)}"></i></span>`;
+    }
+    return { html: out, q: q, n: n, fore: fore, sh: sh };
   }
   const usPct = (used, lim) => lim > 0 ? Math.min(1, used / lim) : (used > 0 ? 1 : 0);
   const usFillCls = (used, lim) => {
     const s = usStanding(used, lim);
-    return s ? (s[0] === 'is-err' ? ' is-err' : ' is-warn') : '';
+    return s && s[1] === 'Past share' ? ' is-warn' : '';
   };
 
   /* Where the page stands, all from the URL.
@@ -3986,13 +4025,13 @@
       const used = usUsed(m, k.id);
       if (used > lim) row[k.id] = ['is-warn', usFmt(used) + ' already used'];
     });
-    if (sp.over > 0) errs.unshift('Set limits add up to ' + usFmt(sp.fixed) + ', which is '
+    if (sp.over > 0) errs.unshift('Set shares add up to ' + usFmt(sp.fixed) + ', which is '
       + usFmt(sp.over) + ' over ' + parent + '’s ' + usFmt(sp.L) + '.');
     else if (sp.auto && sp.each === 0) warns.push('Nothing is left for the ' + sp.auto
       + (sp.auto === 1 ? ' row' : ' rows') + ' on an equal share.');
     const over = Object.keys(row).filter((k) => row[k][0] === 'is-warn').length;
-    if (over) warns.push(over + (over === 1 ? ' limit is' : ' limits are')
-      + ' below what is already used. Those stop until ' + US_PERIOD.resets + '.');
+    if (over) warns.push(over + (over === 1 ? ' share is' : ' shares are')
+      + ' below what is already used. They show as past their share; nobody is stopped.');
     return { sp: sp, row: row, errs: errs, warns: warns };
   }
 
@@ -4023,7 +4062,6 @@
                       aria-checked="${x.id === m.id}" tabindex="${x.id === m.id ? 0 : -1}"
                       data-us-meter="${x.id}">${esc(x.name)}<span class="set2-us-unit">${esc(x.unit)}</span></button>`).join('')}
           </div>
-          <p class="set2-us-reset">${I.calendar}<span>Resets <b>${US_PERIOD.resets}</b>, in ${US_PERIOD.left} days</span></p>
         </div>
         ${pl.people ? usHero(m, id) + usAlloc(m, id, st) : usLadder(pl, st)}
       </section>`;
@@ -4055,7 +4093,7 @@
   function usLadder(pl, st) {
     const path = pl.path.slice(0, pl.path.indexOf(pl.id) + 1);
     return `
-      <ol class="set2-us-path" aria-label="The ${esc(pl.m.name)} plan, down to the level you are on">
+      <ol class="set2-us-path" aria-label="${esc(pl.m.name)} usage, from everyone down to the level you are on">
         ${path.map((id, i) => usLv(pl.m, id, pl.path[i + 1], id === pl.id, st)).join('')}
       </ol>`;
   }
@@ -4063,7 +4101,7 @@
   function usLv(m, id, next, open, st) {
     const x = usAt(id);
     const d = x.depth;
-    const name = id ? x.n.name : m.name + ' plan';
+    const name = id ? x.n.name : 'Everyone';
     const ico = `<span class="set2-us-lv-ico" aria-hidden="true">${d ? I[US_ICO[d]] : I.gauge}</span>`;
     const head = `<span class="set2-us-lv-k">${esc(US_LEVEL[d])}</span><span class="set2-us-lv-n">${esc(name)}</span>`;
     if (open) return `
@@ -4079,7 +4117,7 @@
       </li>`;
     const L = usLimit(m, id);
     const used = usUsed(m, id);
-    const pace = usPaceWord(used, L);
+    const pace = usPaceWord(m, used, id ? L : 0);
     const lock = US_EDIT ? ' disabled title="Save or cancel the limits you are editing first"' : '';
     return `
       <li class="set2-us-lv${next != null ? ' is-path' : ''}">
@@ -4087,7 +4125,7 @@
         <div class="set2-us-lv-box">
           <div class="set2-us-lv-hd">
             <button class="set2-us-lv-go" type="button" data-us-go="${esc(id)}" aria-expanded="false"${lock}>${head}</button>
-            <span class="set2-us-lv-fig"><b class="set2-num">${usFmt(used)}</b> of ${usFmt(L)} ${esc(m.unit)}</span>
+            <span class="set2-us-lv-fig"><b class="set2-num">${usFmt(used)}</b> ${esc(m.unit)}, slice ${usSliceN(m, used)}</span>
             <span class="set2-us-lv-pace ${pace[0]}">${esc(pace[1])}</span>
             <span class="set2-us-lv-ch">${I.chevD}</span>
           </div>
@@ -4098,15 +4136,14 @@
 
   /* The pace headline, short enough for a folded level's line. The card's
      own "At this pace" says the same thing at length when it is unfolded. */
-  function usPaceWord(used, L) {
-    const P = US_PERIOD;
-    const rate = used / P.day;
-    if (used >= L) return ['is-err', 'Spent'];
+  function usPaceWord(m, used, L) {
+    const P = US_PERIOD, rate = used / P.day, proj = rate * P.days;
     if (!rate) return ['', 'Nothing used yet'];
-    if (rate * P.days > L) return ['is-warn', 'Runs out around ' + Math.floor(P.day + (L - used) / rate) + ' ' + P.short];
-    const pct = Math.round(rate * P.days / L * 100);
-    return [pct >= 90 ? 'is-warn' : 'is-ok', 'Ends ' + P.name + ' at ' + pct + '%'];
+    if (L && used > L) return ['is-warn', 'Past its share'];
+    if (L && proj > L) return ['is-warn', 'Passes its share around ' + Math.floor(P.day + (L - used) / rate) + ' ' + P.short];
+    return [L ? 'is-ok' : '', 'About ' + usSlices(m, proj) + ' slices in ' + P.name];
   }
+
 
   /* A folded level's split, small: each child's share with its use in it,
      the one on your path lit and always named. The names are buttons, so a
@@ -4215,34 +4252,31 @@
     const bad = usStanding(used, L);
     const p = usPct(used, L);
     const parent = x.parent != null ? usAt(x.parent).n : null;
-    const where = parent && parent.id ? parent.name : 'the plan';
-    const src = !id ? 'your monthly plan'
-      : US_SET[m.id][id] != null ? 'set by admin on ' + where : 'an equal share of ' + where;
-    const today = US_PERIOD.day / US_PERIOD.days;
+    const where = parent && parent.id ? parent.name : 'everyone';
+    const src = US_SET[m.id][id] != null ? 'set by admin' + (parent && parent.id ? ' on ' + where : '')
+      : parent && parent.id ? 'an equal share of ' + where + '’s' : 'an equal share of what everyone is expected to use';
+    const c = usCells(m, used, id ? L : 0, 60);
+    const z = US_SLICE[m.id];
+    const fp = Math.round(usSliceP(m, used) * 100);
     return `
       <div class="set2-us-hero">
         <div class="set2-us-now">
           <!-- The mark first in the head, which is where the AiMY block puts
                it: the card is AiMY's, said once, at the top, in the brand's
                own symbol rather than a word. -->
-          <span class="set2-us-k">${AIMY_MK(12, 14)}<span>${id ? esc(x.n.name) + ' · ' : ''}Used in ${
+          <span class="set2-us-k">${AIMY_MK(12, 14)}<span>${id ? esc(x.n.name) : 'Everyone'} · Used in ${
             US_PERIOD.name}</span>
             ${bad ? pill(bad[0], bad[1]) : ''}</span>
           <p class="set2-us-big"><b class="set2-num">${usFmt(used)}</b>
-            <span>of ${usFmt(L)} ${esc(m.unit)}, ${esc(src)}</span></p>
-          <div class="set2-us-m is-lg" role="meter" aria-valuemin="0" aria-valuemax="${L}"
-               aria-valuenow="${used}" aria-label="${esc(m.unit)} used">
-            <i class="set2-us-fill${usFillCls(used, L)}" style="--p:${p.toFixed(4)}"></i>
-            <i class="set2-us-today" style="--x:${today.toFixed(4)}"></i>
-          </div>
-          <div class="set2-us-scale" aria-hidden="true"><span>0</span><span>25%</span><span>50%</span>
-            <span>75%</span><span>100%</span></div>
-          <p class="set2-us-left"><b class="set2-num">${usFmt(Math.max(0, L - used))}</b> left
-            <span class="set2-us-dot">·</span> ${Math.round(p * 100)}% used
-            <span class="set2-us-dot">·</span> the tick is today, ${Math.round(today * 100)}% into ${US_PERIOD.name}</p>
+            <span>${esc(m.unit)}, ${c.n - 1 === 1 ? '1 slice' : (c.n - 1) + ' slices'} full and slice ${c.n} at ${fp}%</span></p>
+          <div class="set2-us-cells" role="img" aria-label="${c.n - 1} slices full, slice ${c.n} ${fp}% full${
+            id ? ', its share ends after slice ' + c.sh : ''}">${c.html}</div>
+          <p class="set2-us-key"><span><i></i>Used</span><span><i class="is-fore"></i>The rest of ${US_PERIOD.name} at today’s pace</span>${
+            id ? `<span><i class="is-share"></i>Share: ${usFmt(L)}, ${esc(src)}</span>` : ''}<span>${
+            c.q > 1 ? 'A cell is ' + c.q + ' slices of ' + usFmt(z) : 'A cell is one slice, ' + usFmt(z)} ${esc(m.unit)}</span></p>
         </div>
         <dl class="set2-us-facts">
-          ${usPaceFact(m, used, L)}
+          ${usPaceFact(m, used, L, id)}
           ${usWatchFact(m, id)}
           ${x.depth === 1 ? usSessFact(m, id) : usTopFact(m, id, used)}
         </dl>
@@ -4253,37 +4287,27 @@
      Straight-line from the days gone: honest about being a projection (the
      caption says "at this pace"), and the one number that turns a limit
      from a figure you read into a date you plan around. */
-  function usPaceFact(m, used, L) {
+  function usPaceFact(m, used, L, id) {
     const P = US_PERIOD;
     const rate = used / P.day;
-    let b, s, cls;
-    if (used >= L) {
-      b = 'Spent'; cls = 'is-err';
-      s = 'Nothing left until ' + P.resets;
-    } else if (!rate) {
-      b = 'Nothing used yet'; cls = '';
-      s = 'No pace to project from';
-    } else if (rate * P.days > L) {
-      const out = Math.floor(P.day + (L - used) / rate);
-      b = 'Runs out around ' + out + ' ' + P.short; cls = 'is-warn';
-      s = (P.days - out) + ' days before the reset, at ' + usFmt(rate) + ' a day';
-    } else {
-      /* "On pace for 99%" left the reader to work out 99% OF WHAT, BY WHEN.
-         It says the month and "used" now, and the caption gives the figure
-         it was worked from. And 99% is not good news: it lasts, with nothing
-         to spare, so from 90% it is amber and the caption says so in words,
-         not only in colour. Green is kept for real headroom. */
-      const proj = rate * P.days;
-      const pct = Math.round(proj / L * 100);
-      const close = pct >= 90;
-      b = 'Ends ' + P.name + ' at ' + pct + '% used'; cls = close ? 'is-warn' : 'is-ok';
-      s = (close ? 'Little to spare: about ' : 'About ') + usFmt(Math.round(proj / 100) * 100)
-        + ' of ' + usFmt(L) + ', at ' + usFmt(rate) + ' a day';
+    const proj = rate * P.days;
+    let b, t, cls = '';
+    if (!rate) { b = 'Nothing used yet'; t = 'No pace to project from'; }
+    else {
+      b = 'About ' + usSlices(m, proj) + ' slices in ' + P.name;
+      t = 'About ' + usFmt(Math.round(proj / 100) * 100) + ' ' + m.unit + ', at ' + usFmt(rate) + ' a day';
+      if (!id) t += '. ' + US_PREV.name + ' used ' + usSlices(m, US_PREV[m.id]);
+      else if (proj > L) {
+        /* the day the share is passed, not a day anything stops */
+        const on = Math.floor(P.day + Math.max(0, L - used) / rate);
+        cls = 'is-warn';
+        t += used > L ? '; already past its share of ' + usFmt(L) : '; passes its share of ' + usFmt(L) + ' around ' + on + ' ' + P.short;
+      } else t += '; within its share of ' + usFmt(L);
     }
     return `
       <div class="set2-us-fact">
         <dt>At this pace</dt>
-        <dd><b class="${cls}">${esc(b)}</b><span>${esc(s)}</span></dd>
+        <dd><b class="${cls}">${esc(b)}</b><span>${esc(t)}</span></dd>
       </div>`;
   }
 
@@ -4297,13 +4321,13 @@
     const out = [], near = [];
     leaves.forEach((k) => {
       const s = usStanding(usUsed(m, k), usLimit(m, k));
-      if (s && s[0] === 'is-err') out.push(k); else if (s) near.push(k);
+      if (s && s[1] === 'Past share') out.push(k); else if (s) near.push(k);
     });
     const who = m.depth === 4 ? ['person', 'people'] : ['product', 'products'];
     const list = out.concat(near);
-    const b = out.length ? out.length + ' at limit' + (near.length ? ', ' + near.length + ' near' : '')
-      : near.length ? near.length + ' near limit' : 'No ' + who[0] + ' near a limit';
-    const cls = out.length ? 'is-err' : near.length ? 'is-warn' : 'is-ok';
+    const b = out.length ? out.length + ' past their share' + (near.length ? ', ' + near.length + ' close' : '')
+      : near.length ? near.length + ' close to their share' : 'No ' + who[0] + ' past a share';
+    const cls = out.length ? 'is-warn' : near.length ? '' : 'is-ok';
     /* A person opens their product's employees page; a product (Voice)
        unfolds itself on the path. */
     const names = list.slice(0, 2).map((k) => `<button class="set2-us-who" type="button"
@@ -4311,10 +4335,10 @@
         esc(usAt(k).n.name)}</button>`).join(', ');
     return `
       <div class="set2-us-fact">
-        <dt>Blocked or close</dt>
+        <dt>Past or close to their share</dt>
         <dd><b class="${cls}">${esc(b)}</b><span>${list.length
           ? names + (list.length > 2 ? ` and ${list.length - 2} more` : '')
-          : `All ${leaves.length} ${who[1]} under 85% of their limit`}</span></dd>
+          : `All ${leaves.length} ${who[1]} under 85% of their share`}</span></dd>
       </div>`;
   }
 
@@ -4332,7 +4356,7 @@
         <dt>Most used by</dt>
         <dd><b>${deeper ? `<button class="set2-us-who is-strong" type="button"
               data-us-go="${esc(top.k.id)}">${esc(top.k.name)}</button>` : esc(top.k.name)}</b>
-          <span>${Math.round(top.u / used * 100)}% of ${esc(id ? usAt(id).n.name : 'the plan')}’s use,
+          <span>${Math.round(top.u / used * 100)}% of ${esc(id ? usAt(id).n.name + '’s' : 'everyone’s')} use,
             ${usFmt(top.u)} ${esc(m.unit)}</span></dd>
       </div>`;
   }
@@ -4340,23 +4364,23 @@
   function usSessFact(m, id) {
     if (!m.sess) return `
       <div class="set2-us-fact">
-        <dt>Session limit</dt>
+        <dt>Session share</dt>
         <dd><b>Not used</b><span>Voice calls are not grouped into sessions</span></dd>
       </div>`;
     const v = US_SESS[m.id][id];
     const ed = US_SESS_ED;
     if (ed) return `
       <div class="set2-us-fact is-edit">
-        <dt><label for="usSessIn">Session limit</label></dt>
+        <dt><label for="usSessIn">Session share</label></dt>
         <dd>
           <span class="set2-us-sess-row">
             <input class="set2-fld set2-us-in${ed.err ? ' is-bad' : ''}" id="usSessIn" data-us-sess-in
-                   value="${esc(ed.v)}" placeholder="No limit" inputmode="numeric" autocomplete="off"
+                   value="${esc(ed.v)}" placeholder="No share" inputmode="numeric" autocomplete="off"
                    aria-describedby="usSessHint">
             <span class="set2-us-per">${esc(m.unit)} ${esc(m.sess.per)}</span>
           </span>
           <span class="set2-hint${ed.err ? ' is-err' : ''}" id="usSessHint"${ed.err ? ' role="alert"' : ''}>${
-            esc(ed.err || 'Leave empty for no limit.')}</span>
+            esc(ed.err || 'Leave empty for no session share.')}</span>
           <span class="set2-us-sess-act">
             <button class="btn btn-ghost btn-sm" type="button" data-us-sess-cancel>Cancel</button>
             <button class="btn btn-brand btn-sm" type="button" data-us-sess-save>Save</button>
@@ -4365,9 +4389,9 @@
       </div>`;
     return `
       <div class="set2-us-fact">
-        <dt>Session limit ${tip('usSessTip', 'the session limit', m.sess.d)}</dt>
-        <dd><b>${v == null ? 'No limit' : usFmt(v) + ' ' + esc(m.unit)}</b>
-          <span>${v == null ? 'A session can use the whole allowance' : esc(m.sess.per)}</span></dd>
+        <dt>Session share ${tip('usSessTip', 'the session share', m.sess.d)}</dt>
+        <dd><b>${v == null ? 'No share' : usFmt(v) + ' ' + esc(m.unit)}</b>
+          <span>${v == null ? 'Sessions aren’t compared with a share' : esc(m.sess.per) + ', expected, not enforced'}</span></dd>
         <button class="btn btn-ghost btn-sm set2-us-fact-ed" type="button" data-us-sess-open="${esc(id)}">Edit</button>
       </div>`;
   }
@@ -4397,10 +4421,10 @@
     return `
       <div class="set2-us-alloc${ed ? ' is-edit' : ''}${fresh ? ' is-fresh' : ''}">
         <div class="set2-lbl-row set2-us-hd">
-          <p class="set2-lbl">Split across ${esc(noun)}</p>
+          <p class="set2-lbl">Shares across ${esc(noun)}</p>
           ${tip('usSplitTip', 'how the split works', 'Anyone not set by hand gets an equal share of '
             + 'what is left after the ones that are. Together they can never be more than '
-            + (id ? name : 'the plan') + '.')}
+            + (id ? name + '’s share' : 'what everyone is expected to use') + '. A share is an expectation: going past it is flagged, never stopped.')}
           <span class="set2-us-hd-end">
             ${kids.length > 8 ? `
               <div class="k-search set2-us-q${q ? ' is-on' : ''}">
@@ -4413,14 +4437,14 @@
               </div>` : ''}
             ${ed ? `<span class="set2-us-mode">Editing</span>
                    <button class="btn btn-ghost btn-sm set2-us-hb" type="button" data-us-even${usAnySet() ? '' : ' disabled'}
-                            title="Clear every hand-set limit on this level">${I.reset}Split equally</button>`
-                 : `<button class="btn btn-ghost btn-sm set2-us-hb" type="button" data-us-edit>${I.pencil}Edit limits</button>`}
+                            title="Clear every hand-set share on this level">${I.reset}Share equally</button>`
+                 : `<button class="btn btn-ghost btn-sm set2-us-hb" type="button" data-us-edit>${I.pencil}Edit shares</button>`}
           </span>
         </div>
         <div data-us-stack>${usStack(m, kids, sp)}</div>
         <div class="set2-us-list${ed ? ' is-edit' : ''}" role="list" aria-label="${esc(noun)} in ${esc(name)}">
           <div class="set2-us-r is-hd" aria-hidden="true">
-            <span></span><span>${esc(US_LEVEL[depth + 1])}</span><span>Used</span><span class="set2-us-r-lim">Limit</span><span></span>
+            <span></span><span>${esc(US_LEVEL[depth + 1])}</span><span>Used, by slice</span><span class="set2-us-r-lim">Share</span><span></span>
           </div>
           ${rows.map((k) => usRow(m, k, sp, ck, back)).join('')}
           ${rows.length ? '' : `<p class="set2-us-none">No ${esc(noun)} in ${esc(name)} match
@@ -4429,7 +4453,7 @@
         ${(() => { const out = (usAt(id).n.kids || []).filter((k) => usAt(id).depth < m.depth && (US_NOT[m.id] || {})[k.id]);
           return out.length ? `<p class="set2-us-when">${out.map((k) => esc(k.name)).join(', ')} ${out.length > 1 ? 'don’t' : 'doesn’t'} use ${esc(m.name)}.</p>` : ''; })()}
         ${ed ? `<div class="set2-us-bar" data-us-bar>${usBar(ck)}</div>`
-             : when ? `<p class="set2-us-when">Split last changed ${esc(when[0])} by ${esc(when[1])}</p>` : ''}
+             : when ? `<p class="set2-us-when">Shares last changed ${esc(when[0])} by ${esc(when[1])}</p>` : ''}
       </div>`;
   }
 
@@ -4475,8 +4499,8 @@
       const u = usUsed(o, k.id), L = usLimit(o, k.id), bad = usStanding(u, L);
       return `<button class="set2-us-also-b" type="button" data-us-also="${o.id}|${esc(k.id)}"
           title="Open ${esc(k.name)} in ${esc(o.name)}"><b>${esc(o.name)}</b>
-        <span><span class="set2-us-also-l">${usFmt(u)} of ${usFmt(L)}</span><span class="set2-us-also-s">${usShort(u)} of ${usShort(L)}</span> ${esc(o.unit)}</span>
-        ${bad ? pill(bad[0], bad[1]) : `<span class="set2-us-m"><i class="set2-us-fill${usFillCls(u, L)}" style="--p:${usPct(u, L).toFixed(4)}"></i></span>`}
+        <span><span class="set2-us-also-l">${usFmt(u)}</span><span class="set2-us-also-s">${usShort(u)}</span> ${esc(o.unit)}, slice ${usSliceN(o, u)}</span>
+        ${bad && bad[1] === 'Past share' ? pill(bad[0], bad[1]) : ''}
         ${I.chev || ''}</button>`;
     }).join('')}</span>`;
   }
@@ -4508,7 +4532,7 @@
                                                                    : US_PLURAL[x.depth + 1])] : [];
       if (x.depth === 1 && m.sess) {
         const s = US_SESS[m.id][k.id];
-        bits.push(s == null ? 'no session limit' : usFmt(s) + ' ' + m.sess.per);
+        bits.push(s == null ? 'no session share' : usFmt(s) + ' ' + m.sess.per);
       }
       return bits.join(' · ');
     })();
@@ -4533,8 +4557,8 @@
         ${x.depth === 2 && !US_EDIT ? usAlso(m, k) : ''}
         <span class="set2-us-use">
           <span class="set2-us-use-t"><b class="set2-num">${usFmt(used)}</b>
-            ${bad ? pill(bad[0], bad[1]) : `<span class="set2-us-pc">${Math.round(usPct(used, lim) * 100)}%</span>`}</span>
-          <span class="set2-us-m"><i class="set2-us-fill${usFillCls(used, lim)}" style="--p:${usPct(used, lim).toFixed(4)}"></i></span>
+            ${bad ? pill(bad[0], bad[1]) : `<span class="set2-us-pc">slice ${usSliceN(m, used)}</span>`}</span>
+          <span class="set2-us-cells is-sm" aria-hidden="true">${usCells(m, used, lim, 24).html}</span>
         </span>
         <span class="set2-us-r-lim">
           ${US_EDIT ? `
@@ -4544,7 +4568,7 @@
               <input class="set2-us-fx-i${flag && flag[0] === 'is-err' ? ' is-bad' : ''}"
                      data-us-in="${esc(k.id)}" value="${esc(US_EDIT.vals[k.id] != null ? US_EDIT.vals[k.id] : '')}"
                      placeholder="${usFmt(lim)}" inputmode="numeric" autocomplete="off"
-                     aria-label="${esc(k.name)}’s limit, in ${esc(m.unit)}. Empty for an equal share.">
+                     aria-label="${esc(k.name)}’s share, in ${esc(m.unit)}. Empty for an equal share.">
             </span>
             <span class="set2-us-src${isSet ? ' is-set' : ''}" data-us-src="${esc(k.id)}">${
               flag ? `<span class="set2-us-flag ${flag[0]}">${esc(flag[1])}</span>`
@@ -4576,7 +4600,7 @@
         ck.errs.length + ck.warns.length > 1 ? ` <span class="set2-us-more" title="${esc(ck.errs.concat(ck.warns).slice(1).join(' '))}">+${
           ck.errs.length + ck.warns.length - 1} more</span>` : ''}</span></span>
       <button class="btn btn-ghost btn-sm" type="button" data-us-cancel>Cancel</button>
-      <button class="btn btn-brand btn-sm" type="button" data-us-save${ck.errs.length ? ' disabled aria-disabled="true"' : ''}>Save limits</button>`;
+      <button class="btn btn-brand btn-sm" type="button" data-us-save${ck.errs.length ? ' disabled aria-disabled="true"' : ''}>Save shares</button>`;
   }
 
   /* Typing re-divides the equal shares as you go, without a repaint: the
@@ -4649,7 +4673,7 @@
     const m = usMeter(ed.meter);
     const v = usParse(ed.v);
     if (v != null && (isNaN(v) || v <= 0)) {
-      ed.err = 'Use a whole number above 0, or leave it empty for no limit.';
+      ed.err = 'Use a whole number above 0, or leave it empty for no session share.';
       render(() => { const f = $('[data-us-sess-in]'); if (f) f.focus(); });
       return;
     }
@@ -4739,11 +4763,10 @@
     let near = 0;
     leaves.forEach((id) => {
       const s = usStanding(usUsed(m, id), usLimit(m, id));
-      if (s && s[0] === 'is-err') out++; else if (s) near++;
+      if (s && s[1] === 'Past share') out++; else if (s) near++;
     });
-    if (out) return { note: out + ' at limit', s: 'err' };
-    if (near) return { note: near + ' near limit', s: 'warn' };
-    return { note: Math.round(usPct(usUsed(m, ''), US_PLAN[m.id]) * 100) + '% used', s: '' };
+    if (out) return { note: out + ' past share', s: 'warn' };
+    return { note: 'Slice ' + usSliceN(m, usUsed(m, '')), s: '' };
   }
 
   /* ── Reading a tone file ──
@@ -12122,7 +12145,7 @@
   function usageMine() {
     const m = usMeter(US_ME.meter);
     usForget();
-    return { limit: usLimit(m, US_ME.id), used: usUsed(m, US_ME.id), unit: m.unit,
+    return { limit: usLimit(m, US_ME.id), used: usUsed(m, US_ME.id), unit: m.unit, slice: US_SLICE[m.id], month: US_PERIOD.name,
              sessLimit: m.sess ? US_SESS[m.id][US_ME.org] : null, sessPer: m.sess ? m.sess.per : '',
              resets: US_PERIOD.resets,
              /* The page as the rail opens it: the plan, all organisations.
