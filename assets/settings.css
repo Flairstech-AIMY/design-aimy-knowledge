@@ -5558,7 +5558,7 @@ button.set2-us-sl:disabled { cursor: not-allowed; }
 .set2-dc-alert { background: var(--err-bg); box-shadow: inset 0 0 0 0.0625rem var(--err-border); }
 .set2-dc-alert > svg { color: var(--ink-err); }
 .set2-dc-ai { background: var(--aimy-wash); box-shadow: inset 0 0 0 0.0625rem var(--aimy-wash-edge); }
-.set2-dc-ai > svg.agv-mk { width: 0.8125rem; height: 0.9375rem; }
+.set2-dc-ai > svg.agv-mk { width: 1.125rem; height: 1.25rem; }
 
 /* test a ticket (steps 2 and 3) */
 .set2-dc-test2 { display: grid; gap: 0.625rem; padding: 0.75rem 0.875rem; border-radius: 1rem; background: var(--card-bg-raised); }
