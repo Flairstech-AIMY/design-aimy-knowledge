@@ -7346,13 +7346,13 @@
       return `<div class="set2-dc-r is-foc${isOn ? ' is-sel' : ''}" data-name="${esc(nm)}"${dcMiss(DCU.qf, nm) ? ' hidden' : ''}>${dcTog(isOn, 'Search by ' + f.a, 'data-dc-foc="' + f.id + '"')}
         <span class="set2-dc-n">${esc(f.a)}<span class="set2-dc-at" title="Type guard">${dcGuard(f).t}</span></span>
         ${isOn ? `<input class="set2-dc-u" data-dc-fname="${f.id}" value="${esc(d.focus[f.id])}" aria-label="Name the agent sees for ${esc(f.a)}" title="Name the agent sees">
-          <span class="set2-dc-key is-tag" title="Tag it makes for #${t.no}">cf_${f.al}=${esc(dcSlug(dcTv(t, f.id)).slice(0, 22))}</span>` : '<span></span><span></span>'}</div>`;
+          <span class="set2-dc-key is-tag" title="Each ticket gets this tag with its own value, like cf_${f.al}=${esc(dcSlug(dcTv(t, f.id)))}">cf_${f.al}</span>` : '<span></span><span></span>'}</div>`;
     }).join('');
     const why = { text: 'free text', person: 'a person', date: 'a date' };
     const groups = {};
     no.forEach((f) => { (groups[f.t] = groups[f.t] || []).push(f.a); });
     const blocked = no.length ? `<p class="set2-dc-none">Can’t be searched by: ${Object.keys(groups).map((t) => groups[t].join(', ') + ' (' + why[t] + ')').join('; ')}.</p>` : '';
-    return `${top}${dcTestBox(d, 2)}<div class="set2-dc-th is-foc"><span class="agv-k">Use</span><span class="agv-k">Field</span><span class="agv-k">Name the agent sees</span><span class="agv-k">Tag, for #${t.no}</span></div>
+    return `${top}${dcTestBox(d, 2)}<div class="set2-dc-th is-foc"><span class="agv-k">Use</span><span class="agv-k">Field</span><span class="agv-k">Name the agent sees</span><span class="agv-k">Tag it makes</span></div>
       <div class="set2-dc-list" id="dcfocl">${rows}</div>${blocked}`;
   }
 
