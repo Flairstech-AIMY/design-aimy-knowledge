@@ -5558,7 +5558,7 @@ button.set2-us-sl:disabled { cursor: not-allowed; }
 .set2-dc-alert { background: var(--err-bg); box-shadow: inset 0 0 0 0.0625rem var(--err-border); }
 .set2-dc-alert > svg { color: var(--ink-err); }
 .set2-dc-ai { background: var(--aimy-wash); box-shadow: inset 0 0 0 0.0625rem var(--aimy-wash-edge); }
-.set2-dc-ai > svg { color: var(--ink-info); }
+.set2-dc-ai > svg.agv-mk { width: 0.8125rem; height: 0.9375rem; }
 
 /* test a ticket (steps 2 and 3) */
 .set2-dc-test2 { display: grid; gap: 0.625rem; padding: 0.75rem 0.875rem; border-radius: 1rem; background: var(--card-bg-raised); }
@@ -5577,6 +5577,18 @@ button.set2-us-sl:disabled { cursor: not-allowed; }
 /* the condition that decided the tested ticket */
 .set2-dc-r.is-hit { background: var(--warn-bg); box-shadow: inset 0 0 0 0.0625rem var(--warn-border); }
 .set2-dc-at.is-hit { color: var(--ink-warn); box-shadow: inset 0 0 0 0.0625rem var(--warn-border); }
+
+/* inline confirm for a deletion */
+.set2-dc-r.is-cf { background: var(--err-bg); }
+.set2-dc-cf { grid-column: 1 / -1; display: flex; align-items: center; gap: 0.5rem 0.75rem; flex-wrap: wrap; padding: 0.375rem 0 0.125rem; font-size: 0.875rem; color: var(--ink-primary); animation: set2DcSwap 150ms ease-in-out; }
+.set2-dc-cf > span { flex: 1 1 14rem; min-width: 0; }
+.set2-dc-cf > svg { color: var(--ink-err); width: 0.9375rem; height: 0.9375rem; }
+.set2-dc-cf b { font-weight: var(--fw-semibold); }
+.set2-dc-vl .set2-dc-cf { padding: 0.25rem 0.5rem 0.5rem; border-radius: 0.75rem; background: var(--err-bg); }
+/* Text in the card colour: dark on the dark theme's light coral, white on the
+   light theme's red. White on #ff7282 was 2.6:1. */
+.agv-btn.is-danger { background: var(--err); color: var(--card-bg); }
+.agv-btn.is-danger:hover { filter: brightness(1.08); }
 
 /* step 4 */
 .set2-dc-run { display: grid; gap: 0.875rem; padding: 1rem; border-radius: 1rem; background: var(--card-bg-raised); }

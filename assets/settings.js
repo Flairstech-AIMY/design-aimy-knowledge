@@ -7087,7 +7087,7 @@
   const DC_WHAT = [
     'What each field means to AiMY. Later steps can only use these.',
     'Which tickets this product syncs. Tickets already synced stay.',
-    'When the Copilot answers a ticket, it searches and answers using only these details from it. They don’t change what syncs.',
+    'When Copilot answers a ticket, it searches and answers using only these details from it. They don’t change what syncs.',
     'What the next sync does, and what the last ones did.'
   ];
   const DC_HOME = 'AccuRoute Support';
@@ -7139,7 +7139,7 @@
     return [s1, s2, s3, s4];
   }
   function dcGuard(f) {
-    if (f.t === 'text') return { bad: true, t: 'free text, blocked (PII)', why: 'Free text can hold personal details, so the Copilot can’t focus on it.' };
+    if (f.t === 'text') return { bad: true, t: 'free text, blocked (PII)', why: 'Free text can hold personal details, so Copilot can’t focus on it.' };
     if (f.t === 'date') return { bad: true, t: 'date, blocked', why: 'A date doesn’t say what a ticket is about.' };
     if (f.t === 'person') return { bad: true, t: 'person, blocked', why: 'It names a person.' };
     if (f.t === 'nested') return { t: 'nested, 2 levels' };
@@ -7204,6 +7204,14 @@
         <span class="dd-label-text">${esc(cur ? cur[1] : '')}</span>${I.down}</button>
       <div class="v2-dropdown-panel" role="listbox">${opts.map((o) => `<div class="v2-dropdown-option${cur && o[0] === cur[0] ? ' selected' : ''}" role="option" aria-selected="${cur && o[0] === cur[0]}" data-value="${esc(o[0])}">${esc(o[1])}</div>`).join('')}</div></div>`;
   }
+  /* ── A DELETION ASKS FIRST, IN ITS OWN ROW ──
+     No dialog: the delete button opens one line in the row it would remove,
+     saying what goes and what it breaks, with Remove and Keep. Escape or
+     Keep closes it. The undo toast still follows the removal. */
+  const dcCf = (what, key) => !!DCU.confirm && DCU.confirm.what === what && DCU.confirm.key === key;
+  const dcCfLine = (text, okLabel, act, attrs) => `<div class="set2-dc-cf" role="group" aria-label="Confirm">${I.warn}<span>${text}</span>
+    <button class="agv-btn is-ghost set2-dc-sm" type="button" data-dc="cfCancel">Keep</button>
+    <button class="agv-btn is-danger set2-dc-sm" type="button" data-dc="${act}" data-cf-ok ${attrs}>${okLabel}</button></div>`;
   const dcTog = (on, label, attr) => `<span class="set2-dc-tg">${toggle(on, label, attr)}</span>`;
   const dcIb = (act, label, icon, extra) => `<button class="agv-ib" type="button" data-dc="${act}" aria-label="${esc(label)}" title="${esc(label)}" ${extra || ''}>${icon}</button>`;
 
@@ -7245,11 +7253,12 @@
     const rows = d.fields.map((id) => DCF[id]).map((f) => {
       const sel = DCU.pan && DCU.pan.type === 'field' && DCU.pan.id === f.id, ub = dcUsedBy(d, f.id), key = dcKeyOf(d, f.id);
       const nm = (f.a + ' ' + key).toLowerCase();
-      return `<div class="set2-dc-r is-map${sel ? ' is-sel' : ''}" data-name="${esc(nm)}"${dcMiss(DCU.q, nm) ? ' hidden' : ''}>
+      return `<div class="set2-dc-r is-map${sel ? ' is-sel' : ''}${dcCf('rmField', f.id) ? ' is-cf' : ''}" data-name="${esc(nm)}"${dcMiss(DCU.q, nm) ? ' hidden' : ''}>
         <span class="set2-dc-n">${esc(f.a)}${ub ? `<span class="set2-dc-at">${ub}</span>` : ''}</span>
         <span class="set2-dc-key">${esc(key)}</span>
         <span class="set2-dc-v">${dcValCell(d, f)}</span>
-        <span class="set2-dc-e">${dcIb('rmField', 'Remove ' + f.a, I.trash, 'data-id="' + f.id + '"')}</span></div>`;
+        <span class="set2-dc-e">${dcIb('ask', 'Remove ' + f.a, I.trash, 'data-what="rmField" data-id="' + f.id + '"')}</span>
+        ${dcCf('rmField', f.id) ? dcCfLine(`Remove <b>${esc(f.a)}</b>?${(() => { const n = d.rules.filter((r) => r.f === f.id).length; return n ? ' ' + n + ' condition' + (n > 1 ? 's stop' : ' stops') + ' working until it\u2019s mapped again.' : (d.focus[f.id] ? ' Copilot stops searching by it.' : ''); })()}`, 'Remove', 'rmField', 'data-id="' + f.id + '"') : ''}</div>`;
     }).join('');
     return `${dcLostNote(d)}
       <div class="set2-dc-th is-map"><span class="agv-k">AiMY field</span><span class="agv-k">${esc(d.crm)} key</span><span class="agv-k">Values</span><span></span></div>
@@ -7282,11 +7291,13 @@
       const other = r.mode === 'Keep' ? 'Don’t sync' : 'Only sync';
       const end = bad ? `<button class="agv-btn is-brand" type="button" data-dc="remap" data-dc-remap>Map again</button>`
         : r.sys ? `<span class="set2-dc-lock" title="Set by AiMY">${I.lock}</span>`
-        : `<button class="agv-btn is-ghost set2-dc-mv" type="button" data-dc="move" data-r="${r.id}" title="Move this condition to ${other} tickets where" aria-label="Move ${esc(f.a)} to ${other} tickets where">${r.mode === 'Keep' ? DCI.down : DCI.up}${other}</button>${dcTog(r.on, 'Condition on', 'data-dc-on="' + r.id + '"')}${dcIb('rmRule', 'Delete condition', I.trash, 'data-r="' + r.id + '"')}`;
+        : `<button class="agv-btn is-ghost set2-dc-mv" type="button" data-dc="move" data-r="${r.id}" title="Move this condition to ${other} tickets where" aria-label="Move ${esc(f.a)} to ${other} tickets where">${r.mode === 'Keep' ? DCI.down : DCI.up}${other}</button>${dcTog(r.on, 'Condition on', 'data-dc-on="' + r.id + '"')}${dcIb('ask', 'Delete condition', I.trash, 'data-what="rmRule" data-r="' + r.id + '"')}`;
       const hit = DCU.hitRid === r.id;
-      return `<div class="set2-dc-r is-rule${bad ? ' is-err' : ''}${r.on ? '' : ' is-off'}${hit ? ' is-hit' : ''}">
+      const cf = dcCf('rmRule', r.id);
+      return `<div class="set2-dc-r is-rule${bad ? ' is-err' : ''}${r.on ? '' : ' is-off'}${hit ? ' is-hit' : ''}${cf ? ' is-cf' : ''}">
         <span class="set2-dc-n">${esc(f.a)}${hit ? `<span class="set2-dc-at is-hit">decides #${DC_TICKETS[DCU.tt].no}</span>` : ''}${(r.sys || f.t === 'tags') ? '<span class="set2-dc-at" title="AiMY reads the ticket, then drops it">after fetch</span>' : ''}</span>
-        <span class="set2-dc-op">${r.op}</span><span class="set2-dc-vals">${vals}</span><span class="set2-dc-e">${end}</span></div>`;
+        <span class="set2-dc-op">${r.op}</span><span class="set2-dc-vals">${vals}</span><span class="set2-dc-e">${end}</span>
+        ${cf ? dcCfLine(`Delete <b>${esc(f.a)} ${r.op} ${esc(r.v.slice(0, 2).join(', '))}${r.v.length > 2 ? ' and ' + (r.v.length - 2) + ' more' : ''}</b>? ${r.mode === 'Keep' ? 'Tickets it kept out will start to sync.' : 'Tickets it left out will start to sync.'}`, 'Delete', 'rmRule', 'data-r="' + r.id + '"') : ''}</div>`;
     }).join('');
   }
   function dcGroup(d, mode) {
@@ -7320,14 +7331,14 @@
 
   /* ── STEP 3 ── */
   function dcFocus(d) {
-    if (!d.fields.length) return `<div class="set2-dc-empty"><b>Map fields first</b><span>The Copilot can only focus on mapped fields.</span><button class="agv-btn is-ghost" type="button" data-dc-step="0">Go to Map fields</button></div>`;
+    if (!d.fields.length) return `<div class="set2-dc-empty"><b>Map fields first</b><span>Copilot can only search by mapped fields.</span><button class="agv-btn is-ghost" type="button" data-dc-step="0">Go to Map fields</button></div>`;
     const on = dcFocusOn(d), t = DC_TICKETS[DCU.tk];
     const all = d.fields.map((id) => DCF[id]), no = all.filter((f) => dcGuard(f).bad);
     /* The saved focus fields first, so "what does it read" is the top of the
        list. Sorted by the SAVED set, so a row doesn't jump while you switch it. */
     const sf = (DC_SAVED[d.cid] || d).focus;
     const ok = all.filter((f) => !dcGuard(f).bad && sf[f.id]).concat(all.filter((f) => !dcGuard(f).bad && !sf[f.id]));
-    const top = on.length ? '' : `<div class="set2-dc-ai">${DCI.spark}<span>Nothing chosen, so the Copilot searches with the whole ticket.</span><button class="agv-btn is-brand" type="button" data-dc="focus3">Use the 3 product fields</button></div>`;
+    const top = on.length ? '' : `<div class="set2-dc-ai"><svg class="agv-mk" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg><span>Nothing chosen, so Copilot searches with the whole ticket.</span><button class="agv-btn is-brand" type="button" data-dc="focus3">Use the 3 product fields</button></div>`;
     const rows = ok.map((f) => {
       const isOn = !!d.focus[f.id];
       /* (searched by name, alias, key and the name the agent sees) */
@@ -7398,7 +7409,7 @@
      nothing in particular. This lives in the two steps it answers for, and
      answers in that step's terms: in step 2 whether the ticket syncs and
      which condition decided it (that row is marked), in step 3 the values
-     the Copilot would search it by. */
+     Copilot would search it by. */
   function dcTestBox(d, step) {
     const ti = DCU.tt, t = ti == null ? null : DC_TICKETS[ti];
     let res = '';
@@ -7409,7 +7420,7 @@
       if (step === 1) res = `<p class="set2-dc-tres is-${v.c}">${ico}<span><b>#${t.no}</b> ${esc(t.head)}. ${v.t}</span>${open}</p>`;
       else {
         const on = dcFocusOn(d);
-        res = v.c !== 'ok' ? `<p class="set2-dc-tres is-${v.c}">${ico}<span><b>#${t.no}</b> doesn’t sync, so the Copilot never answers it. ${v.t}</span>${open}</p>`
+        res = v.c !== 'ok' ? `<p class="set2-dc-tres is-${v.c}">${ico}<span><b>#${t.no}</b> doesn’t sync, so Copilot never answers it. ${v.t}</span>${open}</p>`
           : on.length ? `<div class="set2-dc-tres is-ok">${I.tick}<span class="set2-dc-grow"><b>#${t.no}</b> is searched by <span class="set2-dc-vals">${on.map((id) => `<span class="agv-chip" title="cf_${DCF[id].al}=${esc(dcSlug(dcTv(t, id)))}">${esc(d.focus[id])}: <b>${esc(dcTv(t, id))}</b></span>`).join('')}</span></span>${open}</div>`
           : `<p class="set2-dc-tres is-none">${I.info}<span>Nothing chosen, so <b>#${t.no}</b> is searched by the whole ticket, its title and description included.</span>${open}</p>`;
       }
@@ -7445,7 +7456,7 @@
       const miss = (DC_UNL[id] || []).filter((c) => !v.some((x) => x[0] === c)), seen = dcSeen(d, id);
       b += `${miss.length ? `<div class="set2-dc-ps is-warn"><span class="agv-k">Not labelled yet</span>${miss.map((c) => `<span class="set2-dc-vr"><i>${c}</i><input class="set2-dc-u" data-dc-unl="${c}" data-id="${id}" placeholder="Label" aria-label="Label for ${c}"><button class="agv-btn is-ghost set2-dc-sm" type="button" data-dc="labelCode" data-id="${id}" data-raw="${c}">Add</button></span>`).join('')}</div>` : ''}
         <div class="set2-dc-ps"><span class="agv-k">${v.length ? v.length + ' values' : 'Value mapping'}</span>
-        ${v.length ? `<div class="set2-dc-vl">${v.map(([r, l]) => `<span class="set2-dc-vr"><i>${esc(r)}</i><input class="set2-dc-u" data-dc-vlab="${esc(r)}" data-id="${id}" value="${esc(l)}" aria-label="Label for ${esc(r)}">${dcIb('rmMapVal', 'Remove ' + r, I.x, 'data-id="' + id + '" data-raw="' + esc(r) + '"')}</span>`).join('')}</div>`
+        ${v.length ? `<div class="set2-dc-vl">${v.map(([r, l]) => `<span class="set2-dc-vr"><i>${esc(r)}</i><input class="set2-dc-u" data-dc-vlab="${esc(r)}" data-id="${id}" value="${esc(l)}" aria-label="Label for ${esc(r)}">${dcIb('ask', 'Remove ' + r, I.x, 'data-what="rmMapVal" data-id="' + id + '" data-raw="' + esc(r) + '"')}</span>${dcCf('rmMapVal', id + ':' + r) ? dcCfLine(`Remove <b>${esc(r)} \u2192 ${esc(l)}</b>? Answers will show ${esc(r)}.`, 'Remove', 'rmMapVal', 'data-id="' + id + '" data-raw="' + esc(r) + '"') : ''}`).join('')}</div>`
           : `<span class="set2-dc-meta">Nothing mapped, so AiMY uses what ${esc(d.crm)} sends as it is.</span>`}
         ${seen.length ? `<span class="agv-k">Seen in ${esc(d.crm)}</span><span class="set2-dc-vals">${seen.map((x) => `<button class="agv-chip set2-dc-seen" type="button" data-dc="seenAdd" data-id="${id}" data-raw="${esc(x)}">${I.plus}${esc(x)}</button>`).join('')}</span>` : ''}
         <span class="set2-dc-vr"><input class="set2-dc-u" id="dcmvr" placeholder="${f.t === 'lookup' || f.t === 'choice' ? 'Code' : 'Value'}" aria-label="Value ${esc(d.crm)} sends"><input class="set2-dc-u" id="dcmvl" placeholder="Label" aria-label="Label"><button class="agv-btn is-ghost set2-dc-sm" type="button" data-dc="addMapVal" data-id="${id}">Add</button></span>
@@ -12013,6 +12024,7 @@
       dcToast('Added ' + DCF[id].a + '. Rules and focus can use it now.', u);
     },
     rmField(d, el) {
+      DCU.confirm = null;
       const id = el.dataset.id, f = DCF[id], u = dcSnap(d), nr = d.rules.filter((r) => r.f === id).length;
       d.fields = d.fields.filter((x) => x !== id); d.byWho = ''; dcBump(d, 0);
       if (DCU.pan && DCU.pan.id === id) DCU.pan = null;
@@ -12045,7 +12057,7 @@
     rmVal(d, el) { const u = dcSnap(d), r = d.rules.filter((x) => x.id === el.dataset.r)[0]; r.v = r.v.filter((v) => v !== el.dataset.v); dcBump(d, 1); render(); dcToast('Removed ' + el.dataset.v + ' from the ' + DCF[r.f].a + ' condition.', u); },
     move(d, el) { const u = dcSnap(d), r = d.rules.filter((x) => x.id === el.dataset.r)[0]; r.mode = r.mode === 'Keep' ? 'Skip' : 'Keep'; r.eff = Math.max(0, d.total - r.eff); dcBump(d, 1); render();
       dcToast('Moved ' + DCF[r.f].a + ' to ' + (r.mode === 'Keep' ? 'Only sync' : 'Don’t sync') + ' tickets where.', u); },
-    rmRule(d, el) { const u = dcSnap(d), r = d.rules.filter((x) => x.id === el.dataset.r)[0]; d.rules = d.rules.filter((x) => x !== r); dcBump(d, 1); render(); dcToast('Deleted the ' + DCF[r.f].a + ' condition.', u); },
+    rmRule(d, el) { DCU.confirm = null; const u = dcSnap(d), r = d.rules.filter((x) => x.id === el.dataset.r)[0]; d.rules = d.rules.filter((x) => x !== r); dcBump(d, 1); render(); dcToast('Deleted the ' + DCF[r.f].a + ' condition.', u); },
     addRule(d, el) { DCU.add = 'rule'; DCU.nr = { m: el.getAttribute("data-dc-mode") }; dcPaint('#dcnrv'); },
     addRuleSave(d) {
       const inp = $('#dcnrv'), v = inp ? inp.value.trim() : '';
@@ -12056,12 +12068,18 @@
       d.rules.splice(k < 0 ? d.rules.length : k, 0, r); dcBump(d, 1); DCU.add = null; DCU.nr = null; render();
       dcToast('Added ' + DCF[f].a + ' to ' + (r.mode === 'Keep' ? 'Only sync' : 'Don’t sync') + ' tickets where.', u);
     },
-    focus3(d) { const u = dcSnap(d); Object.assign(d.focus, dcClone(DC_FOCUS)); dcBump(d, 2, 3); render(); dcToast('The Copilot will search by the 3 product fields once you save.', u); },
+    focus3(d) { const u = dcSnap(d); Object.assign(d.focus, dcClone(DC_FOCUS)); dcBump(d, 2, 3); render(); dcToast('Copilot will search by the 3 product fields once you save.', u); },
     win(d, el) { DCU.win = el.dataset.w; DCU.test = false; render(); },
     test() { DCU.test = true; render(); },
     run(d) { if (dcDirty(d)) DCA.save(d, true); d.sync = { st: 'running', pct: 3 }; DC_SAVED[d.cid].sync = dcClone(d.sync); DCU.test = false; render(); dcStartSync(d, 12); dcToast('Sync started for ' + dcN(dcKept(d)) + ' tickets.'); },
     stop(d) { clearInterval(DC_TICK); const n = Math.round(dcKept(d) * d.sync.pct / 100); d.sync = { st: d.hist.length ? 'done' : 'never', pct: 0 }; DC_SAVED[d.cid].sync = dcClone(d.sync); render(); dcToast('Sync stopped. ' + dcN(n) + ' tickets synced before it stopped.'); },
     why(d, el) { dcOpenPan({ type: 'run', i: +el.dataset.i }); },
+    ask(d, el) {
+      const what = el.dataset.what, key = what === 'rmRule' ? el.dataset.r : what === 'rmMapVal' ? el.dataset.id + ':' + el.dataset.raw : el.dataset.id;
+      DCU.confirm = dcCf(what, key) ? null : { what: what, key: key };
+      render(() => { const b = $('[data-cf-ok]'); if (b) b.focus(); });
+    },
+    cfCancel() { DCU.confirm = null; render(); },
     testTk(d, el) {
       if (el.dataset.i != null && el.dataset.i !== '') { DCU.tt = +el.dataset.i; }
       else {
@@ -12077,7 +12095,7 @@
     },
     clearTest() { DCU.tt = null; DCU.ttMiss = null; DCU.ttq = ''; render(); },
     showTkT() { DCU.tk = DCU.tt == null ? 0 : DCU.tt; dcOpenPan({ type: 'ticket' }); },
-    rmMapVal(d, el) { const u = dcSnap(d), id = el.dataset.id; d.vals[id] = d.vals[id].filter((v) => v[0] !== el.dataset.raw); dcBump(d, 0); render(); dcToast('Removed ' + el.dataset.raw + ' from ' + DCF[id].a + '.', u); },
+    rmMapVal(d, el) { DCU.confirm = null; const u = dcSnap(d), id = el.dataset.id; d.vals[id] = d.vals[id].filter((v) => v[0] !== el.dataset.raw); dcBump(d, 0); render(); dcToast('Removed ' + el.dataset.raw + ' from ' + DCF[id].a + '.', u); },
     addMapVal(d, el) {
       const id = el.dataset.id, r = ($('#dcmvr').value || '').trim(), l = ($('#dcmvl').value || '').trim();
       if (!r || !l) { $(r ? '#dcmvl' : '#dcmvr').focus(); return; }
@@ -12108,7 +12126,7 @@
     const sg = e.target.closest('[data-dc-sgpick]');
     if (sg) {
       const v = sg.getAttribute('data-dc-sgpick'), f = sg.getAttribute('data-for');
-      if (f === 'new') { const i = $('#dcnrv'); if (i) { i.value = v; sg.parentElement.classList.remove('is-on'); i.focus(); } return; }
+      if (f === 'new') { const i = $('#dcnrv'); if (i) { i.value = v; i.focus(); dcSuggest(i); } return; }
       const r = d.rules.filter((x) => x.id === f)[0];
       if (r && r.v.indexOf(v) < 0) { r.v.push(v); dcBump(d, 1); dcPaint('[data-dc-addv="' + f + '"]'); }
       return;
@@ -12130,8 +12148,16 @@
     const box = t.parentElement && t.parentElement.querySelector('.set2-dc-sg');
     if (!box) return;
     const id = t.getAttribute('data-dc-f'), q = t.value.trim().toLowerCase();
-    const list = (DC_SUGGEST[id] || DC_NAMED[id] || []).filter((v) => !q || v.toLowerCase().indexOf(q) > -1).slice(0, 6);
     const forId = t.getAttribute('data-dc-addv') || 'new';
+    /* Never offer what is already there: the value typed or picked, or one
+       the condition already has. Offering "Pending" under "Pending" is an
+       echo, not a suggestion. */
+    const d0 = dcCur(), rule = d0 && forId !== 'new' ? d0.rules.filter((r) => r.id === forId)[0] : null;
+    const have = rule ? rule.v.map((v) => v.toLowerCase()) : [];
+    const list = (DC_SUGGEST[id] || DC_NAMED[id] || []).filter((v) => {
+      const lv = v.toLowerCase();
+      return lv !== q && have.indexOf(lv) < 0 && (!q || lv.indexOf(q) > -1);
+    }).slice(0, 6);
     box.innerHTML = list.map((v) => `<button type="button" class="agv-chip" data-dc-sgpick="${esc(v)}" data-for="${esc(forId)}">${esc(v)}</button>`).join('');
     box.classList.toggle('is-on', !!list.length);
   }
@@ -12172,6 +12198,7 @@
     const t = e.target;
     if (!t.closest || !t.closest('[data-dc-root]')) return;
     const d = dcCur(); if (!d) return;
+    if (e.key === 'Escape' && DCU.confirm) { DCU.confirm = null; render(); return; }
     if (e.key === 'Escape' && DCU.pan) { dcClosePan(); return; }
     if (e.key !== 'Enter') return;
     if (t.hasAttribute('data-dc-addv') && t.value.trim()) {
