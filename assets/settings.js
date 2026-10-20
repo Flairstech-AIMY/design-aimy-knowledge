@@ -7139,6 +7139,9 @@
     return [s1, s2, s3, s4];
   }
   function dcGuard(f) {
+    /* Staging's type guard: set values and version text pass, other free text
+       is blocked because it can hold personal data. */
+    if (f.t === 'text' && /version/i.test(f.a + ' ' + f.k)) return { t: 'version text' };
     if (f.t === 'text') return { bad: true, t: 'free text, blocked (PII)', why: 'Free text can hold personal details, so Copilot can’t focus on it.' };
     if (f.t === 'date') return { bad: true, t: 'date, blocked', why: 'A date doesn’t say what a ticket is about.' };
     if (f.t === 'person') return { bad: true, t: 'person, blocked', why: 'It names a person.' };
@@ -7347,7 +7350,7 @@
       /* (searched by name, alias, key and the name the agent sees) */
       const nm = (f.a + ' ' + f.al + ' ' + dcKeyOf(d, f.id) + ' ' + (d.focus[f.id] || '')).toLowerCase();
       return `<div class="set2-dc-r is-foc${isOn ? ' is-sel' : ''}" data-name="${esc(nm)}"${dcMiss(DCU.qf, nm) ? ' hidden' : ''}>${dcTog(isOn, 'Search by ' + f.a, 'data-dc-foc="' + f.id + '"')}
-        <span class="set2-dc-n">${esc(f.a)}<span class="set2-dc-at" title="Type guard">${dcGuard(f).t}</span></span>
+        <span class="set2-dc-n">${esc(f.a)}<span class="set2-dc-at" title="Type guard: ${dcGuard(f).t}. It passes, so ${esc(f.a)} can be searched by.">${dcGuard(f).t}</span></span>
         ${isOn ? `<input class="set2-dc-u" data-dc-fname="${f.id}" value="${esc(d.focus[f.id])}" aria-label="Name the agent sees for ${esc(f.a)}" title="Name the agent sees">
           <span class="set2-dc-key is-tag" title="Each ticket gets this tag with its own value, like cf_${f.al}=${esc(dcSlug(dcTv(t, f.id)))}">cf_${f.al}</span>` : '<span></span><span></span>'}</div>`;
     }).join('');
@@ -7355,7 +7358,8 @@
     const groups = {};
     no.forEach((f) => { (groups[f.t] = groups[f.t] || []).push(f.a); });
     const blocked = no.length ? `<p class="set2-dc-none">Can’t be searched by: ${Object.keys(groups).map((t) => groups[t].join(', ') + ' (' + why[t] + ')').join('; ')}.</p>` : '';
-    return `${top}${dcTestBox(d, 2)}<div class="set2-dc-th is-foc"><span class="agv-k">Use</span><span class="agv-k">Field</span><span class="agv-k">Name the agent sees</span><span class="agv-k">Tag it makes</span></div>
+    return `${top}${dcTestBox(d, 2)}<div class="set2-dc-th is-foc"><span class="agv-k">Use</span><span class="agv-k set2-dc-thtip">Field and type guard${tip('dcGuardTip', 'the type guard',
+      'Only fields with set values (dropdown, lookup, nested, checkbox, number, company) and version text can be searched by. Other free text is blocked because it can hold personal data, and dates are blocked because they don\u2019t say what a ticket is about.')}</span><span class="agv-k">Name the agent sees</span><span class="agv-k">Tag it makes</span></div>
       <div class="set2-dc-list" id="dcfocl">${rows}</div>${blocked}`;
   }
 
