@@ -3736,10 +3736,15 @@
     return out;
   })();
   const usAt = (id) => US_IDX[id] || null;
+  /* Not every company uses every product (AIMY-2664): KCX takes no Voice.
+     A company that sits a product out is simply not in that meter's tree,
+     so it gets no share of it and no row in it. */
+  const US_NOT = { voice: { kcx: 1 } };
+  const usIn = (m, id) => { for (let x = id; x; x = usAt(x).parent) if ((US_NOT[m.id] || {})[x]) return false; return true; };
   /* Children as THIS meter sees them: Voice has none under a product. */
   const usKids = (m, id) => {
     const x = usAt(id);
-    return x && x.depth < m.depth ? (x.n.kids || []) : [];
+    return x && x.depth < m.depth ? (x.n.kids || []).filter((k) => !(US_NOT[m.id] || {})[k.id]) : [];
   };
 
   /* What the admin has set, per meter. Everything absent is an equal share.
@@ -3893,7 +3898,7 @@
   function usPlace(st) {
     const m = usMeter(st.meter);
     let tip = usAt(st.pool) ? st.pool : '';
-    while (tip && usAt(tip).depth > Math.min(3, m.depth)) tip = usAt(tip).parent;
+    while (tip && (usAt(tip).depth > Math.min(3, m.depth) || !usIn(m, tip))) tip = usAt(tip).parent;
     const path = [''].concat(usPath(tip));
     const people = st.at === 'people' && !!tip && usAt(tip).depth === 3 && m.depth === 4;
     const at = st.at === 'plan' ? '' : st.at;
@@ -4421,6 +4426,8 @@
           ${rows.length ? '' : `<p class="set2-us-none">No ${esc(noun)} in ${esc(name)} match
             “${esc(readF(st).uq)}”.</p>`}
         </div>
+        ${(() => { const out = (usAt(id).n.kids || []).filter((k) => usAt(id).depth < m.depth && (US_NOT[m.id] || {})[k.id]);
+          return out.length ? `<p class="set2-us-when">${out.map((k) => esc(k.name)).join(', ')} ${out.length > 1 ? 'don’t' : 'doesn’t'} use ${esc(m.name)}.</p>` : ''; })()}
         ${ed ? `<div class="set2-us-bar" data-us-bar>${usBar(ck)}</div>`
              : when ? `<p class="set2-us-when">Split last changed ${esc(when[0])} by ${esc(when[1])}</p>` : ''}
       </div>`;
@@ -4452,6 +4459,26 @@
           sp.free / L >= 0.07 ? `<b>Unallocated</b> ${usShort(sp.free)}` : ''}</span>` : ''}
       </div>
       ${sp.free > 0 && sp.free / L < 0.07 ? `<p class="set2-us-free">${usFmt(sp.free)} ${esc(m.unit)} unallocated</p>` : ''}`;
+  }
+
+  /* ── A COMPANY'S OTHER PRODUCTS, ON ITS ROW (AIMY-2664) ──
+     A company uses Copilot, QA and Voice at once, and the page shows one
+     meter at a time. So a company row carries the others it uses, each in
+     its own unit (tokens, tickets and minutes are never added up): used of
+     its limit, a small meter, and the standing when it is near or out.
+     Each one opens that product's split for this company. A product the
+     company doesn't use isn't listed, so there is no empty slot. */
+  function usAlso(m, k) {
+    const ms = US_METERS.filter((o) => o.id !== m.id && usIn(o, k.id));
+    if (!ms.length) return '';
+    return `<span class="set2-us-also">${ms.map((o) => {
+      const u = usUsed(o, k.id), L = usLimit(o, k.id), bad = usStanding(u, L);
+      return `<button class="set2-us-also-b" type="button" data-us-also="${o.id}|${esc(k.id)}"
+          title="Open ${esc(k.name)} in ${esc(o.name)}"><b>${esc(o.name)}</b>
+        <span><span class="set2-us-also-l">${usFmt(u)} of ${usFmt(L)}</span><span class="set2-us-also-s">${usShort(u)} of ${usShort(L)}</span> ${esc(o.unit)}</span>
+        ${bad ? pill(bad[0], bad[1]) : `<span class="set2-us-m"><i class="set2-us-fill${usFillCls(u, L)}" style="--p:${usPct(u, L).toFixed(4)}"></i></span>`}
+        ${I.chev || ''}</button>`;
+    }).join('')}</span>`;
   }
 
   /* One row. Anything down to a product is a destination (it unfolds on
@@ -4503,6 +4530,7 @@
           </span>
           ${sub ? `<span class="set2-us-sub">${esc(sub)}</span>` : ''}
         </span>
+        ${x.depth === 2 && !US_EDIT ? usAlso(m, k) : ''}
         <span class="set2-us-use">
           <span class="set2-us-use-t"><b class="set2-num">${usFmt(used)}</b>
             ${bad ? pill(bad[0], bad[1]) : `<span class="set2-us-pc">${Math.round(usPct(used, lim) * 100)}%</span>`}</span>
@@ -10043,6 +10071,19 @@
         patch({ meter: v === 'copilot' ? '' : v, f: withF(st, 'uq', null) });
         render(() => { const b = $('[data-us-meter="' + v + '"]'); if (b) b.focus(); });
       }
+      return;
+    }
+    /* A company's other product, from its row: that meter, with this
+       company unfolded; the switch's highlight slides to it. */
+    const usA = e.target.closest('[data-us-also]');
+    if (usA) {
+      if (US_EDIT) return;
+      const [v, id] = usA.getAttribute('data-us-also').split('|');
+      const ind = $('.set2-us-ind');
+      if (ind && ind.style.width) US_IND_FROM = { l: parseFloat(ind.style.transform.slice(11)), w: parseFloat(ind.style.width) };
+      US_SESS_ED = null; US_BACK = null;
+      patch({ meter: v === 'copilot' ? '' : v, pool: id, at: '', f: withF(st, 'uq', null) });
+      usSeat();
       return;
     }
     /* A level already on the path unfolds and keeps what is under it
