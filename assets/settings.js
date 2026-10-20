@@ -2177,9 +2177,9 @@
             <p class="set2-ov-s">${esc(TRIGGER_WHY[s.trigger])}</p>
           </div>
           ${reachCard(s, 'Agents', 'ag', ag.map(agentName), 'is-role',
-                      'None — this skill cannot run.')}
+                      'None, so this skill can2019t run.')}
           ${reachCard(s, 'Products', 'pr', pr, 'is-scope',
-                      'None — this skill belongs nowhere.')}
+                      'None, so this skill applies nowhere.')}
           <div class="set2-ov-card">
             <p class="set2-ov-k">Last updated</p>
             <p class="set2-ov-v">${esc(s.when)} · v${s.v}</p>
@@ -9575,8 +9575,10 @@
     const pw = pageOf(st);
     /* The Tone & Voice / Dynamic context look, page by page: Client and
        User & access. Agents has it natively; Archive and the library don't. */
-    const aimyLook = m.id === 'webhooks' || (pw && ['fields', 'relevance', 'people', 'roles', 'scopes', 'selling'].indexOf(pw.id) > -1);
-    return `<div class="set2-col${m.wide || (pw && pw.wide) ? ' is-wide' : ''}${aimyLook ? ' is-aimy' : ''}">`
+    const aimyLook = m.id === 'webhooks' || (pw && ['fields', 'relevance', 'people', 'roles', 'scopes', 'selling', 'skills'].indexOf(pw.id) > -1);
+    /* Skills takes the look without the tile around its sections (Nour). */
+    const aimyFlat = pw && pw.id === 'skills';
+    return `<div class="set2-col${m.wide || (pw && pw.wide) ? ' is-wide' : ''}${aimyLook ? ' is-aimy' : ''}${aimyFlat ? ' is-flat' : ''}">`
       + head(st)
       + inner + `</div>`;
   }
