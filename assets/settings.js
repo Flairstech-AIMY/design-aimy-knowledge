@@ -7081,11 +7081,11 @@
     { id: 'r5', f: 'tags', op: 'contains', v: ['AI_ignore'], mode: 'Skip', on: true, sys: true, eff: 7 }
   ];
   const DC_FOCUS = { ar: 'Affects Product (AR)', rel: 'Accuroute - Relates To', l2: 'Affects Product (AR) L2' };
-  const DC_STEPS = ['Map fields', 'Choose which tickets sync', 'Pick focus fields', 'Check and sync'];
+  const DC_STEPS = ['Map fields', 'Choose which tickets sync', 'Choose what the Copilot searches by', 'Check and sync'];
   const DC_WHAT = [
     'What each field means to AiMY. Later steps can only use these.',
     'Which tickets this product syncs. Tickets already synced stay.',
-    'The fields the Copilot answers with. They don’t change what syncs.',
+    'When the Copilot answers a ticket, it searches and answers using only these details from it. They don’t change what syncs.',
     'What the next sync does, and what the last ones did.'
   ];
   const DC_HOME = 'AccuRoute Support';
@@ -7167,7 +7167,7 @@
   const dcUsedBy = (d, id) => {
     const r = d.rules.filter((x) => x.f === id).length, out = [];
     if (r) out.push(r + ' rule' + (r > 1 ? 's' : ''));
-    if (d.focus[id]) out.push('focus');
+    if (d.focus[id]) out.push('search');
     return out.join(' and ');
   };
   const dcAt = (r) => (r.sys || DCF[r.f].t === 'tags') ? 'After fetch' : 'In Freshdesk';
@@ -7323,12 +7323,12 @@
        list. Sorted by the SAVED set, so a row doesn't jump while you switch it. */
     const sf = (DC_SAVED[d.cid] || d).focus;
     const ok = all.filter((f) => !dcGuard(f).bad && sf[f.id]).concat(all.filter((f) => !dcGuard(f).bad && !sf[f.id]));
-    const top = on.length ? '' : `<div class="set2-dc-ai">${DCI.spark}<span>No focus fields, so the Copilot reads the whole ticket.</span><button class="agv-btn is-brand" type="button" data-dc="focus3">Use the 3 product fields</button></div>`;
+    const top = on.length ? '' : `<div class="set2-dc-ai">${DCI.spark}<span>Nothing chosen, so the Copilot searches with the whole ticket.</span><button class="agv-btn is-brand" type="button" data-dc="focus3">Use the 3 product fields</button></div>`;
     const rows = ok.map((f) => {
       const isOn = !!d.focus[f.id];
       /* (searched by name, alias, key and the name the agent sees) */
       const nm = (f.a + ' ' + f.al + ' ' + dcKeyOf(d, f.id) + ' ' + (d.focus[f.id] || '')).toLowerCase();
-      return `<div class="set2-dc-r is-foc${isOn ? ' is-sel' : ''}" data-name="${esc(nm)}"${dcMiss(DCU.qf, nm) ? ' hidden' : ''}>${dcTog(isOn, 'Focus on ' + f.a, 'data-dc-foc="' + f.id + '"')}
+      return `<div class="set2-dc-r is-foc${isOn ? ' is-sel' : ''}" data-name="${esc(nm)}"${dcMiss(DCU.qf, nm) ? ' hidden' : ''}>${dcTog(isOn, 'Search by ' + f.a, 'data-dc-foc="' + f.id + '"')}
         <span class="set2-dc-n">${esc(f.a)}<span class="set2-dc-at" title="Type guard">${dcGuard(f).t}</span></span>
         ${isOn ? `<input class="set2-dc-u" data-dc-fname="${f.id}" value="${esc(d.focus[f.id])}" aria-label="Name the agent sees for ${esc(f.a)}" title="Name the agent sees">
           <span class="set2-dc-key is-tag" title="Tag it makes for #${t.no}">cf_${f.al}=${esc(dcSlug(dcTv(t, f.id)).slice(0, 22))}</span>` : '<span></span><span></span>'}</div>`;
@@ -7336,8 +7336,8 @@
     const why = { text: 'free text', person: 'a person', date: 'a date' };
     const groups = {};
     no.forEach((f) => { (groups[f.t] = groups[f.t] || []).push(f.a); });
-    const blocked = no.length ? `<p class="set2-dc-none">Can’t be focus fields: ${Object.keys(groups).map((t) => groups[t].join(', ') + ' (' + why[t] + ')').join('; ')}.</p>` : '';
-    return `${top}<div class="set2-dc-th is-foc"><span class="agv-k">Focus</span><span class="agv-k">Field</span><span class="agv-k">Name the agent sees</span><span class="agv-k">Tag, for #${t.no}</span></div>
+    const blocked = no.length ? `<p class="set2-dc-none">Can’t be searched by: ${Object.keys(groups).map((t) => groups[t].join(', ') + ' (' + why[t] + ')').join('; ')}.</p>` : '';
+    return `${top}<div class="set2-dc-th is-foc"><span class="agv-k">Search by</span><span class="agv-k">Field</span><span class="agv-k">Name the agent sees</span><span class="agv-k">Tag, for #${t.no}</span></div>
       <div class="set2-dc-list" id="dcfocl">${rows}</div>${blocked}`;
   }
 
@@ -7375,7 +7375,7 @@
     const C = [
       [dcN(d.fields.length), 'of ' + d.cat.n + ' fields'],
       !d.fields.length ? ['0', 'rules'] : s[1] === 'fault' ? ['Paused', lost + ' rule broken'] : !d.rules.length ? ['All', 'tickets sync'] : [dcN(dcKept(d)), 'of ' + dcN(d.total) + ' tickets'],
-      [String(nf), nf ? 'focus fields' : 'reads the whole ticket'],
+      [String(nf), nf ? 'fields it searches by' : 'searches the whole ticket'],
       d.cat.down ? ['Failed', d.crm + ' not answering'] : ({ locked: ['Not yet', 'after steps 1 and 2'], wait: ['Paused', 'fix step 2'], fault: ['Failed', 'last sync'],
         run: [d.sync.pct + '%', 'syncing now'], todo: ['Ready', d.hist.length ? 'not synced since the change' : 'never synced'],
         done: [now ? 'Now' : '02:00', now ? 'just synced' : 'synced tonight'] })[s[3]]
@@ -7394,7 +7394,7 @@
     const t = DC_TICKETS[DCU.tk], v = dcVerdict(d, t), nf = dcFocusOn(d).length, open = DCU.pan && DCU.pan.type === 'ticket';
     return `<div class="set2-dc-tk is-${v.c}">${DCI.ticket}<b>#${t.no}</b><span class="set2-dc-tk-h">${esc(t.head)}</span>
       <span class="set2-dc-tk-v">${v.c === 'ok' ? I.tick : v.c === 'none' ? I.lock : DCI.ban}${v.c === 'ok' ? 'Syncs' : v.c === 'none' ? 'No rules yet' : 'Not synced'}</span>
-      ${d.fields.length ? `<span class="set2-dc-meta">${nf ? 'Copilot sees ' + nf + ' fields' : 'Copilot reads all of it'}</span>` : ''}
+      ${d.fields.length ? `<span class="set2-dc-meta">${nf ? 'Copilot searches by ' + nf + ' fields' : 'Copilot searches the whole ticket'}</span>` : ''}
       <button class="agv-lnk set2-dc-sm" type="button" data-dc="nextTk">Another</button>
       <button class="agv-btn is-ghost set2-dc-sm" type="button" data-dc="showTk" aria-pressed="${!!open}">${open ? 'Close' : 'Open'}</button></div>`;
   }
@@ -7462,7 +7462,7 @@
     const pan = dcPanel(d), n = dcDirty(d), i = DCU.step;
     const where = DC_CH[d.cid].map((x, k) => x ? DC_STEPS[k] : null).filter(Boolean).join(', ');
     const act = { 0: d.fields.length ? `<label class="set2-dc-find">${I.search}<input class="set2-dc-u" id="dcq" placeholder="Find a field" value="${esc(DCU.q)}" aria-label="Find a mapped field"></label><button class="agv-btn is-brand" type="button" data-dc="addField">Add field</button>` : '',
-      2: d.fields.length ? `<label class="set2-dc-find">${I.search}<input class="set2-dc-u" id="dcqf" placeholder="Find a field" value="${esc(DCU.qf || '')}" aria-label="Find a focus field"></label>` : '' }[i] || '';
+      2: d.fields.length ? `<label class="set2-dc-find">${I.search}<input class="set2-dc-u" id="dcqf" placeholder="Find a field" value="${esc(DCU.qf || '')}" aria-label="Find a field to search by"></label>` : '' }[i] || '';
     const cat = d.cat.down
       ? `<div class="set2-dc-cat is-err"><i></i><span>Can’t reach <b>${esc(d.cat.host)}</b></span><button class="agv-lnk" type="button" data-dc="retry">Reconnect</button></div>`
       : `<div class="set2-dc-cat"><i></i><span><b>${esc(d.cat.host)}</b>, ${d.cat.n} fields, fetched ${esc(d.cat.at)}</span>${dcIb('refresh', 'Refresh catalog', DCI.ref, DCU.refreshing ? 'data-busy' : '')}</div>`;
@@ -12033,7 +12033,7 @@
       d.rules.splice(k < 0 ? d.rules.length : k, 0, r); dcBump(d, 1); DCU.add = null; DCU.nr = null; render();
       dcToast('Added ' + DCF[f].a + ' to ' + (r.mode === 'Keep' ? 'Only sync' : 'Don’t sync') + ' tickets where.', u);
     },
-    focus3(d) { const u = dcSnap(d); Object.assign(d.focus, dcClone(DC_FOCUS)); dcBump(d, 2, 3); render(); dcToast('The Copilot will answer with the 3 product fields once you save.', u); },
+    focus3(d) { const u = dcSnap(d); Object.assign(d.focus, dcClone(DC_FOCUS)); dcBump(d, 2, 3); render(); dcToast('The Copilot will search by the 3 product fields once you save.', u); },
     win(d, el) { DCU.win = el.dataset.w; DCU.test = false; render(); },
     test() { DCU.test = true; render(); },
     run(d) { if (dcDirty(d)) DCA.save(d, true); d.sync = { st: 'running', pct: 3 }; DC_SAVED[d.cid].sync = dcClone(d.sync); DCU.test = false; render(); dcStartSync(d, 12); dcToast('Sync started for ' + dcN(dcKept(d)) + ' tickets.'); },

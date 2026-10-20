@@ -5530,6 +5530,16 @@ button.set2-us-sl:disabled { cursor: not-allowed; }
 .set2-dc-add { display: grid; gap: 0.75rem; padding: 1rem; border-radius: 1rem; background: var(--card-bg-raised); box-shadow: inset 0 0 0 0.0625rem var(--brand); animation: set2DcIn var(--t-base) var(--ease-out); }
 .set2-dc-add.is-rule { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
 .set2-dc-dd .v2-dropdown-btn { min-width: 9rem; }
+/* The Console anchors a .set2-dd list to the trigger's RIGHT edge, so a list
+   wider than its trigger grows left, and in the column that is past the
+   column's edge, where it is clipped. Here it opens from the left edge and
+   grows right; inside the column it is the column's width and long keys
+   wrap rather than run off. */
+.set2-dc .set2-dd .v2-dropdown-panel { left: 0; right: auto; min-width: 100%; width: max-content; max-width: min(22rem, calc(100vw - 2rem)); }
+.set2-dc .set2-dd .v2-dropdown-option { white-space: normal; overflow-wrap: anywhere; }
+.set2-dc-pan .set2-dc-dd, .set2-dc-pan .set2-dc-dd .v2-dropdown-btn { width: 100%; }
+.set2-dc-pan .set2-dd .v2-dropdown-panel { width: 100%; max-width: 100%; }
+.set2-dc-pan .set2-dc-dd .v2-dropdown-btn .dd-label-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .set2-dc-cb { max-height: 12rem; overflow: auto; display: grid; gap: 0.125rem; }
 .set2-dc-cbk { display: block; margin: 0; padding: 0.5rem 0.75rem 0.25rem; }
 .set2-dc-cbk + button { margin-top: 0; }
