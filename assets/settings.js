@@ -177,6 +177,7 @@
     ]},
     { id: 'upland', name: 'Upland', type: 'Client', kids: [
       { id: 'upl-sup', name: 'Support Operations', type: 'Business Unit', kids: [
+        { id: 'accuroute', name: 'AccuRoute Support', type: 'Product', kids: [] },
         { id: 'interfax', name: 'InterFAX Support', type: 'Product', kids: [
           { id: 'ifx-t1', name: 'Tier 1', type: 'Team', kids: [
             { id: 'u-tarek', name: 'Tarek Ahmed', type: 'User' }
@@ -799,6 +800,13 @@
         ['4 Sep, 16:47', [], 'ok', 'Succeeded', 3]
       ] },
 
+    /* Upland's AccuRoute Support, read from staging's Freshdesk. Its mapping,
+       rules and focus fields live in the Dynamic context model (DC_FIELDS and
+       on), copied from the staging screenshots for AIMY-2662. */
+    { id: 'ar-freshdesk', product: 'AccuRoute Support', crm: 'Freshdesk', crmId: 'freshdesk',
+      health: ['is-ok', 'Healthy'], last: 'Tonight, 02:00', every: 'Every night at 02:00',
+      window: 90, records: 1912, maps: [], criteria: [], runs: [] },
+
     { id: 'ks-teamsupport', product: 'Knowledge Search', crm: 'TeamSupport', crmId: 'teamsupport',
       health: ['is-warn', '3 records skipped'], last: '2 hours ago', every: 'Every 6 hours',
       window: 30, records: 340,
@@ -879,6 +887,9 @@
   function prodOf(st) {
     const list = connectedOf(clientOf(st));
     if (list.indexOf(st.sp) > -1) return st.sp;
+    /* Dynamic context opens on the product its staging data belongs to. */
+    if (!st.sp && (st.m || 'config') === 'config' && (!st.sec || st.sec === 'fields' || st.sec === 'sync')
+        && list.indexOf('AccuRoute Support') > -1) return 'AccuRoute Support';
     return list.filter((p) => troubleOf(p))[0] || list[0];
   }
   function crmOf(st) {
@@ -1586,8 +1597,8 @@
   /* `webhooks` and `apis` are gone from here: they used to name a SECTION
      inside Enablement and now name the module itself, which has no sections to
      choose between. */
-  const ALIAS_SEC = { failures: 'sync',
-                      sync: 'sync', retention: 'relevance', people: 'people',
+  const ALIAS_SEC = { failures: 'fields',
+                      sync: 'fields', retention: 'relevance', people: 'people',
                       roles: 'roles', hierarchy: 'scopes', skills: 'skills' };
   const aliasOf = (id) => ALIAS[id] || id;
   const moduleById = (id) => MODULES.filter((m) => m.id === aliasOf(id))[0];
@@ -6948,6 +6959,508 @@
       </section>`;
   }
 
+
+  /* ═══ DYNAMIC CONTEXT — ONE FLOW, FOUR STEPS (AIMY-2662) ═══════════════
+
+     Staging split this into three pages (Field mapping, Sync filters, Focus
+     fields) plus Sync, and nothing said what order they went in or what was
+     left. It is one page now: four stage cards that pick the step, the step's
+     editor under them, and a column on the right that opens only for the
+     things that can run long (a field's values, the whole sample ticket, why
+     a sync failed), so no list grows in place between the others.
+
+     THE DATA IS STAGING'S. Upland's Freshdesk (uplandsoftware.freshdesk.com,
+     157 fields, fetched 11:20:21 AM), the 24 confirmed fields and their keys,
+     Status 2 Open .. 9000 Assigned to AI Agent, the Accuroute Support form and
+     the four AccuRoute groups, the three tag rules AiMY sets, and the focus
+     fields with their type guards are copied from the staging screenshots.
+     Ticket counts and the sample tickets are fixture.
+
+     Keep and Skip are gone as words: a rule sits in "Only sync tickets
+     where" or "Don't sync tickets where", and the list is its mode. */
+  const DCI = {
+    ban: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>',
+    ref: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>',
+    pause: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/></svg>',
+    ticket: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>',
+    flask: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></svg>',
+    left: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>',
+    spark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>'
+  };
+  const dcN = (n) => Number(n).toLocaleString('en-US');
+  const dcClone = (o) => JSON.parse(JSON.stringify(o));
+  const dcSlug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+
+  /* id, AiMY field, Freshdesk key, Freshdesk label, type, value count, alias
+     (what the Copilot's tags are named after), TeamSupport key. */
+  const DC_FIELDS = [
+    ['num', 'Ticket number', 'id', 'Ticket ID', 'number', 0, 'url', 'TicketNumber'],
+    ['title', 'Title', 'subject', 'Subject', 'text', 0, 'title', 'Name'],
+    ['desc', 'Description', 'description_text', 'Description', 'text', 0, 'description', 'Description'],
+    ['status', 'Status', 'status', 'Status', 'lookup', 6, 'status', 'Status'],
+    ['prio', 'Priority', 'priority', 'Priority', 'lookup', 4, 'priority', 'Severity'],
+    ['type', 'Type', 'type', 'Type', 'choice', 9, 'type', 'TicketType'],
+    ['source', 'Source', 'source', 'Source', 'lookup', 6, 'source', 'TicketSource'],
+    ['group', 'Group', 'group_id', 'Group', 'lookup', 163, 'group', 'GroupName'],
+    ['agent', 'Agent', 'responder_id', 'Agent', 'person', 48, 'agent', 'UserName'],
+    ['req', 'Requester', 'requester_id', 'Requester', 'person', 2904, 'requester', 'ContactName'],
+    ['company', 'Company', 'company_id', 'Company', 'lookup', 211, 'company', 'PrimaryCustomer'],
+    ['product', 'Product', 'product_id', 'Product', 'lookup', 12, 'product', 'ProductName'],
+    ['tags', 'Tags', 'tags', 'Tags', 'tags', 1240, 'tags', 'Tags'],
+    ['form', 'Support Form', 'custom_fields.cf_product', 'Support Form', 'dropdown', 7, 'support_form', 'CustomFields.SupportForm'],
+    ['ar', 'Affects Product (AR)', 'custom_fields.cf_affects_product_ar', 'Affects Product (AR)', 'nested', 0, 'affects_product_ar', 'CustomFields.AffectsProduct'],
+    ['rel', 'Accuroute - Relates To', 'custom_fields.cf_accuroute_relates_to', 'Accuroute - Relates To', 'nested', 0, 'accuroute_relates_to', 'CustomFields.RelatesTo'],
+    ['l2', 'Affects Product (AR) › L2', 'custom_fields.cf_affects_product_ar_l2', 'Affects Product (AR) > L2', 'dropdown', 74, 'affects_product_ar_l2', 'CustomFields.AffectsProductL2'],
+    ['ver', 'Version', 'custom_fields.cf_version', 'Version', 'dropdown', 22, 'version', 'ReportedVersion'],
+    ['due', 'Due by', 'due_by', 'Due by', 'date', 0, 'due_by', 'DueDate'],
+    ['created', 'Created', 'created_at', 'Created at', 'date', 0, 'created_at', 'DateCreated'],
+    ['updated', 'Updated', 'updated_at', 'Updated at', 'date', 0, 'updated_at', 'DateModified'],
+    ['resolved', 'Resolved', 'stats.resolved_at', 'Resolved at', 'date', 0, 'resolved_at', 'DateClosed'],
+    ['frdue', 'First response due', 'fr_due_by', 'First response due by', 'date', 0, 'fr_due_by', 'SlaWarningDate'],
+    ['esc', 'Escalated', 'is_escalated', 'Escalated', 'boolean', 2, 'escalated', 'IsEscalated']
+  ].map(([id, a, k, lab, t, n, al, ts]) => ({ id, a, k, lab, t, n, al, ts }));
+  const DCF = {};
+  DC_FIELDS.forEach((f) => { DCF[f.id] = f; });
+  /* more of the catalogue, for Add field */
+  const DC_EXTRA = [['cf_relates_to_l2', 'Relates To L2', 'dropdown'], ['cf_internal_region', 'Internal region', 'dropdown'],
+    ['cf_csat_score', 'CSAT score', 'number'], ['cf_contract_tier', 'Contract tier', 'dropdown'], ['cf_environment', 'Environment', 'dropdown'],
+    ['cf_root_cause', 'Root cause', 'dropdown'], ['association_type', 'Association type', 'number'], ['email_config_id', 'Email inbox', 'lookup'],
+    ['cc_emails', 'CC emails', 'text'], ['nr_due_by', 'Next response due by', 'date']];
+
+  const DC_VALS = {
+    status: [['2', 'Open'], ['3', 'Pending'], ['4', 'Resolved'], ['5', 'Closed'], ['6', 'On-Hold'], ['9000', 'Assigned to AI Agent']],
+    prio: [['1', 'Low'], ['2', 'Medium'], ['3', 'High'], ['4', 'Urgent']],
+    source: [['1', 'Email'], ['2', 'Portal'], ['3', 'Phone'], ['7', 'Chat'], ['9', 'Feedback widget'], ['10', 'Outbound email']],
+    type: [['Question', 'Question'], ['Incident', 'Incident'], ['Problem', 'Problem'], ['Feature Request', 'Feature request'], ['Refund', 'Refund']]
+  };
+  /* codes Freshdesk sends that nobody has labelled yet */
+  const DC_UNL = { status: ['7', '8'], source: ['11'] };
+  const DC_NAMED = {
+    group: ['AccuRoute Dedicated Support', 'AccuRoute Enterprise Support', 'AccuRoute Licensing', 'AccuRoute Support', 'Upland Billing',
+      'Second Street Support', 'FileBound Support', 'InterFAX Support', 'Kapost Support', 'PSA Support', 'Altify Support', 'Rant & Rave Support'],
+    company: ['Brightline Logistics', 'Harbor & Finch Legal', 'Mercer County Schools', 'Northwind Clinics', 'Pell Street Bank'],
+    product: ['AccuRoute', 'Second Street', 'FileBound', 'InterFAX', 'Kapost'],
+    agent: ['Rania Fathy', 'Omar Selim', 'Mona Adel', 'Karim Fouad'],
+    req: ['Dan Whitlock', 'Priya Raman', 'Hannah Okafor', 'Luis Ortega']
+  };
+  const DC_SUGGEST = {
+    form: ['Accuroute Support', 'Second Street Support', 'FileBound Support', 'InterFAX Support', 'Kapost Support', 'Panviva Support', 'Qvidian Support'],
+    group: DC_NAMED.group,
+    tags: ['closed_by_merge', 'ADS_automated_notification_closed', 'AI_ignore', 'printing', 'v4.2', 'escalated', 'billing', 'duplicate'],
+    status: DC_VALS.status.map((v) => v[1]), prio: DC_VALS.prio.map((v) => v[1]), source: DC_VALS.source.map((v) => v[1]),
+    type: DC_VALS.type.map((v) => v[1]), product: DC_NAMED.product,
+    l2: ['Desktop 4.2', 'Desktop 4.1', 'Server 6.0', 'Cloud'], ver: ['4.2.1', '4.2.0', '4.1.3', '6.0.2']
+  };
+  const DC_OPS = { lookup: ['is one of', 'is not one of'], dropdown: ['is one of', 'is not one of'], choice: ['is one of', 'is not one of'],
+    nested: ['is one of', 'is not one of'], person: ['is one of', 'is not one of'], boolean: ['is'], tags: ['contains', 'does not contain'],
+    date: ['is after', 'is before', 'is in the last'], number: ['is', 'is more than'], text: ['contains'] };
+
+  const DC_TICKETS = [
+    { no: '48213', head: 'Scanner stops printing after the 4.2 update', v: { num: '48213', title: 'Scanner stops printing after the 4.2 update',
+      desc: 'Since Tuesday, scans from the MFP arrive but the print job never starts.', status: 'Open', prio: 'High', type: 'Problem', source: 'Email',
+      group: 'AccuRoute Support', agent: 'Rania Fathy', req: 'Dan Whitlock', company: 'Brightline Logistics', product: 'AccuRoute', tags: ['printing', 'v4.2'],
+      form: 'Accuroute Support', ar: 'AccuRoute Desktop > Scanning', rel: 'Scan to Print', l2: 'Desktop 4.2', ver: '4.2.1', due: '22 Oct 2026',
+      created: '18 Oct 2026', updated: '19 Oct 2026', resolved: 'Not yet', frdue: '18 Oct 2026', esc: 'No' } },
+    { no: '48197', head: 'Duplicate: scanner not printing', v: { num: '48197', title: 'Duplicate: scanner not printing', desc: 'Same as 48213.',
+      status: 'Closed', prio: 'Medium', type: 'Problem', source: 'Portal', group: 'AccuRoute Support', agent: 'Rania Fathy', req: 'Dan Whitlock',
+      company: 'Brightline Logistics', product: 'AccuRoute', tags: ['closed_by_merge'], form: 'Accuroute Support', ar: 'AccuRoute Desktop > Scanning',
+      rel: 'Scan to Print', l2: 'Desktop 4.2', ver: '4.2.1', due: '21 Oct 2026', created: '18 Oct 2026', updated: '18 Oct 2026',
+      resolved: '18 Oct 2026', frdue: '18 Oct 2026', esc: 'No' } },
+    { no: '48102', head: 'October invoice is missing a seat', v: { num: '48102', title: 'October invoice is missing a seat',
+      desc: 'We added a user on 3 Oct and the invoice still shows 11.', status: 'Pending', prio: 'Low', type: 'Question', source: 'Email',
+      group: 'Upland Billing', agent: 'Omar Selim', req: 'Priya Raman', company: 'Harbor & Finch Legal', product: 'AccuRoute', tags: ['billing'],
+      form: 'Accuroute Support', ar: 'AccuRoute Server > Licensing', rel: 'Billing', l2: 'Server 6.0', ver: '6.0.2', due: '24 Oct 2026',
+      created: '16 Oct 2026', updated: '19 Oct 2026', resolved: 'Not yet', frdue: '17 Oct 2026', esc: 'No' } }
+  ];
+  const DC_RAW = [['cf_internal_region', 'EMEA-2'], ['cf_csat_score', '4'], ['association_type', '1']];
+  const DC_RULES = [
+    { id: 'r1', f: 'form', op: 'is one of', v: ['Accuroute Support'], mode: 'Keep', on: true, eff: 242 },
+    { id: 'r2', f: 'group', op: 'is one of', v: ['AccuRoute Dedicated Support', 'AccuRoute Enterprise Support', 'AccuRoute Licensing', 'AccuRoute Support'], mode: 'Keep', on: true, eff: 117 },
+    { id: 'r3', f: 'tags', op: 'contains', v: ['closed_by_merge'], mode: 'Skip', on: true, sys: true, eff: 38 },
+    { id: 'r4', f: 'tags', op: 'contains', v: ['ADS_automated_notification_closed'], mode: 'Skip', on: true, sys: true, eff: 27 },
+    { id: 'r5', f: 'tags', op: 'contains', v: ['AI_ignore'], mode: 'Skip', on: true, sys: true, eff: 7 }
+  ];
+  const DC_FOCUS = { ar: 'Affects Product (AR)', rel: 'Accuroute - Relates To', l2: 'Affects Product (AR) L2' };
+  const DC_STEPS = ['Map fields', 'Choose which tickets sync', 'Pick focus fields', 'Check and sync'];
+  const DC_WHAT = [
+    'Tell AiMY what each field is. The next steps can only use fields mapped here.',
+    'Decide which tickets this product syncs: what a ticket must match, and what leaves it out. Rules can only use mapped fields.',
+    'Pick the mapped fields the Copilot answers with, like a ticket’s product or Relates To. They don’t change which tickets sync.',
+    'Check what the next sync will do, then run it now or let tonight’s sync at 02:00 pick it up.'
+  ];
+  const DC_HOME = 'AccuRoute Support';
+
+  /* ── ONE MODEL PER CONNECTOR, A SAVED COPY BESIDE IT ── */
+  const DC = {}, DC_SAVED = {}, DC_CH = {};
+  const dcTicketSource = (c) => !!c && (c.crmId === 'freshdesk' || c.crmId === 'teamsupport');
+  function dcSeed(c) {
+    const ts = c.crmId === 'teamsupport';
+    const d = { cid: c.id, crm: c.crm, ts: ts, fields: [], rules: [], focus: {}, keys: {}, names: {}, vals: dcClone(DC_VALS), resolve: {},
+      total: c.id === 'ar-freshdesk' ? 2343 : (c.records || 400),
+      cat: { n: ts ? 132 : 157, at: ts ? '09:14:02 AM' : '11:20:21 AM', host: ts ? 'upland.teamsupport.com' : 'uplandsoftware.freshdesk.com', down: null },
+      sync: { st: 'never', pct: 0 }, hist: [] };
+    if (c.id === 'ar-freshdesk') {
+      d.fields = DC_FIELDS.map((f) => f.id); d.rules = dcClone(DC_RULES); d.focus = dcClone(DC_FOCUS); d.sync.st = 'done';
+      d.hist = [
+        { when: 'Tonight, 02:00', res: 'ok', kept: 1912, skip: 431, took: '3 min 41 s' },
+        { when: '19 Oct, 02:00', res: 'ok', kept: 1907, skip: 429, took: '3 min 38 s' },
+        { when: '18 Oct, 02:00', res: 'ok', kept: 1899, skip: 425, took: '3 min 51 s' },
+        { when: '17 Oct, 14:12', res: 'ok', kept: 1893, skip: 424, took: '4 min 02 s', who: 'Run by Mohamed Hassan, last 30 days' }];
+    } else if (c.health && c.health[0] === 'is-err') {
+      const r = (c.runs || []).filter((x) => x[5])[0];
+      d.cat.down = (r && r[5].why) || 'AiMY could not reach ' + c.crm + '.';
+      d.sync.st = 'failed';
+      d.hist = r ? [{ when: r[0], res: 'fail', why: r[5].why }] : [];
+    }
+    return d;
+  }
+  function dcOf(c) {
+    if (!DC[c.id]) { DC[c.id] = dcSeed(c); DC_SAVED[c.id] = dcClone(DC[c.id]); DC_CH[c.id] = [0, 0, 0, 0]; }
+    return DC[c.id];
+  }
+  let DCU = { cid: null, step: 0, pan: null, tk: 0, win: 'last', test: false, add: null, nr: null, q: '', addq: '', pick: null, more: {} };
+  const dcKeyOf = (d, id) => d.keys[id] || (d.ts ? DCF[id].ts : DCF[id].k);
+  const dcMapped = (d, id) => d.fields.indexOf(id) > -1;
+  const dcBroken = (d, r) => !dcMapped(d, r.f);
+  const dcLost = (d) => d.rules.filter((r) => dcBroken(d, r)).map((r) => DCF[r.f].a)
+    .filter((v, i, a) => a.indexOf(v) === i).join(' and ');
+  const dcKept = (d) => Math.max(0, d.total - d.rules.filter((r) => r.on && !dcBroken(d, r)).reduce((a, r) => a + r.eff, 0));
+  const dcDirty = (d) => DC_CH[d.cid].reduce((a, b) => a + b, 0);
+  const dcFocusOn = (d) => Object.keys(d.focus).filter((id) => dcMapped(d, id));
+  function dcStatus(d) {
+    const s1 = d.fields.length ? 'done' : 'todo';
+    const s2 = !d.fields.length ? 'locked' : d.rules.some((r) => dcBroken(d, r)) ? 'fault' : d.rules.length ? 'done' : 'todo';
+    const s3 = !d.fields.length ? 'locked' : dcFocusOn(d).length ? 'done' : 'todo';
+    const y = d.sync.st;
+    const s4 = d.cat.down ? 'fault' : !d.fields.length ? 'locked' : s2 === 'fault' ? 'wait' : y === 'failed' ? 'fault'
+      : y === 'running' ? 'run' : (y === 'never' || y === 'paused') ? 'todo' : 'done';
+    return [s1, s2, s3, s4];
+  }
+  function dcGuard(f) {
+    if (f.t === 'text') return { bad: true, t: 'free text, blocked (PII)', why: 'Free text can hold personal details, so the Copilot can’t focus on it.' };
+    if (f.t === 'date') return { bad: true, t: 'date, blocked', why: 'A date doesn’t say what a ticket is about.' };
+    if (f.t === 'person') return { bad: true, t: 'person, blocked', why: 'It names a person.' };
+    if (f.t === 'nested') return { t: 'nested, 2 levels' };
+    if (f.t === 'number') return { t: 'number' };
+    if (f.t === 'boolean') return { t: 'yes or no' };
+    return { t: (f.t === 'choice' ? 'dropdown' : f.t) + ', ' + dcN(f.n || 0) };
+  }
+  const dcTv = (t, id) => { const v = t.v[id]; return Array.isArray(v) ? v.join(', ') : (v == null ? '' : v); };
+  function dcVerdict(d, t) {
+    if (!d.fields.length) return { c: 'none', t: 'No rules yet. Once fields are mapped, rules decide if this ticket syncs.', short: 'no rules yet' };
+    const br = d.rules.filter((r) => r.on && dcBroken(d, r))[0];
+    if (br) return { c: 'err', t: '<b>Not synced.</b> The ' + esc(DCF[br.f].a) + ' rule can’t run while ' + esc(DCF[br.f].a) + ' is unmapped.', short: 'not synced, a rule can’t run' };
+    for (const r of d.rules.filter((x) => x.on)) {
+      const val = t.v[r.f], arr = Array.isArray(val) ? val : [val];
+      const hit = r.v.some((x) => arr.indexOf(x) > -1);
+      const match = (r.op === 'is one of' || r.op === 'contains') ? hit : (r.op === 'is not one of' || r.op === 'does not contain') ? !hit : true;
+      if (r.mode === 'Keep' && !match) return { c: 'skip', t: '<b>Not synced.</b> Its ' + esc(DCF[r.f].a) + ' is ' + esc(arr.join(', ')) + ', and Only sync tickets where needs ' + (r.v.length > 1 ? 'one of ' + r.v.length + ' values' : esc(r.v[0])) + '.', short: 'not synced, its ' + DCF[r.f].a + ' is ' + arr.join(', ') };
+      if (r.mode === 'Skip' && match) {
+        const hitV = r.v.filter((x) => arr.indexOf(x) > -1)[0] || r.v[0], tag = DCF[r.f].t === 'tags';
+        return { c: 'skip', t: '<b>Not synced.</b> ' + (tag ? 'It is tagged ' + esc(hitV) : 'Its ' + esc(DCF[r.f].a) + ' is ' + esc(hitV)) + ', which is on the Don’t sync list' + (r.sys ? ', set by AiMY' : '') + '.',
+          short: 'not synced, ' + (tag ? 'tagged ' + hitV : 'its ' + DCF[r.f].a + ' is ' + hitV) };
+      }
+    }
+    const keeps = d.rules.filter((r) => r.on && r.mode === 'Keep').map((r) => DCF[r.f].a);
+    return { c: 'ok', t: '<b>Syncs.</b> ' + (keeps.length ? 'It matches every Only sync condition (' + esc(keeps.join(' and ')) + ') and nothing on the Don’t sync list.' : 'There are no Only sync conditions, and nothing on the Don’t sync list matches.'), short: 'syncs' };
+  }
+  const dcUsedBy = (d, id) => {
+    const r = d.rules.filter((x) => x.f === id).length, out = [];
+    if (r) out.push(r + ' rule' + (r > 1 ? 's' : ''));
+    if (d.focus[id]) out.push('focus');
+    return out.join(' and ');
+  };
+  const dcAt = (r) => (r.sys || DCF[r.f].t === 'tags') ? 'After fetch' : 'In Freshdesk';
+  const dcIsLookup = (f) => ['lookup', 'choice', 'person'].indexOf(f.t) > -1;
+  const DC_LABEL = { done: 'Done', todo: 'To do', fault: 'Needs a fix', locked: 'Waiting', wait: 'Paused', run: 'Syncing' };
+  const DC_PILL = { done: 'is-ok', todo: 'is-info', fault: 'is-err', locked: 'is-warn', wait: 'is-warn', run: 'is-info' };
+  const dcPill = (s) => `<span class="set2-dc-st ${DC_PILL[s]}">${s === 'done' ? I.tick : s === 'fault' ? I.warn : s === 'locked' ? I.lock : s === 'wait' ? DCI.pause : s === 'run' ? DCI.ref : ''}${DC_LABEL[s]}</span>`;
+
+  /* the rail row's note and its one fix */
+  function dcPageState(st) {
+    const c = crmOf(st);
+    if (!c) return null;
+    if (!dcTicketSource(c)) return { note: 'Ticket sources only', s: 'ok' };
+    const d = dcOf(c), s = dcStatus(d), n = s.filter((x) => x === 'done').length;
+    if (d.cat.down) return { note: c.crm + ' not answering', s: 'err' };
+    if (s[1] === 'fault') return { note: 'Needs a fix', s: 'err', fix: fixTo('Map ' + dcLost(d) + ' again', 'fields', '[data-dc-remap]') };
+    if (s[3] === 'run') return { note: 'Syncing', s: 'ok' };
+    if (n === 4) return { note: 'Set up', s: 'ok' };
+    return { note: n + ' of 4 done', s: 'warn' };
+  }
+
+  /* ── STEP 1: MAP FIELDS ── */
+  function dcValCell(d, f) {
+    if (!dcIsLookup(f)) return '<span class="set2-dc-mono">Any value</span>';
+    const on = DCU.pan && DCU.pan.type === 'field' && DCU.pan.id === f.id ? ' is-on' : '';
+    const v = d.vals[f.id];
+    if (v) {
+      const miss = (DC_UNL[f.id] || []).filter((c) => !v.some((x) => x[0] === c)).length;
+      return `<button class="set2-dc-vp${on}" type="button" data-dc="vals" data-id="${f.id}" aria-label="Value mapping for ${esc(f.a)}">`
+        + v.slice(0, 2).map(([r, l]) => `<span><span class="set2-dc-mono">${esc(r)}</span> → ${esc(l)}</span>`).join('')
+        + (v.length > 2 ? `<span class="set2-dc-vp-more">and ${v.length - 2} more</span>` : '')
+        + (miss ? `<span class="set2-dc-vp-warn">${miss} not labelled</span>` : '') + '</button>';
+    }
+    return `<button class="set2-dc-vp${on}" type="button" data-dc="vals" data-id="${f.id}">${d.resolve[f.id] !== false ? 'Names from ' + esc(d.crm) + ', ' + dcN(f.n || 0) : 'Shown as IDs'}<span class="set2-dc-vp-more">Change</span></button>`;
+  }
+  function dcLostNote(d) {
+    if (!d.rules.some((r) => dcBroken(d, r))) return '';
+    const who = d.byWho ? ' ' + d.byWho : '';
+    return `<div class="set2-dc-note is-err">${I.warn}<span><b>${esc(dcLost(d))} is not mapped${who}.</b> A rule in step 2 still uses it, so sync stops until it is mapped again.</span>
+      <button class="btn btn-sm" type="button" data-dc="remap" data-dc-remap>Map ${esc(dcLost(d))} again</button></div>`;
+  }
+  function dcMap(d) {
+    if (d.cat.down && !d.fields.length) return `<div class="set2-dc-empty"><b>AiMY can’t read ${esc(d.crm)}’s fields yet</b><span>It needs to reach ${esc(d.cat.host)} first. Reconnect, then the 24 suggested fields can be mapped.</span></div>`;
+    if (!d.fields.length) return `<div class="set2-dc-empty"><b>Nothing mapped yet</b><span>AiMY read ${d.cat.n} fields from ${esc(d.cat.host)} and suggests 24 that describe a ticket: its number, title, status, group, tags and the product fields.</span>
+      <span class="set2-dc-row"><button class="btn btn-brand btn-sm" type="button" data-dc="suggest">Map the 24 suggested fields</button><button class="btn btn-sm" type="button" data-dc="addField">${I.plus}Add one field</button></span></div>${DCU.add === 'field' ? dcAddField(d) : ''}`;
+    const rows = d.fields.map((id) => DCF[id]).map((f) => {
+      const sel = DCU.pan && DCU.pan.type === 'field' && DCU.pan.id === f.id, ub = dcUsedBy(d, f.id), key = dcKeyOf(d, f.id);
+      return `<tr class="${sel ? 'is-sel' : ''}" data-name="${esc((f.a + ' ' + key + ' ' + f.lab).toLowerCase())}">
+        <td><b>${esc(f.a)}</b>${ub ? `<span class="set2-dc-sub">Used by ${ub}</span>` : ''}</td>
+        <td data-l="${esc(d.crm)}"><span class="set2-dc-key">${esc(key)}</span><span class="set2-dc-sub">${esc(f.lab)}, ${f.t}</span></td>
+        <td data-l="Values"${dcIsLookup(f) ? '' : ' class="is-any"'}>${dcValCell(d, f)}</td>
+        <td class="set2-dc-acts"><button class="btn btn-ghost btn-sm set2-dc-ic" type="button" data-dc="rmField" data-id="${f.id}" aria-label="Remove ${esc(f.a)}" title="Remove">${I.trash}</button></td></tr>`;
+    }).join('');
+    return `${dcLostNote(d)}<div class="set2-dc-tb"><span class="set2-dc-cnt"><b>${d.fields.length}</b> confirmed</span>
+      <label class="set2-dc-find">${I.search}<input class="set2-dc-in" id="dcq" placeholder="Find a field" value="${esc(DCU.q)}" aria-label="Find a mapped field"></label>
+      <button class="btn btn-brand btn-sm" type="button" data-dc="addField">${I.plus}Add field</button></div>
+      ${DCU.add === 'field' ? dcAddField(d) : ''}
+      <div class="set2-dc-tw"><table class="set2-dc-t" id="dctmap"><thead><tr><th>AiMY field</th><th>${esc(d.crm)} key</th><th>Values</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="set2-dc-foot">Values turns ${esc(d.crm)}’s codes into words, like 2 into Open. Open one to edit it. For a field that isn’t listed, like a Relates To L2, use Add field.</p>`;
+  }
+  function dcAddField(d) {
+    const taken = d.fields.map((id) => dcKeyOf(d, id));
+    const opts = DC_FIELDS.map((f) => [d.ts ? f.ts : f.k, f.lab, f.t]).concat(DC_EXTRA.map((e) => [(d.ts ? 'CustomFields.' : 'custom_fields.') + e[0], e[1], e[2]]));
+    const pk = opts.filter((o) => o[0] === DCU.pick)[0];
+    return `<div class="set2-dc-add"><b class="set2-dc-add-t">Add a field from ${esc(d.crm)}</b>
+      <input class="set2-dc-in" id="dcaddq" placeholder="Search ${d.cat.n} fields" aria-label="Search ${esc(d.crm)} fields" value="${esc(DCU.addq)}">
+      <div class="set2-dc-cb" id="dcaddl">${opts.map(([k, lab]) => { const used = taken.indexOf(k) > -1;
+        return `<button type="button" data-dc-pick="${esc(k)}" class="${DCU.pick === k ? 'is-on' : ''}" ${used ? 'disabled' : ''} data-name="${esc((lab + ' ' + k).toLowerCase())}"><span>${esc(lab)}${used ? ' (mapped)' : ''}</span><span class="set2-dc-mono">${esc(k)}</span></button>`; }).join('')}</div>
+      <div class="set2-dc-add-g"><label>Name in AiMY<input class="set2-dc-in" id="dcaddn" value="${esc(pk ? pk[1] : '')}" placeholder="Pick a field first"></label>
+      <label>Type<input class="set2-dc-in" value="${pk ? pk[2] : ''}" readonly></label>
+      <span class="set2-dc-row"><button class="btn btn-sm" type="button" data-dc="addCancel">Cancel</button><button class="btn btn-brand btn-sm" type="button" data-dc="addFieldSave" ${pk ? '' : 'disabled'}>Add field</button></span></div></div>`;
+  }
+
+  /* ── STEP 2: TWO LISTS ── */
+  function dcRuleRows(d, list) {
+    return list.map((r) => {
+      const f = DCF[r.f], bad = dcBroken(d, r), more = DCU.more[r.id], shown = more ? r.v : r.v.slice(0, 4);
+      const chips = shown.map((v) => `<span class="set2-dc-chip${bad ? ' is-err' : ''}">${esc(v)}${r.sys ? '' : `<button type="button" data-dc="rmVal" data-r="${r.id}" data-v="${esc(v)}" aria-label="Remove ${esc(v)}">${I.x}</button>`}</span>`).join('')
+        + (r.v.length > 4 ? `<button class="set2-dc-lnk" type="button" data-dc="moreVals" data-r="${r.id}">${more ? 'Show fewer' : 'and ' + (r.v.length - 4) + ' more'}</button>` : '')
+        + (r.sys || bad ? '' : `<input class="set2-dc-in is-sm" data-dc-addv="${r.id}" list="dcdl-${r.f}" placeholder="Add a value" aria-label="Add a value to the ${esc(f.a)} rule">`);
+      const other = r.mode === 'Keep' ? 'Don’t sync tickets where' : 'Only sync tickets where';
+      const end = r.sys ? `<span class="set2-dc-lock">${I.lock}Set by AiMY</span>`
+        : `<button class="btn btn-ghost btn-sm" type="button" data-dc="move" data-r="${r.id}" title="Move to ${other}" aria-label="Move to ${other}">Move</button>
+           ${toggle(r.on, 'Rule on', 'data-dc-on="' + r.id + '"')}
+           <button class="btn btn-ghost btn-sm set2-dc-ic" type="button" data-dc="rmRule" data-r="${r.id}" aria-label="Delete rule" title="Delete rule">${I.trash}</button>`;
+      return `<tr class="${bad ? 'is-err' : ''}${r.on ? '' : ' is-off'}"><td><b>${esc(f.a)}</b><span class="set2-dc-sub">${esc(dcKeyOf(d, r.f))}, ${f.t}</span>
+          <span class="set2-dc-sub set2-dc-at">Checked ${(r.sys || f.t === 'tags') ? 'after fetch' : 'in ' + esc(d.crm)}</span>
+          ${bad ? `<span class="set2-dc-sub is-err">Not mapped. This rule can’t run.</span>` : ''}</td>
+        <td data-l="Rule"><span class="set2-dc-op">${r.op}</span><span class="set2-dc-vals">${chips}</span></td>
+        <td class="set2-dc-acts">${bad ? `<button class="btn btn-sm" type="button" data-dc="remap" data-dc-remap>Map ${esc(f.a)} again</button>` : end}</td></tr>`;
+    }).join('');
+  }
+  function dcGroup(d, mode) {
+    const list = d.rules.filter((r) => r.mode === mode), keep = mode === 'Keep';
+    const adding = DCU.add === 'rule' && DCU.nr && DCU.nr.m === mode;
+    return `<section class="set2-dc-rg ${keep ? 'is-keep' : 'is-skip'}"><div class="set2-dc-rg-h"><div>
+      <h3>${keep ? I.tick : DCI.ban}${keep ? 'Only sync tickets where' : 'Don’t sync tickets where'}</h3>
+      <p>${keep ? 'A ticket must match every one of these.' : 'A ticket that matches any one of these is left out.'}</p></div>
+      <button class="btn btn-sm" type="button" data-dc="addRule" data-dc-mode="${mode}">${I.plus}Add a condition</button></div>
+      ${adding ? dcAddRule(d) : ''}
+      ${list.length ? `<div class="set2-dc-tw is-flat"><table class="set2-dc-t"><thead><tr><th>Field</th><th>Rule</th><th></th></tr></thead><tbody>${dcRuleRows(d, list)}</tbody></table></div>`
+        : `<p class="set2-dc-none">${keep ? 'No conditions, so every ticket for this product gets through to the next list.' : 'Nothing is left out.'}</p>`}</section>`;
+  }
+  function dcAddRule(d) {
+    const nr = DCU.nr;
+    if (!nr.f || !dcMapped(d, nr.f)) nr.f = d.fields.filter((id) => DCF[id].t !== 'text')[0];
+    const f = DCF[nr.f], ops = DC_OPS[f.t] || ['is one of'];
+    return `<div class="set2-dc-add"><b class="set2-dc-add-t">Add a condition</b><div class="set2-dc-add-g is-3">
+      <label>Field<select class="set2-dc-in" id="dcnrf">${d.fields.map((id) => `<option value="${id}" ${id === nr.f ? 'selected' : ''}>${esc(DCF[id].a)}</option>`).join('')}</select></label>
+      <label>Rule<select class="set2-dc-in" id="dcnrop">${ops.map((o) => `<option>${o}</option>`).join('')}</select></label>
+      <label>Value<input class="set2-dc-in" id="dcnrv" list="dcdl-${nr.f}" placeholder="${f.t === 'date' ? '1 Jan 2025' : 'Type or pick a value'}"></label></div>
+      <span class="set2-dc-row is-end"><button class="btn btn-sm" type="button" data-dc="addCancel">Cancel</button><button class="btn btn-brand btn-sm" type="button" data-dc="addRuleSave">Add condition</button></span></div>`;
+  }
+  function dcRules(d) {
+    if (!d.fields.length) return `<div class="set2-dc-note">${I.lock}<span>Map fields first. A rule can only use a mapped field, so this step opens once step 1 has fields.</span><button class="btn btn-sm" type="button" data-dc-step="0">Go to Map fields</button></div>`;
+    const bad = d.rules.some((r) => dcBroken(d, r));
+    const top = bad
+      ? `<div class="set2-dc-note is-err">${I.warn}<span><b>The ${esc(dcLost(d))} rule can’t run,</b> so ${d.sync.st === 'paused' ? 'tonight’s sync was skipped' : 'the next sync won’t run'}. Map ${esc(dcLost(d))} again, or delete the rule.</span><button class="btn btn-sm" type="button" data-dc="remap" data-dc-remap>Map ${esc(dcLost(d))} again</button></div>`
+      : `<div class="set2-dc-sum"><b>${dcN(dcKept(d))}</b><span>of ${dcN(d.total)} tickets for this product sync with these rules.</span></div>`;
+    return `${top}${dcGroup(d, 'Keep')}${dcGroup(d, 'Skip')}
+      <p class="set2-dc-foot">Changes apply on the next sync. Tickets already synced are not removed. A condition checked in ${esc(d.crm)} means ${esc(d.crm)} sends only matching tickets; after fetch means AiMY reads the ticket, then drops it.</p>`;
+  }
+
+  /* ── STEP 3: FOCUS FIELDS ── */
+  function dcFocus(d) {
+    if (!d.fields.length) return `<div class="set2-dc-note">${I.lock}<span>Map fields first. The Copilot can only focus on mapped fields.</span><button class="btn btn-sm" type="button" data-dc-step="0">Go to Map fields</button></div>`;
+    const on = dcFocusOn(d), t = DC_TICKETS[DCU.tk];
+    const all = d.fields.map((id) => DCF[id]), ok = all.filter((f) => !dcGuard(f).bad), no = all.filter((f) => dcGuard(f).bad);
+    const top = on.length ? `<div class="set2-dc-sum"><b>${on.length}</b><span>fields the Copilot answers with. It searches and answers using only these from each ticket.</span></div>`
+      : `<div class="set2-dc-note is-ai">${DCI.spark}<span>No focus fields yet, so the Copilot reads the whole ticket. The three product fields say which product and version a ticket is about.</span><button class="btn btn-brand btn-sm" type="button" data-dc="focus3">Use the 3 product fields</button></div>`;
+    const rows = ok.map((f) => {
+      const isOn = !!d.focus[f.id];
+      return `<tr class="${isOn ? 'is-sel' : ''}"><td class="set2-dc-sw">${toggle(isOn, 'Focus on ' + f.a, 'data-dc-foc="' + f.id + '"')}</td>
+        <td><b>${esc(f.a)}</b><span class="set2-dc-sub set2-dc-mono">${f.al} ← ${esc(dcKeyOf(d, f.id))}</span><span class="set2-dc-gd" title="Type guard">${dcGuard(f).t}</span></td>
+        <td data-l="Copilot sees">${isOn ? `<input class="set2-dc-in is-sm" data-dc-fname="${f.id}" value="${esc(d.focus[f.id])}" aria-label="Name shown to the agent for ${esc(f.a)}">` : '<span class="set2-dc-mono">Off</span>'}</td>
+        <td data-l="Tags">${isOn ? `<span class="set2-dc-mono is-brand">cf_${f.al}=${esc(dcSlug(dcTv(t, f.id)).slice(0, 22))}</span>` : '<span class="set2-dc-mono">None</span>'}</td></tr>`;
+    }).join('');
+    const blocked = no.length ? `<div class="set2-dc-blk"><b class="set2-dc-blk-h">Can’t be focus fields (${no.length})</b>${no.map((f) => { const g = dcGuard(f);
+      return `<div class="set2-dc-blk-r"><b>${esc(f.a)}</b><span class="set2-dc-gd is-err">${g.t}</span><span class="set2-dc-blk-w">${g.why}</span></div>`; }).join('')}</div>` : '';
+    return `${top}<div class="set2-dc-tw"><table class="set2-dc-t"><thead><tr><th>Focus</th><th>Field and type guard</th><th>Name shown to the agent</th><th>Tags it makes, for #${t.no}</th></tr></thead><tbody>${rows}</tbody></table></div>
+      ${blocked}<p class="set2-dc-foot">Applies from the next question. Focus fields don’t change which tickets sync.</p>`;
+  }
+
+  /* ── STEP 4: CHECK AND SYNC (was the Sync page) ── */
+  function dcSync(d) {
+    if (d.cat.down) return `<div class="set2-dc-note is-err">${I.warn}<span><b>${esc(d.crm)} isn’t answering.</b> ${esc(d.cat.down)}</span><button class="btn btn-sm" type="button" data-dc="retry">Reconnect</button></div>${dcHist(d)}`;
+    if (!d.fields.length) return `<div class="set2-dc-note">${I.lock}<span>Finish Map fields and Choose which tickets sync first. Then this step shows what a sync will bring in.</span><button class="btn btn-sm" type="button" data-dc-step="0">Go to Map fields</button></div>`;
+    const s = dcStatus(d), y = d.sync.st, k = dcKept(d);
+    const keeps = d.rules.filter((r) => r.on && r.mode === 'Keep').length, skips = d.rules.filter((r) => r.on && r.mode === 'Skip').length;
+    const foc = dcFocusOn(d).map((id) => d.focus[id]);
+    const recap = `<div class="set2-dc-recap">
+      <div><span>Fields</span><b>${d.fields.length} mapped from ${d.cat.n}</b><button class="set2-dc-lnk" type="button" data-dc-step="0">Edit</button></div>
+      <div><span>Tickets</span><b class="${s[1] === 'fault' ? 'is-err' : ''}">${s[1] === 'fault' ? 'The ' + esc(dcLost(d)) + ' rule can’t run' : dcN(k) + ' of ' + dcN(d.total) + '. ' + keeps + ' only-sync and ' + skips + ' don’t-sync conditions.'}</b><button class="set2-dc-lnk" type="button" data-dc-step="1">${s[1] === 'fault' ? 'Fix' : 'Edit'}</button></div>
+      <div><span>Copilot focus</span><b>${foc.length ? esc(foc.join(', ')) : 'None, it reads the whole ticket'}</b><button class="set2-dc-lnk" type="button" data-dc-step="2">Edit</button></div></div>`;
+    let run;
+    if (s[1] === 'fault') run = `<div class="set2-dc-note is-err">${I.warn}<span><b>Sync is paused.</b> The ${esc(dcLost(d))} rule can’t run while ${esc(dcLost(d))} is unmapped. Tickets synced before still answer questions.</span><button class="btn btn-sm" type="button" data-dc="remap" data-dc-remap>Map ${esc(dcLost(d))} again</button></div>`;
+    else if (y === 'failed') run = `<div class="set2-dc-note is-err">${I.warn}<span><b>The last sync failed.</b> Your setup is fine, so try again.</span><button class="btn btn-sm" type="button" data-dc="retry">Try again</button></div>`;
+    else if (y === 'running') {
+      const n = Math.round(k * d.sync.pct / 100);
+      run = `<div class="set2-dc-run"><div class="set2-dc-row"><b class="set2-dc-strong">Syncing <span data-dc-done>${dcN(n)}</span> of ${dcN(k)} tickets</b><span class="set2-dc-grow"></span><button class="btn btn-sm" type="button" data-dc="stop">Stop sync</button></div>
+        <div class="set2-dc-bar"><i data-dc-bar style="width:${d.sync.pct}%"></i></div><span class="set2-dc-meta">You can keep editing. Changes apply on the next sync.</span></div>`;
+    } else {
+      const W = [['last', 'Since the last sync'], ['7', 'Last 7 days'], ['30', 'Last 30 days'], ['from', 'From a date']];
+      run = `<div class="set2-dc-run"><div class="set2-dc-row is-wrap"><span class="set2-dc-strong">Read tickets</span><span class="set2-dc-seg" role="group" aria-label="Sync window">${W.map(([v, l]) => `<button type="button" data-dc="win" data-w="${v}" aria-pressed="${DCU.win === v}">${l}</button>`).join('')}</span>${DCU.win === 'from' ? '<input class="set2-dc-in is-sm" type="date" value="2026-09-01" aria-label="Sync from">' : ''}</div>
+        <span class="set2-dc-meta">${DCU.win === 'last' ? (y === 'never' ? 'This is the first sync, so it reads every ticket for this product.' : 'Picks up where the last sync stopped.') : 'Reads tickets updated in this window again and applies the current rules to them.'}</span>
+        ${DCU.test ? `<div class="set2-dc-vd is-ok">${DCI.flask}<span><b>Test:</b> ${dcN(k)} tickets would sync and ${dcN(d.total - k)} would not. Nothing was written.</span></div>` : ''}
+        <div class="set2-dc-row is-wrap"><span class="set2-dc-meta set2-dc-grow">Also runs every night at 02:00.</span><button class="btn btn-sm" type="button" data-dc="test">${DCI.flask}Test sync</button><button class="btn btn-brand btn-sm" type="button" data-dc="run">${DCI.ref}${dcDirty(d) ? 'Save and run sync' : 'Run sync now'}</button></div></div>`;
+    }
+    return recap + run + dcHist(d);
+  }
+  function dcHist(d) {
+    const h = d.hist.length ? `<div class="set2-dc-hist">${d.hist.map((x, i) => `<div class="set2-dc-hr"><b>${esc(x.when)}</b>
+        <span class="${x.res === 'ok' ? 'is-ok' : x.res === 'fail' ? 'is-err' : 'is-warn'}">${x.res === 'ok' ? dcN(x.kept) + ' synced, ' + dcN(x.skip) + ' left out' : x.res === 'fail' ? 'Failed' : 'Skipped by AiMY'}${x.who ? `<span class="set2-dc-sub">${esc(x.who)}</span>` : ''}</span>
+        <span class="set2-dc-mono">${x.took || ''}</span>${x.res === 'ok' ? '<span></span>' : `<button class="set2-dc-lnk" type="button" data-dc="why" data-i="${i}">Why ${x.res === 'fail' ? 'it failed' : 'it was skipped'}</button>`}</div>`).join('')}</div>`
+      : `<div class="set2-dc-empty"><b>No syncs yet</b><span>The first sync shows here with how many tickets it brought in.</span></div>`;
+    return `<h3 class="set2-dc-h3">Sync history</h3>${h}`;
+  }
+  const DC_ED = [dcMap, dcRules, dcFocus, dcSync];
+
+  /* ── THE STAGE CARDS ── each one is the step's result, as a number */
+  function dcStrip(d, s) {
+    const lost = dcLost(d), nf = dcFocusOn(d).length, h0 = d.hist[0];
+    const C = [
+      [dcN(d.fields.length), 'of ' + d.cat.n + ' ' + d.crm + ' fields confirmed'],
+      !d.fields.length ? ['0', 'rules, waiting on step 1'] : s[1] === 'fault' ? ['Paused', 'the ' + lost + ' rule can’t run']
+        : !d.rules.length ? ['All', 'tickets sync, no rules yet'] : [dcN(dcKept(d)), 'of ' + dcN(d.total) + ' tickets sync'],
+      [String(nf), nf ? 'fields the Copilot answers with' : 'focus fields, it reads the whole ticket'],
+      d.cat.down ? ['Failed', d.crm + ' isn’t answering'] : ({
+        locked: ['Not yet', 'needs steps 1 and 2'], wait: ['Paused', 'nothing syncs until step 2 is fixed'], fault: ['Failed', 'the last sync failed'],
+        run: [d.sync.pct + '%', 'syncing now'], todo: ['Ready', d.hist.length ? 'not synced since the change' : 'never synced, run it now'],
+        done: [h0 && /^Today/.test(h0.when) ? 'Now' : '02:00', h0 && /^Today/.test(h0.when) ? 'last sync, just finished' : 'last sync, tonight']
+      })[s[3]]
+    ];
+    return `<div class="set2-dc-strip" role="tablist" aria-label="Steps">${DC_STEPS.map((n, i) => `
+      <button class="set2-dc-stg${DCU.step === i ? ' is-on' : ''}${s[i] === 'fault' ? ' is-err' : ''}" type="button" role="tab" aria-selected="${DCU.step === i}" data-dc-step="${i}">
+        <span class="set2-dc-stg-k">${i + 1}. ${n}</span>
+        <span class="set2-dc-stg-n"${i === 3 && s[3] === 'run' ? ' data-dc-pct' : ''}>${C[i][0]}</span>
+        <span class="set2-dc-stg-o">${esc(C[i][1])}</span>
+        ${i === 3 && s[3] === 'run' ? `<span class="set2-dc-bar"><i data-dc-bar style="width:${d.sync.pct}%"></i></span>` : ''}
+        <span class="set2-dc-stg-f">${dcPill(s[i])}${DC_CH[d.cid][i] ? '<span class="set2-dc-unsaved">Not saved</span>' : ''}</span></button>`).join('')}</div>`;
+  }
+
+  /* ── THE SAMPLE TICKET, AS ONE LINE ──
+     The full ticket in a column beside the editor took a third of the width
+     from every step, all the time. Its point is one sentence: does this ticket
+     sync, and what does the Copilot see. That sentence lives here, on its own
+     line, and updates as you edit; the whole ticket opens in the column only
+     when asked for. */
+  function dcTicketLine(d) {
+    const t = DC_TICKETS[DCU.tk], v = dcVerdict(d, t), nf = dcFocusOn(d).length;
+    return `<div class="set2-dc-tk is-${v.c}">${DCI.ticket}
+      <span class="set2-dc-tk-t"><b>Sample ticket #${t.no}</b> ${esc(t.head)}</span>
+      <span class="set2-dc-tk-v">${v.c === 'ok' ? I.tick : v.c === 'none' ? I.lock : DCI.ban}${esc(v.short.charAt(0).toUpperCase() + v.short.slice(1))}</span>
+      <span class="set2-dc-tk-f">${!d.fields.length ? 'AiMY can’t read it yet' : nf ? 'Copilot sees ' + nf + ' fields' : 'Copilot reads all of it'}</span>
+      <span class="set2-dc-row"><button class="set2-dc-lnk" type="button" data-dc="nextTk">Try another (${DCU.tk + 1} of 3)</button>
+      <button class="btn btn-sm" type="button" data-dc="showTk" aria-pressed="${!!(DCU.pan && DCU.pan.type === 'ticket')}">${DCU.pan && DCU.pan.type === 'ticket' ? 'Hide ticket' : 'Show ticket'}</button></span></div>`;
+  }
+
+  /* ── THE COLUMN: a ticket, a field's values, or a run ── */
+  function dcPanHead(title) {
+    return `<div class="set2-dc-pan-h"><b>${title}</b><button class="btn btn-ghost btn-sm set2-dc-ic" type="button" data-dc="panClose" aria-label="Close">${I.x}</button></div>`;
+  }
+  function dcPanTicket(d) {
+    const t = DC_TICKETS[DCU.tk], v = dcVerdict(d, t);
+    const rows = DC_FIELDS.map((f) => {
+      const m = dcMapped(d, f.id), fo = m && d.focus[f.id], val = esc(dcTv(t, f.id));
+      if (!m) return `<div class="set2-dc-tf is-raw"><span>${esc(dcKeyOf(d, f.id).replace('custom_fields.', ''))}</span><span>${val} <em>Not read</em></span></div>`;
+      return `<div class="set2-dc-tf${fo ? ' is-foc' : ''}"><span>${esc(fo ? d.focus[f.id] : f.a)}</span><span>${val}${fo ? `<em class="set2-dc-mono is-brand">cf_${f.al}=${dcSlug(dcTv(t, f.id))}</em>` : ''}</span></div>`;
+    }).join('');
+    return `${dcPanHead('Sample ticket #' + t.no)}<div class="set2-dc-pan-b">
+      <div class="set2-dc-ps"><b class="set2-dc-strong">${esc(t.head)}</b><span class="set2-dc-meta">From ${esc(d.crm)}, fetched ${esc(d.cat.at)}. ${dcFocusOn(d).length ? 'Highlighted: what the Copilot answers with.' : ''}</span>
+        <button class="set2-dc-lnk" type="button" data-dc="nextTk">Try another ticket (${DCU.tk + 1} of 3)</button></div>
+      <div class="set2-dc-vd is-${v.c}">${v.c === 'ok' ? I.tick : v.c === 'none' ? I.lock : DCI.ban}<span>${v.t}</span></div>${rows}
+      <div class="set2-dc-ps"><b class="set2-dc-meta">Not read by AiMY</b>${DC_RAW.map(([k, x]) => `<span class="set2-dc-tf is-raw is-bare"><span>${k}</span><span>${x}</span></span>`).join('')}<span class="set2-dc-meta">and ${d.cat.n - 27} more ${esc(d.crm)} fields</span></div></div>`;
+  }
+  function dcPanField(d, id) {
+    const f = DCF[id], v = d.vals[id], key = dcKeyOf(d, id);
+    const keys = DC_FIELDS.filter((x) => x.t === f.t).map((x) => d.ts ? x.ts : x.k);
+    let b = `<div class="set2-dc-ps"><label class="set2-dc-lab">${esc(d.crm)} field<select class="set2-dc-in" id="dcrep" data-id="${id}">${[key].concat(keys.filter((k) => k !== key)).map((k) => `<option>${esc(k)}</option>`).join('')}</select></label>
+      <span class="set2-dc-meta">${esc(f.lab)} in ${esc(d.crm)}, ${f.t}. ${dcUsedBy(d, id) ? 'Used by ' + dcUsedBy(d, id) + '.' : 'No rule or focus uses it yet.'}</span></div>`;
+    if (v) {
+      const miss = (DC_UNL[id] || []).filter((c) => !v.some((x) => x[0] === c));
+      b += `<div class="set2-dc-ps"><b class="set2-dc-strong">Value mapping, ${v.length} values</b><span class="set2-dc-meta">${esc(d.crm)} sends a code. AiMY shows the label in rules and answers. Edit a label in place.</span></div>
+        ${miss.length ? `<div class="set2-dc-ps is-warn"><span><b>${esc(d.crm)} also sends ${miss.join(' and ')}</b> for ${esc(f.a)}. Label them, or answers show the number.</span>${miss.map((c) => `<span class="set2-dc-vr"><span class="set2-dc-mono">${c}</span><input class="set2-dc-in is-sm" data-dc-unl="${c}" data-id="${id}" placeholder="Label for ${c}" aria-label="Label for code ${c}"><button class="btn btn-sm" type="button" data-dc="labelCode" data-id="${id}" data-raw="${c}">Add</button></span>`).join('')}</div>` : ''}
+        <div class="set2-dc-vl">${v.map(([r, l]) => `<span class="set2-dc-vr"><span class="set2-dc-mono">${esc(r)}</span><input class="set2-dc-in is-sm" data-dc-vlab="${esc(r)}" data-id="${id}" value="${esc(l)}" aria-label="Label for ${esc(r)}"><button class="btn btn-ghost btn-sm set2-dc-ic" type="button" data-dc="rmMapVal" data-id="${id}" data-raw="${esc(r)}" aria-label="Remove ${esc(r)}">${I.x}</button></span>`).join('')}</div>
+        <div class="set2-dc-ps"><b class="set2-dc-meta">Add a value</b><span class="set2-dc-vr"><input class="set2-dc-in is-sm" id="dcmvr" placeholder="Code" aria-label="Code"><input class="set2-dc-in is-sm" id="dcmvl" placeholder="Label" aria-label="Label"><button class="btn btn-sm" type="button" data-dc="addMapVal" data-id="${id}">Add</button></span></div>`;
+    } else {
+      const on = d.resolve[id] !== false, list = DC_NAMED[id] || [];
+      b += `<div class="set2-dc-ps"><span class="set2-dc-row"><span class="set2-dc-strong set2-dc-grow">Show names from ${esc(d.crm)}</span>${toggle(on, 'Show names from ' + d.crm, 'data-dc-res="' + id + '"')}</span>
+        <span class="set2-dc-meta">${on ? 'AiMY reads all ' + dcN(f.n) + ' names from ' + esc(d.crm) + ', so rules and answers say “' + esc(list[0] || 'a name') + '” and not an ID. There are too many to label by hand.' : 'AiMY shows the IDs, like 48000123456. Rules must use IDs too.'}</span></div>
+        ${on && list.length ? `<div class="set2-dc-ps"><input class="set2-dc-in is-sm" id="dcqn" placeholder="Find a name" aria-label="Find a name"></div><div class="set2-dc-vl" id="dcnl">${list.map((n) => `<span class="set2-dc-vr is-1" data-name="${esc(n.toLowerCase())}">${esc(n)}</span>`).join('')}<span class="set2-dc-vr is-1 set2-dc-meta">and ${dcN(f.n - list.length)} more</span></div>` : ''}`;
+    }
+    return dcPanHead(esc(f.a) + ' values') + `<div class="set2-dc-pan-b">${b}</div>`;
+  }
+  function dcPanRun(d, i) {
+    const h = d.hist[i];
+    const fix = h.res === 'skip' ? (d.rules.some((r) => dcBroken(d, r)) ? `<button class="btn btn-brand btn-sm" type="button" data-dc="remap" data-dc-remap>Map ${esc(dcLost(d))} again</button>` : '')
+      : (d.sync.st === 'failed' ? `<button class="btn btn-brand btn-sm" type="button" data-dc="retry">${d.cat.down ? 'Reconnect' : 'Try again'}</button>` : '');
+    return dcPanHead(h.res === 'fail' ? 'Why it failed' : 'Why it was skipped') + `<div class="set2-dc-pan-b"><div class="set2-dc-ps"><b class="set2-dc-strong">${esc(h.when)}</b><span>${esc(h.why)}</span><span class="set2-dc-row">${fix}</span></div></div>`;
+  }
+  function dcPanel(d) {
+    const p = DCU.pan;
+    if (!p) return '';
+    if (p.type === 'field' && dcMapped(d, p.id)) return dcPanField(d, p.id);
+    if (p.type === 'run' && d.hist[p.i]) return dcPanRun(d, p.i);
+    if (p.type === 'ticket') return dcPanTicket(d);
+    return '';
+  }
+
+  function secDC(st) {
+    const c = crmOf(st);
+    if (!dcTicketSource(c)) return `<div class="set2-dc-note">${I.info}<span>Dynamic context sets up ticket sources. ${esc(c ? c.crm : 'This source')} brings in articles, pages or files, so it has no ticket fields to map. Pick a ticket source, like Freshdesk or TeamSupport, in the scope above.</span></div>`;
+    const d = dcOf(c), s = dcStatus(d);
+    if (DCU.cid !== c.id) {
+      const first = s.findIndex((x) => x !== 'done');
+      DCU = { cid: c.id, step: first < 0 ? 0 : (s[first] === 'locked' ? 0 : first), pan: null, tk: 0, win: 'last', test: false, add: null, nr: null, q: '', addq: '', pick: null, more: {} };
+      if (d.cat.down) DCU.step = 3;
+    }
+    const pan = dcPanel(d), n = dcDirty(d), i = DCU.step;
+    const where = DC_CH[d.cid].map((x, k) => x ? DC_STEPS[k] : null).filter(Boolean).join(', ');
+    const cat = d.cat.down
+      ? `<div class="set2-dc-cat is-err"><i></i><span>Can’t reach <b>${esc(d.cat.host)}</b>. ${esc(d.cat.down)}</span><button class="btn btn-sm" type="button" data-dc="retry">Reconnect</button></div>`
+      : `<div class="set2-dc-cat"><i></i><span>Field values from <b>${esc(d.cat.host)}</b>, ${d.cat.n} fields, fetched ${esc(d.cat.at)}</span><button class="btn btn-ghost btn-sm${DCU.refreshing ? ' is-busy' : ''}" type="button" data-dc="refresh">${DCI.ref}${DCU.refreshing ? 'Fetching' : 'Refresh catalog'}</button></div>`;
+    const lists = Object.keys(DC_SUGGEST).map((k) => `<datalist id="dcdl-${k}">${DC_SUGGEST[k].map((x) => `<option value="${esc(x)}">`).join('')}</datalist>`).join('');
+    return `<div class="set2-dc" data-dc-root>${cat}${dcStrip(d, s)}${dcTicketLine(d)}
+      <div class="set2-dc-work${pan ? ' has-pan' : ''}"><section class="set2-dc-ed${DCU.swap ? ' is-in' : ''}" aria-label="${esc(DC_STEPS[i])}">
+        <div class="set2-dc-ed-h"><h2>${i + 1}. ${esc(DC_STEPS[i])}</h2><p>${DC_WHAT[i]}</p></div>
+        ${DC_ED[i](d)}
+        ${n ? `<div class="set2-us-bar"><span class="set2-us-bar-s"><span class="set2-us-bar-t"><b>${n} change${n > 1 ? 's' : ''} not saved</b> in ${esc(where)}. They apply on the next sync.</span></span>
+          <button class="btn btn-sm" type="button" data-dc="discard">Discard</button><button class="btn btn-brand btn-sm" type="button" data-dc="save">Save</button></div>` : ''}
+      </section>${pan ? `<aside class="set2-dc-pan" aria-label="Details">${pan}</aside>` : ''}</div>${lists}</div>`;
+  }
+
   M.config = function (st) {
     if (!prodOf(st)) return noProducts(st);
     return pageBody(st);
@@ -6959,6 +7472,7 @@
      naming a section that does not exist fails loudly at the point of the
      typo rather than rendering a shorter page than intended. */
   const SECTION = {
+    dc:         (st) => secDC(st),
     mapping:    (st) => secMapping(crmOf(st), st),
     window:     (st) => secWindow(st),
     retention:  (st) => secRetention(st),
@@ -8349,14 +8863,14 @@
       add(['Client', 'Connections'], c.product + ' and ' + c.crm,
           { m: 'config', sec: 'fields', sp: c.product, crm: c.crmId });
       add(at, 'How far back to read', { m: 'config', sec: 'relevance', sp: c.product, crm: c.crmId });
-      add(at, 'Which records to pull', { m: 'config', sec: 'sync', sp: c.product });
-      add(at, 'Recent runs', { m: 'config', sec: 'sync', sp: c.product });
+      add(at, 'Which records to pull', { m: 'config', sec: 'fields', sp: c.product });
+      add(at, 'Recent runs', { m: 'config', sec: 'fields', sp: c.product });
       add(at, 'Endpoint URL', { m: 'webhooks', sp: c.product });
       add(at, 'Auth token', { m: 'webhooks', sp: c.product });
       c.maps.filter((m) => m.state !== 'unmapped').forEach((m) =>
         add(at, m.ctx, { m: 'config', sec: 'fields', sp: c.product, crm: c.crmId }));
       failures(c.id).forEach((f) =>
-        add(at.concat('Failures'), f.code, { m: 'config', sec: 'sync', sp: c.product }));
+        add(at.concat('Failures'), f.code, { m: 'config', sec: 'fields', sp: c.product }));
     });
     RETENTION.forEach((r) =>
       add(['Client', 'Connections', 'Data relevance'], r.name + ' retention threshold',
@@ -8661,6 +9175,8 @@
      margin, so the line read as the first thing in the CONTENT rather than as
      part of the heading. A description belongs to its title. */
   const PAGE_LEDE = {
+    fields: () => `What AiMY reads from this connector, which tickets it syncs, and what the
+      Copilot answers with. Four steps, in order.`,
     selling: () => `From <b>AiMY Sales</b> — what you pick here is what it
       offers you when you build a campaign.`,
     archive: () => `Out of the library and out of every answer — kept, not deleted.
@@ -8792,17 +9308,11 @@
        keep. Trigger sync and Sync history are one page because a run and the
        record of it are the same object before and after. */
     config: [
-      { id: 'fields', name: 'Dynamic fields', secs: ['mapping'],
-        state: function (st) {
-          var mc = mapCounts(crmOf(st));
-          if (mc.broken) return { note: mc.broken + ' broken', s: 'err',
-            fix: fixTo('Repoint ' + mc.broken + ' broken path' + (mc.broken === 1 ? '' : 's'),
-                       'fields', '.set2-map-row.is-broken') };
-          if (mc.unmapped) return { note: mc.unmapped + ' not mapped', s: 'warn',
-            fix: fixTo('Map ' + mc.unmapped + ' field' + (mc.unmapped === 1 ? '' : 's'),
-                       'fields', '.set2-map-row.is-unmapped') };
-          return { note: mc.confirmed + ' mapped', s: 'ok' };
-        } },
+      /* AIMY-2662: Field mapping, Sync filters, Focus fields and Sync are one
+         page of four steps. The id stays `fields` so every link into the old
+         page still lands; `sec=sync` falls back to it too. */
+      { id: 'fields', name: 'Dynamic context', secs: ['dc'], bare: true, wide: true,
+        state: (st) => dcPageState(st) },
       { id: 'relevance', name: 'Data relevance', secs: ['window', 'retention'],
         state: function (st) {
           var list = connsOf(prodOf(st));
@@ -8820,18 +9330,6 @@
             fix: fixTo('Settle the window', 'relevance', '#st-window') };
           return { note: (wins[0] || 0) + ' days', s: 'ok' };
         } },
-      { id: 'sync', name: 'Sync', secs: ['criteria', 'runs'],
-        state: function (st) {
-          var list = connsOf(prodOf(st));
-          var runs = list.reduce(function (a, x) { return a + (x.runs ? x.runs.length : 0); }, 0);
-          var fails = failures().filter(function (f) { return list.indexOf(f.conn) > -1; }).length;
-          if (fails) return { note: fails + ' failed', s: 'err',
-            fix: fixTo('Open ' + fails + ' failed run' + (fails === 1 ? '' : 's'),
-                       'sync', '.set2-run.is-failed') };
-          if (!runs) return { note: 'never run', s: 'warn',
-            fix: fixTo('Run the first sync', 'sync', '#st-records') };
-          return { note: runs + ' run' + (runs === 1 ? '' : 's'), s: 'ok' };
-        } }
     ],
 
     /* Access splits the same way, for the same reason. Nothing above asked for
@@ -8962,7 +9460,8 @@
        is Skills either way, and the tally over it counts the same five skills
        whether one of them is open or not. Suppressing the header now would
        leave the page unnamed the moment you pressed a row. */
-    return `<div class="set2-col${m.wide ? ' is-wide' : ''}">`
+    const pw = pageOf(st);
+    return `<div class="set2-col${m.wide || (pw && pw.wide) ? ' is-wide' : ''}">`
       + head(st)
       + inner + `</div>`;
   }
@@ -11391,6 +11890,182 @@
     const u = US_USED[US_ME.meter];
     u[US_ME.id] = (u[US_ME.id] || 0) + n;
   }
+
+
+  /* ═══ DYNAMIC CONTEXT — WIRING ═══ */
+  const dcCur = () => { const c = crmOf(readURL()); return dcTicketSource(c) ? dcOf(c) : null; };
+  const dcToast = (m, undo) => { if (API && API.toast) API.toast(m, undo); };
+  function dcSnap(d) {
+    const id = d.cid, a = dcClone(DC[id]), b = dcClone(DC_SAVED[id]), ch = DC_CH[id].slice();
+    return () => { DC[id] = a; DC_SAVED[id] = b; DC_CH[id] = ch; render(); };
+  }
+  const dcOrder = (id) => DC_FIELDS.findIndex((f) => f.id === id);
+  const dcBump = (d, i, n) => { DC_CH[d.cid][i] += n || 1; };
+  function dcPaint(sel) {
+    render(sel ? () => { const el = $(sel); if (el) { el.focus(); if (el.setSelectionRange && el.value) el.setSelectionRange(el.value.length, el.value.length); } } : null);
+  }
+  function dcFilter(q, sel) {
+    q = String(q || '').trim().toLowerCase();
+    $$(sel).forEach((el) => { const n = el.getAttribute('data-name'); if (n != null) el.hidden = !!q && n.indexOf(q) < 0; });
+  }
+  let DC_TICK = null;
+  function dcStartSync(d, step) {
+    clearInterval(DC_TICK);
+    DC_TICK = setInterval(() => {
+      if (d.sync.st !== 'running') { clearInterval(DC_TICK); return; }
+      d.sync.pct = Math.min(100, d.sync.pct + step);
+      if (d.sync.pct >= 100) {
+        clearInterval(DC_TICK);
+        const k = dcKept(d);
+        d.sync = { st: 'done', pct: 0 };
+        d.hist.unshift({ when: 'Today, just now', res: 'ok', kept: k, skip: d.total - k, took: '3 min 12 s', who: 'Run by ' + USER.name });
+        DC_SAVED[d.cid].sync = dcClone(d.sync); DC_SAVED[d.cid].hist = dcClone(d.hist);
+        render(); dcToast('Sync finished. ' + dcN(k) + ' synced, ' + dcN(d.total - k) + ' left out.');
+        return;
+      }
+      const a = document.activeElement;
+      if (a && a.closest && a.closest('[data-dc-root]') && a.matches('input,select')) {
+        $$('[data-dc-pct]').forEach((el) => { el.textContent = d.sync.pct + '%'; });
+        $$('[data-dc-bar]').forEach((el) => { el.style.width = d.sync.pct + '%'; });
+        $$('[data-dc-done]').forEach((el) => { el.textContent = dcN(Math.round(dcKept(d) * d.sync.pct / 100)); });
+      } else render();
+    }, 1000);
+  }
+  const DCA = {
+    suggest(d) { const u = dcSnap(d); d.fields = DC_FIELDS.map((f) => f.id); d.rules = dcClone(DC_RULES.filter((r) => r.sys)); dcBump(d, 0, 24); dcBump(d, 1, 3); render();
+      dcToast('Mapped 24 fields. AiMY also added 3 Don’t sync conditions for merged, automated and AI_ignore tickets.', u); },
+    addField() { DCU.add = 'field'; DCU.pick = null; DCU.addq = ''; dcPaint('#dcaddq'); },
+    addCancel() { DCU.add = null; DCU.nr = null; render(); },
+    addFieldSave(d) {
+      const name = (($('#dcaddn') || {}).value || '').trim(), u = dcSnap(d);
+      const own = DC_FIELDS.filter((f) => (d.ts ? f.ts : f.k) === DCU.pick)[0];
+      let id;
+      if (own) { id = own.id; d.fields.push(id); d.fields.sort((a, b) => dcOrder(a) - dcOrder(b)); }
+      else {
+        const e = DC_EXTRA.filter((x) => DCU.pick.slice(-x[0].length) === x[0])[0];
+        id = 'x_' + dcSlug(e[0]);
+        if (!DCF[id]) { DCF[id] = { id: id, a: name || e[1], k: 'custom_fields.' + e[0], ts: 'CustomFields.' + e[0], lab: e[1], t: e[2], n: 0, al: dcSlug(e[0]) }; DC_FIELDS.push(DCF[id]); }
+        d.fields.unshift(id);
+      }
+      if (name) d.names[id] = name;
+      dcBump(d, 0); DCU.add = null; render();
+      dcToast('Added ' + DCF[id].a + '. Rules and focus can use it now.', u);
+    },
+    rmField(d, el) {
+      const id = el.dataset.id, f = DCF[id], u = dcSnap(d), nr = d.rules.filter((r) => r.f === id).length;
+      d.fields = d.fields.filter((x) => x !== id); d.byWho = ''; dcBump(d, 0);
+      if (DCU.pan && DCU.pan.id === id) DCU.pan = null;
+      render(); dcToast(nr ? 'Removed ' + f.a + '. ' + nr + ' rule can’t run now.' : 'Removed ' + f.a + '.', u);
+    },
+    vals(d, el) { DCU.pan = (DCU.pan && DCU.pan.type === 'field' && DCU.pan.id === el.dataset.id) ? null : { type: 'field', id: el.dataset.id }; render(); },
+    showTk() { DCU.pan = DCU.pan && DCU.pan.type === 'ticket' ? null : { type: 'ticket' }; render(); },
+    panClose() { DCU.pan = null; render(); },
+    nextTk() { DCU.tk = (DCU.tk + 1) % DC_TICKETS.length; render(); },
+    remap(d) {
+      const u = dcSnap(d), back = d.rules.filter((r) => dcBroken(d, r)).map((r) => r.f).filter((v, i, a) => a.indexOf(v) === i), nm = dcLost(d);
+      if (!back.length) return;
+      d.fields = d.fields.concat(back).sort((a, b) => dcOrder(a) - dcOrder(b));
+      if (d.sync.st === 'paused') d.sync.st = 'never';
+      DC_SAVED[d.cid] = dcClone(d); DC_CH[d.cid] = [0, 0, 0, 0]; DCU.pan = null; render();
+      dcToast(nm + ' is mapped again and its rule runs. The next sync is tonight at 02:00, or run it now in step 4.', u);
+    },
+    retry(d) {
+      d.cat.down = null; d.cat.at = new Date().toLocaleTimeString('en-US');
+      if (d.fields.length) { d.sync = { st: 'running', pct: 4 }; DCU.step = 3; dcStartSync(d, 12); } else { d.sync.st = 'never'; DCU.step = 0; }
+      DC_SAVED[d.cid] = dcClone(d); DCU.pan = null; DCU.swap = true; render();
+      dcToast(d.crm + ' answered.' + (d.fields.length ? ' The sync started again.' : ' Its fields can be mapped now.'));
+    },
+    refresh(d) {
+      if (d.cat.down) return DCA.retry(d);
+      DCU.refreshing = true; render();
+      setTimeout(() => { DCU.refreshing = false; d.cat.at = new Date().toLocaleTimeString('en-US'); render(); dcToast('Fetched ' + d.cat.n + ' fields from ' + d.crm + '. Nothing changed.'); }, 900);
+    },
+    moreVals(d, el) { DCU.more[el.dataset.r] = !DCU.more[el.dataset.r]; render(); },
+    rmVal(d, el) { const u = dcSnap(d), r = d.rules.filter((x) => x.id === el.dataset.r)[0]; r.v = r.v.filter((v) => v !== el.dataset.v); dcBump(d, 1); render(); dcToast('Removed ' + el.dataset.v + ' from the ' + DCF[r.f].a + ' condition.', u); },
+    move(d, el) { const u = dcSnap(d), r = d.rules.filter((x) => x.id === el.dataset.r)[0]; r.mode = r.mode === 'Keep' ? 'Skip' : 'Keep'; r.eff = Math.max(0, d.total - r.eff); dcBump(d, 1); render();
+      dcToast('Moved ' + DCF[r.f].a + ' to ' + (r.mode === 'Keep' ? 'Only sync' : 'Don’t sync') + ' tickets where.', u); },
+    rmRule(d, el) { const u = dcSnap(d), r = d.rules.filter((x) => x.id === el.dataset.r)[0]; d.rules = d.rules.filter((x) => x !== r); dcBump(d, 1); render(); dcToast('Deleted the ' + DCF[r.f].a + ' condition.', u); },
+    addRule(d, el) { DCU.add = 'rule'; DCU.nr = { m: el.getAttribute("data-dc-mode") }; dcPaint('#dcnrv'); },
+    addRuleSave(d) {
+      const inp = $('#dcnrv'), v = inp ? inp.value.trim() : '';
+      if (!v) { if (inp) { inp.placeholder = 'Add a value first'; inp.classList.add('is-err'); inp.focus(); } return; }
+      const u = dcSnap(d), f = $('#dcnrf').value;
+      const r = { id: 'r' + Date.now(), f: f, op: $('#dcnrop').value, v: [v], mode: DCU.nr.m, on: true, eff: Math.round(d.total * 0.02) };
+      const k = d.rules.findIndex((x) => x.sys);
+      d.rules.splice(k < 0 ? d.rules.length : k, 0, r); dcBump(d, 1); DCU.add = null; DCU.nr = null; render();
+      dcToast('Added ' + DCF[f].a + ' to ' + (r.mode === 'Keep' ? 'Only sync' : 'Don’t sync') + ' tickets where.', u);
+    },
+    focus3(d) { const u = dcSnap(d); Object.assign(d.focus, dcClone(DC_FOCUS)); dcBump(d, 2, 3); render(); dcToast('The Copilot will answer with the 3 product fields once you save.', u); },
+    win(d, el) { DCU.win = el.dataset.w; DCU.test = false; render(); },
+    test() { DCU.test = true; render(); },
+    run(d) { if (dcDirty(d)) DCA.save(d, true); d.sync = { st: 'running', pct: 3 }; DC_SAVED[d.cid].sync = dcClone(d.sync); DCU.test = false; render(); dcStartSync(d, 12); dcToast('Sync started for ' + dcN(dcKept(d)) + ' tickets.'); },
+    stop(d) { clearInterval(DC_TICK); const n = Math.round(dcKept(d) * d.sync.pct / 100); d.sync = { st: d.hist.length ? 'done' : 'never', pct: 0 }; DC_SAVED[d.cid].sync = dcClone(d.sync); render(); dcToast('Sync stopped. ' + dcN(n) + ' tickets synced before it stopped.'); },
+    why(d, el) { DCU.pan = { type: 'run', i: +el.dataset.i }; render(); },
+    rmMapVal(d, el) { const u = dcSnap(d), id = el.dataset.id; d.vals[id] = d.vals[id].filter((v) => v[0] !== el.dataset.raw); dcBump(d, 0); render(); dcToast('Removed ' + el.dataset.raw + ' from ' + DCF[id].a + '.', u); },
+    addMapVal(d, el) {
+      const id = el.dataset.id, r = ($('#dcmvr').value || '').trim(), l = ($('#dcmvl').value || '').trim();
+      if (!r || !l) { $(r ? '#dcmvl' : '#dcmvr').focus(); return; }
+      d.vals[id] = d.vals[id].filter((v) => v[0] !== r).concat([[r, l]]); dcBump(d, 0); dcPaint('#dcmvr');
+    },
+    labelCode(d, el) {
+      const id = el.dataset.id, raw = el.dataset.raw, inp = $('[data-dc-unl="' + raw + '"]'), l = inp ? inp.value.trim() : '';
+      if (!l) { if (inp) inp.focus(); return; }
+      d.vals[id].push([raw, l]); dcBump(d, 0); render(); dcToast(raw + ' now shows as ' + l + '.');
+    },
+    save(d, quiet) { const n = dcDirty(d); DC_SAVED[d.cid] = dcClone(d); DC_CH[d.cid] = [0, 0, 0, 0]; render(); if (quiet !== true) dcToast('Saved ' + n + ' change' + (n > 1 ? 's' : '') + '. They apply on the next sync.'); },
+    discard(d) { const n = dcDirty(d); DC[d.cid] = dcClone(DC_SAVED[d.cid]); DC_CH[d.cid] = [0, 0, 0, 0]; DCU.pan = null; render(); dcToast('Discarded ' + n + ' change' + (n > 1 ? 's' : '') + '.'); }
+  };
+
+  document.addEventListener('click', (e) => {
+    const root = e.target.closest && e.target.closest('[data-dc-root]');
+    if (!root) return;
+    const d = dcCur(); if (!d) return;
+    const pk = e.target.closest('[data-dc-pick]');
+    if (pk && !pk.disabled) { DCU.pick = pk.getAttribute('data-dc-pick'); DCU.addq = ($('#dcaddq') || {}).value || ''; render(); return; }
+    const a = e.target.closest('[data-dc]');
+    if (a && !a.disabled && DCA[a.dataset.dc]) { e.preventDefault(); DCA[a.dataset.dc](d, a); return; }
+    const s = e.target.closest('[data-dc-step]');
+    if (s && !s.disabled) {
+      const i = +s.getAttribute('data-dc-step');
+      DCU.swap = i !== DCU.step; DCU.step = i; DCU.add = null;
+      if (DCU.pan && DCU.pan.type !== 'ticket') DCU.pan = null;
+      render(() => { DCU.swap = false; });
+    }
+  });
+  document.addEventListener('input', (e) => {
+    const t = e.target;
+    if (!t.closest || !t.closest('[data-dc-root]')) return;
+    if (t.id === 'dcq') { DCU.q = t.value; dcFilter(t.value, '#dctmap tbody tr'); }
+    if (t.id === 'dcaddq') { DCU.addq = t.value; dcFilter(t.value, '#dcaddl button'); }
+    if (t.id === 'dcqn') dcFilter(t.value, '#dcnl [data-name]');
+  });
+  document.addEventListener('change', (e) => {
+    const t = e.target;
+    if (!t.closest || !t.closest('[data-dc-root]')) return;
+    const d = dcCur(); if (!d) return;
+    if (t.hasAttribute('data-dc-on')) { const r = d.rules.filter((x) => x.id === t.getAttribute('data-dc-on'))[0]; r.on = t.checked; dcBump(d, 1); afterSwitch(t, render); return; }
+    if (t.hasAttribute('data-dc-foc')) { const id = t.getAttribute('data-dc-foc'); if (t.checked) d.focus[id] = DCF[id].a; else delete d.focus[id]; dcBump(d, 2); afterSwitch(t, render); return; }
+    if (t.hasAttribute('data-dc-res')) { const id = t.getAttribute('data-dc-res'); d.resolve[id] = t.checked; dcBump(d, 0); afterSwitch(t, render); return; }
+    if (t.hasAttribute('data-dc-fname')) { const id = t.getAttribute('data-dc-fname'); d.focus[id] = t.value.trim() || DCF[id].a; dcBump(d, 2); render(); return; }
+    if (t.hasAttribute('data-dc-vlab')) { const id = t.dataset.id, p = d.vals[id].filter((v) => v[0] === t.getAttribute('data-dc-vlab'))[0]; if (p && t.value.trim() && t.value.trim() !== p[1]) { p[1] = t.value.trim(); dcBump(d, 0); render(); } return; }
+    if (t.id === 'dcrep') { d.keys[t.dataset.id] = t.value; dcBump(d, 0); render(); return; }
+    if (t.id === 'dcnrf') { DCU.nr.f = t.value; render(); }
+  });
+  document.addEventListener('keydown', (e) => {
+    const t = e.target;
+    if (!t.closest || !t.closest('[data-dc-root]')) return;
+    const d = dcCur(); if (!d) return;
+    if (e.key === 'Escape' && DCU.pan) { DCU.pan = null; render(); return; }
+    if (e.key !== 'Enter') return;
+    if (t.hasAttribute('data-dc-addv') && t.value.trim()) {
+      const id = t.getAttribute('data-dc-addv'), r = d.rules.filter((x) => x.id === id)[0];
+      if (r.v.indexOf(t.value.trim()) < 0) r.v.push(t.value.trim());
+      dcBump(d, 1); e.preventDefault(); dcPaint('[data-dc-addv="' + id + '"]'); return;
+    }
+    if (t.id === 'dcnrv') { e.preventDefault(); DCA.addRuleSave(d); return; }
+    if (t.id === 'dcmvr' || t.id === 'dcmvl') { e.preventDefault(); const b = $('[data-dc="addMapVal"]'); if (b) DCA.addMapVal(d, b); return; }
+    if (t.hasAttribute('data-dc-unl')) { e.preventDefault(); DCA.labelCode(d, { dataset: { id: t.dataset.id, raw: t.getAttribute('data-dc-unl') } }); }
+  });
 
   window.AIMY_SETTINGS = {
     usageMine: usageMine,
