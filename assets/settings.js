@@ -7288,7 +7288,7 @@
   const DC_FOCUS = { ar: 'Affects Product (AR)', rel: 'Accuroute - Relates To', l2: 'Affects Product (AR) L2' };
   const DC_STEPS = ['Map fields', 'Choose which tickets sync', 'Search by', 'Check and sync'];
   const DC_WHAT = [
-    'What each field means to AiMY. Later steps can only use these.',
+    'What each field means to AiMY, and which ones Copilot searches by when it answers a ticket. Later steps can only use mapped fields.',
     'Which tickets this product syncs. Tickets already synced stay.',
     'When Copilot answers a ticket, it searches and answers using only these details from it. They don’t change what syncs.',
     'What the next sync does, and what the last ones did.'
@@ -7418,12 +7418,12 @@
     const c = crmOf(st);
     if (!c) return null;
     if (!dcTicketSource(c)) return { note: 'Ticket sources only', s: 'ok' };
-    const d = dcOf(c), s = dcStatus(d), n = s.filter((x) => x === 'done').length;
+    const d = dcOf(c), s = dcStatus(d), n = [s[0], s[1], s[3]].filter((x) => x === 'done').length;
     if (d.cat.down) return { note: c.crm + ' not answering', s: 'err' };
     if (s[1] === 'fault') return { note: 'Needs a fix', s: 'err', fix: fixTo('Map ' + dcLost(d) + ' again', 'fields', '[data-dc-remap]') };
     if (s[3] === 'run') return { note: 'Syncing', s: 'ok' };
-    if (n === 4) return { note: 'Set up', s: 'ok' };
-    return { note: n + ' of 4 done', s: 'warn' };
+    if (n === 3) return { note: 'Set up', s: 'ok' };
+    return { note: n + ' of 3 done', s: 'warn' };
   }
 
   /* ── LOOK: Tone & Voice's ──
@@ -7503,25 +7503,53 @@
         ${cf ? dcCfLine(`Remove <b>${esc(f.a)} \u203a ${esc(dcSubName(f.id, k))}</b>?`, 'Remove', 'rmSub', 'data-id="' + f.id + '" data-sub="' + k + '"') : ''}</div>`;
     }).join('');
   }
-  function dcMap(d) {
+  function dcMap(d, keep) {
     if (d.cat.down && !d.fields.length) return `<div class="set2-dc-empty"><b>Can’t read ${esc(d.crm)} yet</b><span>Reconnect, then AiMY suggests the fields to map.</span><button class="agv-btn is-brand" type="button" data-dc="retry">Reconnect</button></div>`;
     if (!d.fields.length) return `<div class="set2-dc-empty"><b>Nothing mapped yet</b><span>AiMY suggests 24 of the ${d.cat.n} fields.</span>
       <span class="set2-dc-row"><button class="agv-btn is-brand" type="button" data-dc="suggest">Map the 24 fields</button><button class="agv-btn is-ghost" type="button" data-dc="addField">Add one</button></span></div>${DCU.add === 'field' ? dcAddField(d) : ''}`;
-    const rows = d.fields.map((id) => DCF[id]).map((f) => {
-      const sel = DCU.pan && DCU.pan.type === 'field' && DCU.pan.id === f.id, ub = dcUsedBy(d, f.id), key = dcKeyOf(d, f.id);
+    const rows = d.fields.filter((id) => !keep || keep(id)).map((id) => DCF[id]).map((f) => {
+      const sel = DCU.pan && (DCU.pan.type === 'field' || DCU.pan.type === 'search') && DCU.pan.id === f.id, ub = dcUsedBy(d, f.id), key = dcKeyOf(d, f.id);
       /* a parent stays in view when one of its subfields matches the search */
       const nm = (f.a + ' ' + key + ' ' + ((d.subs || {})[f.id] || []).map((k) => dcSubName(f.id, k) + ' ' + dcSubKey(d, f.id, k)).join(' ')).toLowerCase();
       return `<div class="set2-dc-r is-map${sel ? ' is-sel' : ''}${dcCf('rmField', f.id) ? ' is-cf' : ''}" data-name="${esc(nm)}"${dcMiss(DCU.q, nm) ? ' hidden' : ''}>
         <span class="set2-dc-n">${esc(f.a)}${ub ? `<span class="set2-dc-at">${ub}</span>` : ''}${DC_SUB[f.id] ? `<button class="agv-lnk set2-dc-sm set2-dc-addsub" type="button" data-dc="addSub" data-id="${f.id}">${I.plus}Subfield</button>` : ''}</span>
         <span class="set2-dc-key">${esc(key)}</span>
         <span class="set2-dc-v">${dcValCell(d, f)}</span>
+        <span class="set2-dc-cs">${dcCanSay(d, f)}</span>
         <span class="set2-dc-e">${dcIb('ask', 'Remove ' + f.a, I.trash, 'data-what="rmField" data-id="' + f.id + '"')}</span>
         ${dcCf('rmField', f.id) ? dcCfLine(`Remove <b>${esc(f.a)}</b>?${(() => { const n = d.rules.filter((r) => r.f === f.id).length; return n ? ' ' + n + ' condition' + (n > 1 ? 's stop' : ' stops') + ' working until it\u2019s mapped again.' : (d.focus[f.id] ? ' Copilot stops searching by it.' : ''); })()}`, 'Remove', 'rmField', 'data-id="' + f.id + '"') : ''}</div>${dcSubRows(d, f)}`;
     }).join('');
     return `${dcLostNote(d)}
-      <div class="set2-dc-th is-map"><span class="agv-k">AiMY field</span><span class="agv-k">${esc(d.crm)} key</span><span class="agv-k">Values</span><span></span></div>
+      <div class="set2-dc-th is-map"><span class="agv-k">AiMY field</span><span class="agv-k">${esc(d.crm)} key</span><span class="agv-k">Values</span><span class="agv-k">Copilot searches</span><span></span></div>
       ${DCU.add === 'field' ? dcAddField(d) : ''}
       <div class="set2-dc-list" id="dcmapl">${rows}</div>`;
+  }
+  /* Every mapped field can be searched by Copilot, unless the type guard
+     blocks it; then the cell says why, in words, where the switch would be. */
+  function dcCanSay(d, f) {
+    const g = dcGuard(f);
+    if (g.bad) return `<span class="set2-dc-no">Can’t, ${{ text: 'free text', person: 'a person', date: 'a date' }[f.t] || 'blocked'}</span>`;
+    const on = d.focus[f.id] != null, open = DCU.pan && DCU.pan.type === 'search' && DCU.pan.id === f.id;
+    return dcTog(on, 'Copilot searches by ' + f.a, 'data-dc-foc="' + f.id + '"')
+      /* on or off, the panel opens from here too (Nour: not only through the switch) */
+      + `<button class="agv-btn is-ghost set2-dc-sm set2-dc-srch${open ? ' is-on' : ''}" type="button" data-dc="srch" data-id="${f.id}" aria-expanded="${open}" aria-label="Search by details for ${esc(f.a)}">Details</button>`;
+  }
+  /* ── SEARCH BY, FOR ONE FIELD ──
+     What the old Search by table held, for the field you opened: the name
+     Copilot sees, the type guard it passed, and the tag each ticket gets,
+     shown on the three sample tickets so the tag is never abstract. */
+  function dcPanSearch(d, id) {
+    const f = DCF[id], on = d.focus[id] != null, g = dcGuard(f);
+    let b = `<div class="set2-dc-ps"><div class="set2-dc-row"><span class="set2-dc-grow"><b>Copilot searches by it</b></span>${dcTog(on, 'Copilot searches by ' + f.a, 'data-dc-foc="' + id + '"')}</div>
+      <span class="set2-dc-meta">When Copilot answers a ticket, it searches and answers using this field’s value. It doesn’t change what syncs.</span></div>`;
+    if (!on) b += `<div class="set2-dc-ps"><span class="agv-k">Type guard</span><span><b>Passes</b>, ${esc(g.t)}, so it can be switched on.</span></div>
+      <div class="set2-dc-ps"><span class="agv-k">Tag it would make</span><span class="set2-dc-key is-tag">cf_${f.al}=${esc(dcSlug(dcTv(DC_TICKETS[0], id)) || 'none')}</span><span class="set2-dc-meta">on ticket #${DC_TICKETS[0].no}</span></div>`;
+    if (on) b += `<div class="set2-dc-ps"><label class="agv-k" for="dcpfn">Name the agent sees</label>
+        <input class="set2-dc-u" id="dcpfn" data-dc-fname="${id}" value="${esc(d.focus[id])}" aria-label="Name the agent sees for ${esc(f.a)}"></div>
+      <div class="set2-dc-ps"><span class="agv-k">Type guard</span><span><b>Passes</b>, ${esc(g.t)}.</span></div>
+      <div class="set2-dc-ps"><span class="agv-k">Tag it makes</span>
+        <div class="set2-dc-vl">${DC_TICKETS.map((t) => `<span class="set2-dc-vr is-tag"><i>#${t.no}</i><span class="set2-dc-key is-tag">cf_${f.al}=${esc(dcSlug(dcTv(t, id)) || 'none')}</span></span>`).join('')}</div></div>`;
+    return dcPanHead('Search by · ' + esc(f.a)) + `<div class="set2-dc-pan-b">${b}</div><div class="set2-dc-pan-f" data-dc-panf>${dcPanFoot(d)}</div>`;
   }
   function dcAddField(d) {
     const taken = d.fields.map((id) => dcKeyOf(d, id));
@@ -7591,14 +7619,18 @@
   }
 
   /* ── STEP 3 ── */
-  function dcFocus(d) {
+  function dcFocus(d, inMap) {
     if (!d.fields.length) return `<div class="set2-dc-empty"><b>Map fields first</b><span>Copilot can only search by mapped fields.</span><button class="agv-btn is-ghost" type="button" data-dc-step="0">Go to Map fields</button></div>`;
     const on = dcFocusOn(d), t = DC_TICKETS[DCU.tk];
     const all = d.fields.map((id) => DCF[id]), no = all.filter((f) => dcGuard(f).bad);
     /* The saved focus fields first, so "what does it read" is the top of the
        list. Sorted by the SAVED set, so a row doesn't jump while you switch it. */
     const sf = (DC_SAVED[d.cid] || d).focus;
-    const ok = all.filter((f) => !dcGuard(f).bad && sf[f.id]).concat(all.filter((f) => !dcGuard(f).bad && !sf[f.id]));
+    let ok = all.filter((f) => !dcGuard(f).bad && sf[f.id]).concat(all.filter((f) => !dcGuard(f).bad && !sf[f.id]));
+    /* Inside Map fields every row already has its switch, so this view keeps
+       only the fields Copilot searches by (saved or just switched), to name
+       them and show their tag. One switched off stays until it is saved. */
+    if (inMap) ok = ok.filter((f) => d.focus[f.id] != null || sf[f.id]);
     const top = on.length ? '' : `<div class="set2-dc-ai"><svg class="agv-mk" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg><span>Nothing chosen, so Copilot searches with the whole ticket.</span><button class="agv-btn is-brand" type="button" data-dc="focus3">Use the 3 product fields</button></div>`;
     const rows = ok.map((f) => {
       const isOn = !!d.focus[f.id];
@@ -7615,7 +7647,7 @@
     const blocked = no.length ? `<p class="set2-dc-none">Can’t be searched by: ${Object.keys(groups).map((t) => groups[t].join(', ') + ' (' + why[t] + ')').join('; ')}.</p>` : '';
     return `${top}${dcTestBox(d, 2)}<div class="set2-dc-th is-foc"><span class="agv-k">Use</span><span class="agv-k set2-dc-thtip">Field and type guard${tip('dcGuardTip', 'the type guard',
       'Only fields with set values (dropdown, lookup, nested, checkbox, number, company) and version text can be searched by. Other free text is blocked because it can hold personal data, and dates are blocked because they don\u2019t say what a ticket is about.')}</span><span class="agv-k">Name the agent sees</span><span class="agv-k">Tag it makes</span></div>
-      <div class="set2-dc-list" id="dcfocl">${rows}</div>${blocked}`;
+      <div class="set2-dc-list" id="dcfocl">${rows}</div>${inMap ? '' : blocked}`;
   }
 
   /* ── STEP 4 (was the Sync page) ── */
@@ -7658,7 +7690,27 @@
       <span class="${x.res === 'ok' ? 'is-ok' : x.res === 'fail' ? 'is-err' : 'is-warn'}">${x.res === 'ok' ? dcN(x.kept) + ' synced, ' + dcN(x.skip) + ' left out' : x.res === 'fail' ? 'Failed' : 'Skipped'}</span>
       <span class="set2-dc-e">${x.res === 'ok' ? `<span class="set2-dc-meta">${x.took || ''}</span>` : `<button class="agv-lnk" type="button" data-dc="why" data-i="${i}">Why</button>`}</span></div>`).join('')}</div>`;
   }
-  const DC_ED = [dcMap, dcRules, dcFocus, dcSync];
+  /* Map fields shows one table three ways: every mapped field (searched ones
+     marked), the ones Copilot searches by with the name it sees and the tag,
+     and the ones that can't be searched by with the reason. */
+  function dcMapViews(d) {
+    if (!d.fields.length) return dcMap(d);
+    const v = DCU.mv || 'all', n = dcFocusOn(d).length, bl = d.fields.filter((id) => dcGuard(DCF[id]).bad).length;
+    const seg = `<span class="set2-dc-seg set2-dc-mvs" role="group" aria-label="Show">${[['all', 'All fields', d.fields.length], ['copi', 'Searched by Copilot', n], ['no', 'Can’t be searched', bl]]
+      .map(([k, l, c]) => `<button type="button" data-dc-mv="${k}" aria-pressed="${v === k}">${l}<b>${c}</b></button>`).join('')}</span>`;
+    /* The three views are filters over the same rows (Nour 20 Oct): every
+       row carries its own switch, and the Copilot details open in the panel. */
+    const sf = (DC_SAVED[d.cid] || d).focus;
+    const keep = v === 'copi' ? (id) => d.focus[id] != null || !!sf[id] : v === 'no' ? (id) => !!dcGuard(DCF[id]).bad : null;
+    return seg + dcMap(d, keep);
+  }
+  function dcBlocked(d) {
+    const no = d.fields.map((id) => DCF[id]).filter((f) => dcGuard(f).bad);
+    if (!no.length) return `<p class="set2-dc-none">Every mapped field can be searched by.</p>`;
+    return `<div class="set2-dc-th is-blk"><span class="agv-k">AiMY field</span><span class="agv-k">Type</span><span class="agv-k">Why Copilot can’t search by it</span></div>
+      <div class="set2-dc-list">${no.map((f) => `<div class="set2-dc-r is-blk"><span class="set2-dc-n">${esc(f.a)}</span><span class="set2-dc-meta">${esc(dcGuard(f).t)}</span><span>${esc(dcGuard(f).why)}</span></div>`).join('')}</div>`;
+  }
+  const DC_ED = [dcMapViews, dcRules, dcFocus, dcSync];
 
   /* ── STAGE TILES ── */
   function dcStrip(d, s) {
@@ -7671,13 +7723,18 @@
         run: [d.sync.pct + '%', 'syncing now'], todo: ['Ready', d.hist.length ? 'not synced since the change' : 'never synced'],
         done: [now ? 'Now' : '02:00', now ? 'just synced' : 'synced tonight'] })[s[3]]
     ];
-    return `<div class="set2-dc-strip" role="tablist" aria-label="Steps">${DC_STEPS.map((n, i) => `
+    /* Search by moved into Map fields (Nour 20 Oct, variant D of the
+       merge exploration): it only ever chooses from mapped fields, so the
+       two were one decision. Its model keeps index 2; the strip skips it. */
+    C[0][1] += nf ? ', ' + nf + ' searched by Copilot' : '';
+    const SHOW = [0, 1, 3];
+    return `<div class="set2-dc-strip is-3" role="tablist" aria-label="Steps">${SHOW.map((i, o) => [DC_STEPS[i], i, o]).map(([n, i, o]) => `
       <button class="set2-dc-stg${DCU.step === i ? ' is-on' : ''}${s[i] === 'fault' ? ' is-err' : ''}" type="button" role="tab" aria-selected="${DCU.step === i}" data-dc-step="${i}">
-        <span class="set2-dc-stg-k"><i>${i + 1}</i>${n}</span>
+        <span class="set2-dc-stg-k"><i>${o + 1}</i>${n}</span>
         <span class="set2-dc-stg-n"${i === 3 && s[3] === 'run' ? ' data-dc-pct' : ''}>${C[i][0]}</span>
         <span class="set2-dc-stg-o">${esc(C[i][1])}</span>
         ${i === 3 && s[3] === 'run' ? `<span class="set2-dc-bar"><i data-dc-bar style="width:${d.sync.pct}%"></i></span>` : ''}
-        <span class="set2-dc-stg-f">${dcPill(s[i])}${DC_CH[d.cid][i] ? '<span class="set2-dc-unsaved">Not saved</span>' : ''}</span></button>`).join('')}</div>`;
+        <span class="set2-dc-stg-f">${dcPill(s[i])}${DC_CH[d.cid][i] || (i === 0 && DC_CH[d.cid][2]) ? '<span class="set2-dc-unsaved">Not saved</span>' : ''}</span></button>`).join('')}</div>`;
   }
 
   /* ── TEST A TICKET ──
@@ -7784,6 +7841,7 @@
     const p = DCU.pan;
     if (!p) return '';
     if (p.type === 'field' && dcMapped(d, p.id)) return dcPanField(d, p.id);
+    if (p.type === 'search' && dcMapped(d, p.id)) return dcPanSearch(d, p.id);
     if (p.type === 'run' && d.hist[p.i]) return dcPanRun(d, p.i);
     if (p.type === 'ticket') return dcPanTicket(d);
     return '';
@@ -7798,9 +7856,12 @@
       DCU = { cid: c.id, step: first < 0 ? 0 : (s[first] === 'locked' ? 0 : first), pan: null, tk: 0, win: 'last', test: false, add: null, nr: null, q: '', addq: '', pick: null, more: {} };
       if (d.cat.down) DCU.step = 3;
     }
+    if (DCU.step === 2) { DCU.step = 0; DCU.mv = 'copi'; }
     const pan = dcPanel(d), n = dcDirty(d), i = DCU.step;
-    const where = DC_CH[d.cid].map((x, k) => x ? DC_STEPS[k] : null).filter(Boolean).join(', ');
-    const act = { 0: d.fields.length ? `<label class="set2-dc-find">${I.search}<input class="set2-dc-u" id="dcq" placeholder="Find a field" value="${esc(DCU.q)}" aria-label="Find a mapped field"></label><button class="agv-btn is-brand" type="button" data-dc="addField">Add field</button>` : '',
+    const where = DC_CH[d.cid].map((x, k) => x ? DC_STEPS[k === 2 ? 0 : k] : null).filter((x, k, a) => x && a.indexOf(x) === k).join(', ');
+    const mv = DCU.mv || 'all';
+    const act = { 0: !d.fields.length ? '' : mv === 'copi' ? `<label class="set2-dc-find">${I.search}<input class="set2-dc-u" id="dcqf" placeholder="Find a field" value="${esc(DCU.qf || '')}" aria-label="Find a field to search by"></label>`
+        : mv === 'no' ? '' : `<label class="set2-dc-find">${I.search}<input class="set2-dc-u" id="dcq" placeholder="Find a field" value="${esc(DCU.q)}" aria-label="Find a mapped field"></label><button class="agv-btn is-brand" type="button" data-dc="addField">Add field</button>`,
       2: d.fields.length ? `<label class="set2-dc-find">${I.search}<input class="set2-dc-u" id="dcqf" placeholder="Find a field" value="${esc(DCU.qf || '')}" aria-label="Find a field to search by"></label>` : '' }[i] || '';
     const cat = d.cat.down
       ? `<div class="set2-dc-cat is-err"><i></i><span>Can’t reach <b>${esc(d.cat.host)}</b></span><button class="agv-lnk" type="button" data-dc="retry">Reconnect</button></div>`
@@ -12416,6 +12477,7 @@
     },
     vals(d, el) { if (DCU.pan && DCU.pan.type === 'field' && DCU.pan.id === el.dataset.id) dcClosePan(); else dcOpenPan({ type: 'field', id: el.dataset.id }); },
     showTk() { if (DCU.pan && DCU.pan.type === 'ticket') dcClosePan(); else dcOpenPan({ type: 'ticket' }); },
+    srch(d, el) { if (DCU.pan && DCU.pan.type === 'search' && DCU.pan.id === el.dataset.id) dcClosePan(); else dcOpenPan({ type: 'search', id: el.dataset.id }); },
     panClose() { dcClosePan(); },
     nextTk() { DCU.tk = (DCU.tk + 1) % DC_TICKETS.length; render(); },
     remap(d) {
@@ -12543,6 +12605,8 @@
     if (pk && !pk.disabled) { DCU.pick = pk.getAttribute('data-dc-pick'); DCU.addq = ($('#dcaddq') || {}).value || ''; render(); return; }
     const a = e.target.closest('[data-dc]');
     if (a && !a.disabled && DCA[a.dataset.dc]) { e.preventDefault(); DCA[a.dataset.dc](d, a); return; }
+    const mvb = e.target.closest('[data-dc-mv]');
+    if (mvb) { DCU.mv = mvb.getAttribute('data-dc-mv'); DCU.step = 0; DCU.add = null; render(); return; }
     const s = e.target.closest('[data-dc-step]');
     if (s && !s.disabled) {
       const i = +s.getAttribute('data-dc-step');
@@ -12606,7 +12670,17 @@
     if (!t.closest || !t.closest('[data-dc-root]')) return;
     const d = dcCur(); if (!d) return;
     if (t.hasAttribute('data-dc-on')) { const r = d.rules.filter((x) => x.id === t.getAttribute('data-dc-on'))[0]; r.on = t.checked; dcBump(d, 1); afterSwitch(t, render); return; }
-    if (t.hasAttribute('data-dc-foc')) { const id = t.getAttribute('data-dc-foc'); if (t.checked) d.focus[id] = DCF[id].a; else delete d.focus[id]; dcBump(d, 2); afterSwitch(t, render); return; }
+    if (t.hasAttribute('data-dc-foc')) {
+      const id = t.getAttribute('data-dc-foc'), fromRow = !t.closest('.set2-dc-pan');
+      if (t.checked) d.focus[id] = DCF[id].a.replace(' \u203a ', ' '); else delete d.focus[id];
+      dcBump(d, 2);
+      afterSwitch(t, () => {
+        if (fromRow && t.checked && DCU.step === 0) dcOpenPan({ type: 'search', id: id });
+        else if (fromRow && !t.checked && DCU.pan && DCU.pan.type === 'search' && DCU.pan.id === id) dcClosePan();
+        else render();
+      });
+      return;
+    }
     if (t.hasAttribute('data-dc-full')) { DCU.full = t.checked; DCU.test = false; afterSwitch(t, render); return; }
     if (t.hasAttribute('data-dc-sub')) {
       const [id, k] = t.getAttribute('data-dc-sub').split(':'), u = dcSnap(d);
