@@ -3955,6 +3955,7 @@
   let US_EDIT = null;          /* { meter, pool, key, vals: { childId: 'typed' } } */
   let US_SESS_ED = null;       /* { meter, org, v, err } */
   let US_SLICE_ED = null;      /* { meter, v, err }: the slice size being edited */
+  let US_TOT_ED = null;        /* { meter, v, err }: what everyone is expected to use */
   let US_LAST = '';            /* the meter|pool last painted, to play the entrance once */
   let US_LAND = false;         /* this paint is an arrival on Usage, not a move inside it */
   /* { meter, tip } when the person climbed UP the path this visit: from
@@ -4280,7 +4281,7 @@
           ${usPaceFact(m, used, L, id)}
           ${usWatchFact(m, id)}
           ${x.depth === 1 ? usSessFact(m, id) : usTopFact(m, id, used)}
-          ${x.depth === 0 ? usSliceFact(m) : ''}
+          ${x.depth === 0 ? usTotFact(m) + usSliceFact(m) : ''}
         </dl>
       </div>`;
   }
@@ -4394,6 +4395,64 @@
         <button class="btn btn-ghost btn-sm set2-us-fact-ed" type="button" data-us-slice-open>Edit</button>
       </div>`;
   }
+  /* ── WHAT EVERYONE IS EXPECTED TO USE (Nour 20 Oct) ──
+     The workspace's own number, set by hand by an admin the way the old
+     plan limit was. It is not a ceiling: the shares under it are split
+     from it (equal unless set by hand), and going past it, like going past
+     any share, is flagged and never stopped. */
+  function usTotFact(m) {
+    const ed = US_TOT_ED && US_TOT_ED.meter === m.id ? US_TOT_ED : null;
+    if (ed) return `
+      <div class="set2-us-fact is-edit">
+        <dt><label for="usTotIn">Expected this month</label></dt>
+        <dd>
+          <span class="set2-us-sess-row">
+            <input class="set2-fld set2-us-in${ed.err ? ' is-bad' : ''}" id="usTotIn" data-us-tot-in
+                   value="${esc(ed.v)}" inputmode="numeric" autocomplete="off" aria-describedby="usTotHint">
+            <span class="set2-us-per">${esc(m.unit)}</span>
+          </span>
+          <span class="set2-hint${ed.err ? ' is-err' : ''}" id="usTotHint"${ed.err ? ' role="alert"' : ''}>${
+            esc(ed.err || 'The organizations’ shares are split from this. Nobody is stopped past it.')}</span>
+          <span class="set2-us-sess-act">
+            <button class="btn btn-ghost btn-sm" type="button" data-us-tot-cancel>Cancel</button>
+            <button class="btn btn-brand btn-sm" type="button" data-us-tot-save>Save</button>
+          </span>
+        </dd>
+      </div>`;
+    return `
+      <div class="set2-us-fact">
+        <dt>Expected this month ${tip('usTotTip', 'what everyone is expected to use', 'Set by an admin. '
+          + 'The organizations’ shares are split from it, equally unless one is set by hand. It is an expectation, not a ceiling.')}</dt>
+        <dd><b>${usFmt(US_PLAN[m.id])} ${esc(m.unit)}</b><span>set by admin, split into the shares below</span></dd>
+        <button class="btn btn-ghost btn-sm set2-us-fact-ed" type="button" data-us-tot-open>Edit</button>
+      </div>`;
+  }
+  function usTotSave() {
+    const ed = US_TOT_ED;
+    if (!ed) return;
+    const m = usMeter(ed.meter);
+    const v = usParse(ed.v);
+    const fixed = usSplit(m, '').fixed;
+    if (v == null || isNaN(v) || v <= 0) {
+      ed.err = 'Use a whole number above 0, like 12000 or 12k.';
+      render(() => { const f = $('[data-us-tot-in]'); if (f) f.focus(); });
+      return;
+    }
+    if (v < fixed) {
+      ed.err = 'The shares set by hand already add up to ' + usFmt(fixed) + ' ' + m.unit + '. Use at least that, or lower those first.';
+      render(() => { const f = $('[data-us-tot-in]'); if (f) f.focus(); });
+      return;
+    }
+    const was = US_PLAN[m.id];
+    US_TOT_ED = null;
+    if (v !== was) {
+      US_PLAN[m.id] = v; usForget();
+      DIRTY.add('total:' + m.id);
+      if (API && API.toast) API.toast('Everyone is now expected to use ' + usFmt(v) + ' ' + m.unit + ' this month.',
+        () => { US_PLAN[m.id] = was; usForget(); render(); });
+    }
+    render(() => { const b = $('[data-us-tot-open]'); if (b) b.focus(); });
+  }
   function usSliceSave() {
     const ed = US_SLICE_ED;
     if (!ed) return;
@@ -4477,7 +4536,7 @@
           <p class="set2-lbl">Shares across ${esc(noun)}</p>
           ${tip('usSplitTip', 'how the split works', 'Anyone not set by hand gets an equal share of '
             + 'what is left after the ones that are. Together they can never be more than '
-            + (id ? name + '’s share' : 'what everyone is expected to use') + '. A share is an expectation: going past it is flagged, never stopped.')}
+            + (id ? name + '’s share' : 'the ' + usFmt(US_PLAN[m.id]) + ' ' + m.unit + ' everyone is expected to use') + '. A share is an expectation: going past it is flagged, never stopped.')}
           <span class="set2-us-hd-end">
             ${kids.length > 8 ? `
               <div class="k-search set2-us-q${q ? ' is-on' : ''}">
@@ -10143,7 +10202,7 @@
       if (v !== usPlace(st).m.id) {
         const ind = $('.set2-us-ind');
         if (ind && ind.style.width) US_IND_FROM = { l: parseFloat(ind.style.transform.slice(11)), w: parseFloat(ind.style.width) };
-        US_EDIT = null; US_SESS_ED = null; US_SLICE_ED = null;
+        US_EDIT = null; US_SESS_ED = null; US_SLICE_ED = null; US_TOT_ED = null;
         patch({ meter: v === 'copilot' ? '' : v, f: withF(st, 'uq', null) });
         render(() => { const b = $('[data-us-meter="' + v + '"]'); if (b) b.focus(); });
       }
@@ -10248,6 +10307,18 @@
       return;
     }
     if (e.target.closest('[data-us-slice-save]')) { usSliceSave(); return; }
+    if (e.target.closest('[data-us-tot-open]')) {
+      const m0 = usPlace(st).m;
+      US_TOT_ED = { meter: m0.id, v: String(US_PLAN[m0.id]), err: '' };
+      render(() => { const f = $('[data-us-tot-in]'); if (f) { f.focus(); f.select(); } });
+      return;
+    }
+    if (e.target.closest('[data-us-tot-cancel]')) {
+      US_TOT_ED = null;
+      render(() => { const b = $('[data-us-tot-open]'); if (b) b.focus(); });
+      return;
+    }
+    if (e.target.closest('[data-us-tot-save]')) { usTotSave(); return; }
     /* Across to Skills with this agent already chosen in its filter, which is
        the list the card on the side was a preview of. */
     const agS = e.target.closest('[data-ag-skills]');
@@ -11577,6 +11648,8 @@
     if (usSI && US_SESS_ED) { US_SESS_ED.v = usSI.value; return; }
     const usZI = e.target.closest && e.target.closest('[data-us-slice-in]');
     if (usZI && US_SLICE_ED) { US_SLICE_ED.v = usZI.value; return; }
+    const usTI = e.target.closest && e.target.closest('[data-us-tot-in]');
+    if (usTI && US_TOT_ED) { US_TOT_ED.v = usTI.value; return; }
     /* An agent's tone. Stored, and the bar under it told — never repainted,
        which would take the caret out of the sentence being written. */
     const agTa = e.target.closest && e.target.closest('[data-agv-ta]');
@@ -12051,6 +12124,14 @@
   document.addEventListener('keydown', (e) => {
     /* Usage: Enter saves and Escape cancels, in the split and in the session
        field alike; the meter switch is a radiogroup like the two below. */
+    const usT = e.target.closest && e.target.closest('[data-us-tot-in]');
+    if (usT && (e.key === 'Enter' || e.key === 'Escape')) {
+      e.preventDefault();
+      if (e.key === 'Enter') { usTotSave(); return; }
+      US_TOT_ED = null;
+      render(() => { const b = $('[data-us-tot-open]'); if (b) b.focus(); });
+      return;
+    }
     const usZ = e.target.closest && e.target.closest('[data-us-slice-in]');
     if (usZ && (e.key === 'Enter' || e.key === 'Escape')) {
       e.preventDefault();
