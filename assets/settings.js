@@ -7286,9 +7286,9 @@
     { id: 'r5', f: 'tags', op: 'contains', v: ['AI_ignore'], mode: 'Skip', on: true, sys: true, eff: 7 }
   ];
   const DC_FOCUS = { ar: 'Affects Product (AR)', rel: 'Accuroute - Relates To', l2: 'Affects Product (AR) L2' };
-  const DC_STEPS = ['Map fields', 'Choose which tickets sync', 'Search by', 'Check and sync'];
+  const DC_STEPS = ['Map fields', 'Choose which tickets sync', 'Used in answers', 'Sync and history'];
   const DC_WHAT = [
-    'What each field means to AiMY, and which ones Copilot searches by when it answers a ticket. Later steps can only use mapped fields.',
+    'What each field means to AiMY, and which ones Copilot uses in its answers. Later steps can only use mapped fields.',
     'Which tickets this product syncs. Tickets already synced stay.',
     'When Copilot answers a ticket, it searches and answers using only these details from it. They don’t change what syncs.',
     'What the next sync does, and what the last ones did.'
@@ -7520,7 +7520,7 @@
         ${dcCf('rmField', f.id) ? dcCfLine(`Remove <b>${esc(f.a)}</b>?${(() => { const n = d.rules.filter((r) => r.f === f.id).length; return n ? ' ' + n + ' condition' + (n > 1 ? 's stop' : ' stops') + ' working until it\u2019s mapped again.' : (d.focus[f.id] ? ' Copilot stops searching by it.' : ''); })()}`, 'Remove', 'rmField', 'data-id="' + f.id + '"') : ''}</div>${dcSubRows(d, f)}`;
     }).join('');
     return `${dcLostNote(d)}
-      <div class="set2-dc-th is-map"><span class="agv-k">AiMY field</span><span class="agv-k">${esc(d.crm)} key</span><span class="agv-k">Values</span><span class="agv-k">Copilot searches</span><span></span></div>
+      <div class="set2-dc-th is-map"><span class="agv-k">AiMY field</span><span class="agv-k">${esc(d.crm)} key</span><span class="agv-k">Values</span><span class="agv-k">Used in answers</span><span></span></div>
       ${DCU.add === 'field' ? dcAddField(d) : ''}
       <div class="set2-dc-list" id="dcmapl">${rows}</div>`;
   }
@@ -7530,9 +7530,9 @@
     const g = dcGuard(f);
     if (g.bad) return `<span class="set2-dc-no">Can’t, ${{ text: 'free text', person: 'a person', date: 'a date' }[f.t] || 'blocked'}</span>`;
     const on = d.focus[f.id] != null, open = DCU.pan && DCU.pan.type === 'search' && DCU.pan.id === f.id;
-    return dcTog(on, 'Copilot searches by ' + f.a, 'data-dc-foc="' + f.id + '"')
+    return dcTog(on, 'Use ' + f.a + ' in answers', 'data-dc-foc="' + f.id + '"')
       /* on or off, the panel opens from here too (Nour: not only through the switch) */
-      + `<button class="agv-btn is-ghost set2-dc-sm set2-dc-srch${open ? ' is-on' : ''}" type="button" data-dc="srch" data-id="${f.id}" aria-expanded="${open}" aria-label="Search by details for ${esc(f.a)}">Details</button>`;
+      + `<button class="agv-btn is-ghost set2-dc-sm set2-dc-srch${open ? ' is-on' : ''}" type="button" data-dc="srch" data-id="${f.id}" aria-expanded="${open}" aria-label="How ${esc(f.a)} is used in answers">Details</button>`;
   }
   /* ── SEARCH BY, FOR ONE FIELD ──
      What the old Search by table held, for the field you opened: the name
@@ -7540,8 +7540,8 @@
      shown on the three sample tickets so the tag is never abstract. */
   function dcPanSearch(d, id) {
     const f = DCF[id], on = d.focus[id] != null, g = dcGuard(f);
-    let b = `<div class="set2-dc-ps"><div class="set2-dc-row"><span class="set2-dc-grow"><b>Copilot searches by it</b></span>${dcTog(on, 'Copilot searches by ' + f.a, 'data-dc-foc="' + id + '"')}</div>
-      <span class="set2-dc-meta">When Copilot answers a ticket, it searches and answers using this field’s value. It doesn’t change what syncs.</span></div>`;
+    let b = `<div class="set2-dc-ps"><div class="set2-dc-row"><span class="set2-dc-grow"><b>Used in answers</b></span>${dcTog(on, 'Use ' + f.a + ' in answers', 'data-dc-foc="' + id + '"')}</div>
+      <span class="set2-dc-meta">When Copilot answers a ticket, it looks things up and answers with this field’s value. It doesn’t change what syncs.</span></div>`;
     if (!on) b += `<div class="set2-dc-ps"><span class="agv-k">Type guard</span><span><b>Passes</b>, ${esc(g.t)}, so it can be switched on.</span></div>
       <div class="set2-dc-ps"><span class="agv-k">Tag it would make</span><span class="set2-dc-key is-tag">cf_${f.al}=${esc(dcSlug(dcTv(DC_TICKETS[0], id)) || 'none')}</span><span class="set2-dc-meta">on ticket #${DC_TICKETS[0].no}</span></div>`;
     if (on) b += `<div class="set2-dc-ps"><label class="agv-k" for="dcpfn">Name the agent sees</label>
@@ -7549,7 +7549,7 @@
       <div class="set2-dc-ps"><span class="agv-k">Type guard</span><span><b>Passes</b>, ${esc(g.t)}.</span></div>
       <div class="set2-dc-ps"><span class="agv-k">Tag it makes</span>
         <div class="set2-dc-vl">${DC_TICKETS.map((t) => `<span class="set2-dc-vr is-tag"><i>#${t.no}</i><span class="set2-dc-key is-tag">cf_${f.al}=${esc(dcSlug(dcTv(t, id)) || 'none')}</span></span>`).join('')}</div></div>`;
-    return dcPanHead('Search by · ' + esc(f.a)) + `<div class="set2-dc-pan-b">${b}</div><div class="set2-dc-pan-f" data-dc-panf>${dcPanFoot(d)}</div>`;
+    return dcPanHead('Used in answers · ' + esc(f.a)) + `<div class="set2-dc-pan-b">${b}</div><div class="set2-dc-pan-f" data-dc-panf>${dcPanFoot(d)}</div>`;
   }
   function dcAddField(d) {
     const taken = d.fields.map((id) => dcKeyOf(d, id));
@@ -7696,7 +7696,7 @@
   function dcMapViews(d) {
     if (!d.fields.length) return dcMap(d);
     const v = DCU.mv || 'all', n = dcFocusOn(d).length, bl = d.fields.filter((id) => dcGuard(DCF[id]).bad).length;
-    const seg = `<span class="set2-dc-seg set2-dc-mvs" role="group" aria-label="Show">${[['all', 'All fields', d.fields.length], ['copi', 'Searched by Copilot', n], ['no', 'Can’t be searched', bl]]
+    const seg = `<span class="set2-dc-seg set2-dc-mvs" role="group" aria-label="Show">${[['all', 'All fields', d.fields.length], ['copi', 'Used in answers', n], ['no', 'Can’t be used in answers', bl]]
       .map(([k, l, c]) => `<button type="button" data-dc-mv="${k}" aria-pressed="${v === k}">${l}<b>${c}</b></button>`).join('')}</span>`;
     /* The three views are filters over the same rows (Nour 20 Oct): every
        row carries its own switch, and the Copilot details open in the panel. */
@@ -7709,8 +7709,8 @@
   }
   function dcBlocked(d) {
     const no = d.fields.map((id) => DCF[id]).filter((f) => dcGuard(f).bad);
-    if (!no.length) return `<p class="set2-dc-none">Every mapped field can be searched by.</p>`;
-    return `<div class="set2-dc-th is-blk"><span class="agv-k">AiMY field</span><span class="agv-k">Type</span><span class="agv-k">Why Copilot can’t search by it</span></div>
+    if (!no.length) return `<p class="set2-dc-none">Every mapped field can be used in answers.</p>`;
+    return `<div class="set2-dc-th is-blk"><span class="agv-k">AiMY field</span><span class="agv-k">Type</span><span class="agv-k">Why it can’t be used in answers</span></div>
       <div class="set2-dc-list">${no.map((f) => `<div class="set2-dc-r is-blk"><span class="set2-dc-n">${esc(f.a)}</span><span class="set2-dc-meta">${esc(dcGuard(f).t)}</span><span>${esc(dcGuard(f).why)}</span></div>`).join('')}</div>`;
   }
   const DC_ED = [dcMapViews, dcRules, dcFocus, dcSync];
@@ -7729,7 +7729,7 @@
     /* Search by moved into Map fields (Nour 20 Oct, variant D of the
        merge exploration): it only ever chooses from mapped fields, so the
        two were one decision. Its model keeps index 2; the strip skips it. */
-    C[0][1] += nf ? ', ' + nf + ' searched by Copilot' : '';
+    C[0][1] += nf ? ', ' + nf + ' used in answers' : '';
     const SHOW = [0, 1, 3];
     return `<div class="set2-dc-strip is-3" role="tablist" aria-label="Steps">${SHOW.map((i, o) => [DC_STEPS[i], i, o]).map(([n, i, o]) => `
       <button class="set2-dc-stg${DCU.step === i ? ' is-on' : ''}${s[i] === 'fault' ? ' is-err' : ''}" type="button" role="tab" aria-selected="${DCU.step === i}" data-dc-step="${i}">
@@ -9719,7 +9719,7 @@
       /* AIMY-2662: Field mapping, Sync filters, Focus fields and Sync are one
          page of four steps. The id stays `fields` so every link into the old
          page still lands; `sec=sync` falls back to it too. */
-      { id: 'fields', name: 'Dynamic context', secs: ['dc'], bare: true, wide: true,
+      { id: 'fields', name: 'Data sync', secs: ['dc'], bare: true, wide: true,
         state: (st) => dcPageState(st) },
       { id: 'relevance', name: 'Data relevance', secs: ['window', 'retention'],
         state: function (st) {

@@ -11338,7 +11338,7 @@
       ]],
       /* AIMY-2662: the Dynamic context pipeline in each of its states, on
          AccuRoute Support's Freshdesk (the staging data). */
-      ['Dynamic context, each state', 'Opens Connections > Dynamic context with the pipeline in that state.', [
+      ['Data sync, each state', 'Opens Connections > Data sync with the pipeline in that state.', [
         ['empty', 'dc:empty'], ['half done', 'dc:half'], ['needs a fix', 'dc:fault'],
         ['Freshdesk down', 'dc:down'], ['syncing', 'dc:syncing'], ['all set', 'dc:done']
       ]],
