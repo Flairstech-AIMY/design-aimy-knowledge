@@ -7295,7 +7295,9 @@
       const hit = DCU.hitRid === r.id;
       const cf = dcCf('rmRule', r.id);
       return `<div class="set2-dc-r is-rule${bad ? ' is-err' : ''}${r.on ? '' : ' is-off'}${hit ? ' is-hit' : ''}${cf ? ' is-cf' : ''}">
-        <span class="set2-dc-n">${esc(f.a)}${hit ? `<span class="set2-dc-at is-hit">decides #${DC_TICKETS[DCU.tt].no}</span>` : ''}${(r.sys || f.t === 'tags') ? '<span class="set2-dc-at" title="AiMY reads the ticket, then drops it">after fetch</span>' : ''}</span>
+        <span class="set2-dc-n">${esc(f.a)}${hit ? `<span class="set2-dc-at is-hit">decides #${DC_TICKETS[DCU.tt].no}</span>` : ''}${(r.sys || f.t === 'tags')
+          ? `<span class="set2-dc-at is-post" title="AiMY checks this after reading the ticket. A ticket with no value for ${esc(f.a)} passes.">after fetch</span>`
+          : `<span class="set2-dc-at" title="${esc(d.crm)} checks this, so only matching tickets are fetched.">in ${esc(d.crm)}</span>`}</span>
         <span class="set2-dc-op">${r.op}</span><span class="set2-dc-vals">${vals}</span><span class="set2-dc-e">${end}</span>
         ${cf ? dcCfLine(`Delete <b>${esc(f.a)} ${r.op} ${esc(r.v.slice(0, 2).join(', '))}${r.v.length > 2 ? ' and ' + (r.v.length - 2) + ' more' : ''}</b>? ${r.mode === 'Keep' ? 'Tickets it kept out will start to sync.' : 'Tickets it left out will start to sync.'}`, 'Delete', 'rmRule', 'data-r="' + r.id + '"') : ''}</div>`;
     }).join('');
@@ -7305,7 +7307,8 @@
     const adding = DCU.add === 'rule' && DCU.nr && DCU.nr.m === mode;
     return `<section class="set2-dc-grp ${keep ? 'is-keep' : 'is-skip'}"><div class="set2-dc-grp-h">
       <h3>${keep ? I.tick : DCI.ban}${keep ? 'Only sync tickets where' : 'Don’t sync tickets where'}</h3>
-      <span class="set2-dc-hint">${keep ? 'all match' : 'any match'}</span>
+      <span class="set2-dc-hint">${keep ? 'all match' : 'any match'}${tip('dcRun' + mode, 'where conditions are checked',
+        'Each condition says where it is checked. In ' + d.crm + ': ' + d.crm + ' sends only the tickets that match, so the rest are never fetched. After fetch: AiMY reads each ticket, then checks it, and a ticket with no value for the field passes.')}</span>
       <button class="agv-btn is-ghost" type="button" data-dc="addRule" data-dc-mode="${mode}">Add condition</button></div>
       ${adding ? dcAddRule(d) : ''}
       ${list.length ? `<div class="set2-dc-list">${dcRuleRows(d, list)}</div>` : `<p class="set2-dc-none">${keep ? 'No conditions. Every ticket gets through.' : 'Nothing is left out.'}</p>`}</section>`;
