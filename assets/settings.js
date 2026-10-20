@@ -7171,6 +7171,7 @@
     return out.join(' and ');
   };
   const dcAt = (r) => (r.sys || DCF[r.f].t === 'tags') ? 'After fetch' : 'In Freshdesk';
+  const dcMiss = (q, name) => !!q && !!q.trim() && name.indexOf(q.trim().toLowerCase()) < 0;
   const dcIsLookup = (f) => ['lookup', 'choice', 'person'].indexOf(f.t) > -1;
   const DC_LABEL = { done: 'Done', todo: 'To do', fault: 'Needs a fix', locked: 'Waiting', wait: 'Paused', run: 'Syncing' };
   const DC_PILL = { done: 'is-ok', todo: 'is-info', fault: 'is-err', locked: 'is-warn', wait: 'is-warn', run: 'is-info' };
@@ -7241,7 +7242,8 @@
       <span class="set2-dc-row"><button class="agv-btn is-brand" type="button" data-dc="suggest">Map the 24 fields</button><button class="agv-btn is-ghost" type="button" data-dc="addField">Add one</button></span></div>${DCU.add === 'field' ? dcAddField(d) : ''}`;
     const rows = d.fields.map((id) => DCF[id]).map((f) => {
       const sel = DCU.pan && DCU.pan.type === 'field' && DCU.pan.id === f.id, ub = dcUsedBy(d, f.id), key = dcKeyOf(d, f.id);
-      return `<div class="set2-dc-r is-map${sel ? ' is-sel' : ''}" data-name="${esc((f.a + ' ' + key).toLowerCase())}">
+      const nm = (f.a + ' ' + key).toLowerCase();
+      return `<div class="set2-dc-r is-map${sel ? ' is-sel' : ''}" data-name="${esc(nm)}"${dcMiss(DCU.q, nm) ? ' hidden' : ''}>
         <span class="set2-dc-n">${esc(f.a)}${ub ? `<span class="set2-dc-at">${ub}</span>` : ''}</span>
         <span class="set2-dc-key">${esc(key)}</span>
         <span class="set2-dc-v">${dcValCell(d, f)}</span>
@@ -7324,7 +7326,9 @@
     const top = on.length ? '' : `<div class="set2-dc-ai">${DCI.spark}<span>No focus fields, so the Copilot reads the whole ticket.</span><button class="agv-btn is-brand" type="button" data-dc="focus3">Use the 3 product fields</button></div>`;
     const rows = ok.map((f) => {
       const isOn = !!d.focus[f.id];
-      return `<div class="set2-dc-r is-foc${isOn ? ' is-sel' : ''}">${dcTog(isOn, 'Focus on ' + f.a, 'data-dc-foc="' + f.id + '"')}
+      /* (searched by name, alias, key and the name the agent sees) */
+      const nm = (f.a + ' ' + f.al + ' ' + dcKeyOf(d, f.id) + ' ' + (d.focus[f.id] || '')).toLowerCase();
+      return `<div class="set2-dc-r is-foc${isOn ? ' is-sel' : ''}" data-name="${esc(nm)}"${dcMiss(DCU.qf, nm) ? ' hidden' : ''}>${dcTog(isOn, 'Focus on ' + f.a, 'data-dc-foc="' + f.id + '"')}
         <span class="set2-dc-n">${esc(f.a)}<span class="set2-dc-at" title="Type guard">${dcGuard(f).t}</span></span>
         ${isOn ? `<input class="set2-dc-u" data-dc-fname="${f.id}" value="${esc(d.focus[f.id])}" aria-label="Name the agent sees for ${esc(f.a)}" title="Name the agent sees">
           <span class="set2-dc-key is-tag" title="Tag it makes for #${t.no}">cf_${f.al}=${esc(dcSlug(dcTv(t, f.id)).slice(0, 22))}</span>` : '<span></span><span></span>'}</div>`;
@@ -7334,7 +7338,7 @@
     no.forEach((f) => { (groups[f.t] = groups[f.t] || []).push(f.a); });
     const blocked = no.length ? `<p class="set2-dc-none">Can’t be focus fields: ${Object.keys(groups).map((t) => groups[t].join(', ') + ' (' + why[t] + ')').join('; ')}.</p>` : '';
     return `${top}<div class="set2-dc-th is-foc"><span class="agv-k">Focus</span><span class="agv-k">Field</span><span class="agv-k">Name the agent sees</span><span class="agv-k">Tag, for #${t.no}</span></div>
-      <div class="set2-dc-list">${rows}</div>${blocked}`;
+      <div class="set2-dc-list" id="dcfocl">${rows}</div>${blocked}`;
   }
 
   /* ── STEP 4 (was the Sync page) ── */
@@ -7457,7 +7461,8 @@
     }
     const pan = dcPanel(d), n = dcDirty(d), i = DCU.step;
     const where = DC_CH[d.cid].map((x, k) => x ? DC_STEPS[k] : null).filter(Boolean).join(', ');
-    const act = { 0: d.fields.length ? `<label class="set2-dc-find">${I.search}<input class="set2-dc-u" id="dcq" placeholder="Find a field" value="${esc(DCU.q)}" aria-label="Find a mapped field"></label><button class="agv-btn is-brand" type="button" data-dc="addField">Add field</button>` : '' }[i] || '';
+    const act = { 0: d.fields.length ? `<label class="set2-dc-find">${I.search}<input class="set2-dc-u" id="dcq" placeholder="Find a field" value="${esc(DCU.q)}" aria-label="Find a mapped field"></label><button class="agv-btn is-brand" type="button" data-dc="addField">Add field</button>` : '',
+      2: d.fields.length ? `<label class="set2-dc-find">${I.search}<input class="set2-dc-u" id="dcqf" placeholder="Find a field" value="${esc(DCU.qf || '')}" aria-label="Find a focus field"></label>` : '' }[i] || '';
     const cat = d.cat.down
       ? `<div class="set2-dc-cat is-err"><i></i><span>Can’t reach <b>${esc(d.cat.host)}</b></span><button class="agv-lnk" type="button" data-dc="retry">Reconnect</button></div>`
       : `<div class="set2-dc-cat"><i></i><span><b>${esc(d.cat.host)}</b>, ${d.cat.n} fields, fetched ${esc(d.cat.at)}</span>${dcIb('refresh', 'Refresh catalog', DCI.ref, DCU.refreshing ? 'data-busy' : '')}</div>`;
@@ -12109,7 +12114,8 @@
     const t = e.target;
     if (!t.closest || !t.closest('[data-dc-root]')) return;
     if (t.hasAttribute('data-dc-f')) dcSuggest(t);
-    if (t.id === 'dcq') { DCU.q = t.value; dcFilter(t.value, '#dctmap tbody tr'); }
+    if (t.id === 'dcq') { DCU.q = t.value; dcFilter(t.value, '#dcmapl .set2-dc-r'); }
+    if (t.id === 'dcqf') { DCU.qf = t.value; dcFilter(t.value, '#dcfocl .set2-dc-r'); }
     if (t.id === 'dcaddq') { DCU.addq = t.value; dcFilter(t.value, '#dcaddl button'); }
     if (t.id === 'dcqn') dcFilter(t.value, '#dcnl [data-name]');
   });

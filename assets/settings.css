@@ -5458,6 +5458,9 @@ button.set2-us-sl:disabled { cursor: not-allowed; }
 
 /* rows */
 .set2-dc-list { display: grid; gap: 0.125rem; }
+/* A row or option the search left out. Their own display: grid outranks the
+   [hidden] default, so it is said here. */
+.set2-dc [hidden] { display: none !important; }
 .set2-dc-th, .set2-dc-r { display: grid; align-items: center; gap: 0.5rem 1rem; padding: 0.5rem 0.75rem; }
 .set2-dc-th { padding-block: 0 0.125rem; }
 .set2-dc-th .agv-k { margin: 0; }
