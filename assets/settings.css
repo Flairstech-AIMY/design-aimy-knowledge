@@ -5497,6 +5497,11 @@ button.set2-us-sl:disabled { cursor: not-allowed; }
 .set2-dc-vp { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.125rem 0.625rem; max-width: 100%; text-align: left; padding: 0.3125rem 0.75rem; border: 0; border-radius: var(--r-pill); background: transparent; box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover); color: var(--ink-primary); font-size: 0.75rem; cursor: pointer; }
 .set2-dc-vp:hover, .set2-dc-vp.is-on { box-shadow: inset 0 0 0 0.0625rem var(--brand); }
 .set2-dc-vp.is-on { background: var(--aimy-wash); }
+.set2-dc-vp.is-add { color: var(--ink-action); font-weight: var(--fw-semibold); }
+.set2-dc-vp svg { width: 0.75rem; height: 0.75rem; }
+.set2-dc-seen { display: inline-flex; align-items: center; gap: 0.25rem; border: 0; background: none; color: var(--ink-primary); cursor: pointer; }
+.set2-dc-seen:hover { box-shadow: inset 0 0 0 0.0625rem var(--brand); }
+.set2-dc-seen svg { width: 0.6875rem; height: 0.6875rem; color: var(--ink-action); }
 .set2-dc-vp i { font-style: normal; font-family: var(--font-mono); color: var(--ink-secondary); }
 .set2-dc-vp b { font-weight: var(--fw-semibold); color: var(--ink-action); }
 .set2-dc-vp em { font-style: normal; font-weight: var(--fw-semibold); color: var(--ink-warn); }
@@ -5523,6 +5528,8 @@ button.set2-us-sl:disabled { cursor: not-allowed; }
 .set2-dc-add.is-rule { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
 .set2-dc-dd .v2-dropdown-btn { min-width: 9rem; }
 .set2-dc-cb { max-height: 12rem; overflow: auto; display: grid; gap: 0.125rem; }
+.set2-dc-cbk { display: block; margin: 0; padding: 0.5rem 0.75rem 0.25rem; }
+.set2-dc-cbk + button { margin-top: 0; }
 .set2-dc-cb button { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.75rem; width: 100%; text-align: left; border: 0; background: none; padding: 0.4375rem 0.75rem; border-radius: var(--r-lg); color: var(--ink-primary); cursor: pointer; }
 .set2-dc-cb button:hover, .set2-dc-cb button.is-on { background: var(--aimy-wash); }
 .set2-dc-cb button i { font-style: normal; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-secondary); }
@@ -5606,7 +5613,9 @@ button.set2-us-sl:disabled { cursor: not-allowed; }
 @media (max-width: 81rem) {
   /* As a drawer it slides in from the edge: 400ms in, 350ms out. */
   .set2-dc-work.has-pan, .set2-dc-work.has-pan.is-pan-in, .set2-dc-work.has-pan.is-pan-out { grid-template-columns: minmax(0, 1fr); transition: none; }
-  .set2-dc-panw { position: fixed; top: 3.75rem; right: 0; bottom: 0; z-index: 600; width: min(26rem, 100vw); overflow: visible; border-radius: 0; }
+  /* stretch, not start: a fixed grid item still obeys align-self, and start
+     shrinks it to its content instead of the window. */
+  .set2-dc-panw { position: fixed; top: 3.75rem; right: 0; bottom: 0; z-index: 600; width: min(26rem, 100vw); overflow: visible; border-radius: 0; align-self: stretch; }
   .set2-dc-panw > .set2-dc-pan { width: 100%; height: 100%; max-height: none; border-radius: 1.25rem 0 0 0; background: var(--card-bg-raised); box-shadow: inset 0.0625rem 0.0625rem 0 var(--card-border), -1rem 0 3rem rgba(0, 0, 0, 0.28); padding-bottom: env(safe-area-inset-bottom, 0px); transition-property: transform; }
   .is-pan-in .set2-dc-panw > .set2-dc-pan, .is-pan-out .set2-dc-panw > .set2-dc-pan { transform: translateX(100%); opacity: 1; filter: none; }
 }

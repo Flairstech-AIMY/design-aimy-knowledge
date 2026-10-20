@@ -7205,10 +7205,23 @@
   const dcIb = (act, label, icon, extra) => `<button class="agv-ib" type="button" data-dc="${act}" aria-label="${esc(label)}" title="${esc(label)}" ${extra || ''}>${icon}</button>`;
 
   /* ── STEP 1 ── */
+  /* Any field with a fixed set of values can be mapped: codes to labels, or a
+     dropdown's raw values to the words AiMY should use. Lookups with too many
+     values to label (Group, 163) default to names from the CRM instead. */
+  const dcHasValues = (f) => ['lookup', 'choice', 'person', 'dropdown', 'nested', 'boolean'].indexOf(f.t) > -1;
+  const dcNamesFirst = (f) => f.t === 'lookup' || f.t === 'person';
+  function dcSeen(d, id) {
+    const f = DCF[id], v = d.vals[id] || [];
+    const out = (DC_SUGGEST[id] || DC_NAMED[id] || (f.t === 'boolean' ? ['true', 'false'] : [])).slice();
+    DC_TICKETS.forEach((t) => { const x = t.v[id]; if (x != null && !Array.isArray(x) && out.indexOf(x) < 0) out.push(String(x)); });
+    return out.filter((x) => !v.some((p) => p[0] === x)).slice(0, 8);
+  }
   function dcValCell(d, f) {
-    if (!dcIsLookup(f)) return '';
+    if (!dcHasValues(f)) return '';
     const on = DCU.pan && DCU.pan.type === 'field' && DCU.pan.id === f.id ? ' is-on' : '';
     const v = d.vals[f.id];
+    if (v && !v.length) return `<button class="set2-dc-vp${on}" type="button" data-dc="vals" data-id="${f.id}">No values yet<b>Add</b></button>`;
+    if (!v && !dcNamesFirst(f)) return `<button class="set2-dc-vp is-add${on}" type="button" data-dc="vals" data-id="${f.id}">${I.plus}Map values</button>`;
     if (v) {
       const miss = (DC_UNL[f.id] || []).filter((c) => !v.some((x) => x[0] === c)).length;
       return `<button class="set2-dc-vp${on}" type="button" data-dc="vals" data-id="${f.id}" aria-label="Values of ${esc(f.a)}">`
@@ -7243,10 +7256,14 @@
     const taken = d.fields.map((id) => dcKeyOf(d, id));
     const opts = DC_FIELDS.map((f) => [d.ts ? f.ts : f.k, f.lab, f.t]).concat(DC_EXTRA.map((e) => [(d.ts ? 'CustomFields.' : 'custom_fields.') + e[0], e[1], e[2]]));
     const pk = opts.filter((o) => o[0] === DCU.pick)[0];
+    /* What you can still add comes first; the mapped ones follow under their
+       own label, so the list opens on choices rather than on disabled rows. */
+    const free = opts.filter((o) => taken.indexOf(o[0]) < 0), done = opts.filter((o) => taken.indexOf(o[0]) > -1);
+    const opt = ([k, lab], used) => `<button type="button" data-dc-pick="${esc(k)}" class="${DCU.pick === k ? 'is-on' : ''}" ${used ? 'disabled' : ''} data-name="${esc((lab + ' ' + k).toLowerCase())}"><span>${esc(lab)}</span><i>${used ? 'Mapped' : esc(k)}</i></button>`;
     return `<div class="set2-dc-add">
       <input class="set2-dc-u" id="dcaddq" placeholder="Search ${d.cat.n} ${esc(d.crm)} fields" aria-label="Search ${esc(d.crm)} fields" value="${esc(DCU.addq)}">
-      <div class="set2-dc-cb" id="dcaddl">${opts.map(([k, lab]) => { const used = taken.indexOf(k) > -1;
-        return `<button type="button" data-dc-pick="${esc(k)}" class="${DCU.pick === k ? 'is-on' : ''}" ${used ? 'disabled' : ''} data-name="${esc((lab + ' ' + k).toLowerCase())}"><span>${esc(lab)}</span><i>${used ? 'Mapped' : esc(k)}</i></button>`; }).join('')}</div>
+      <div class="set2-dc-cb" id="dcaddl"><span class="agv-k set2-dc-cbk">Not mapped (${free.length})</span>${free.map((o) => opt(o, false)).join('')}
+        ${done.length ? `<span class="agv-k set2-dc-cbk">Already mapped (${done.length})</span>${done.map((o) => opt(o, true)).join('')}` : ''}</div>
       <div class="set2-dc-row is-wrap"><input class="set2-dc-u set2-dc-grow" id="dcaddn" value="${esc(pk ? pk[1] : '')}" placeholder="Name in AiMY" aria-label="Name in AiMY">
         <button class="agv-btn is-ghost" type="button" data-dc="addCancel">Cancel</button><button class="agv-btn is-brand" type="button" data-dc="addFieldSave" ${pk ? '' : 'disabled'}>Add field</button></div></div>`;
   }
@@ -7393,18 +7410,24 @@
       <p class="set2-dc-none">${dcN(unread)} more ${esc(d.crm)} fields aren’t read.</p></div>`;
   }
   function dcPanField(d, id) {
-    const f = DCF[id], v = d.vals[id], key = dcKeyOf(d, id);
+    const f = DCF[id], key = dcKeyOf(d, id), names = dcNamesFirst(f) && !d.vals[id];
+    const v = d.vals[id] || [];
     const keys = [key].concat(DC_FIELDS.filter((x) => x.t === f.t).map((x) => d.ts ? x.ts : x.k).filter((k) => k !== key));
     let b = `<div class="set2-dc-ps"><span class="agv-k">${esc(d.crm)} field</span>${dcDD('rep', d.crm + ' field', key, keys.map((k) => [k, k]))}</div>`;
-    if (v) {
-      const miss = (DC_UNL[id] || []).filter((c) => !v.some((x) => x[0] === c));
+    if (!names) {
+      const miss = (DC_UNL[id] || []).filter((c) => !v.some((x) => x[0] === c)), seen = dcSeen(d, id);
       b += `${miss.length ? `<div class="set2-dc-ps is-warn"><span class="agv-k">Not labelled yet</span>${miss.map((c) => `<span class="set2-dc-vr"><i>${c}</i><input class="set2-dc-u" data-dc-unl="${c}" data-id="${id}" placeholder="Label" aria-label="Label for ${c}"><button class="agv-btn is-ghost set2-dc-sm" type="button" data-dc="labelCode" data-id="${id}" data-raw="${c}">Add</button></span>`).join('')}</div>` : ''}
-        <div class="set2-dc-ps"><span class="agv-k">${v.length} values</span><div class="set2-dc-vl">${v.map(([r, l]) => `<span class="set2-dc-vr"><i>${esc(r)}</i><input class="set2-dc-u" data-dc-vlab="${esc(r)}" data-id="${id}" value="${esc(l)}" aria-label="Label for ${esc(r)}">${dcIb('rmMapVal', 'Remove ' + r, I.x, 'data-id="' + id + '" data-raw="' + esc(r) + '"')}</span>`).join('')}</div>
-        <span class="set2-dc-vr"><input class="set2-dc-u" id="dcmvr" placeholder="Code" aria-label="Code"><input class="set2-dc-u" id="dcmvl" placeholder="Label" aria-label="Label"><button class="agv-btn is-ghost set2-dc-sm" type="button" data-dc="addMapVal" data-id="${id}">Add</button></span></div>`;
+        <div class="set2-dc-ps"><span class="agv-k">${v.length ? v.length + ' values' : 'Value mapping'}</span>
+        ${v.length ? `<div class="set2-dc-vl">${v.map(([r, l]) => `<span class="set2-dc-vr"><i>${esc(r)}</i><input class="set2-dc-u" data-dc-vlab="${esc(r)}" data-id="${id}" value="${esc(l)}" aria-label="Label for ${esc(r)}">${dcIb('rmMapVal', 'Remove ' + r, I.x, 'data-id="' + id + '" data-raw="' + esc(r) + '"')}</span>`).join('')}</div>`
+          : `<span class="set2-dc-meta">Nothing mapped, so AiMY uses what ${esc(d.crm)} sends as it is.</span>`}
+        ${seen.length ? `<span class="agv-k">Seen in ${esc(d.crm)}</span><span class="set2-dc-vals">${seen.map((x) => `<button class="agv-chip set2-dc-seen" type="button" data-dc="seenAdd" data-id="${id}" data-raw="${esc(x)}">${I.plus}${esc(x)}</button>`).join('')}</span>` : ''}
+        <span class="set2-dc-vr"><input class="set2-dc-u" id="dcmvr" placeholder="${f.t === 'lookup' || f.t === 'choice' ? 'Code' : 'Value'}" aria-label="Value ${esc(d.crm)} sends"><input class="set2-dc-u" id="dcmvl" placeholder="Label" aria-label="Label"><button class="agv-btn is-ghost set2-dc-sm" type="button" data-dc="addMapVal" data-id="${id}">Add</button></span>
+        ${dcNamesFirst(f) && (f.n || 0) > 20 ? `<button class="agv-lnk set2-dc-sm" type="button" data-dc="useNames" data-id="${id}">Use names from ${esc(d.crm)} instead</button>` : ''}</div>`;
     } else {
       const on = d.resolve[id] !== false, list = DC_NAMED[id] || [];
       b += `<div class="set2-dc-ps"><span class="set2-dc-row"><span class="set2-dc-grow">Show names, not IDs</span>${dcTog(on, 'Show names, not IDs', 'data-dc-res="' + id + '"')}</span>
-        ${on && list.length ? `<input class="set2-dc-u" id="dcqn" placeholder="Find one of ${dcN(f.n)}" aria-label="Find a name"><div class="set2-dc-vl" id="dcnl">${list.map((n) => `<span class="set2-dc-vr is-1" data-name="${esc(n.toLowerCase())}">${esc(n)}</span>`).join('')}</div>` : ''}</div>`;
+        ${on && list.length ? `<input class="set2-dc-u" id="dcqn" placeholder="Find one of ${dcN(f.n)}" aria-label="Find a name"><div class="set2-dc-vl" id="dcnl">${list.map((n) => `<span class="set2-dc-vr is-1" data-name="${esc(n.toLowerCase())}">${esc(n)}</span>`).join('')}</div>` : ''}
+        <button class="agv-lnk set2-dc-sm" type="button" data-dc="startMap" data-id="${id}">Label values by hand instead</button></div>`;
     }
     return dcPanHead(esc(f.a) + ' values') + `<div class="set2-dc-pan-b">${b}</div>`;
   }
@@ -12015,8 +12038,17 @@
     addMapVal(d, el) {
       const id = el.dataset.id, r = ($('#dcmvr').value || '').trim(), l = ($('#dcmvl').value || '').trim();
       if (!r || !l) { $(r ? '#dcmvl' : '#dcmvr').focus(); return; }
-      d.vals[id] = d.vals[id].filter((v) => v[0] !== r).concat([[r, l]]); dcBump(d, 0); dcPaint('#dcmvr');
+      d.vals[id] = (d.vals[id] || []).filter((v) => v[0] !== r).concat([[r, l]]); dcBump(d, 0); dcPaint('#dcmvr');
     },
+    /* A value seen in the CRM, added as itself; its label is then focused to
+       be rewritten in place. */
+    seenAdd(d, el) {
+      const id = el.dataset.id, raw = el.dataset.raw;
+      d.vals[id] = (d.vals[id] || []).concat([[raw, raw]]); dcBump(d, 0);
+      dcPaint('[data-dc-vlab="' + raw.replace(/"/g, '\\"') + '"]');
+    },
+    startMap(d, el) { const u = dcSnap(d), id = el.dataset.id; d.vals[id] = []; d.resolve[id] = false; dcBump(d, 0); render(); dcToast(DCF[id].a + ' values are labelled by hand now.', u); },
+    useNames(d, el) { const u = dcSnap(d), id = el.dataset.id; delete d.vals[id]; d.resolve[id] = true; dcBump(d, 0); render(); dcToast(DCF[id].a + ' shows names from ' + d.crm + ' again.', u); },
     labelCode(d, el) {
       const id = el.dataset.id, raw = el.dataset.raw, inp = $('[data-dc-unl="' + raw + '"]'), l = inp ? inp.value.trim() : '';
       if (!l) { if (inp) inp.focus(); return; }
