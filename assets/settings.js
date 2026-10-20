@@ -7439,12 +7439,12 @@
       ? `<div class="set2-dc-cat is-err"><i></i><span>Can’t reach <b>${esc(d.cat.host)}</b></span><button class="agv-lnk" type="button" data-dc="retry">Reconnect</button></div>`
       : `<div class="set2-dc-cat"><i></i><span><b>${esc(d.cat.host)}</b>, ${d.cat.n} fields, fetched ${esc(d.cat.at)}</span>${dcIb('refresh', 'Refresh catalog', DCI.ref, DCU.refreshing ? 'data-busy' : '')}</div>`;
     return `<div class="set2-dc" data-dc-root>${cat}${dcStrip(d, s)}${dcTicketLine(d)}
-      <div class="set2-dc-work${pan ? ' has-pan' : ''}"><section class="set2-dc-ed${DCU.swap ? ' is-in' : ''}" aria-label="${esc(DC_STEPS[i])}">
+      <div class="set2-dc-work${pan ? ' has-pan' : ''}${pan && DCU.panIn ? ' is-pan-in' : ''}"><section class="set2-dc-ed${DCU.swap ? ' is-in' : ''}" aria-label="${esc(DC_STEPS[i])}">
         <div class="set2-dc-ed-h"><div><h2>${esc(DC_STEPS[i])}</h2><p>${DC_WHAT[i]}</p></div><span class="set2-dc-row">${act}</span></div>
         ${DC_ED[i](d)}
         ${n ? `<div class="set2-us-bar"><span class="set2-us-bar-s"><span class="set2-us-bar-t"><b>${n} change${n > 1 ? 's' : ''} not saved</b> in ${esc(where)}</span></span>
           <button class="agv-btn is-ghost" type="button" data-dc="discard">Discard</button><button class="agv-btn is-brand" type="button" data-dc="save">Save</button></div>` : ''}
-      </section>${pan ? `<aside class="set2-dc-pan" aria-label="Details">${pan}</aside>` : ''}</div></div>`;
+      </section>${pan ? `<div class="set2-dc-panw"><aside class="set2-dc-pan${DCU.panSwap ? ' is-swap' : ''}" aria-label="Details">${pan}</aside></div>` : ''}</div></div>`;
   }
 
   M.config = function (st) {
@@ -11915,6 +11915,32 @@
       } else render();
     }, 1000);
   }
+  /* Open: paint with the column at 0 width (`is-pan-in`), then drop the class
+     on the next frame so the track and the panel transition in. A panel that
+     is already open just swaps its inside. Close: run the transition backwards
+     on the live DOM, and only then repaint without it. */
+  const dcReduced = () => { const M = window.AIMY_MOTION; return !!(M && M.reduced && M.reduced()); };
+  function dcOpenPan(p) {
+    const was = !!DCU.pan;
+    clearTimeout(DC_PAN_T);
+    DCU.pan = p; DCU.panIn = !was && !dcReduced(); DCU.panSwap = was;
+    render(() => {
+      DCU.panSwap = false;
+      if (!DCU.panIn) return;
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        DCU.panIn = false;
+        const w = $('.set2-dc-work'); if (w) w.classList.remove('is-pan-in');
+      }));
+    });
+  }
+  let DC_PAN_T = 0;
+  function dcClosePan() {
+    const w = $('.set2-dc-work.has-pan');
+    clearTimeout(DC_PAN_T);
+    if (!w || dcReduced()) { DCU.pan = null; render(); return; }
+    w.classList.add('is-pan-out');
+    DC_PAN_T = setTimeout(() => { DCU.pan = null; render(); }, 350);
+  }
   const DCA = {
     suggest(d) { const u = dcSnap(d); d.fields = DC_FIELDS.map((f) => f.id); d.rules = dcClone(DC_RULES.filter((r) => r.sys)); dcBump(d, 0, 24); dcBump(d, 1, 3); render();
       dcToast('Mapped 24 fields. AiMY also added 3 Don’t sync conditions for merged, automated and AI_ignore tickets.', u); },
@@ -11941,9 +11967,9 @@
       if (DCU.pan && DCU.pan.id === id) DCU.pan = null;
       render(); dcToast(nr ? 'Removed ' + f.a + '. ' + nr + ' rule can’t run now.' : 'Removed ' + f.a + '.', u);
     },
-    vals(d, el) { DCU.pan = (DCU.pan && DCU.pan.type === 'field' && DCU.pan.id === el.dataset.id) ? null : { type: 'field', id: el.dataset.id }; render(); },
-    showTk() { DCU.pan = DCU.pan && DCU.pan.type === 'ticket' ? null : { type: 'ticket' }; render(); },
-    panClose() { DCU.pan = null; render(); },
+    vals(d, el) { if (DCU.pan && DCU.pan.type === 'field' && DCU.pan.id === el.dataset.id) dcClosePan(); else dcOpenPan({ type: 'field', id: el.dataset.id }); },
+    showTk() { if (DCU.pan && DCU.pan.type === 'ticket') dcClosePan(); else dcOpenPan({ type: 'ticket' }); },
+    panClose() { dcClosePan(); },
     nextTk() { DCU.tk = (DCU.tk + 1) % DC_TICKETS.length; render(); },
     remap(d) {
       const u = dcSnap(d), back = d.rules.filter((r) => dcBroken(d, r)).map((r) => r.f).filter((v, i, a) => a.indexOf(v) === i), nm = dcLost(d);
@@ -11984,7 +12010,7 @@
     test() { DCU.test = true; render(); },
     run(d) { if (dcDirty(d)) DCA.save(d, true); d.sync = { st: 'running', pct: 3 }; DC_SAVED[d.cid].sync = dcClone(d.sync); DCU.test = false; render(); dcStartSync(d, 12); dcToast('Sync started for ' + dcN(dcKept(d)) + ' tickets.'); },
     stop(d) { clearInterval(DC_TICK); const n = Math.round(dcKept(d) * d.sync.pct / 100); d.sync = { st: d.hist.length ? 'done' : 'never', pct: 0 }; DC_SAVED[d.cid].sync = dcClone(d.sync); render(); dcToast('Sync stopped. ' + dcN(n) + ' tickets synced before it stopped.'); },
-    why(d, el) { DCU.pan = { type: 'run', i: +el.dataset.i }; render(); },
+    why(d, el) { dcOpenPan({ type: 'run', i: +el.dataset.i }); },
     rmMapVal(d, el) { const u = dcSnap(d), id = el.dataset.id; d.vals[id] = d.vals[id].filter((v) => v[0] !== el.dataset.raw); dcBump(d, 0); render(); dcToast('Removed ' + el.dataset.raw + ' from ' + DCF[id].a + '.', u); },
     addMapVal(d, el) {
       const id = el.dataset.id, r = ($('#dcmvr').value || '').trim(), l = ($('#dcmvl').value || '').trim();
@@ -12070,7 +12096,7 @@
     const t = e.target;
     if (!t.closest || !t.closest('[data-dc-root]')) return;
     const d = dcCur(); if (!d) return;
-    if (e.key === 'Escape' && DCU.pan) { DCU.pan = null; render(); return; }
+    if (e.key === 'Escape' && DCU.pan) { dcClosePan(); return; }
     if (e.key !== 'Enter') return;
     if (t.hasAttribute('data-dc-addv') && t.value.trim()) {
       const id = t.getAttribute('data-dc-addv'), r = d.rules.filter((x) => x.id === id)[0];
