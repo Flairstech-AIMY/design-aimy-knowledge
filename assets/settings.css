@@ -5559,6 +5559,24 @@ button.set2-us-sl:disabled { cursor: not-allowed; }
 .set2-dc-ai { background: var(--aimy-wash); box-shadow: inset 0 0 0 0.0625rem var(--aimy-wash-edge); }
 .set2-dc-ai > svg { color: var(--ink-info); }
 
+/* test a ticket (steps 2 and 3) */
+.set2-dc-test2 { display: grid; gap: 0.625rem; padding: 0.75rem 0.875rem; border-radius: 1rem; background: var(--card-bg-raised); }
+.set2-dc-test2 .agv-k { margin: 0 0.25rem 0 0; }
+.set2-dc-u.is-tt { width: 8rem; }
+.set2-dc-seen.is-on { box-shadow: inset 0 0 0 0.0625rem var(--brand); background: var(--aimy-wash); }
+.set2-dc-tres { margin: 0; display: flex; align-items: flex-start; gap: 0.625rem; flex-wrap: wrap; padding: 0.625rem 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; color: var(--ink-primary); animation: set2DcSwap 150ms ease-in-out; }
+.set2-dc-tres > span { flex: 1 1 16rem; min-width: 0; }
+.set2-dc-tres > svg { margin-top: 0.1875rem; }
+.set2-dc-tres .set2-dc-vals { margin-top: 0.375rem; }
+.set2-dc-tres .agv-chip b { font-weight: var(--fw-semibold); }
+.set2-dc-tres.is-ok { background: var(--ok-bg); } .set2-dc-tres.is-ok > svg { color: var(--ink-ok); }
+.set2-dc-tres.is-skip { background: var(--warn-bg); } .set2-dc-tres.is-skip > svg { color: var(--ink-warn); }
+.set2-dc-tres.is-err { background: var(--err-bg); } .set2-dc-tres.is-err > svg { color: var(--ink-err); }
+.set2-dc-tres.is-none { background: var(--card-bg); } .set2-dc-tres.is-none > svg { color: var(--ink-info); }
+/* the condition that decided the tested ticket */
+.set2-dc-r.is-hit { background: var(--warn-bg); box-shadow: inset 0 0 0 0.0625rem var(--warn-border); }
+.set2-dc-at.is-hit { color: var(--ink-warn); box-shadow: inset 0 0 0 0.0625rem var(--warn-border); }
+
 /* step 4 */
 .set2-dc-run { display: grid; gap: 0.875rem; padding: 1rem; border-radius: 1rem; background: var(--card-bg-raised); }
 .set2-dc-run .agv-k { margin: 0; }

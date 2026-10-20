@@ -7149,15 +7149,15 @@
   function dcVerdict(d, t) {
     if (!d.fields.length) return { c: 'none', t: 'No rules yet. Once fields are mapped, rules decide if this ticket syncs.', short: 'no rules yet' };
     const br = d.rules.filter((r) => r.on && dcBroken(d, r))[0];
-    if (br) return { c: 'err', t: '<b>Not synced.</b> The ' + esc(DCF[br.f].a) + ' rule can’t run while ' + esc(DCF[br.f].a) + ' is unmapped.', short: 'not synced, a rule can’t run' };
+    if (br) return { rid: br.id, c: 'err', t: '<b>Not synced.</b> The ' + esc(DCF[br.f].a) + ' rule can’t run while ' + esc(DCF[br.f].a) + ' is unmapped.', short: 'not synced, a rule can’t run' };
     for (const r of d.rules.filter((x) => x.on)) {
       const val = t.v[r.f], arr = Array.isArray(val) ? val : [val];
       const hit = r.v.some((x) => arr.indexOf(x) > -1);
       const match = (r.op === 'is one of' || r.op === 'contains') ? hit : (r.op === 'is not one of' || r.op === 'does not contain') ? !hit : true;
-      if (r.mode === 'Keep' && !match) return { c: 'skip', t: '<b>Not synced.</b> Its ' + esc(DCF[r.f].a) + ' is ' + esc(arr.join(', ')) + ', and Only sync tickets where needs ' + (r.v.length > 1 ? 'one of ' + r.v.length + ' values' : esc(r.v[0])) + '.', short: 'not synced, its ' + DCF[r.f].a + ' is ' + arr.join(', ') };
+      if (r.mode === 'Keep' && !match) return { rid: r.id, c: 'skip', t: '<b>Not synced.</b> Its ' + esc(DCF[r.f].a) + ' is ' + esc(arr.join(', ')) + ', which isn’t on the Only sync list.', short: 'not synced, its ' + DCF[r.f].a + ' is ' + arr.join(', ') };
       if (r.mode === 'Skip' && match) {
         const hitV = r.v.filter((x) => arr.indexOf(x) > -1)[0] || r.v[0], tag = DCF[r.f].t === 'tags';
-        return { c: 'skip', t: '<b>Not synced.</b> ' + (tag ? 'It is tagged ' + esc(hitV) : 'Its ' + esc(DCF[r.f].a) + ' is ' + esc(hitV)) + ', which is on the Don’t sync list' + (r.sys ? ', set by AiMY' : '') + '.',
+        return { rid: r.id, c: 'skip', t: '<b>Not synced.</b> ' + (tag ? 'It is tagged ' + esc(hitV) : 'Its ' + esc(DCF[r.f].a) + ' is ' + esc(hitV)) + ', which is on the Don’t sync list' + (r.sys ? ', set by AiMY' : '') + '.',
           short: 'not synced, ' + (tag ? 'tagged ' + hitV : 'its ' + DCF[r.f].a + ' is ' + hitV) };
       }
     }
@@ -7281,8 +7281,9 @@
       const end = bad ? `<button class="agv-btn is-brand" type="button" data-dc="remap" data-dc-remap>Map again</button>`
         : r.sys ? `<span class="set2-dc-lock" title="Set by AiMY">${I.lock}</span>`
         : `<button class="agv-btn is-ghost set2-dc-mv" type="button" data-dc="move" data-r="${r.id}" title="Move to ${other}">Move</button>${dcTog(r.on, 'Condition on', 'data-dc-on="' + r.id + '"')}${dcIb('rmRule', 'Delete condition', I.trash, 'data-r="' + r.id + '"')}`;
-      return `<div class="set2-dc-r is-rule${bad ? ' is-err' : ''}${r.on ? '' : ' is-off'}">
-        <span class="set2-dc-n">${esc(f.a)}${(r.sys || f.t === 'tags') ? '<span class="set2-dc-at" title="AiMY reads the ticket, then drops it">after fetch</span>' : ''}</span>
+      const hit = DCU.hitRid === r.id;
+      return `<div class="set2-dc-r is-rule${bad ? ' is-err' : ''}${r.on ? '' : ' is-off'}${hit ? ' is-hit' : ''}">
+        <span class="set2-dc-n">${esc(f.a)}${hit ? `<span class="set2-dc-at is-hit">decides #${DC_TICKETS[DCU.tt].no}</span>` : ''}${(r.sys || f.t === 'tags') ? '<span class="set2-dc-at" title="AiMY reads the ticket, then drops it">after fetch</span>' : ''}</span>
         <span class="set2-dc-op">${r.op}</span><span class="set2-dc-vals">${vals}</span><span class="set2-dc-e">${end}</span></div>`;
     }).join('');
   }
@@ -7311,7 +7312,8 @@
   }
   function dcRules(d) {
     if (!d.fields.length) return `<div class="set2-dc-empty"><b>Map fields first</b><span>Rules can only use mapped fields.</span><button class="agv-btn is-ghost" type="button" data-dc-step="0">Go to Map fields</button></div>`;
-    return `${dcLostNote(d)}${dcGroup(d, 'Keep')}${dcGroup(d, 'Skip')}`;
+    DCU.hitRid = DCU.tt != null ? dcVerdict(d, DC_TICKETS[DCU.tt]).rid : null;
+    return `${dcLostNote(d)}${dcTestBox(d, 1)}${dcGroup(d, 'Keep')}${dcGroup(d, 'Skip')}`;
   }
 
   /* ── STEP 3 ── */
@@ -7337,7 +7339,7 @@
     const groups = {};
     no.forEach((f) => { (groups[f.t] = groups[f.t] || []).push(f.a); });
     const blocked = no.length ? `<p class="set2-dc-none">Can’t be searched by: ${Object.keys(groups).map((t) => groups[t].join(', ') + ' (' + why[t] + ')').join('; ')}.</p>` : '';
-    return `${top}<div class="set2-dc-th is-foc"><span class="agv-k">On</span><span class="agv-k">Field</span><span class="agv-k">Name the agent sees</span><span class="agv-k">Tag, for #${t.no}</span></div>
+    return `${top}${dcTestBox(d, 2)}<div class="set2-dc-th is-foc"><span class="agv-k">On</span><span class="agv-k">Field</span><span class="agv-k">Name the agent sees</span><span class="agv-k">Tag, for #${t.no}</span></div>
       <div class="set2-dc-list" id="dcfocl">${rows}</div>${blocked}`;
   }
 
@@ -7389,15 +7391,34 @@
         <span class="set2-dc-stg-f">${dcPill(s[i])}${DC_CH[d.cid][i] ? '<span class="set2-dc-unsaved">Not saved</span>' : ''}</span></button>`).join('')}</div>`;
   }
 
-  /* ── THE SAMPLE TICKET, ONE LINE ── */
-  function dcTicketLine(d) {
-    const t = DC_TICKETS[DCU.tk], v = dcVerdict(d, t), nf = dcFocusOn(d).length, open = DCU.pan && DCU.pan.type === 'ticket';
-    return `<div class="set2-dc-tk is-${v.c}">${DCI.ticket}<b>#${t.no}</b><span class="set2-dc-tk-h">${esc(t.head)}</span>
-      <span class="set2-dc-tk-v">${v.c === 'ok' ? I.tick : v.c === 'none' ? I.lock : DCI.ban}${v.c === 'ok' ? 'Syncs' : v.c === 'none' ? 'No rules yet' : 'Not synced'}</span>
-      ${d.fields.length ? `<span class="set2-dc-meta">${nf ? 'Copilot searches by ' + nf + ' fields' : 'Copilot searches the whole ticket'}</span>` : ''}
-      <button class="agv-lnk set2-dc-sm" type="button" data-dc="nextTk">Another</button>
-      <button class="agv-btn is-ghost set2-dc-sm" type="button" data-dc="showTk" aria-pressed="${!!open}">${open ? 'Close' : 'Open'}</button></div>`;
+  /* ── TEST A TICKET ──
+     It replaced a sample-ticket line that sat over every step and answered
+     nothing in particular. This lives in the two steps it answers for, and
+     answers in that step's terms: in step 2 whether the ticket syncs and
+     which condition decided it (that row is marked), in step 3 the values
+     the Copilot would search it by. */
+  function dcTestBox(d, step) {
+    const ti = DCU.tt, t = ti == null ? null : DC_TICKETS[ti];
+    let res = '';
+    if (DCU.ttMiss) res = `<p class="set2-dc-tres is-err">${I.warn}<span>No ticket #${esc(DCU.ttMiss)} for this product in ${esc(d.crm)}.</span></p>`;
+    else if (t) {
+      const v = dcVerdict(d, t), ico = v.c === 'ok' ? I.tick : v.c === 'none' ? I.lock : DCI.ban;
+      const open = `<button class="agv-lnk set2-dc-sm" type="button" data-dc="showTkT">Open ticket</button>`;
+      if (step === 1) res = `<p class="set2-dc-tres is-${v.c}">${ico}<span><b>#${t.no}</b> ${esc(t.head)}. ${v.t}</span>${open}</p>`;
+      else {
+        const on = dcFocusOn(d);
+        res = v.c !== 'ok' ? `<p class="set2-dc-tres is-${v.c}">${ico}<span><b>#${t.no}</b> doesn’t sync, so the Copilot never answers it. ${v.t}</span>${open}</p>`
+          : on.length ? `<div class="set2-dc-tres is-ok">${I.tick}<span class="set2-dc-grow"><b>#${t.no}</b> is searched by <span class="set2-dc-vals">${on.map((id) => `<span class="agv-chip" title="cf_${DCF[id].al}=${esc(dcSlug(dcTv(t, id)))}">${esc(d.focus[id])}: <b>${esc(dcTv(t, id))}</b></span>`).join('')}</span></span>${open}</div>`
+          : `<p class="set2-dc-tres is-none">${I.info}<span>Nothing chosen, so <b>#${t.no}</b> is searched by the whole ticket, its title and description included.</span>${open}</p>`;
+      }
+    }
+    const recent = DC_TICKETS.map((x, i) => `<button class="agv-chip set2-dc-seen${ti === i ? ' is-on' : ''}" type="button" data-dc="testTk" data-i="${i}">#${x.no}</button>`).join('');
+    return `<div class="set2-dc-test2"><div class="set2-dc-row is-wrap"><span class="agv-k">Test a ticket</span>
+      <input class="set2-dc-u is-tt" id="dctt" placeholder="Ticket number" value="${esc(DCU.ttq || '')}" inputmode="numeric" autocomplete="off" aria-label="Ticket number to test">
+      <button class="agv-btn is-ghost set2-dc-sm" type="button" data-dc="testTk">Test</button><span class="set2-dc-meta">or</span>${recent}
+      ${t || DCU.ttMiss ? '<button class="agv-lnk set2-dc-sm" type="button" data-dc="clearTest">Clear</button>' : ''}</div>${res}</div>`;
   }
+
 
   /* ── THE COLUMN ── */
   const dcPanHead = (k) => `<div class="set2-dc-pan-h"><span class="agv-k">${k}</span>${dcIb('panClose', 'Close', I.x)}</div>`;
@@ -7466,7 +7487,7 @@
     const cat = d.cat.down
       ? `<div class="set2-dc-cat is-err"><i></i><span>Can’t reach <b>${esc(d.cat.host)}</b></span><button class="agv-lnk" type="button" data-dc="retry">Reconnect</button></div>`
       : `<div class="set2-dc-cat"><i></i><span><b>${esc(d.cat.host)}</b>, ${d.cat.n} fields, fetched ${esc(d.cat.at)}</span>${dcIb('refresh', 'Refresh catalog', DCI.ref, DCU.refreshing ? 'data-busy' : '')}</div>`;
-    return `<div class="set2-dc" data-dc-root>${cat}${dcStrip(d, s)}${dcTicketLine(d)}
+    return `<div class="set2-dc" data-dc-root>${cat}${dcStrip(d, s)}
       <div class="set2-dc-work${pan ? ' has-pan' : ''}${pan && DCU.panIn ? ' is-pan-in' : ''}"><section class="set2-dc-ed${DCU.swap ? ' is-in' : ''}" aria-label="${esc(DC_STEPS[i])}">
         <div class="set2-dc-ed-h"><div><h2>${esc(DC_STEPS[i])}</h2><p>${DC_WHAT[i]}</p></div><span class="set2-dc-row">${act}</span></div>
         ${DC_ED[i](d)}
@@ -12039,6 +12060,21 @@
     run(d) { if (dcDirty(d)) DCA.save(d, true); d.sync = { st: 'running', pct: 3 }; DC_SAVED[d.cid].sync = dcClone(d.sync); DCU.test = false; render(); dcStartSync(d, 12); dcToast('Sync started for ' + dcN(dcKept(d)) + ' tickets.'); },
     stop(d) { clearInterval(DC_TICK); const n = Math.round(dcKept(d) * d.sync.pct / 100); d.sync = { st: d.hist.length ? 'done' : 'never', pct: 0 }; DC_SAVED[d.cid].sync = dcClone(d.sync); render(); dcToast('Sync stopped. ' + dcN(n) + ' tickets synced before it stopped.'); },
     why(d, el) { dcOpenPan({ type: 'run', i: +el.dataset.i }); },
+    testTk(d, el) {
+      if (el.dataset.i != null && el.dataset.i !== '') { DCU.tt = +el.dataset.i; }
+      else {
+        const v = (($('#dctt') || {}).value || '').replace(/[^0-9]/g, '');
+        if (!v) { const i = $('#dctt'); if (i) i.focus(); return; }
+        const k = DC_TICKETS.findIndex((x) => x.no === v);
+        if (k < 0) { DCU.tt = null; DCU.ttMiss = v; DCU.ttq = v; render(); return; }
+        DCU.tt = k;
+      }
+      DCU.ttMiss = null; DCU.ttq = DC_TICKETS[DCU.tt].no; DCU.tk = DCU.tt;
+      if (DCU.pan && DCU.pan.type === 'ticket') DCU.panSwap = true;
+      render(() => { DCU.panSwap = false; });
+    },
+    clearTest() { DCU.tt = null; DCU.ttMiss = null; DCU.ttq = ''; render(); },
+    showTkT() { DCU.tk = DCU.tt == null ? 0 : DCU.tt; dcOpenPan({ type: 'ticket' }); },
     rmMapVal(d, el) { const u = dcSnap(d), id = el.dataset.id; d.vals[id] = d.vals[id].filter((v) => v[0] !== el.dataset.raw); dcBump(d, 0); render(); dcToast('Removed ' + el.dataset.raw + ' from ' + DCF[id].a + '.', u); },
     addMapVal(d, el) {
       const id = el.dataset.id, r = ($('#dcmvr').value || '').trim(), l = ($('#dcmvl').value || '').trim();
@@ -12142,6 +12178,7 @@
       dcBump(d, 1); e.preventDefault(); dcPaint('[data-dc-addv="' + id + '"]'); return;
     }
     if (t.id === 'dcnrv') { e.preventDefault(); DCA.addRuleSave(d); return; }
+    if (t.id === 'dctt') { e.preventDefault(); DCA.testTk(d, { dataset: {} }); return; }
     if (t.id === 'dcmvr' || t.id === 'dcmvl') { e.preventDefault(); const b = $('[data-dc="addMapVal"]'); if (b) DCA.addMapVal(d, b); return; }
     if (t.hasAttribute('data-dc-unl')) { e.preventDefault(); DCA.labelCode(d, { dataset: { id: t.dataset.id, raw: t.getAttribute('data-dc-unl') } }); }
   });
