@@ -7500,8 +7500,10 @@
          one up and uses the name, said with an example of each, not a switch
          called "names". */
       b += `<div class="set2-dc-ps"><span class="agv-k">How ${esc(f.a)} shows</span>
-        <span class="set2-dc-seg" role="group" aria-label="How ${esc(f.a)} shows"><button type="button" data-dc="setRes" data-id="${id}" data-v="1" aria-pressed="${on}">By name</button><button type="button" data-dc="setRes" data-id="${id}" data-v="0" aria-pressed="${!on}">By ID</button></span>
-        <span class="set2-dc-meta">${on ? esc(d.crm) + ' sends an ID. AiMY looks up the name, so rules and answers say \u201c' + esc(list[0] || 'the name') + '\u201d.' : 'Rules and answers use the ID ' + esc(d.crm) + ' sends, like 48000123456.'}</span>
+        <div class="set2-dc-pick" role="radiogroup" aria-label="How ${esc(f.a)} shows" style="--i:${on ? 0 : 1}"><span class="set2-dc-pick-th" aria-hidden="true"></span>
+          <button type="button" role="radio" aria-checked="${on}" data-dc="setRes" data-id="${id}" data-v="1"><b>By name</b><i>${esc(list[0] || 'Rania Fathy')}</i></button>
+          <button type="button" role="radio" aria-checked="${!on}" data-dc="setRes" data-id="${id}" data-v="0"><b>By ID</b><i class="is-mono">48000123456</i></button></div>
+        <span class="set2-dc-meta">${esc(d.crm)} sends an ID. ${on ? 'AiMY looks up the name, so rules and answers use it.' : 'Rules and answers use the ID as it is.'}</span>
         <button class="agv-lnk set2-dc-sm" type="button" data-dc="startMap" data-id="${id}">Label values by hand instead</button></div>`;
     }
     if (DC_SUB[id]) {
@@ -12124,7 +12126,18 @@
       render(() => { const b = $('[data-cf-ok]'); if (b) b.focus(); });
     },
     cfCancel() { DCU.confirm = null; render(); },
-    setRes(d, el) { const id = el.dataset.id, v = el.dataset.v === '1'; if ((d.resolve[id] !== false) === v) return; d.resolve[id] = v; dcBump(d, 0); render(); },
+    /* The ring slides on the live control first (250ms smooth-out), and the
+       model and repaint follow once it has arrived, so the move is seen. */
+    setRes(d, el) {
+      const id = el.dataset.id, v = el.dataset.v === '1';
+      if ((d.resolve[id] !== false) === v) return;
+      const pick = el.closest('.set2-dc-pick');
+      const done = () => { d.resolve[id] = v; dcBump(d, 0); render(); };
+      if (!pick || dcReduced()) { done(); return; }
+      pick.style.setProperty('--i', v ? 0 : 1);
+      pick.querySelectorAll('[role="radio"]').forEach((b) => b.setAttribute('aria-checked', String(b === el)));
+      setTimeout(done, 260);
+    },
     addSub(d, el) { if (DCU.pan && DCU.pan.type === 'field' && DCU.pan.id === el.dataset.id) return; dcOpenPan({ type: 'field', id: el.dataset.id }); },
     subAdd(d, el) {
       const u = dcSnap(d), id = el.dataset.id, k = el.dataset.sub;
