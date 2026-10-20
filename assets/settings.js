@@ -7468,6 +7468,22 @@
 
   /* ── THE COLUMN ── */
   const dcPanHead = (k) => `<div class="set2-dc-pan-h"><span class="agv-k">${k}</span>${dcIb('panClose', 'Close', I.x)}</div>`;
+  /* ── THE COLUMN SAYS WHETHER IT IS SAVED ──
+     Edits here count toward the page's one save, but the page's save bar can
+     be off screen or under the drawer. So the column has its own footer with
+     the same count and the same Save / Discard, and a row that differs from
+     what is saved says "Not saved" on it. */
+  function dcValDirty(d, id, r, l) {
+    const sv = ((DC_SAVED[d.cid] || {}).vals || {})[id] || [];
+    return !sv.some((x) => x[0] === r && x[1] === l);
+  }
+  function dcPanFoot(d) {
+    const n = dcDirty(d);
+    if (n) return `<span class="set2-dc-pf-s is-warn"><i></i><b>${n} change${n > 1 ? 's' : ''} not saved</b></span>
+      <button class="agv-btn is-ghost set2-dc-sm" type="button" data-dc="discard">Discard</button><button class="agv-btn is-brand set2-dc-sm" type="button" data-dc="save">Save</button>`;
+    const just = DCU.savedAt && Date.now() - DCU.savedAt < 6000;
+    return `<span class="set2-dc-pf-s is-ok">${I.tick}<span>${just ? '<b>Saved</b>. It applies on the next sync.' : 'No unsaved changes'}</span></span>`;
+  }
   function dcPanTicket(d) {
     const t = DC_TICKETS[DCU.tk], v = dcVerdict(d, t);
     const rows = DC_FIELDS.filter((f) => dcMapped(d, f.id)).map((f) => {
@@ -7488,8 +7504,8 @@
     if (!names) {
       const miss = (DC_UNL[id] || []).filter((c) => !v.some((x) => x[0] === c)), seen = dcSeen(d, id);
       b += `${miss.length ? `<div class="set2-dc-ps is-warn"><span class="agv-k">Not labelled yet</span>${miss.map((c) => `<span class="set2-dc-vr"><i>${c}</i><input class="set2-dc-u" data-dc-unl="${c}" data-id="${id}" placeholder="Label" aria-label="Label for ${c}"><button class="agv-btn is-ghost set2-dc-sm" type="button" data-dc="labelCode" data-id="${id}" data-raw="${c}">Add</button></span>`).join('')}</div>` : ''}
-        <div class="set2-dc-ps"><span class="agv-k">${v.length ? v.length + ' values' : 'Value mapping'}</span>
-        ${v.length ? `<div class="set2-dc-vl">${v.map(([r, l]) => `<span class="set2-dc-vr"><i>${esc(r)}</i><input class="set2-dc-u" data-dc-vlab="${esc(r)}" data-id="${id}" value="${esc(l)}" aria-label="Label for ${esc(r)}">${dcIb('ask', 'Remove ' + r, I.x, 'data-what="rmMapVal" data-id="' + id + '" data-raw="' + esc(r) + '"')}</span>${dcCf('rmMapVal', id + ':' + r) ? dcCfLine(`Remove <b>${esc(r)} \u2192 ${esc(l)}</b>? Answers will show ${esc(r)}.`, 'Remove', 'rmMapVal', 'data-id="' + id + '" data-raw="' + esc(r) + '"') : ''}`).join('')}</div>`
+        <div class="set2-dc-ps"><span class="agv-k">${v.length ? v.length + (v.length === 1 ? ' value' : ' values') : 'Value mapping'}</span>
+        ${v.length ? `<div class="set2-dc-vl">${v.map(([r, l]) => `<span class="set2-dc-vr is-val${dcValDirty(d, id, r, l) ? ' is-dirty' : ''}" data-vrow="${esc(r)}"><i>${esc(r)}</i><span class="set2-dc-vin"><input class="set2-dc-u" data-dc-vlab="${esc(r)}" data-id="${id}" value="${esc(l)}" aria-label="Label for ${esc(r)}"><em>Not saved</em></span>${dcIb('ask', 'Remove ' + r, I.x, 'data-what="rmMapVal" data-id="' + id + '" data-raw="' + esc(r) + '"')}</span>${dcCf('rmMapVal', id + ':' + r) ? dcCfLine(`Remove <b>${esc(r)} \u2192 ${esc(l)}</b>? Answers will show ${esc(r)}.`, 'Remove', 'rmMapVal', 'data-id="' + id + '" data-raw="' + esc(r) + '"') : ''}`).join('')}</div>`
           : `<span class="set2-dc-meta">Nothing mapped, so AiMY uses what ${esc(d.crm)} sends as it is.</span>`}
         ${seen.length ? `<span class="agv-k">Seen in ${esc(d.crm)}</span><span class="set2-dc-vals">${seen.map((x) => `<button class="agv-chip set2-dc-seen" type="button" data-dc="seenAdd" data-id="${id}" data-raw="${esc(x)}">${I.plus}${esc(x)}</button>`).join('')}</span>` : ''}
         <span class="set2-dc-vr"><input class="set2-dc-u" id="dcmvr" placeholder="${f.t === 'lookup' || f.t === 'choice' ? 'Code' : 'Value'}" aria-label="Value ${esc(d.crm)} sends"><input class="set2-dc-u" id="dcmvl" placeholder="Label" aria-label="Label"><button class="agv-btn is-ghost set2-dc-sm" type="button" data-dc="addMapVal" data-id="${id}">Add</button></span>
@@ -7513,7 +7529,7 @@
         <div class="set2-dc-vl">${DC_SUB[id].map(([k, nm]) => { const on = have.indexOf(k) > -1;
           return `<div class="set2-dc-sr is-sw"><span><b>${esc(nm)}</b><i>${esc(dcSubKey(d, id, k))}</i></span>${dcTog(on, (on ? 'Stop reading ' : 'Read ') + f.a + ' ' + nm, 'data-dc-sub="' + id + ':' + k + '"')}</div>`; }).join('')}</div></div>` + b;
     }
-    return dcPanHead(esc(f.a) + (DC_SUB[id] ? '' : ' values')) + `<div class="set2-dc-pan-b">${b}</div>`;
+    return dcPanHead(esc(f.a) + (DC_SUB[id] ? '' : ' values')) + `<div class="set2-dc-pan-b">${b}</div><div class="set2-dc-pan-f" data-dc-panf>${dcPanFoot(d)}</div>`;
   }
   function dcPanRun(d, i) {
     const h = d.hist[i];
@@ -12185,8 +12201,8 @@
       if (!l) { if (inp) inp.focus(); return; }
       d.vals[id].push([raw, l]); dcBump(d, 0); render(); dcToast(raw + ' now shows as ' + l + '.');
     },
-    save(d, quiet) { const n = dcDirty(d); DC_SAVED[d.cid] = dcClone(d); DC_CH[d.cid] = [0, 0, 0, 0]; render(); if (quiet !== true) dcToast('Saved ' + n + ' change' + (n > 1 ? 's' : '') + '. They apply on the next sync.'); },
-    discard(d) { const n = dcDirty(d); DC[d.cid] = dcClone(DC_SAVED[d.cid]); DC_CH[d.cid] = [0, 0, 0, 0]; DCU.pan = null; render(); dcToast('Discarded ' + n + ' change' + (n > 1 ? 's' : '') + '.'); }
+    save(d, quiet) { const n = dcDirty(d); DC_SAVED[d.cid] = dcClone(d); DC_CH[d.cid] = [0, 0, 0, 0]; DCU.ed = {}; DCU.savedAt = Date.now(); render(); setTimeout(() => { const f = $('[data-dc-panf]'); if (f) f.innerHTML = dcPanFoot(d); }, 6100); if (quiet !== true) dcToast('Saved ' + n + ' change' + (n > 1 ? 's' : '') + '. They apply on the next sync.'); },
+    discard(d) { const n = dcDirty(d); DC[d.cid] = dcClone(DC_SAVED[d.cid]); DC_CH[d.cid] = [0, 0, 0, 0]; DCU.ed = {}; render(); dcToast('Discarded ' + n + ' change' + (n > 1 ? 's' : '') + '.'); }
   };
 
   document.addEventListener('click', (e) => {
@@ -12250,6 +12266,16 @@
     if (t.hasAttribute('data-dc-f')) dcSuggest(t);
     if (t.id === 'dcq') { DCU.q = t.value; dcFilter(t.value, '#dcmapl .set2-dc-r'); }
     if (t.id === 'dcqf') { DCU.qf = t.value; dcFilter(t.value, '#dcfocl .set2-dc-r'); }
+    if (t.hasAttribute('data-dc-vlab')) {
+      const d = dcCur(); if (!d) return;
+      const id = t.dataset.id, raw = t.getAttribute('data-dc-vlab'), p = (d.vals[id] || []).filter((v) => v[0] === raw)[0], val = t.value.trim();
+      if (!p || !val) return;
+      p[1] = val;
+      DCU.ed = DCU.ed || {};
+      if (!DCU.ed[id + ':' + raw]) { DCU.ed[id + ':' + raw] = 1; dcBump(d, 0); }
+      const row = t.closest('.set2-dc-vr'); if (row) row.classList.toggle('is-dirty', dcValDirty(d, id, raw, val));
+      const f = $('[data-dc-panf]'); if (f) f.innerHTML = dcPanFoot(d);
+    }
     if (t.id === 'dcaddq') { DCU.addq = t.value; dcFilter(t.value, '#dcaddl button'); }
     if (t.id === 'dcqn') dcFilter(t.value, '#dcnl [data-name]');
   });
@@ -12269,7 +12295,7 @@
     }
     if (t.hasAttribute('data-dc-res')) { const id = t.getAttribute('data-dc-res'); d.resolve[id] = t.checked; dcBump(d, 0); afterSwitch(t, render); return; }
     if (t.hasAttribute('data-dc-fname')) { const id = t.getAttribute('data-dc-fname'); d.focus[id] = t.value.trim() || DCF[id].a; dcBump(d, 2); render(); return; }
-    if (t.hasAttribute('data-dc-vlab')) { const id = t.dataset.id, p = d.vals[id].filter((v) => v[0] === t.getAttribute('data-dc-vlab'))[0]; if (p && t.value.trim() && t.value.trim() !== p[1]) { p[1] = t.value.trim(); dcBump(d, 0); render(); } return; }
+    if (t.hasAttribute('data-dc-vlab')) { render(); return; }
     if (t.id === 'dcrep') { d.keys[t.dataset.id] = t.value; dcBump(d, 0); render(); return; }
   });
   document.addEventListener('keydown', (e) => {
