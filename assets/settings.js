@@ -12185,7 +12185,35 @@
     if (t.hasAttribute('data-dc-unl')) { e.preventDefault(); DCA.labelCode(d, { dataset: { id: t.dataset.id, raw: t.getAttribute('data-dc-unl') } }); }
   });
 
+  /* ── THE PIPELINE IN EACH STATE, FOR THE PROTOTYPE PANEL ──
+     Rebuilds AccuRoute Support's model in the named state (the same data a
+     person would reach by removing Group, losing the token, and so on), so
+     the page is genuinely in it rather than told to look like it. */
+  function dcState(name) {
+    const c = connById('ar-freshdesk');
+    if (!c) return;
+    clearInterval(DC_TICK); clearTimeout(DC_PAN_T);
+    const d = dcSeed(c);
+    if (name === 'empty') { d.fields = []; d.rules = []; d.focus = {}; d.sync = { st: 'never', pct: 0 }; d.hist = []; }
+    if (name === 'half') { d.focus = {}; d.sync = { st: 'never', pct: 0 }; d.hist = []; }
+    if (name === 'fault') {
+      d.fields = d.fields.filter((id) => id !== 'group'); d.byWho = 'since M. Hassan removed it on 19 Oct'; d.sync = { st: 'paused', pct: 0 };
+      d.hist.unshift({ when: 'Tonight, 02:00', res: 'skip', why: 'The Group rule uses Group, and Group is no longer mapped. M. Hassan removed it on 19 Oct at 16:40. AiMY skipped the run so it would not sync tickets from every group.' });
+    }
+    if (name === 'down') {
+      d.cat.down = 'Freshdesk rejected AiMY\u2019s token at 02:00. Reconnect to fetch fields and sync again.';
+      d.sync = { st: 'failed', pct: 0 };
+      d.hist.unshift({ when: 'Tonight, 02:00', res: 'fail', why: 'Freshdesk answered 401: the token AiMY uses was revoked. Nothing was changed. Tickets synced before still answer questions.' });
+    }
+    if (name === 'syncing') d.sync = { st: 'running', pct: 8 };
+    DC[c.id] = d; DC_SAVED[c.id] = dcClone(d); DC_CH[c.id] = [0, 0, 0, 0];
+    DCU = { cid: null, step: 0, pan: null, tk: 0, win: 'last', test: false, add: null, nr: null, q: '', addq: '', pick: null, more: {} };
+    if (name === 'syncing') dcStartSync(d, 3);
+    render();
+  }
+
   window.AIMY_SETTINGS = {
+    dcState: dcState,
     usageMine: usageMine,
     usageSpend: usageSpend,
     _pages: function (st) {

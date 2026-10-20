@@ -11336,6 +11336,12 @@
         ['a blank document', 'new:1'],
         ['an empty library', 'mt:library']
       ]],
+      /* AIMY-2662: the Dynamic context pipeline in each of its states, on
+         AccuRoute Support's Freshdesk (the staging data). */
+      ['Dynamic context, each state', 'Opens Connections > Dynamic context with the pipeline in that state.', [
+        ['empty', 'dc:empty'], ['half done', 'dc:half'], ['needs a fix', 'dc:fault'],
+        ['Freshdesk down', 'dc:down'], ['syncing', 'dc:syncing'], ['all set', 'dc:done']
+      ]],
       ['Non-happy states', '', [
         ['loading', 'url:?state=loading'],
         ['error', 'url:?state=error'],
@@ -11385,6 +11391,12 @@
        still lands on an article, which is what newDocument would do anyway. */
     if (kind === 'new')  { newDocument(TYPES[arg] ? arg : 'article'); return; }
     if (kind === 'canvas') { canvas.show(['Prototype']); return; }
+    if (kind === 'dc') {
+      const S = window.AIMY_SETTINGS;
+      if (S && S.dcState) S.dcState(arg);
+      patch({ m: 'config', sec: 'fields', sc: 'Upland', sp: 'AccuRoute Support', crm: '' });
+      return;
+    }
     if (kind === 'peek') {
       const [k, v] = arg.split(':');
       openPeek(k, v, $('#protoToggle'));
