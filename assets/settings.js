@@ -3954,6 +3954,7 @@
      not: a link should open the saved split, not somebody's half-typed one. */
   let US_EDIT = null;          /* { meter, pool, key, vals: { childId: 'typed' } } */
   let US_SESS_ED = null;       /* { meter, org, v, err } */
+  let US_SLICE_ED = null;      /* { meter, v, err }: the slice size being edited */
   let US_LAST = '';            /* the meter|pool last painted, to play the entrance once */
   let US_LAND = false;         /* this paint is an arrival on Usage, not a move inside it */
   /* { meter, tip } when the person climbed UP the path this visit: from
@@ -4279,6 +4280,7 @@
           ${usPaceFact(m, used, L, id)}
           ${usWatchFact(m, id)}
           ${x.depth === 1 ? usSessFact(m, id) : usTopFact(m, id, used)}
+          ${x.depth === 0 ? usSliceFact(m) : ''}
         </dl>
       </div>`;
   }
@@ -4359,6 +4361,57 @@
           <span>${Math.round(top.u / used * 100)}% of ${esc(id ? usAt(id).n.name + '’s' : 'everyone’s')} use,
             ${usFmt(top.u)} ${esc(m.unit)}</span></dd>
       </div>`;
+  }
+
+  /* ── THE SLICE SIZE ──
+     One per product, for the whole workspace, so it is set where the whole
+     workspace is: the top level. Changing it recounts the month's slices;
+     the units already used stay what they are. Saved with undo. */
+  function usSliceFact(m) {
+    const ed = US_SLICE_ED && US_SLICE_ED.meter === m.id ? US_SLICE_ED : null;
+    if (ed) return `
+      <div class="set2-us-fact is-edit">
+        <dt><label for="usSliceIn">Slice size</label></dt>
+        <dd>
+          <span class="set2-us-sess-row">
+            <input class="set2-fld set2-us-in${ed.err ? ' is-bad' : ''}" id="usSliceIn" data-us-slice-in
+                   value="${esc(ed.v)}" inputmode="numeric" autocomplete="off" aria-describedby="usSliceHint">
+            <span class="set2-us-per">${esc(m.unit)} a slice</span>
+          </span>
+          <span class="set2-hint${ed.err ? ' is-err' : ''}" id="usSliceHint"${ed.err ? ' role="alert"' : ''}>${
+            esc(ed.err || 'The same for every organization. Units already used don’t change.')}</span>
+          <span class="set2-us-sess-act">
+            <button class="btn btn-ghost btn-sm" type="button" data-us-slice-cancel>Cancel</button>
+            <button class="btn btn-brand btn-sm" type="button" data-us-slice-save>Save</button>
+          </span>
+        </dd>
+      </div>`;
+    return `
+      <div class="set2-us-fact">
+        <dt>Slice size ${tip('usSliceTip', 'the slice size', 'Usage is measured in slices of this many '
+          + m.unit + '. When one fills, the next begins; nothing stops. It is the same for every organization.')}</dt>
+        <dd><b>${usFmt(US_SLICE[m.id])} ${esc(m.unit)}</b><span>for every organization</span></dd>
+        <button class="btn btn-ghost btn-sm set2-us-fact-ed" type="button" data-us-slice-open>Edit</button>
+      </div>`;
+  }
+  function usSliceSave() {
+    const ed = US_SLICE_ED;
+    if (!ed) return;
+    const m = usMeter(ed.meter);
+    const v = usParse(ed.v);
+    if (v == null || isNaN(v) || v <= 0) {
+      ed.err = 'Use a whole number above 0, like 500 or 10k.';
+      render(() => { const f = $('[data-us-slice-in]'); if (f) f.focus(); });
+      return;
+    }
+    const was = US_SLICE[m.id];
+    US_SLICE_ED = null;
+    if (v !== was) {
+      US_SLICE[m.id] = v;
+      DIRTY.add('slice:' + m.id);
+      if (API && API.toast) API.toast(m.name + ' slices are now ' + usFmt(v) + ' ' + m.unit + '.', () => { US_SLICE[m.id] = was; render(); });
+    }
+    render(() => { const b = $('[data-us-slice-open]'); if (b) b.focus(); });
   }
 
   function usSessFact(m, id) {
@@ -10090,7 +10143,7 @@
       if (v !== usPlace(st).m.id) {
         const ind = $('.set2-us-ind');
         if (ind && ind.style.width) US_IND_FROM = { l: parseFloat(ind.style.transform.slice(11)), w: parseFloat(ind.style.width) };
-        US_EDIT = null; US_SESS_ED = null;
+        US_EDIT = null; US_SESS_ED = null; US_SLICE_ED = null;
         patch({ meter: v === 'copilot' ? '' : v, f: withF(st, 'uq', null) });
         render(() => { const b = $('[data-us-meter="' + v + '"]'); if (b) b.focus(); });
       }
@@ -10183,6 +10236,18 @@
       return;
     }
     if (e.target.closest('[data-us-sess-save]')) { usSessSave(); return; }
+    if (e.target.closest('[data-us-slice-open]')) {
+      const m0 = usPlace(st).m;
+      US_SLICE_ED = { meter: m0.id, v: String(US_SLICE[m0.id]), err: '' };
+      render(() => { const f = $('[data-us-slice-in]'); if (f) { f.focus(); f.select(); } });
+      return;
+    }
+    if (e.target.closest('[data-us-slice-cancel]')) {
+      US_SLICE_ED = null;
+      render(() => { const b = $('[data-us-slice-open]'); if (b) b.focus(); });
+      return;
+    }
+    if (e.target.closest('[data-us-slice-save]')) { usSliceSave(); return; }
     /* Across to Skills with this agent already chosen in its filter, which is
        the list the card on the side was a preview of. */
     const agS = e.target.closest('[data-ag-skills]');
@@ -11510,6 +11575,8 @@
     }
     const usSI = e.target.closest && e.target.closest('[data-us-sess-in]');
     if (usSI && US_SESS_ED) { US_SESS_ED.v = usSI.value; return; }
+    const usZI = e.target.closest && e.target.closest('[data-us-slice-in]');
+    if (usZI && US_SLICE_ED) { US_SLICE_ED.v = usZI.value; return; }
     /* An agent's tone. Stored, and the bar under it told — never repainted,
        which would take the caret out of the sentence being written. */
     const agTa = e.target.closest && e.target.closest('[data-agv-ta]');
@@ -11984,6 +12051,14 @@
   document.addEventListener('keydown', (e) => {
     /* Usage: Enter saves and Escape cancels, in the split and in the session
        field alike; the meter switch is a radiogroup like the two below. */
+    const usZ = e.target.closest && e.target.closest('[data-us-slice-in]');
+    if (usZ && (e.key === 'Enter' || e.key === 'Escape')) {
+      e.preventDefault();
+      if (e.key === 'Enter') { usSliceSave(); return; }
+      US_SLICE_ED = null;
+      render(() => { const b = $('[data-us-slice-open]'); if (b) b.focus(); });
+      return;
+    }
     const usK = e.target.closest && e.target.closest('[data-us-in], [data-us-sess-in]');
     if (usK && (e.key === 'Enter' || e.key === 'Escape')) {
       e.preventDefault();
