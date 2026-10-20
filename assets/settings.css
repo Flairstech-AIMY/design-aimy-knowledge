@@ -5829,3 +5829,15 @@ body.is-settings .set2-pop .set2-pop-i { border-radius: var(--r-lg); }
 body.is-settings .set2-pop .set2-pop-i.is-on, body.is-settings .set2-pop .set2-pop-i[aria-pressed="true"] { background: var(--aimy-wash); }
 body.is-settings .set2-pop .set2-pop-f { background: transparent; border: 0; border-bottom: 0.0625rem solid var(--card-border-hover); border-radius: 0; box-shadow: none; }
 body.is-settings .set2-pop .set2-pop-f:focus, body.is-settings .set2-pop .set2-pop-f:focus-visible { outline: none; border-bottom-color: var(--brand); }
+
+/* step 4: the date range and Full re-sync */
+.set2-dc-range { position: relative; }
+.set2-dc-range .set2-range-d { max-width: 16rem; }
+.set2-dc-full { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.625rem 0.75rem; border-radius: 0.75rem; box-shadow: inset 0 0 0 0.0625rem var(--card-border); }
+.set2-dc-full > span { display: grid; gap: 0.125rem; min-width: 0; }
+.set2-dc-full b { font-weight: var(--fw-semibold); color: var(--ink-primary); }
+
+/* tags in People (roles, clients, status): smaller, even padding */
+.set2-col.is-aimy .set2-chip, .set2-col.is-aimy .set2-pill { font-size: 0.75rem; line-height: 1.2; padding: 0.1875rem 0.5rem; gap: 0.3125rem; min-height: 0; }
+.set2-col.is-aimy .set2-chip.is-scope, .set2-col.is-aimy .set2-chip.is-go { padding: 0.1875rem 0.5rem; }
+.set2-col.is-aimy .set2-pill i { width: 0.3125rem; height: 0.3125rem; }

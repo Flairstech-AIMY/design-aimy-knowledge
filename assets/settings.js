@@ -7396,10 +7396,24 @@
       run = `<div class="set2-dc-run"><div class="set2-dc-row"><b class="set2-dc-big"><span data-dc-done>${dcN(Math.round(k * d.sync.pct / 100))}</span> of ${dcN(k)}</b><span class="set2-dc-grow">tickets synced so far</span><button class="agv-btn is-ghost" type="button" data-dc="stop">Stop</button></div>
         <div class="set2-dc-bar"><i data-dc-bar style="width:${d.sync.pct}%"></i></div></div>`;
     } else {
-      const W = [['last', 'Since last sync'], ['7', '7 days'], ['30', '30 days'], ['90', '90 days']];
+      /* Staging's Trigger sync, all of it: a window (since the last sync, a
+         preset, or a date range on the Console's own calendar, which can be
+         left empty to resume from the last good sync) and Full re-sync, which
+         reads again what is already stored so new rules and Search by apply. */
+      const W = [['last', 'Since last sync'], ['7', '7 days'], ['30', '30 days'], ['90', '90 days'], ['range', 'Dates']];
+      const pc = primaryOf(readURL()), r = (pc && pc.range) || ['', ''], hasR = !!(r[0] || r[1]);
+      const winSays = DCU.win === 'range' ? (hasR ? 'Reads tickets updated ' + esc(rangeLabel(r)) + '.' : 'Leave the dates empty to resume from the last successful sync.')
+        : DCU.win === 'last' ? (y === 'never' ? 'The first sync reads every ticket for this product.' : 'Picks up where the last sync stopped.')
+        : 'Reads tickets updated in the last ' + DCU.win + ' days.';
       run = `<div class="set2-dc-run"><div class="set2-dc-row is-wrap"><span class="agv-k">Read</span><span class="set2-dc-seg" role="group" aria-label="Sync window">${W.map(([v, l]) => `<button type="button" data-dc="win" data-w="${v}" aria-pressed="${DCU.win === v}">${l}</button>`).join('')}</span></div>
-        ${DCU.test ? `<p class="set2-dc-test">${DCI.flask}<span><b>${dcN(k)}</b> would sync, <b>${dcN(d.total - k)}</b> would not. Nothing was written.</span></p>` : ''}
-        <div class="set2-dc-row is-wrap"><span class="set2-dc-grow set2-dc-meta">Also every night at 02:00</span><button class="agv-btn is-ghost" type="button" data-dc="test">Test</button><button class="agv-btn is-brand" type="button" data-dc="run">${dcDirty(d) ? 'Save and sync' : 'Sync now'}</button></div></div>`;
+        ${DCU.win === 'range' ? `<div class="set2-range set2-dc-range">
+          <button class="set2-fld set2-range-d${hasR ? '' : ' is-empty'}${calOpen ? ' is-open' : ''}" type="button" data-range-open aria-haspopup="dialog" aria-expanded="${calOpen}" aria-label="The date range to sync"><span>${hasR ? esc(rangeLabel(r)) : 'Any dates'}</span>${I.cal}</button>
+          ${hasR ? `<button class="agv-ib" type="button" data-range-clear aria-label="Clear the date range" title="Clear the date range">${I.x}</button>` : ''}
+          ${calOpen ? calPanel(r) : ''}</div>` : ''}
+        <span class="set2-dc-meta">${winSays}</span>
+        <div class="set2-dc-full"><span><b>Full re-sync</b><span class="set2-dc-meta">Reads again the tickets already synced, so new rules and Search by apply to them too.</span></span>${dcTog(!!DCU.full, 'Full re-sync', 'data-dc-full')}</div>
+        ${DCU.test ? `<p class="set2-dc-test">${DCI.flask}<span><b>${dcN(k)}</b> would sync, <b>${dcN(d.total - k)}</b> would not${DCU.full ? ', and every stored ticket is read again' : ''}. Nothing was written.</span></p>` : ''}
+        <div class="set2-dc-row is-wrap"><span class="set2-dc-grow set2-dc-meta">Also every night at 02:00</span><button class="agv-btn is-ghost" type="button" data-dc="test">Test</button><button class="agv-btn is-brand" type="button" data-dc="run">${dcDirty(d) ? 'Save and sync' : DCU.full ? 'Run full re-sync' : 'Sync now'}</button></div></div>`;
     }
     return run + dcHist(d);
   }
@@ -12019,7 +12033,8 @@
         clearInterval(DC_TICK);
         const k = dcKept(d);
         d.sync = { st: 'done', pct: 0 };
-        d.hist.unshift({ when: 'Today, just now', res: 'ok', kept: k, skip: d.total - k, took: '3 min 12 s', who: 'Run by ' + USER.name });
+        const pr = primaryOf(readURL()), rr = (pr && pr.range) || ['', ''];
+        d.hist.unshift({ when: 'Today, just now', res: 'ok', kept: k, skip: d.total - k, took: '3 min 12 s', who: 'Run by ' + USER.name + (DCU.full ? ', full re-sync' : '') + (DCU.win === 'range' && (rr[0] || rr[1]) ? ', ' + rangeLabel(rr) : DCU.win !== 'last' && DCU.win !== 'range' ? ', last ' + DCU.win + ' days' : '') });
         DC_SAVED[d.cid].sync = dcClone(d.sync); DC_SAVED[d.cid].hist = dcClone(d.hist);
         render(); dcToast('Sync finished. ' + dcN(k) + ' synced, ' + dcN(d.total - k) + ' left out.');
         return;
@@ -12126,7 +12141,7 @@
     focus3(d) { const u = dcSnap(d); Object.assign(d.focus, dcClone(DC_FOCUS)); dcBump(d, 2, 3); render(); dcToast('Copilot will search by the 3 product fields once you save.', u); },
     win(d, el) { DCU.win = el.dataset.w; DCU.test = false; render(); },
     test() { DCU.test = true; render(); },
-    run(d) { if (dcDirty(d)) DCA.save(d, true); d.sync = { st: 'running', pct: 3 }; DC_SAVED[d.cid].sync = dcClone(d.sync); DCU.test = false; render(); dcStartSync(d, 12); dcToast('Sync started for ' + dcN(dcKept(d)) + ' tickets.'); },
+    run(d) { if (dcDirty(d)) DCA.save(d, true); d.sync = { st: 'running', pct: 3 }; DC_SAVED[d.cid].sync = dcClone(d.sync); DCU.test = false; render(); dcStartSync(d, 12); dcToast((DCU.full ? 'Full re-sync started: every stored ticket is read again.' : 'Sync started for ' + dcN(dcKept(d)) + ' tickets.')); },
     stop(d) { clearInterval(DC_TICK); const n = Math.round(dcKept(d) * d.sync.pct / 100); d.sync = { st: d.hist.length ? 'done' : 'never', pct: 0 }; DC_SAVED[d.cid].sync = dcClone(d.sync); render(); dcToast('Sync stopped. ' + dcN(n) + ' tickets synced before it stopped.'); },
     why(d, el) { dcOpenPan({ type: 'run', i: +el.dataset.i }); },
     ask(d, el) {
@@ -12278,6 +12293,7 @@
     const d = dcCur(); if (!d) return;
     if (t.hasAttribute('data-dc-on')) { const r = d.rules.filter((x) => x.id === t.getAttribute('data-dc-on'))[0]; r.on = t.checked; dcBump(d, 1); afterSwitch(t, render); return; }
     if (t.hasAttribute('data-dc-foc')) { const id = t.getAttribute('data-dc-foc'); if (t.checked) d.focus[id] = DCF[id].a; else delete d.focus[id]; dcBump(d, 2); afterSwitch(t, render); return; }
+    if (t.hasAttribute('data-dc-full')) { DCU.full = t.checked; DCU.test = false; afterSwitch(t, render); return; }
     if (t.hasAttribute('data-dc-sub')) {
       const [id, k] = t.getAttribute('data-dc-sub').split(':'), u = dcSnap(d);
       d.subs = d.subs || {}; const cur = d.subs[id] || [];
