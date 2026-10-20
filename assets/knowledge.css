@@ -8218,11 +8218,12 @@ button.aimy-float-icon:focus-visible { outline: 0.125rem solid var(--brand); out
    controls change: pills, an outlined ghost, the picked option on the AiMY
    wash with a brand ring, an underline search. Sizes, cards and layout
    are untouched. A document's property rows (.k-prop) are fields, not
-   these controls, and keep their own look (Nour).
+   these controls, and keep their own look; so do the corpus's Needs
+   attention chip and its Cards / Folders switch (Nour).
 ═══════════════════════════════════════════════ */
-.btn, .seg, .seg-btn, .v2-dropdown-btn:not(.k-prop *), .k-facet-btn, .k-date-btn,
-.k-toggle, .k-more, .k-clear, .rm-sort, .rm-end .entry-action,
-.rm-views .seg-btn, .rm-end .k-filter .v2-dropdown-btn,
+.btn, .seg:not(.rm-views), .seg:not(.rm-views) .seg-btn, .v2-dropdown-btn:not(.k-prop *), .k-facet-btn, .k-date-btn,
+.k-toggle, .k-more, .k-clear, .rm-end .entry-action,
+.rm-end .k-filter .v2-dropdown-btn,
 .k-filter .v2-dropdown-btn, .filter-row .k-date-btn { border-radius: var(--r-pill); }
 .btn { font-weight: var(--fw-semibold); }
 .btn:active { transform: scale(0.98); }
@@ -8241,13 +8242,13 @@ button.aimy-float-icon:focus-visible { outline: 0.125rem solid var(--brand); out
 /* dropdowns, facets, the date and the filter-row buttons: an outlined pill */
 .v2-dropdown-btn:not(.k-prop *), :root[data-theme="light"] .v2-dropdown-btn:not(.k-prop *),
 .k-filter .v2-dropdown-btn, .k-facet-btn, .k-date-btn, :root[data-theme="light"] .k-date-btn,
-.filter-row .k-date-btn, .k-toggle, .k-more, .k-clear, .rm-sort {
+.filter-row .k-date-btn, .k-toggle, .k-more, .k-clear {
   background: transparent; border-color: transparent;
   box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover);
 }
 .v2-dropdown-btn:not(.k-prop *):hover, :root[data-theme="light"] .v2-dropdown-btn:not(.k-prop *):hover,
 .k-filter .v2-dropdown-btn:hover, .k-facet-btn:hover, .k-date-btn:hover, :root[data-theme="light"] .k-date-btn:hover,
-.filter-row .k-date-btn:hover, .k-toggle:hover, .k-more:hover, .k-clear:hover, .rm-sort:hover {
+.filter-row .k-date-btn:hover, .k-toggle:hover, .k-more:hover, .k-clear:hover {
   background: var(--card-bg-raised); border-color: transparent;
 }
 .v2-dropdown-btn:not(.k-prop *).open, .v2-dropdown-btn:not(.k-prop *)[aria-expanded="true"],
@@ -8256,8 +8257,7 @@ button.aimy-float-icon:focus-visible { outline: 0.125rem solid var(--brand); out
 /* carrying a value, or the one that is on: the AiMY wash and a brand ring */
 .v2-dropdown-btn:not(.k-prop *).active-filter, :root[data-theme="light"] .v2-dropdown-btn:not(.k-prop *).active-filter,
 .k-facet-btn.active-filter, .k-date-btn.active-filter, .filter-row .k-date-btn.active-filter,
-:root[data-theme="light"] .k-date-btn.active-filter, :root[data-theme="light"] .filter-row .k-date-btn.active-filter,
-.rm-sort.is-on, :root[data-theme="light"] .rm-sort.is-on {
+:root[data-theme="light"] .k-date-btn.active-filter, :root[data-theme="light"] .filter-row .k-date-btn.active-filter {
   background: var(--aimy-wash); border-color: transparent;
   box-shadow: inset 0 0 0 0.0625rem var(--brand); color: var(--ink-primary);
 }
@@ -8265,14 +8265,12 @@ button.aimy-float-icon:focus-visible { outline: 0.125rem solid var(--brand); out
 .rm-end .k-filter .v2-dropdown-btn:not(.active-filter):not(.open):not([aria-expanded="true"]) { box-shadow: none; }
 
 /* the switch: a ringed pill track, the picked option on the wash */
-.seg { background: transparent; border: 0; padding: 0.1875rem; box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover); }
-.seg .seg-btn { color: var(--ink-secondary); }
-.seg .seg-btn:hover { color: var(--ink-primary); }
-.seg .seg-btn.active, :root[data-theme="light"] .seg .seg-btn.active,
-.rm-views .seg-btn.active, :root[data-theme="light"] .rm-views .seg-btn.active {
+.seg:not(.rm-views) { background: transparent; border: 0; padding: 0.1875rem; box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover); }
+.seg:not(.rm-views) .seg-btn { color: var(--ink-secondary); }
+.seg:not(.rm-views) .seg-btn:hover { color: var(--ink-primary); }
+.seg:not(.rm-views) .seg-btn.active, :root[data-theme="light"] .seg:not(.rm-views) .seg-btn.active {
   background: rgba(var(--accent-rgb), 0.16); box-shadow: inset 0 0 0 0.0625rem var(--brand); color: var(--ink-primary);
 }
-.rm-views { box-shadow: none; padding: 0; }
 
 /* search: an underline, brand when focused */
 .k-search {
