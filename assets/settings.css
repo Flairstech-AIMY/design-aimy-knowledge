@@ -5479,6 +5479,11 @@ button.set2-us-sl:disabled { cursor: not-allowed; }
 .set2-dc-th.is-foc, .set2-dc-r.is-foc { grid-template-columns: 2.5rem minmax(8rem, 1fr) minmax(8rem, 0.9fr) minmax(0, 1fr); }
 .set2-dc-r.is-hist { grid-template-columns: 9rem minmax(0, 1fr) 6rem; }
 .set2-dc-r.is-hist .is-ok { color: var(--ink-ok); } .set2-dc-r.is-hist .is-err { color: var(--ink-err); } .set2-dc-r.is-hist .is-warn { color: var(--ink-warn); }
+/* subfields: under their field, on its columns */
+.set2-dc-r.is-sub .set2-dc-n { padding-left: 0.5rem; font-weight: var(--fw-medium, 500); color: var(--ink-primary); }
+.set2-dc-r.is-sub .set2-dc-n svg { width: 0.875rem; height: 0.875rem; color: var(--ink-secondary); }
+.set2-dc-addsub { display: inline-flex; align-items: center; gap: 0.25rem; }
+.set2-dc-addsub svg { width: 0.75rem; height: 0.75rem; }
 .set2-dc-n { font-weight: var(--fw-semibold); color: var(--ink-primary); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; min-width: 0; }
 .set2-dc-key { font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-secondary); overflow-wrap: anywhere; min-width: 0; }
 .set2-dc-key.is-tag { color: var(--ink-info); }

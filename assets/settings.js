@@ -6987,6 +6987,7 @@
     left: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>',
     down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>',
     up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>',
+    sub: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg>',
     spark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>'
   };
   const dcN = (n) => Number(n).toLocaleString('en-US');
@@ -7100,9 +7101,10 @@
     const d = { cid: c.id, crm: c.crm, ts: ts, fields: [], rules: [], focus: {}, keys: {}, names: {}, vals: dcClone(DC_VALS), resolve: {},
       total: c.id === 'ar-freshdesk' ? 2343 : (c.records || 400),
       cat: { n: ts ? 132 : 157, at: ts ? '09:14:02 AM' : '11:20:21 AM', host: ts ? 'upland.teamsupport.com' : 'uplandsoftware.freshdesk.com', down: null },
-      sync: { st: 'never', pct: 0 }, hist: [] };
+      sync: { st: 'never', pct: 0 }, hist: [], subs: {} };
     if (c.id === 'ar-freshdesk') {
       d.fields = DC_FIELDS.map((f) => f.id); d.rules = dcClone(DC_RULES); d.focus = dcClone(DC_FOCUS); d.sync.st = 'done';
+      d.subs = { req: ['name', 'email', 'phone'] };
       d.hist = [
         { when: 'Tonight, 02:00', res: 'ok', kept: 1912, skip: 431, took: '3 min 41 s' },
         { when: '19 Oct, 02:00', res: 'ok', kept: 1907, skip: 429, took: '3 min 38 s' },
@@ -7249,19 +7251,43 @@
     return `<div class="set2-dc-alert">${I.warn}<span><b>${esc(dcLost(d))} isn’t mapped,</b> and a sync rule uses it. Sync is paused.</span>
       <button class="agv-btn is-brand" type="button" data-dc="remap" data-dc-remap>Map ${esc(dcLost(d))} again</button></div>`;
   }
+  /* ── SUBFIELDS ──
+     A field that points to a record (the requester, the agent, the company)
+     can bring that record's own fields with it: Requester > Name, Email,
+     Phone, as staging maps them. They are rows of the list, indented under
+     their field and on its columns, not something that opens in place. */
+  const DC_SUB = {
+    req: [['name', 'Name'], ['email', 'Email'], ['phone', 'Phone'], ['company', 'Company']],
+    agent: [['name', 'Name'], ['email', 'Email']],
+    company: [['name', 'Name'], ['domains', 'Domain'], ['industry', 'Industry']]
+  };
+  const DC_SUB_BASE = { req: ['requester', 'Contact'], agent: ['responder', 'User'], company: ['company', 'Customer'] };
+  const dcSubKey = (d, id, k) => (d.ts ? DC_SUB_BASE[id][1] : DC_SUB_BASE[id][0]) + '.' + k;
+  const dcSubName = (id, k) => (DC_SUB[id].filter((x) => x[0] === k)[0] || [k, k])[1];
+  function dcSubRows(d, f) {
+    const list = (d.subs || {})[f.id] || [];
+    return list.map((k) => {
+      const nm = (f.a + ' ' + dcSubName(f.id, k) + ' ' + dcSubKey(d, f.id, k)).toLowerCase(), cf = dcCf('rmSub', f.id + ':' + k);
+      return `<div class="set2-dc-r is-map is-sub${cf ? ' is-cf' : ''}" data-name="${esc(nm)}"${dcMiss(DCU.q, nm) ? ' hidden' : ''}>
+        <span class="set2-dc-n">${DCI.sub}${esc(dcSubName(f.id, k))}</span><span class="set2-dc-key">${esc(dcSubKey(d, f.id, k))}</span><span class="set2-dc-v"></span>
+        <span class="set2-dc-e">${dcIb('ask', 'Remove ' + f.a + ' ' + dcSubName(f.id, k), I.trash, 'data-what="rmSub" data-id="' + f.id + '" data-sub="' + k + '"')}</span>
+        ${cf ? dcCfLine(`Remove <b>${esc(f.a)} \u203a ${esc(dcSubName(f.id, k))}</b>?`, 'Remove', 'rmSub', 'data-id="' + f.id + '" data-sub="' + k + '"') : ''}</div>`;
+    }).join('');
+  }
   function dcMap(d) {
     if (d.cat.down && !d.fields.length) return `<div class="set2-dc-empty"><b>Can’t read ${esc(d.crm)} yet</b><span>Reconnect, then AiMY suggests the fields to map.</span><button class="agv-btn is-brand" type="button" data-dc="retry">Reconnect</button></div>`;
     if (!d.fields.length) return `<div class="set2-dc-empty"><b>Nothing mapped yet</b><span>AiMY suggests 24 of the ${d.cat.n} fields.</span>
       <span class="set2-dc-row"><button class="agv-btn is-brand" type="button" data-dc="suggest">Map the 24 fields</button><button class="agv-btn is-ghost" type="button" data-dc="addField">Add one</button></span></div>${DCU.add === 'field' ? dcAddField(d) : ''}`;
     const rows = d.fields.map((id) => DCF[id]).map((f) => {
       const sel = DCU.pan && DCU.pan.type === 'field' && DCU.pan.id === f.id, ub = dcUsedBy(d, f.id), key = dcKeyOf(d, f.id);
-      const nm = (f.a + ' ' + key).toLowerCase();
+      /* a parent stays in view when one of its subfields matches the search */
+      const nm = (f.a + ' ' + key + ' ' + ((d.subs || {})[f.id] || []).map((k) => dcSubName(f.id, k) + ' ' + dcSubKey(d, f.id, k)).join(' ')).toLowerCase();
       return `<div class="set2-dc-r is-map${sel ? ' is-sel' : ''}${dcCf('rmField', f.id) ? ' is-cf' : ''}" data-name="${esc(nm)}"${dcMiss(DCU.q, nm) ? ' hidden' : ''}>
-        <span class="set2-dc-n">${esc(f.a)}${ub ? `<span class="set2-dc-at">${ub}</span>` : ''}</span>
+        <span class="set2-dc-n">${esc(f.a)}${ub ? `<span class="set2-dc-at">${ub}</span>` : ''}${DC_SUB[f.id] ? `<button class="agv-lnk set2-dc-sm set2-dc-addsub" type="button" data-dc="addSub" data-id="${f.id}">${I.plus}Subfield</button>` : ''}</span>
         <span class="set2-dc-key">${esc(key)}</span>
         <span class="set2-dc-v">${dcValCell(d, f)}</span>
         <span class="set2-dc-e">${dcIb('ask', 'Remove ' + f.a, I.trash, 'data-what="rmField" data-id="' + f.id + '"')}</span>
-        ${dcCf('rmField', f.id) ? dcCfLine(`Remove <b>${esc(f.a)}</b>?${(() => { const n = d.rules.filter((r) => r.f === f.id).length; return n ? ' ' + n + ' condition' + (n > 1 ? 's stop' : ' stops') + ' working until it\u2019s mapped again.' : (d.focus[f.id] ? ' Copilot stops searching by it.' : ''); })()}`, 'Remove', 'rmField', 'data-id="' + f.id + '"') : ''}</div>`;
+        ${dcCf('rmField', f.id) ? dcCfLine(`Remove <b>${esc(f.a)}</b>?${(() => { const n = d.rules.filter((r) => r.f === f.id).length; return n ? ' ' + n + ' condition' + (n > 1 ? 's stop' : ' stops') + ' working until it\u2019s mapped again.' : (d.focus[f.id] ? ' Copilot stops searching by it.' : ''); })()}`, 'Remove', 'rmField', 'data-id="' + f.id + '"') : ''}</div>${dcSubRows(d, f)}`;
     }).join('');
     return `${dcLostNote(d)}
       <div class="set2-dc-th is-map"><span class="agv-k">AiMY field</span><span class="agv-k">${esc(d.crm)} key</span><span class="agv-k">Values</span><span></span></div>
@@ -7474,7 +7500,13 @@
         ${on && list.length ? `<input class="set2-dc-u" id="dcqn" placeholder="Find one of ${dcN(f.n)}" aria-label="Find a name"><div class="set2-dc-vl" id="dcnl">${list.map((n) => `<span class="set2-dc-vr is-1" data-name="${esc(n.toLowerCase())}">${esc(n)}</span>`).join('')}</div>` : ''}
         <button class="agv-lnk set2-dc-sm" type="button" data-dc="startMap" data-id="${id}">Label values by hand instead</button></div>`;
     }
-    return dcPanHead(esc(f.a) + ' values') + `<div class="set2-dc-pan-b">${b}</div>`;
+    if (DC_SUB[id]) {
+      const have = (d.subs || {})[id] || [], free = DC_SUB[id].filter((x) => have.indexOf(x[0]) < 0);
+      b = `<div class="set2-dc-ps"><span class="agv-k">Subfields</span>
+        ${have.length ? `<div class="set2-dc-vl">${have.map((k) => `<span class="set2-dc-vr"><i>${esc(dcSubKey(d, id, k))}</i><span>${esc(dcSubName(id, k))}</span>${dcIb('ask', 'Remove ' + dcSubName(id, k), I.x, 'data-what="rmSub" data-id="' + id + '" data-sub="' + k + '"')}</span>`).join('')}</div>` : `<span class="set2-dc-meta">None yet. Add the parts of the ${esc(f.a.toLowerCase())} AiMY should read.</span>`}
+        ${free.length ? `<span class="set2-dc-vals">${free.map((x) => `<button class="agv-chip set2-dc-seen" type="button" data-dc="subAdd" data-id="${id}" data-sub="${x[0]}">${I.plus}${esc(x[1])}</button>`).join('')}</span>` : ''}</div>` + b;
+    }
+    return dcPanHead(esc(f.a) + (DC_SUB[id] ? '' : ' values')) + `<div class="set2-dc-pan-b">${b}</div>`;
   }
   function dcPanRun(d, i) {
     const h = d.hist[i];
@@ -12082,11 +12114,23 @@
     stop(d) { clearInterval(DC_TICK); const n = Math.round(dcKept(d) * d.sync.pct / 100); d.sync = { st: d.hist.length ? 'done' : 'never', pct: 0 }; DC_SAVED[d.cid].sync = dcClone(d.sync); render(); dcToast('Sync stopped. ' + dcN(n) + ' tickets synced before it stopped.'); },
     why(d, el) { dcOpenPan({ type: 'run', i: +el.dataset.i }); },
     ask(d, el) {
-      const what = el.dataset.what, key = what === 'rmRule' ? el.dataset.r : what === 'rmMapVal' ? el.dataset.id + ':' + el.dataset.raw : el.dataset.id;
+      const what = el.dataset.what, key = what === 'rmRule' ? el.dataset.r : what === 'rmMapVal' ? el.dataset.id + ':' + el.dataset.raw : what === 'rmSub' ? el.dataset.id + ':' + el.dataset.sub : el.dataset.id;
       DCU.confirm = dcCf(what, key) ? null : { what: what, key: key };
       render(() => { const b = $('[data-cf-ok]'); if (b) b.focus(); });
     },
     cfCancel() { DCU.confirm = null; render(); },
+    addSub(d, el) { if (DCU.pan && DCU.pan.type === 'field' && DCU.pan.id === el.dataset.id) return; dcOpenPan({ type: 'field', id: el.dataset.id }); },
+    subAdd(d, el) {
+      const u = dcSnap(d), id = el.dataset.id, k = el.dataset.sub;
+      d.subs = d.subs || {}; d.subs[id] = (d.subs[id] || []).concat([k]); dcBump(d, 0); render();
+      dcToast('Added ' + DCF[id].a + ' \u203a ' + dcSubName(id, k) + '.', u);
+    },
+    rmSub(d, el) {
+      DCU.confirm = null;
+      const u = dcSnap(d), id = el.dataset.id, k = el.dataset.sub;
+      d.subs[id] = (d.subs[id] || []).filter((x) => x !== k); dcBump(d, 0); render();
+      dcToast('Removed ' + DCF[id].a + ' \u203a ' + dcSubName(id, k) + '.', u);
+    },
     testTk(d, el) {
       if (el.dataset.i != null && el.dataset.i !== '') { DCU.tt = +el.dataset.i; }
       else {
