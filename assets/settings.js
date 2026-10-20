@@ -2783,16 +2783,27 @@
       box._b = true;
       const aid = box.getAttribute('data-agv-spd'), inp = $('.agv-spd-in', box), n = SPEEDS.length - 1;
       box._p = speedIdx(agentById(aid)) / n;
-      let drag = false;
+      /* A click lands where it was pressed, so it is not painted there at
+         once: nothing moves until the pointer travels (a drag, which follows
+         the pointer), and on release the picture slides to the stop. */
+      let drag = false, moved = false, x0 = 0;
       const settle = () => {
         if (!drag) return;
         drag = false; box.classList.remove('is-drag');
-        const i = spdNear(box._p);
-        agvSpeedPaint(box, i / n); inp.value = i / n * 1000;
-        agvSpeedSet(aid, i);
+        const i = spdNear(moved ? box._p : inp.value / 1000);
+        agvSpeedSlide(box, i / n);
+        inp.value = i / n * 1000;
+        agvSpeedSet(aid, i, box._p);
       };
-      inp.addEventListener('pointerdown', () => { drag = true; box.classList.add('is-drag'); });
-      inp.addEventListener('input', () => { agvSpeedPaint(box, inp.value / 1000); if (drag) agvSpeedTip(box, spdNear(box._p), 'drag'); });
+      inp.addEventListener('pointerdown', (e) => { drag = true; moved = false; x0 = e.clientX; agvSpeedStop(box); });
+      inp.addEventListener('pointermove', (e) => {
+        if (!drag || moved || Math.abs(e.clientX - x0) < 4) return;
+        moved = true; box.classList.add('is-drag'); agvSpeedPaint(box, inp.value / 1000);
+      });
+      inp.addEventListener('input', () => {
+        if (drag && !moved) return;
+        agvSpeedPaint(box, inp.value / 1000); if (drag) agvSpeedTip(box, spdNear(box._p), 'drag');
+      });
       inp.addEventListener('change', settle);
       inp.addEventListener('pointerup', settle);
       inp.addEventListener('keydown', (e) => {
@@ -2801,8 +2812,9 @@
         if (to === undefined) return;
         e.preventDefault();
         const k = Math.max(0, Math.min(n, to));
-        agvSpeedPaint(box, k / n); inp.value = k / n * 1000;
-        agvSpeedSet(aid, k);
+        const from = box._p;
+        agvSpeedSlide(box, k / n); inp.value = k / n * 1000;
+        agvSpeedSet(aid, k, from);
       });
       box.addEventListener('pointermove', (e) => {
         if (drag) return;
@@ -2847,7 +2859,32 @@
     });
     AGV_WAVE.raf = requestAnimationFrame(agvWave);
   }
-  function agvSpeedSet(aid, i) {
+  /* ── The pace slides (Nour 20 Oct) ──
+     A pick re-renders the card, which used to drop the playhead, the
+     brand fill and the icon on the new stop at once. Now the picture is
+     tweened from where it stood: the playhead, the fill and the wave's
+     pace move together, 400ms smooth-out (the panel token). Reduced
+     motion: it lands. */
+  const spdEase = (t) => 1 - Math.pow(1 - t, 4);
+  function agvSpeedStop(box) { if (box._tw) { cancelAnimationFrame(box._tw); box._tw = 0; box.classList.remove('is-tween'); } }
+  function agvSpeedSlide(box, to, from) {
+    agvSpeedStop(box);
+    const p0 = from == null ? (box._p || 0) : from;
+    if (AGV_REDUCED() || Math.abs(to - p0) < 0.001) { agvSpeedPaint(box, to); return; }
+    box.classList.add('is-tween');
+    let t0 = 0;
+    const step = (t) => {
+      if (!box.isConnected) return;
+      if (!t0) t0 = t;
+      const k = Math.min(1, (t - t0) / 400);
+      agvSpeedPaint(box, p0 + (to - p0) * spdEase(k));
+      if (k < 1) box._tw = requestAnimationFrame(step);
+      else { box._tw = 0; box.classList.remove('is-tween'); }
+    };
+    agvSpeedPaint(box, p0);
+    box._tw = requestAnimationFrame(step);
+  }
+  function agvSpeedSet(aid, i, from) {
     const a0 = agentById(aid);
     if (!a0 || speedIdx(a0) === i) return;
     /* No toast (Nour): the wave, the icon and the popover already say it. */
@@ -2856,6 +2893,8 @@
     if (window.speechSynthesis && VOICE_PLAYING) { window.speechSynthesis.cancel(); VOICE_PLAYING = null; }
     const kb = document.activeElement && document.activeElement.matches('[data-agv-spd-in]');
     render();
+    const nb = $('[data-agv-spd="' + aid + '"]');
+    if (nb && from != null) agvSpeedSlide(nb, i / (SPEEDS.length - 1), from);
     /* Arrow keys keep the slider in hand across the render. */
     if (kb) { const r = $('[data-agv-spd-in="' + aid + '"]'); if (r) r.focus(); }
   }
@@ -10208,6 +10247,16 @@
            sample already playing in the old voice is stopped. */
         if (window.speechSynthesis && VOICE_PLAYING) { window.speechSynthesis.cancel(); VOICE_PLAYING = null; }
         render();
+        /* The render replaces the switcher, so its ring would appear on the
+           new voice; it slides there from the old one instead (250ms
+           smooth-out, the tabs token). */
+        const th = $('[data-agv-voice="' + aid + '|' + v + '"]');
+        const ring = th && th.parentNode.querySelector('.agv-vth');
+        if (ring && ring.animate && !AGV_REDUCED()) {
+          const to = v === 'male' ? 1 : 0;
+          ring.animate([{ transform: 'translateX(' + (1 - to) * 100 + '%)' }, { transform: 'translateX(' + to * 100 + '%)' }],
+            { duration: 250, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' });
+        }
         /* Focus follows only a keyboard pick; a mouse pick would otherwise
            draw the focus ring on top of the thumb's. */
         if (!e.detail) { const b = $('[data-agv-voice="' + aid + '|' + v + '"]'); if (b) b.focus(); }
