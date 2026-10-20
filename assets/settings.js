@@ -7083,10 +7083,10 @@
   const DC_FOCUS = { ar: 'Affects Product (AR)', rel: 'Accuroute - Relates To', l2: 'Affects Product (AR) L2' };
   const DC_STEPS = ['Map fields', 'Choose which tickets sync', 'Pick focus fields', 'Check and sync'];
   const DC_WHAT = [
-    'Tell AiMY what each field is. The next steps can only use fields mapped here.',
-    'Decide which tickets this product syncs: what a ticket must match, and what leaves it out. Rules can only use mapped fields.',
-    'Pick the mapped fields the Copilot answers with, like a ticket’s product or Relates To. They don’t change which tickets sync.',
-    'Check what the next sync will do, then run it now or let tonight’s sync at 02:00 pick it up.'
+    'What each field means to AiMY. Later steps can only use these.',
+    'Which tickets this product syncs. Tickets already synced stay.',
+    'The fields the Copilot answers with. They don’t change what syncs.',
+    'What the next sync does, and what the last ones did.'
   ];
   const DC_HOME = 'AccuRoute Support';
 
@@ -7189,244 +7189,230 @@
     return { note: n + ' of 4 done', s: 'warn' };
   }
 
-  /* ── STEP 1: MAP FIELDS ── */
+  /* ── LOOK: Tone & Voice's ──
+     Tiles at 20px radius with an inset edge, pill buttons (`agv-btn`), outlined
+     chips (`agv-chip`), icon buttons (`agv-ib`), underline inputs, and the
+     AiMY wash on the step you are on. No native select or datalist: choices
+     are the system's `.v2-dropdown`, and suggestions are our own pills. */
+  function dcDD(key, label, value, opts) {
+    const cur = opts.filter((o) => o[0] === value)[0] || opts[0];
+    return `<div class="v2-dropdown set2-dd set2-dc-dd" data-dcdd="${key}">
+      <button class="v2-dropdown-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="${esc(label)}">
+        <span class="dd-label-text">${esc(cur ? cur[1] : '')}</span>${I.down}</button>
+      <div class="v2-dropdown-panel" role="listbox">${opts.map((o) => `<div class="v2-dropdown-option${cur && o[0] === cur[0] ? ' selected' : ''}" role="option" aria-selected="${cur && o[0] === cur[0]}" data-value="${esc(o[0])}">${esc(o[1])}</div>`).join('')}</div></div>`;
+  }
+  const dcTog = (on, label, attr) => `<span class="set2-dc-tg">${toggle(on, label, attr)}</span>`;
+  const dcIb = (act, label, icon, extra) => `<button class="agv-ib" type="button" data-dc="${act}" aria-label="${esc(label)}" title="${esc(label)}" ${extra || ''}>${icon}</button>`;
+
+  /* ── STEP 1 ── */
   function dcValCell(d, f) {
-    if (!dcIsLookup(f)) return '<span class="set2-dc-mono">Any value</span>';
+    if (!dcIsLookup(f)) return '';
     const on = DCU.pan && DCU.pan.type === 'field' && DCU.pan.id === f.id ? ' is-on' : '';
     const v = d.vals[f.id];
     if (v) {
       const miss = (DC_UNL[f.id] || []).filter((c) => !v.some((x) => x[0] === c)).length;
-      return `<button class="set2-dc-vp${on}" type="button" data-dc="vals" data-id="${f.id}" aria-label="Value mapping for ${esc(f.a)}">`
-        + v.slice(0, 2).map(([r, l]) => `<span><span class="set2-dc-mono">${esc(r)}</span> → ${esc(l)}</span>`).join('')
-        + (v.length > 2 ? `<span class="set2-dc-vp-more">and ${v.length - 2} more</span>` : '')
-        + (miss ? `<span class="set2-dc-vp-warn">${miss} not labelled</span>` : '') + '</button>';
+      return `<button class="set2-dc-vp${on}" type="button" data-dc="vals" data-id="${f.id}" aria-label="Values of ${esc(f.a)}">`
+        + v.slice(0, 2).map(([r, l]) => `<span><i>${esc(r)}</i> → ${esc(l)}</span>`).join('')
+        + (v.length > 2 ? `<b>+${v.length - 2}</b>` : '') + (miss ? `<em>${miss} to label</em>` : '') + '</button>';
     }
-    return `<button class="set2-dc-vp${on}" type="button" data-dc="vals" data-id="${f.id}">${d.resolve[f.id] !== false ? 'Names from ' + esc(d.crm) + ', ' + dcN(f.n || 0) : 'Shown as IDs'}<span class="set2-dc-vp-more">Change</span></button>`;
+    return `<button class="set2-dc-vp${on}" type="button" data-dc="vals" data-id="${f.id}">${d.resolve[f.id] !== false ? dcN(f.n || 0) + ' names' : 'IDs'}<b>Change</b></button>`;
   }
   function dcLostNote(d) {
     if (!d.rules.some((r) => dcBroken(d, r))) return '';
-    const who = d.byWho ? ' ' + d.byWho : '';
-    return `<div class="set2-dc-note is-err">${I.warn}<span><b>${esc(dcLost(d))} is not mapped${who}.</b> A rule in step 2 still uses it, so sync stops until it is mapped again.</span>
-      <button class="btn btn-sm" type="button" data-dc="remap" data-dc-remap>Map ${esc(dcLost(d))} again</button></div>`;
+    return `<div class="set2-dc-alert">${I.warn}<span><b>${esc(dcLost(d))} isn’t mapped,</b> and a sync rule uses it. Sync is paused.</span>
+      <button class="agv-btn is-brand" type="button" data-dc="remap" data-dc-remap>Map ${esc(dcLost(d))} again</button></div>`;
   }
   function dcMap(d) {
-    if (d.cat.down && !d.fields.length) return `<div class="set2-dc-empty"><b>AiMY can’t read ${esc(d.crm)}’s fields yet</b><span>It needs to reach ${esc(d.cat.host)} first. Reconnect, then the 24 suggested fields can be mapped.</span></div>`;
-    if (!d.fields.length) return `<div class="set2-dc-empty"><b>Nothing mapped yet</b><span>AiMY read ${d.cat.n} fields from ${esc(d.cat.host)} and suggests 24 that describe a ticket: its number, title, status, group, tags and the product fields.</span>
-      <span class="set2-dc-row"><button class="btn btn-brand btn-sm" type="button" data-dc="suggest">Map the 24 suggested fields</button><button class="btn btn-sm" type="button" data-dc="addField">${I.plus}Add one field</button></span></div>${DCU.add === 'field' ? dcAddField(d) : ''}`;
+    if (d.cat.down && !d.fields.length) return `<div class="set2-dc-empty"><b>Can’t read ${esc(d.crm)} yet</b><span>Reconnect, then AiMY suggests the fields to map.</span><button class="agv-btn is-brand" type="button" data-dc="retry">Reconnect</button></div>`;
+    if (!d.fields.length) return `<div class="set2-dc-empty"><b>Nothing mapped yet</b><span>AiMY suggests 24 of the ${d.cat.n} fields.</span>
+      <span class="set2-dc-row"><button class="agv-btn is-brand" type="button" data-dc="suggest">Map the 24 fields</button><button class="agv-btn is-ghost" type="button" data-dc="addField">Add one</button></span></div>${DCU.add === 'field' ? dcAddField(d) : ''}`;
     const rows = d.fields.map((id) => DCF[id]).map((f) => {
       const sel = DCU.pan && DCU.pan.type === 'field' && DCU.pan.id === f.id, ub = dcUsedBy(d, f.id), key = dcKeyOf(d, f.id);
-      return `<tr class="${sel ? 'is-sel' : ''}" data-name="${esc((f.a + ' ' + key + ' ' + f.lab).toLowerCase())}">
-        <td><b>${esc(f.a)}</b>${ub ? `<span class="set2-dc-sub">Used by ${ub}</span>` : ''}</td>
-        <td data-l="${esc(d.crm)}"><span class="set2-dc-key">${esc(key)}</span><span class="set2-dc-sub">${esc(f.lab)}, ${f.t}</span></td>
-        <td data-l="Values"${dcIsLookup(f) ? '' : ' class="is-any"'}>${dcValCell(d, f)}</td>
-        <td class="set2-dc-acts"><button class="btn btn-ghost btn-sm set2-dc-ic" type="button" data-dc="rmField" data-id="${f.id}" aria-label="Remove ${esc(f.a)}" title="Remove">${I.trash}</button></td></tr>`;
+      return `<div class="set2-dc-r is-map${sel ? ' is-sel' : ''}" data-name="${esc((f.a + ' ' + key).toLowerCase())}">
+        <span class="set2-dc-n">${esc(f.a)}</span>
+        <span class="set2-dc-key">${esc(key)}</span>
+        <span class="set2-dc-v">${dcValCell(d, f)}</span>
+        <span class="set2-dc-e">${ub ? `<span class="agv-chip">${ub}</span>` : ''}${dcIb('rmField', 'Remove ' + f.a, I.trash, 'data-id="' + f.id + '"')}</span></div>`;
     }).join('');
-    return `${dcLostNote(d)}<div class="set2-dc-tb"><span class="set2-dc-cnt"><b>${d.fields.length}</b> confirmed</span>
-      <label class="set2-dc-find">${I.search}<input class="set2-dc-in" id="dcq" placeholder="Find a field" value="${esc(DCU.q)}" aria-label="Find a mapped field"></label>
-      <button class="btn btn-brand btn-sm" type="button" data-dc="addField">${I.plus}Add field</button></div>
+    return `${dcLostNote(d)}
+      <div class="set2-dc-th is-map"><span class="agv-k">AiMY field</span><span class="agv-k">${esc(d.crm)} key</span><span class="agv-k">Values</span><span></span></div>
       ${DCU.add === 'field' ? dcAddField(d) : ''}
-      <div class="set2-dc-tw"><table class="set2-dc-t" id="dctmap"><thead><tr><th>AiMY field</th><th>${esc(d.crm)} key</th><th>Values</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
-      <p class="set2-dc-foot">Values turns ${esc(d.crm)}’s codes into words, like 2 into Open. Open one to edit it. For a field that isn’t listed, like a Relates To L2, use Add field.</p>`;
+      <div class="set2-dc-list" id="dcmapl">${rows}</div>`;
   }
   function dcAddField(d) {
     const taken = d.fields.map((id) => dcKeyOf(d, id));
     const opts = DC_FIELDS.map((f) => [d.ts ? f.ts : f.k, f.lab, f.t]).concat(DC_EXTRA.map((e) => [(d.ts ? 'CustomFields.' : 'custom_fields.') + e[0], e[1], e[2]]));
     const pk = opts.filter((o) => o[0] === DCU.pick)[0];
-    return `<div class="set2-dc-add"><b class="set2-dc-add-t">Add a field from ${esc(d.crm)}</b>
-      <input class="set2-dc-in" id="dcaddq" placeholder="Search ${d.cat.n} fields" aria-label="Search ${esc(d.crm)} fields" value="${esc(DCU.addq)}">
+    return `<div class="set2-dc-add">
+      <input class="set2-dc-u" id="dcaddq" placeholder="Search ${d.cat.n} ${esc(d.crm)} fields" aria-label="Search ${esc(d.crm)} fields" value="${esc(DCU.addq)}">
       <div class="set2-dc-cb" id="dcaddl">${opts.map(([k, lab]) => { const used = taken.indexOf(k) > -1;
-        return `<button type="button" data-dc-pick="${esc(k)}" class="${DCU.pick === k ? 'is-on' : ''}" ${used ? 'disabled' : ''} data-name="${esc((lab + ' ' + k).toLowerCase())}"><span>${esc(lab)}${used ? ' (mapped)' : ''}</span><span class="set2-dc-mono">${esc(k)}</span></button>`; }).join('')}</div>
-      <div class="set2-dc-add-g"><label>Name in AiMY<input class="set2-dc-in" id="dcaddn" value="${esc(pk ? pk[1] : '')}" placeholder="Pick a field first"></label>
-      <label>Type<input class="set2-dc-in" value="${pk ? pk[2] : ''}" readonly></label>
-      <span class="set2-dc-row"><button class="btn btn-sm" type="button" data-dc="addCancel">Cancel</button><button class="btn btn-brand btn-sm" type="button" data-dc="addFieldSave" ${pk ? '' : 'disabled'}>Add field</button></span></div></div>`;
+        return `<button type="button" data-dc-pick="${esc(k)}" class="${DCU.pick === k ? 'is-on' : ''}" ${used ? 'disabled' : ''} data-name="${esc((lab + ' ' + k).toLowerCase())}"><span>${esc(lab)}</span><i>${used ? 'Mapped' : esc(k)}</i></button>`; }).join('')}</div>
+      <div class="set2-dc-row is-wrap"><input class="set2-dc-u set2-dc-grow" id="dcaddn" value="${esc(pk ? pk[1] : '')}" placeholder="Name in AiMY" aria-label="Name in AiMY">
+        <button class="agv-btn is-ghost" type="button" data-dc="addCancel">Cancel</button><button class="agv-btn is-brand" type="button" data-dc="addFieldSave" ${pk ? '' : 'disabled'}>Add field</button></div></div>`;
   }
 
-  /* ── STEP 2: TWO LISTS ── */
+  /* ── STEP 2 ── */
   function dcRuleRows(d, list) {
     return list.map((r) => {
-      const f = DCF[r.f], bad = dcBroken(d, r), more = DCU.more[r.id], shown = more ? r.v : r.v.slice(0, 4);
-      const chips = shown.map((v) => `<span class="set2-dc-chip${bad ? ' is-err' : ''}">${esc(v)}${r.sys ? '' : `<button type="button" data-dc="rmVal" data-r="${r.id}" data-v="${esc(v)}" aria-label="Remove ${esc(v)}">${I.x}</button>`}</span>`).join('')
-        + (r.v.length > 4 ? `<button class="set2-dc-lnk" type="button" data-dc="moreVals" data-r="${r.id}">${more ? 'Show fewer' : 'and ' + (r.v.length - 4) + ' more'}</button>` : '')
-        + (r.sys || bad ? '' : `<input class="set2-dc-in is-sm" data-dc-addv="${r.id}" list="dcdl-${r.f}" placeholder="Add a value" aria-label="Add a value to the ${esc(f.a)} rule">`);
-      const other = r.mode === 'Keep' ? 'Don’t sync tickets where' : 'Only sync tickets where';
-      const end = r.sys ? `<span class="set2-dc-lock">${I.lock}Set by AiMY</span>`
-        : `<button class="btn btn-ghost btn-sm" type="button" data-dc="move" data-r="${r.id}" title="Move to ${other}" aria-label="Move to ${other}">Move</button>
-           ${toggle(r.on, 'Rule on', 'data-dc-on="' + r.id + '"')}
-           <button class="btn btn-ghost btn-sm set2-dc-ic" type="button" data-dc="rmRule" data-r="${r.id}" aria-label="Delete rule" title="Delete rule">${I.trash}</button>`;
-      return `<tr class="${bad ? 'is-err' : ''}${r.on ? '' : ' is-off'}"><td><b>${esc(f.a)}</b><span class="set2-dc-sub">${esc(dcKeyOf(d, r.f))}, ${f.t}</span>
-          <span class="set2-dc-sub set2-dc-at">Checked ${(r.sys || f.t === 'tags') ? 'after fetch' : 'in ' + esc(d.crm)}</span>
-          ${bad ? `<span class="set2-dc-sub is-err">Not mapped. This rule can’t run.</span>` : ''}</td>
-        <td data-l="Rule"><span class="set2-dc-op">${r.op}</span><span class="set2-dc-vals">${chips}</span></td>
-        <td class="set2-dc-acts">${bad ? `<button class="btn btn-sm" type="button" data-dc="remap" data-dc-remap>Map ${esc(f.a)} again</button>` : end}</td></tr>`;
+      const f = DCF[r.f], bad = dcBroken(d, r), more = DCU.more[r.id], shown = more ? r.v : r.v.slice(0, 3);
+      const vals = shown.map((v) => `<span class="agv-chip set2-dc-pv${bad ? ' is-err' : ''}" title="${esc(v)}"><span>${esc(v)}</span>${r.sys ? '' : `<button type="button" data-dc="rmVal" data-r="${r.id}" data-v="${esc(v)}" aria-label="Remove ${esc(v)}">${I.x}</button>`}</span>`).join('')
+        + (r.v.length > 3 ? `<button class="agv-lnk set2-dc-sm" type="button" data-dc="moreVals" data-r="${r.id}">${more ? 'Fewer' : '+' + (r.v.length - 3)}</button>` : '')
+        + (r.sys || bad ? '' : `<span class="set2-dc-sgw"><input class="set2-dc-u is-sm" data-dc-addv="${r.id}" data-dc-f="${r.f}" placeholder="+ value" aria-label="Add a value to ${esc(f.a)}" autocomplete="off"><span class="set2-dc-sg" data-dc-sg="${r.id}"></span></span>`);
+      const other = r.mode === 'Keep' ? 'Don’t sync' : 'Only sync';
+      const end = bad ? `<button class="agv-btn is-brand" type="button" data-dc="remap" data-dc-remap>Map again</button>`
+        : r.sys ? `<span class="set2-dc-lock" title="Set by AiMY">${I.lock}</span>`
+        : `<button class="agv-btn is-ghost set2-dc-mv" type="button" data-dc="move" data-r="${r.id}" title="Move to ${other}">Move</button>${dcTog(r.on, 'Condition on', 'data-dc-on="' + r.id + '"')}${dcIb('rmRule', 'Delete condition', I.trash, 'data-r="' + r.id + '"')}`;
+      return `<div class="set2-dc-r is-rule${bad ? ' is-err' : ''}${r.on ? '' : ' is-off'}">
+        <span class="set2-dc-n">${esc(f.a)}${(r.sys || f.t === 'tags') ? '<span class="set2-dc-at" title="AiMY reads the ticket, then drops it">after fetch</span>' : ''}</span>
+        <span class="set2-dc-op">${r.op}</span><span class="set2-dc-vals">${vals}</span><span class="set2-dc-e">${end}</span></div>`;
     }).join('');
   }
   function dcGroup(d, mode) {
     const list = d.rules.filter((r) => r.mode === mode), keep = mode === 'Keep';
     const adding = DCU.add === 'rule' && DCU.nr && DCU.nr.m === mode;
-    return `<section class="set2-dc-rg ${keep ? 'is-keep' : 'is-skip'}"><div class="set2-dc-rg-h"><div>
+    return `<section class="set2-dc-grp ${keep ? 'is-keep' : 'is-skip'}"><div class="set2-dc-grp-h">
       <h3>${keep ? I.tick : DCI.ban}${keep ? 'Only sync tickets where' : 'Don’t sync tickets where'}</h3>
-      <p>${keep ? 'A ticket must match every one of these.' : 'A ticket that matches any one of these is left out.'}</p></div>
-      <button class="btn btn-sm" type="button" data-dc="addRule" data-dc-mode="${mode}">${I.plus}Add a condition</button></div>
+      <span class="set2-dc-hint">${keep ? 'all match' : 'any match'}</span>
+      <button class="agv-btn is-ghost" type="button" data-dc="addRule" data-dc-mode="${mode}">Add condition</button></div>
       ${adding ? dcAddRule(d) : ''}
-      ${list.length ? `<div class="set2-dc-tw is-flat"><table class="set2-dc-t"><thead><tr><th>Field</th><th>Rule</th><th></th></tr></thead><tbody>${dcRuleRows(d, list)}</tbody></table></div>`
-        : `<p class="set2-dc-none">${keep ? 'No conditions, so every ticket for this product gets through to the next list.' : 'Nothing is left out.'}</p>`}</section>`;
+      ${list.length ? `<div class="set2-dc-list">${dcRuleRows(d, list)}</div>` : `<p class="set2-dc-none">${keep ? 'No conditions. Every ticket gets through.' : 'Nothing is left out.'}</p>`}</section>`;
   }
   function dcAddRule(d) {
     const nr = DCU.nr;
-    if (!nr.f || !dcMapped(d, nr.f)) nr.f = d.fields.filter((id) => DCF[id].t !== 'text')[0];
+    /* Start on a field with a fixed set of values: that is what a sync rule is
+       nearly always about, and its values come with suggestions. */
+    if (!nr.f || !dcMapped(d, nr.f)) nr.f = d.fields.filter((id) => ['lookup', 'dropdown', 'choice', 'tags'].indexOf(DCF[id].t) > -1)[0] || d.fields[0];
     const f = DCF[nr.f], ops = DC_OPS[f.t] || ['is one of'];
-    return `<div class="set2-dc-add"><b class="set2-dc-add-t">Add a condition</b><div class="set2-dc-add-g is-3">
-      <label>Field<select class="set2-dc-in" id="dcnrf">${d.fields.map((id) => `<option value="${id}" ${id === nr.f ? 'selected' : ''}>${esc(DCF[id].a)}</option>`).join('')}</select></label>
-      <label>Rule<select class="set2-dc-in" id="dcnrop">${ops.map((o) => `<option>${o}</option>`).join('')}</select></label>
-      <label>Value<input class="set2-dc-in" id="dcnrv" list="dcdl-${nr.f}" placeholder="${f.t === 'date' ? '1 Jan 2025' : 'Type or pick a value'}"></label></div>
-      <span class="set2-dc-row is-end"><button class="btn btn-sm" type="button" data-dc="addCancel">Cancel</button><button class="btn btn-brand btn-sm" type="button" data-dc="addRuleSave">Add condition</button></span></div>`;
+    if (ops.indexOf(nr.op) < 0) nr.op = ops[0];
+    return `<div class="set2-dc-add is-rule">
+      ${dcDD('nrf', 'Field', nr.f, d.fields.filter((id) => DCF[id].t !== 'text').map((id) => [id, DCF[id].a]))}
+      ${dcDD('nrop', 'Rule', nr.op, ops.map((o) => [o, o]))}
+      <span class="set2-dc-sgw set2-dc-grow"><input class="set2-dc-u" id="dcnrv" data-dc-f="${nr.f}" placeholder="${f.t === 'date' ? 'A date, like 1 Jan 2025' : 'A value'}" aria-label="Value" autocomplete="off"><span class="set2-dc-sg" data-dc-sg="new"></span></span>
+      <button class="agv-btn is-ghost" type="button" data-dc="addCancel">Cancel</button><button class="agv-btn is-brand" type="button" data-dc="addRuleSave">Add</button></div>`;
   }
   function dcRules(d) {
-    if (!d.fields.length) return `<div class="set2-dc-note">${I.lock}<span>Map fields first. A rule can only use a mapped field, so this step opens once step 1 has fields.</span><button class="btn btn-sm" type="button" data-dc-step="0">Go to Map fields</button></div>`;
-    const bad = d.rules.some((r) => dcBroken(d, r));
-    const top = bad
-      ? `<div class="set2-dc-note is-err">${I.warn}<span><b>The ${esc(dcLost(d))} rule can’t run,</b> so ${d.sync.st === 'paused' ? 'tonight’s sync was skipped' : 'the next sync won’t run'}. Map ${esc(dcLost(d))} again, or delete the rule.</span><button class="btn btn-sm" type="button" data-dc="remap" data-dc-remap>Map ${esc(dcLost(d))} again</button></div>`
-      : `<div class="set2-dc-sum"><b>${dcN(dcKept(d))}</b><span>of ${dcN(d.total)} tickets for this product sync with these rules.</span></div>`;
-    return `${top}${dcGroup(d, 'Keep')}${dcGroup(d, 'Skip')}
-      <p class="set2-dc-foot">Changes apply on the next sync. Tickets already synced are not removed. A condition checked in ${esc(d.crm)} means ${esc(d.crm)} sends only matching tickets; after fetch means AiMY reads the ticket, then drops it.</p>`;
+    if (!d.fields.length) return `<div class="set2-dc-empty"><b>Map fields first</b><span>Rules can only use mapped fields.</span><button class="agv-btn is-ghost" type="button" data-dc-step="0">Go to Map fields</button></div>`;
+    return `${dcLostNote(d)}${dcGroup(d, 'Keep')}${dcGroup(d, 'Skip')}`;
   }
 
-  /* ── STEP 3: FOCUS FIELDS ── */
+  /* ── STEP 3 ── */
   function dcFocus(d) {
-    if (!d.fields.length) return `<div class="set2-dc-note">${I.lock}<span>Map fields first. The Copilot can only focus on mapped fields.</span><button class="btn btn-sm" type="button" data-dc-step="0">Go to Map fields</button></div>`;
+    if (!d.fields.length) return `<div class="set2-dc-empty"><b>Map fields first</b><span>The Copilot can only focus on mapped fields.</span><button class="agv-btn is-ghost" type="button" data-dc-step="0">Go to Map fields</button></div>`;
     const on = dcFocusOn(d), t = DC_TICKETS[DCU.tk];
-    const all = d.fields.map((id) => DCF[id]), ok = all.filter((f) => !dcGuard(f).bad), no = all.filter((f) => dcGuard(f).bad);
-    const top = on.length ? `<div class="set2-dc-sum"><b>${on.length}</b><span>fields the Copilot answers with. It searches and answers using only these from each ticket.</span></div>`
-      : `<div class="set2-dc-note is-ai">${DCI.spark}<span>No focus fields yet, so the Copilot reads the whole ticket. The three product fields say which product and version a ticket is about.</span><button class="btn btn-brand btn-sm" type="button" data-dc="focus3">Use the 3 product fields</button></div>`;
+    const all = d.fields.map((id) => DCF[id]), no = all.filter((f) => dcGuard(f).bad);
+    /* The saved focus fields first, so "what does it read" is the top of the
+       list. Sorted by the SAVED set, so a row doesn't jump while you switch it. */
+    const sf = (DC_SAVED[d.cid] || d).focus;
+    const ok = all.filter((f) => !dcGuard(f).bad && sf[f.id]).concat(all.filter((f) => !dcGuard(f).bad && !sf[f.id]));
+    const top = on.length ? '' : `<div class="set2-dc-ai">${DCI.spark}<span>No focus fields, so the Copilot reads the whole ticket.</span><button class="agv-btn is-brand" type="button" data-dc="focus3">Use the 3 product fields</button></div>`;
     const rows = ok.map((f) => {
       const isOn = !!d.focus[f.id];
-      return `<tr class="${isOn ? 'is-sel' : ''}"><td class="set2-dc-sw">${toggle(isOn, 'Focus on ' + f.a, 'data-dc-foc="' + f.id + '"')}</td>
-        <td><b>${esc(f.a)}</b><span class="set2-dc-sub set2-dc-mono">${f.al} ← ${esc(dcKeyOf(d, f.id))}</span><span class="set2-dc-gd" title="Type guard">${dcGuard(f).t}</span></td>
-        <td data-l="Copilot sees">${isOn ? `<input class="set2-dc-in is-sm" data-dc-fname="${f.id}" value="${esc(d.focus[f.id])}" aria-label="Name shown to the agent for ${esc(f.a)}">` : '<span class="set2-dc-mono">Off</span>'}</td>
-        <td data-l="Tags">${isOn ? `<span class="set2-dc-mono is-brand">cf_${f.al}=${esc(dcSlug(dcTv(t, f.id)).slice(0, 22))}</span>` : '<span class="set2-dc-mono">None</span>'}</td></tr>`;
+      return `<div class="set2-dc-r is-foc${isOn ? ' is-sel' : ''}">${dcTog(isOn, 'Focus on ' + f.a, 'data-dc-foc="' + f.id + '"')}
+        <span class="set2-dc-n">${esc(f.a)}<span class="set2-dc-at" title="Type guard">${dcGuard(f).t}</span></span>
+        ${isOn ? `<input class="set2-dc-u" data-dc-fname="${f.id}" value="${esc(d.focus[f.id])}" aria-label="Name the agent sees for ${esc(f.a)}" title="Name the agent sees">
+          <span class="set2-dc-key is-tag" title="Tag it makes for #${t.no}">cf_${f.al}=${esc(dcSlug(dcTv(t, f.id)).slice(0, 22))}</span>` : '<span></span><span></span>'}</div>`;
     }).join('');
-    const blocked = no.length ? `<div class="set2-dc-blk"><b class="set2-dc-blk-h">Can’t be focus fields (${no.length})</b>${no.map((f) => { const g = dcGuard(f);
-      return `<div class="set2-dc-blk-r"><b>${esc(f.a)}</b><span class="set2-dc-gd is-err">${g.t}</span><span class="set2-dc-blk-w">${g.why}</span></div>`; }).join('')}</div>` : '';
-    return `${top}<div class="set2-dc-tw"><table class="set2-dc-t"><thead><tr><th>Focus</th><th>Field and type guard</th><th>Name shown to the agent</th><th>Tags it makes, for #${t.no}</th></tr></thead><tbody>${rows}</tbody></table></div>
-      ${blocked}<p class="set2-dc-foot">Applies from the next question. Focus fields don’t change which tickets sync.</p>`;
+    const why = { text: 'free text', person: 'a person', date: 'a date' };
+    const groups = {};
+    no.forEach((f) => { (groups[f.t] = groups[f.t] || []).push(f.a); });
+    const blocked = no.length ? `<p class="set2-dc-none">Can’t be focus fields: ${Object.keys(groups).map((t) => groups[t].join(', ') + ' (' + why[t] + ')').join('; ')}.</p>` : '';
+    return `${top}<div class="set2-dc-th is-foc"><span class="agv-k">Focus</span><span class="agv-k">Field</span><span class="agv-k">Name the agent sees</span><span class="agv-k">Tag, for #${t.no}</span></div>
+      <div class="set2-dc-list">${rows}</div>${blocked}`;
   }
 
-  /* ── STEP 4: CHECK AND SYNC (was the Sync page) ── */
+  /* ── STEP 4 (was the Sync page) ── */
   function dcSync(d) {
-    if (d.cat.down) return `<div class="set2-dc-note is-err">${I.warn}<span><b>${esc(d.crm)} isn’t answering.</b> ${esc(d.cat.down)}</span><button class="btn btn-sm" type="button" data-dc="retry">Reconnect</button></div>${dcHist(d)}`;
-    if (!d.fields.length) return `<div class="set2-dc-note">${I.lock}<span>Finish Map fields and Choose which tickets sync first. Then this step shows what a sync will bring in.</span><button class="btn btn-sm" type="button" data-dc-step="0">Go to Map fields</button></div>`;
+    if (d.cat.down) return `<div class="set2-dc-alert">${I.warn}<span><b>${esc(d.crm)} isn’t answering.</b> ${esc(d.cat.down)}</span><button class="agv-btn is-brand" type="button" data-dc="retry">Reconnect</button></div>${dcHist(d)}`;
+    if (!d.fields.length) return `<div class="set2-dc-empty"><b>Nothing to sync yet</b><span>Map fields first.</span><button class="agv-btn is-ghost" type="button" data-dc-step="0">Go to Map fields</button></div>`;
     const s = dcStatus(d), y = d.sync.st, k = dcKept(d);
-    const keeps = d.rules.filter((r) => r.on && r.mode === 'Keep').length, skips = d.rules.filter((r) => r.on && r.mode === 'Skip').length;
-    const foc = dcFocusOn(d).map((id) => d.focus[id]);
-    const recap = `<div class="set2-dc-recap">
-      <div><span>Fields</span><b>${d.fields.length} mapped from ${d.cat.n}</b><button class="set2-dc-lnk" type="button" data-dc-step="0">Edit</button></div>
-      <div><span>Tickets</span><b class="${s[1] === 'fault' ? 'is-err' : ''}">${s[1] === 'fault' ? 'The ' + esc(dcLost(d)) + ' rule can’t run' : dcN(k) + ' of ' + dcN(d.total) + '. ' + keeps + ' only-sync and ' + skips + ' don’t-sync conditions.'}</b><button class="set2-dc-lnk" type="button" data-dc-step="1">${s[1] === 'fault' ? 'Fix' : 'Edit'}</button></div>
-      <div><span>Copilot focus</span><b>${foc.length ? esc(foc.join(', ')) : 'None, it reads the whole ticket'}</b><button class="set2-dc-lnk" type="button" data-dc-step="2">Edit</button></div></div>`;
     let run;
-    if (s[1] === 'fault') run = `<div class="set2-dc-note is-err">${I.warn}<span><b>Sync is paused.</b> The ${esc(dcLost(d))} rule can’t run while ${esc(dcLost(d))} is unmapped. Tickets synced before still answer questions.</span><button class="btn btn-sm" type="button" data-dc="remap" data-dc-remap>Map ${esc(dcLost(d))} again</button></div>`;
-    else if (y === 'failed') run = `<div class="set2-dc-note is-err">${I.warn}<span><b>The last sync failed.</b> Your setup is fine, so try again.</span><button class="btn btn-sm" type="button" data-dc="retry">Try again</button></div>`;
+    if (s[1] === 'fault') run = dcLostNote(d);
+    else if (y === 'failed') run = `<div class="set2-dc-alert">${I.warn}<span><b>The last sync failed.</b> Your setup is fine.</span><button class="agv-btn is-brand" type="button" data-dc="retry">Try again</button></div>`;
     else if (y === 'running') {
-      const n = Math.round(k * d.sync.pct / 100);
-      run = `<div class="set2-dc-run"><div class="set2-dc-row"><b class="set2-dc-strong">Syncing <span data-dc-done>${dcN(n)}</span> of ${dcN(k)} tickets</b><span class="set2-dc-grow"></span><button class="btn btn-sm" type="button" data-dc="stop">Stop sync</button></div>
-        <div class="set2-dc-bar"><i data-dc-bar style="width:${d.sync.pct}%"></i></div><span class="set2-dc-meta">You can keep editing. Changes apply on the next sync.</span></div>`;
+      run = `<div class="set2-dc-run"><div class="set2-dc-row"><b class="set2-dc-big"><span data-dc-done>${dcN(Math.round(k * d.sync.pct / 100))}</span> of ${dcN(k)}</b><span class="set2-dc-grow">tickets synced so far</span><button class="agv-btn is-ghost" type="button" data-dc="stop">Stop</button></div>
+        <div class="set2-dc-bar"><i data-dc-bar style="width:${d.sync.pct}%"></i></div></div>`;
     } else {
-      const W = [['last', 'Since the last sync'], ['7', 'Last 7 days'], ['30', 'Last 30 days'], ['from', 'From a date']];
-      run = `<div class="set2-dc-run"><div class="set2-dc-row is-wrap"><span class="set2-dc-strong">Read tickets</span><span class="set2-dc-seg" role="group" aria-label="Sync window">${W.map(([v, l]) => `<button type="button" data-dc="win" data-w="${v}" aria-pressed="${DCU.win === v}">${l}</button>`).join('')}</span>${DCU.win === 'from' ? '<input class="set2-dc-in is-sm" type="date" value="2026-09-01" aria-label="Sync from">' : ''}</div>
-        <span class="set2-dc-meta">${DCU.win === 'last' ? (y === 'never' ? 'This is the first sync, so it reads every ticket for this product.' : 'Picks up where the last sync stopped.') : 'Reads tickets updated in this window again and applies the current rules to them.'}</span>
-        ${DCU.test ? `<div class="set2-dc-vd is-ok">${DCI.flask}<span><b>Test:</b> ${dcN(k)} tickets would sync and ${dcN(d.total - k)} would not. Nothing was written.</span></div>` : ''}
-        <div class="set2-dc-row is-wrap"><span class="set2-dc-meta set2-dc-grow">Also runs every night at 02:00.</span><button class="btn btn-sm" type="button" data-dc="test">${DCI.flask}Test sync</button><button class="btn btn-brand btn-sm" type="button" data-dc="run">${DCI.ref}${dcDirty(d) ? 'Save and run sync' : 'Run sync now'}</button></div></div>`;
+      const W = [['last', 'Since last sync'], ['7', '7 days'], ['30', '30 days'], ['90', '90 days']];
+      run = `<div class="set2-dc-run"><div class="set2-dc-row is-wrap"><span class="agv-k">Read</span><span class="set2-dc-seg" role="group" aria-label="Sync window">${W.map(([v, l]) => `<button type="button" data-dc="win" data-w="${v}" aria-pressed="${DCU.win === v}">${l}</button>`).join('')}</span></div>
+        ${DCU.test ? `<p class="set2-dc-test">${DCI.flask}<span><b>${dcN(k)}</b> would sync, <b>${dcN(d.total - k)}</b> would not. Nothing was written.</span></p>` : ''}
+        <div class="set2-dc-row is-wrap"><span class="set2-dc-grow set2-dc-meta">Also every night at 02:00</span><button class="agv-btn is-ghost" type="button" data-dc="test">Test</button><button class="agv-btn is-brand" type="button" data-dc="run">${dcDirty(d) ? 'Save and sync' : 'Sync now'}</button></div></div>`;
     }
-    return recap + run + dcHist(d);
+    return run + dcHist(d);
   }
   function dcHist(d) {
-    const h = d.hist.length ? `<div class="set2-dc-hist">${d.hist.map((x, i) => `<div class="set2-dc-hr"><b>${esc(x.when)}</b>
-        <span class="${x.res === 'ok' ? 'is-ok' : x.res === 'fail' ? 'is-err' : 'is-warn'}">${x.res === 'ok' ? dcN(x.kept) + ' synced, ' + dcN(x.skip) + ' left out' : x.res === 'fail' ? 'Failed' : 'Skipped by AiMY'}${x.who ? `<span class="set2-dc-sub">${esc(x.who)}</span>` : ''}</span>
-        <span class="set2-dc-mono">${x.took || ''}</span>${x.res === 'ok' ? '<span></span>' : `<button class="set2-dc-lnk" type="button" data-dc="why" data-i="${i}">Why ${x.res === 'fail' ? 'it failed' : 'it was skipped'}</button>`}</div>`).join('')}</div>`
-      : `<div class="set2-dc-empty"><b>No syncs yet</b><span>The first sync shows here with how many tickets it brought in.</span></div>`;
-    return `<h3 class="set2-dc-h3">Sync history</h3>${h}`;
+    if (!d.hist.length) return `<p class="set2-dc-none">No syncs yet.</p>`;
+    return `<div class="set2-dc-th is-hist"><span class="agv-k">History</span></div><div class="set2-dc-list">${d.hist.map((x, i) => `<div class="set2-dc-r is-hist">
+      <span class="set2-dc-n">${esc(x.when)}</span>
+      <span class="${x.res === 'ok' ? 'is-ok' : x.res === 'fail' ? 'is-err' : 'is-warn'}">${x.res === 'ok' ? dcN(x.kept) + ' synced, ' + dcN(x.skip) + ' left out' : x.res === 'fail' ? 'Failed' : 'Skipped'}</span>
+      <span class="set2-dc-e">${x.res === 'ok' ? `<span class="set2-dc-meta">${x.took || ''}</span>` : `<button class="agv-lnk" type="button" data-dc="why" data-i="${i}">Why</button>`}</span></div>`).join('')}</div>`;
   }
   const DC_ED = [dcMap, dcRules, dcFocus, dcSync];
 
-  /* ── THE STAGE CARDS ── each one is the step's result, as a number */
+  /* ── STAGE TILES ── */
   function dcStrip(d, s) {
-    const lost = dcLost(d), nf = dcFocusOn(d).length, h0 = d.hist[0];
+    const lost = dcLost(d), nf = dcFocusOn(d).length, h0 = d.hist[0], now = h0 && /^Today/.test(h0.when);
     const C = [
-      [dcN(d.fields.length), 'of ' + d.cat.n + ' ' + d.crm + ' fields confirmed'],
-      !d.fields.length ? ['0', 'rules, waiting on step 1'] : s[1] === 'fault' ? ['Paused', 'the ' + lost + ' rule can’t run']
-        : !d.rules.length ? ['All', 'tickets sync, no rules yet'] : [dcN(dcKept(d)), 'of ' + dcN(d.total) + ' tickets sync'],
-      [String(nf), nf ? 'fields the Copilot answers with' : 'focus fields, it reads the whole ticket'],
-      d.cat.down ? ['Failed', d.crm + ' isn’t answering'] : ({
-        locked: ['Not yet', 'needs steps 1 and 2'], wait: ['Paused', 'nothing syncs until step 2 is fixed'], fault: ['Failed', 'the last sync failed'],
-        run: [d.sync.pct + '%', 'syncing now'], todo: ['Ready', d.hist.length ? 'not synced since the change' : 'never synced, run it now'],
-        done: [h0 && /^Today/.test(h0.when) ? 'Now' : '02:00', h0 && /^Today/.test(h0.when) ? 'last sync, just finished' : 'last sync, tonight']
-      })[s[3]]
+      [dcN(d.fields.length), 'of ' + d.cat.n + ' fields'],
+      !d.fields.length ? ['0', 'rules'] : s[1] === 'fault' ? ['Paused', lost + ' rule broken'] : !d.rules.length ? ['All', 'tickets sync'] : [dcN(dcKept(d)), 'of ' + dcN(d.total) + ' tickets'],
+      [String(nf), nf ? 'focus fields' : 'reads the whole ticket'],
+      d.cat.down ? ['Failed', d.crm + ' not answering'] : ({ locked: ['Not yet', 'after steps 1 and 2'], wait: ['Paused', 'fix step 2'], fault: ['Failed', 'last sync'],
+        run: [d.sync.pct + '%', 'syncing now'], todo: ['Ready', d.hist.length ? 'not synced since the change' : 'never synced'],
+        done: [now ? 'Now' : '02:00', now ? 'just synced' : 'synced tonight'] })[s[3]]
     ];
     return `<div class="set2-dc-strip" role="tablist" aria-label="Steps">${DC_STEPS.map((n, i) => `
       <button class="set2-dc-stg${DCU.step === i ? ' is-on' : ''}${s[i] === 'fault' ? ' is-err' : ''}" type="button" role="tab" aria-selected="${DCU.step === i}" data-dc-step="${i}">
-        <span class="set2-dc-stg-k">${i + 1}. ${n}</span>
+        <span class="set2-dc-stg-k"><i>${i + 1}</i>${n}</span>
         <span class="set2-dc-stg-n"${i === 3 && s[3] === 'run' ? ' data-dc-pct' : ''}>${C[i][0]}</span>
         <span class="set2-dc-stg-o">${esc(C[i][1])}</span>
         ${i === 3 && s[3] === 'run' ? `<span class="set2-dc-bar"><i data-dc-bar style="width:${d.sync.pct}%"></i></span>` : ''}
         <span class="set2-dc-stg-f">${dcPill(s[i])}${DC_CH[d.cid][i] ? '<span class="set2-dc-unsaved">Not saved</span>' : ''}</span></button>`).join('')}</div>`;
   }
 
-  /* ── THE SAMPLE TICKET, AS ONE LINE ──
-     The full ticket in a column beside the editor took a third of the width
-     from every step, all the time. Its point is one sentence: does this ticket
-     sync, and what does the Copilot see. That sentence lives here, on its own
-     line, and updates as you edit; the whole ticket opens in the column only
-     when asked for. */
+  /* ── THE SAMPLE TICKET, ONE LINE ── */
   function dcTicketLine(d) {
-    const t = DC_TICKETS[DCU.tk], v = dcVerdict(d, t), nf = dcFocusOn(d).length;
-    return `<div class="set2-dc-tk is-${v.c}">${DCI.ticket}
-      <span class="set2-dc-tk-t"><b>Sample ticket #${t.no}</b> ${esc(t.head)}</span>
-      <span class="set2-dc-tk-v">${v.c === 'ok' ? I.tick : v.c === 'none' ? I.lock : DCI.ban}${esc(v.short.charAt(0).toUpperCase() + v.short.slice(1))}</span>
-      <span class="set2-dc-tk-f">${!d.fields.length ? 'AiMY can’t read it yet' : nf ? 'Copilot sees ' + nf + ' fields' : 'Copilot reads all of it'}</span>
-      <span class="set2-dc-row"><button class="set2-dc-lnk" type="button" data-dc="nextTk">Try another (${DCU.tk + 1} of 3)</button>
-      <button class="btn btn-sm" type="button" data-dc="showTk" aria-pressed="${!!(DCU.pan && DCU.pan.type === 'ticket')}">${DCU.pan && DCU.pan.type === 'ticket' ? 'Hide ticket' : 'Show ticket'}</button></span></div>`;
+    const t = DC_TICKETS[DCU.tk], v = dcVerdict(d, t), nf = dcFocusOn(d).length, open = DCU.pan && DCU.pan.type === 'ticket';
+    return `<div class="set2-dc-tk is-${v.c}">${DCI.ticket}<b>#${t.no}</b><span class="set2-dc-tk-h">${esc(t.head)}</span>
+      <span class="set2-dc-tk-v">${v.c === 'ok' ? I.tick : v.c === 'none' ? I.lock : DCI.ban}${v.c === 'ok' ? 'Syncs' : v.c === 'none' ? 'No rules yet' : 'Not synced'}</span>
+      ${d.fields.length ? `<span class="set2-dc-meta">${nf ? 'Copilot sees ' + nf + ' fields' : 'Copilot reads all of it'}</span>` : ''}
+      <button class="agv-lnk set2-dc-sm" type="button" data-dc="nextTk">Another</button>
+      <button class="agv-btn is-ghost set2-dc-sm" type="button" data-dc="showTk" aria-pressed="${!!open}">${open ? 'Close' : 'Open'}</button></div>`;
   }
 
-  /* ── THE COLUMN: a ticket, a field's values, or a run ── */
-  function dcPanHead(title) {
-    return `<div class="set2-dc-pan-h"><b>${title}</b><button class="btn btn-ghost btn-sm set2-dc-ic" type="button" data-dc="panClose" aria-label="Close">${I.x}</button></div>`;
-  }
+  /* ── THE COLUMN ── */
+  const dcPanHead = (k) => `<div class="set2-dc-pan-h"><span class="agv-k">${k}</span>${dcIb('panClose', 'Close', I.x)}</div>`;
   function dcPanTicket(d) {
     const t = DC_TICKETS[DCU.tk], v = dcVerdict(d, t);
-    const rows = DC_FIELDS.map((f) => {
-      const m = dcMapped(d, f.id), fo = m && d.focus[f.id], val = esc(dcTv(t, f.id));
-      if (!m) return `<div class="set2-dc-tf is-raw"><span>${esc(dcKeyOf(d, f.id).replace('custom_fields.', ''))}</span><span>${val} <em>Not read</em></span></div>`;
-      return `<div class="set2-dc-tf${fo ? ' is-foc' : ''}"><span>${esc(fo ? d.focus[f.id] : f.a)}</span><span>${val}${fo ? `<em class="set2-dc-mono is-brand">cf_${f.al}=${dcSlug(dcTv(t, f.id))}</em>` : ''}</span></div>`;
+    const rows = DC_FIELDS.filter((f) => dcMapped(d, f.id)).map((f) => {
+      const fo = d.focus[f.id], val = esc(dcTv(t, f.id));
+      return `<div class="set2-dc-tf${fo ? ' is-foc' : ''}"><span>${esc(fo ? d.focus[f.id] : f.a)}</span><span>${val}</span></div>`;
     }).join('');
-    return `${dcPanHead('Sample ticket #' + t.no)}<div class="set2-dc-pan-b">
-      <div class="set2-dc-ps"><b class="set2-dc-strong">${esc(t.head)}</b><span class="set2-dc-meta">From ${esc(d.crm)}, fetched ${esc(d.cat.at)}. ${dcFocusOn(d).length ? 'Highlighted: what the Copilot answers with.' : ''}</span>
-        <button class="set2-dc-lnk" type="button" data-dc="nextTk">Try another ticket (${DCU.tk + 1} of 3)</button></div>
-      <div class="set2-dc-vd is-${v.c}">${v.c === 'ok' ? I.tick : v.c === 'none' ? I.lock : DCI.ban}<span>${v.t}</span></div>${rows}
-      <div class="set2-dc-ps"><b class="set2-dc-meta">Not read by AiMY</b>${DC_RAW.map(([k, x]) => `<span class="set2-dc-tf is-raw is-bare"><span>${k}</span><span>${x}</span></span>`).join('')}<span class="set2-dc-meta">and ${d.cat.n - 27} more ${esc(d.crm)} fields</span></div></div>`;
+    const unread = d.cat.n - d.fields.length;
+    return `${dcPanHead('Sample ticket')}<div class="set2-dc-pan-b">
+      <div class="set2-dc-ps"><b class="set2-dc-pt">#${t.no} ${esc(t.head)}</b><button class="agv-lnk set2-dc-sm" type="button" data-dc="nextTk">Another ticket</button></div>
+      <p class="set2-dc-vd is-${v.c}">${v.c === 'ok' ? I.tick : v.c === 'none' ? I.lock : DCI.ban}<span>${v.t}</span></p>${rows}
+      <p class="set2-dc-none">${dcN(unread)} more ${esc(d.crm)} fields aren’t read.</p></div>`;
   }
   function dcPanField(d, id) {
     const f = DCF[id], v = d.vals[id], key = dcKeyOf(d, id);
-    const keys = DC_FIELDS.filter((x) => x.t === f.t).map((x) => d.ts ? x.ts : x.k);
-    let b = `<div class="set2-dc-ps"><label class="set2-dc-lab">${esc(d.crm)} field<select class="set2-dc-in" id="dcrep" data-id="${id}">${[key].concat(keys.filter((k) => k !== key)).map((k) => `<option>${esc(k)}</option>`).join('')}</select></label>
-      <span class="set2-dc-meta">${esc(f.lab)} in ${esc(d.crm)}, ${f.t}. ${dcUsedBy(d, id) ? 'Used by ' + dcUsedBy(d, id) + '.' : 'No rule or focus uses it yet.'}</span></div>`;
+    const keys = [key].concat(DC_FIELDS.filter((x) => x.t === f.t).map((x) => d.ts ? x.ts : x.k).filter((k) => k !== key));
+    let b = `<div class="set2-dc-ps"><span class="agv-k">${esc(d.crm)} field</span>${dcDD('rep', d.crm + ' field', key, keys.map((k) => [k, k]))}</div>`;
     if (v) {
       const miss = (DC_UNL[id] || []).filter((c) => !v.some((x) => x[0] === c));
-      b += `<div class="set2-dc-ps"><b class="set2-dc-strong">Value mapping, ${v.length} values</b><span class="set2-dc-meta">${esc(d.crm)} sends a code. AiMY shows the label in rules and answers. Edit a label in place.</span></div>
-        ${miss.length ? `<div class="set2-dc-ps is-warn"><span><b>${esc(d.crm)} also sends ${miss.join(' and ')}</b> for ${esc(f.a)}. Label them, or answers show the number.</span>${miss.map((c) => `<span class="set2-dc-vr"><span class="set2-dc-mono">${c}</span><input class="set2-dc-in is-sm" data-dc-unl="${c}" data-id="${id}" placeholder="Label for ${c}" aria-label="Label for code ${c}"><button class="btn btn-sm" type="button" data-dc="labelCode" data-id="${id}" data-raw="${c}">Add</button></span>`).join('')}</div>` : ''}
-        <div class="set2-dc-vl">${v.map(([r, l]) => `<span class="set2-dc-vr"><span class="set2-dc-mono">${esc(r)}</span><input class="set2-dc-in is-sm" data-dc-vlab="${esc(r)}" data-id="${id}" value="${esc(l)}" aria-label="Label for ${esc(r)}"><button class="btn btn-ghost btn-sm set2-dc-ic" type="button" data-dc="rmMapVal" data-id="${id}" data-raw="${esc(r)}" aria-label="Remove ${esc(r)}">${I.x}</button></span>`).join('')}</div>
-        <div class="set2-dc-ps"><b class="set2-dc-meta">Add a value</b><span class="set2-dc-vr"><input class="set2-dc-in is-sm" id="dcmvr" placeholder="Code" aria-label="Code"><input class="set2-dc-in is-sm" id="dcmvl" placeholder="Label" aria-label="Label"><button class="btn btn-sm" type="button" data-dc="addMapVal" data-id="${id}">Add</button></span></div>`;
+      b += `${miss.length ? `<div class="set2-dc-ps is-warn"><span class="agv-k">Not labelled yet</span>${miss.map((c) => `<span class="set2-dc-vr"><i>${c}</i><input class="set2-dc-u" data-dc-unl="${c}" data-id="${id}" placeholder="Label" aria-label="Label for ${c}"><button class="agv-btn is-ghost set2-dc-sm" type="button" data-dc="labelCode" data-id="${id}" data-raw="${c}">Add</button></span>`).join('')}</div>` : ''}
+        <div class="set2-dc-ps"><span class="agv-k">${v.length} values</span><div class="set2-dc-vl">${v.map(([r, l]) => `<span class="set2-dc-vr"><i>${esc(r)}</i><input class="set2-dc-u" data-dc-vlab="${esc(r)}" data-id="${id}" value="${esc(l)}" aria-label="Label for ${esc(r)}">${dcIb('rmMapVal', 'Remove ' + r, I.x, 'data-id="' + id + '" data-raw="' + esc(r) + '"')}</span>`).join('')}</div>
+        <span class="set2-dc-vr"><input class="set2-dc-u" id="dcmvr" placeholder="Code" aria-label="Code"><input class="set2-dc-u" id="dcmvl" placeholder="Label" aria-label="Label"><button class="agv-btn is-ghost set2-dc-sm" type="button" data-dc="addMapVal" data-id="${id}">Add</button></span></div>`;
     } else {
       const on = d.resolve[id] !== false, list = DC_NAMED[id] || [];
-      b += `<div class="set2-dc-ps"><span class="set2-dc-row"><span class="set2-dc-strong set2-dc-grow">Show names from ${esc(d.crm)}</span>${toggle(on, 'Show names from ' + d.crm, 'data-dc-res="' + id + '"')}</span>
-        <span class="set2-dc-meta">${on ? 'AiMY reads all ' + dcN(f.n) + ' names from ' + esc(d.crm) + ', so rules and answers say “' + esc(list[0] || 'a name') + '” and not an ID. There are too many to label by hand.' : 'AiMY shows the IDs, like 48000123456. Rules must use IDs too.'}</span></div>
-        ${on && list.length ? `<div class="set2-dc-ps"><input class="set2-dc-in is-sm" id="dcqn" placeholder="Find a name" aria-label="Find a name"></div><div class="set2-dc-vl" id="dcnl">${list.map((n) => `<span class="set2-dc-vr is-1" data-name="${esc(n.toLowerCase())}">${esc(n)}</span>`).join('')}<span class="set2-dc-vr is-1 set2-dc-meta">and ${dcN(f.n - list.length)} more</span></div>` : ''}`;
+      b += `<div class="set2-dc-ps"><span class="set2-dc-row"><span class="set2-dc-grow">Show names, not IDs</span>${dcTog(on, 'Show names, not IDs', 'data-dc-res="' + id + '"')}</span>
+        ${on && list.length ? `<input class="set2-dc-u" id="dcqn" placeholder="Find one of ${dcN(f.n)}" aria-label="Find a name"><div class="set2-dc-vl" id="dcnl">${list.map((n) => `<span class="set2-dc-vr is-1" data-name="${esc(n.toLowerCase())}">${esc(n)}</span>`).join('')}</div>` : ''}</div>`;
     }
     return dcPanHead(esc(f.a) + ' values') + `<div class="set2-dc-pan-b">${b}</div>`;
   }
   function dcPanRun(d, i) {
     const h = d.hist[i];
-    const fix = h.res === 'skip' ? (d.rules.some((r) => dcBroken(d, r)) ? `<button class="btn btn-brand btn-sm" type="button" data-dc="remap" data-dc-remap>Map ${esc(dcLost(d))} again</button>` : '')
-      : (d.sync.st === 'failed' ? `<button class="btn btn-brand btn-sm" type="button" data-dc="retry">${d.cat.down ? 'Reconnect' : 'Try again'}</button>` : '');
-    return dcPanHead(h.res === 'fail' ? 'Why it failed' : 'Why it was skipped') + `<div class="set2-dc-pan-b"><div class="set2-dc-ps"><b class="set2-dc-strong">${esc(h.when)}</b><span>${esc(h.why)}</span><span class="set2-dc-row">${fix}</span></div></div>`;
+    const fix = h.res === 'skip' ? (d.rules.some((r) => dcBroken(d, r)) ? `<button class="agv-btn is-brand" type="button" data-dc="remap" data-dc-remap>Map ${esc(dcLost(d))} again</button>` : '')
+      : (d.sync.st === 'failed' ? `<button class="agv-btn is-brand" type="button" data-dc="retry">${d.cat.down ? 'Reconnect' : 'Try again'}</button>` : '');
+    return dcPanHead(h.res === 'fail' ? 'Why it failed' : 'Why it was skipped') + `<div class="set2-dc-pan-b"><div class="set2-dc-ps"><b class="set2-dc-pt">${esc(h.when)}</b><span>${esc(h.why)}</span>${fix ? `<span class="set2-dc-row">${fix}</span>` : ''}</div></div>`;
   }
   function dcPanel(d) {
     const p = DCU.pan;
@@ -7439,7 +7425,7 @@
 
   function secDC(st) {
     const c = crmOf(st);
-    if (!dcTicketSource(c)) return `<div class="set2-dc-note">${I.info}<span>Dynamic context sets up ticket sources. ${esc(c ? c.crm : 'This source')} brings in articles, pages or files, so it has no ticket fields to map. Pick a ticket source, like Freshdesk or TeamSupport, in the scope above.</span></div>`;
+    if (!dcTicketSource(c)) return `<div class="set2-dc-empty"><b>For ticket sources</b><span>${esc(c ? c.crm : 'This source')} has no ticket fields. Pick Freshdesk or TeamSupport above.</span></div>`;
     const d = dcOf(c), s = dcStatus(d);
     if (DCU.cid !== c.id) {
       const first = s.findIndex((x) => x !== 'done');
@@ -7448,17 +7434,17 @@
     }
     const pan = dcPanel(d), n = dcDirty(d), i = DCU.step;
     const where = DC_CH[d.cid].map((x, k) => x ? DC_STEPS[k] : null).filter(Boolean).join(', ');
+    const act = { 0: d.fields.length ? `<label class="set2-dc-find">${I.search}<input class="set2-dc-u" id="dcq" placeholder="Find a field" value="${esc(DCU.q)}" aria-label="Find a mapped field"></label><button class="agv-btn is-brand" type="button" data-dc="addField">Add field</button>` : '' }[i] || '';
     const cat = d.cat.down
-      ? `<div class="set2-dc-cat is-err"><i></i><span>Can’t reach <b>${esc(d.cat.host)}</b>. ${esc(d.cat.down)}</span><button class="btn btn-sm" type="button" data-dc="retry">Reconnect</button></div>`
-      : `<div class="set2-dc-cat"><i></i><span>Field values from <b>${esc(d.cat.host)}</b>, ${d.cat.n} fields, fetched ${esc(d.cat.at)}</span><button class="btn btn-ghost btn-sm${DCU.refreshing ? ' is-busy' : ''}" type="button" data-dc="refresh">${DCI.ref}${DCU.refreshing ? 'Fetching' : 'Refresh catalog'}</button></div>`;
-    const lists = Object.keys(DC_SUGGEST).map((k) => `<datalist id="dcdl-${k}">${DC_SUGGEST[k].map((x) => `<option value="${esc(x)}">`).join('')}</datalist>`).join('');
+      ? `<div class="set2-dc-cat is-err"><i></i><span>Can’t reach <b>${esc(d.cat.host)}</b></span><button class="agv-lnk" type="button" data-dc="retry">Reconnect</button></div>`
+      : `<div class="set2-dc-cat"><i></i><span><b>${esc(d.cat.host)}</b>, ${d.cat.n} fields, fetched ${esc(d.cat.at)}</span>${dcIb('refresh', 'Refresh catalog', DCI.ref, DCU.refreshing ? 'data-busy' : '')}</div>`;
     return `<div class="set2-dc" data-dc-root>${cat}${dcStrip(d, s)}${dcTicketLine(d)}
       <div class="set2-dc-work${pan ? ' has-pan' : ''}"><section class="set2-dc-ed${DCU.swap ? ' is-in' : ''}" aria-label="${esc(DC_STEPS[i])}">
-        <div class="set2-dc-ed-h"><h2>${i + 1}. ${esc(DC_STEPS[i])}</h2><p>${DC_WHAT[i]}</p></div>
+        <div class="set2-dc-ed-h"><div><h2>${esc(DC_STEPS[i])}</h2><p>${DC_WHAT[i]}</p></div><span class="set2-dc-row">${act}</span></div>
         ${DC_ED[i](d)}
-        ${n ? `<div class="set2-us-bar"><span class="set2-us-bar-s"><span class="set2-us-bar-t"><b>${n} change${n > 1 ? 's' : ''} not saved</b> in ${esc(where)}. They apply on the next sync.</span></span>
-          <button class="btn btn-sm" type="button" data-dc="discard">Discard</button><button class="btn btn-brand btn-sm" type="button" data-dc="save">Save</button></div>` : ''}
-      </section>${pan ? `<aside class="set2-dc-pan" aria-label="Details">${pan}</aside>` : ''}</div>${lists}</div>`;
+        ${n ? `<div class="set2-us-bar"><span class="set2-us-bar-s"><span class="set2-us-bar-t"><b>${n} change${n > 1 ? 's' : ''} not saved</b> in ${esc(where)}</span></span>
+          <button class="agv-btn is-ghost" type="button" data-dc="discard">Discard</button><button class="agv-btn is-brand" type="button" data-dc="save">Save</button></div>` : ''}
+      </section>${pan ? `<aside class="set2-dc-pan" aria-label="Details">${pan}</aside>` : ''}</div></div>`;
   }
 
   M.config = function (st) {
@@ -9175,8 +9161,6 @@
      margin, so the line read as the first thing in the CONTENT rather than as
      part of the heading. A description belongs to its title. */
   const PAGE_LEDE = {
-    fields: () => `What AiMY reads from this connector, which tickets it syncs, and what the
-      Copilot answers with. Four steps, in order.`,
     selling: () => `From <b>AiMY Sales</b> — what you pick here is what it
       offers you when you build a campaign.`,
     archive: () => `Out of the library and out of every answer — kept, not deleted.
@@ -11989,8 +11973,8 @@
     addRuleSave(d) {
       const inp = $('#dcnrv'), v = inp ? inp.value.trim() : '';
       if (!v) { if (inp) { inp.placeholder = 'Add a value first'; inp.classList.add('is-err'); inp.focus(); } return; }
-      const u = dcSnap(d), f = $('#dcnrf').value;
-      const r = { id: 'r' + Date.now(), f: f, op: $('#dcnrop').value, v: [v], mode: DCU.nr.m, on: true, eff: Math.round(d.total * 0.02) };
+      const u = dcSnap(d), f = DCU.nr.f;
+      const r = { id: 'r' + Date.now(), f: f, op: DCU.nr.op, v: [v], mode: DCU.nr.m, on: true, eff: Math.round(d.total * 0.02) };
       const k = d.rules.findIndex((x) => x.sys);
       d.rules.splice(k < 0 ? d.rules.length : k, 0, r); dcBump(d, 1); DCU.add = null; DCU.nr = null; render();
       dcToast('Added ' + DCF[f].a + ' to ' + (r.mode === 'Keep' ? 'Only sync' : 'Don’t sync') + ' tickets where.', u);
@@ -12020,6 +12004,14 @@
     const root = e.target.closest && e.target.closest('[data-dc-root]');
     if (!root) return;
     const d = dcCur(); if (!d) return;
+    const sg = e.target.closest('[data-dc-sgpick]');
+    if (sg) {
+      const v = sg.getAttribute('data-dc-sgpick'), f = sg.getAttribute('data-for');
+      if (f === 'new') { const i = $('#dcnrv'); if (i) { i.value = v; sg.parentElement.classList.remove('is-on'); i.focus(); } return; }
+      const r = d.rules.filter((x) => x.id === f)[0];
+      if (r && r.v.indexOf(v) < 0) { r.v.push(v); dcBump(d, 1); dcPaint('[data-dc-addv="' + f + '"]'); }
+      return;
+    }
     const pk = e.target.closest('[data-dc-pick]');
     if (pk && !pk.disabled) { DCU.pick = pk.getAttribute('data-dc-pick'); DCU.addq = ($('#dcaddq') || {}).value || ''; render(); return; }
     const a = e.target.closest('[data-dc]');
@@ -12032,9 +12024,33 @@
       render(() => { DCU.swap = false; });
     }
   });
+  /* Our own suggestion pills under a value field, in place of a datalist. */
+  function dcSuggest(t) {
+    const box = t.parentElement && t.parentElement.querySelector('.set2-dc-sg');
+    if (!box) return;
+    const id = t.getAttribute('data-dc-f'), q = t.value.trim().toLowerCase();
+    const list = (DC_SUGGEST[id] || DC_NAMED[id] || []).filter((v) => !q || v.toLowerCase().indexOf(q) > -1).slice(0, 6);
+    const forId = t.getAttribute('data-dc-addv') || 'new';
+    box.innerHTML = list.map((v) => `<button type="button" class="agv-chip" data-dc-sgpick="${esc(v)}" data-for="${esc(forId)}">${esc(v)}</button>`).join('');
+    box.classList.toggle('is-on', !!list.length);
+  }
+  document.addEventListener('focusin', (e) => {
+    const t = e.target;
+    if (t.closest && t.closest('[data-dc-root]') && t.hasAttribute && t.hasAttribute('data-dc-f')) dcSuggest(t);
+  });
+  document.addEventListener('dd:change', (e) => {
+    const dd = e.target.closest && e.target.closest('[data-dcdd]');
+    if (!dd || !dd.closest('[data-dc-root]')) return;
+    const d = dcCur(); if (!d) return;
+    const v = (e.detail && e.detail.value) || '', k = dd.getAttribute('data-dcdd');
+    if (k === 'rep' && DCU.pan && DCU.pan.id) { d.keys[DCU.pan.id] = v; dcBump(d, 0); render(); }
+    if (k === 'nrf') { DCU.nr.f = v; DCU.nr.op = null; render(); }
+    if (k === 'nrop') DCU.nr.op = v;
+  });
   document.addEventListener('input', (e) => {
     const t = e.target;
     if (!t.closest || !t.closest('[data-dc-root]')) return;
+    if (t.hasAttribute('data-dc-f')) dcSuggest(t);
     if (t.id === 'dcq') { DCU.q = t.value; dcFilter(t.value, '#dctmap tbody tr'); }
     if (t.id === 'dcaddq') { DCU.addq = t.value; dcFilter(t.value, '#dcaddl button'); }
     if (t.id === 'dcqn') dcFilter(t.value, '#dcnl [data-name]');
@@ -12049,7 +12065,6 @@
     if (t.hasAttribute('data-dc-fname')) { const id = t.getAttribute('data-dc-fname'); d.focus[id] = t.value.trim() || DCF[id].a; dcBump(d, 2); render(); return; }
     if (t.hasAttribute('data-dc-vlab')) { const id = t.dataset.id, p = d.vals[id].filter((v) => v[0] === t.getAttribute('data-dc-vlab'))[0]; if (p && t.value.trim() && t.value.trim() !== p[1]) { p[1] = t.value.trim(); dcBump(d, 0); render(); } return; }
     if (t.id === 'dcrep') { d.keys[t.dataset.id] = t.value; dcBump(d, 0); render(); return; }
-    if (t.id === 'dcnrf') { DCU.nr.f = t.value; render(); }
   });
   document.addEventListener('keydown', (e) => {
     const t = e.target;
