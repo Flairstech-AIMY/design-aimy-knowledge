@@ -9578,7 +9578,9 @@
     const aimyLook = m.id === 'webhooks' || (pw && ['fields', 'relevance', 'people', 'roles', 'scopes', 'selling', 'skills'].indexOf(pw.id) > -1);
     /* Skills takes the look without the tile around its sections (Nour). */
     const aimyFlat = pw && pw.id === 'skills';
-    return `<div class="set2-col${m.wide || (pw && pw.wide) ? ' is-wide' : ''}${aimyLook ? ' is-aimy' : ''}${aimyFlat ? ' is-flat' : ''}">`
+    /* Usage keeps its own page and containers; only its controls take the look (Nour). */
+    const aimyCtl = pw && pw.id === 'usage';
+    return `<div class="set2-col${m.wide || (pw && pw.wide) ? ' is-wide' : ''}${aimyLook ? ' is-aimy' : ''}${aimyFlat ? ' is-flat' : ''}${aimyCtl ? ' is-aimy-ctl' : ''}">`
       + head(st)
       + inner + `</div>`;
   }

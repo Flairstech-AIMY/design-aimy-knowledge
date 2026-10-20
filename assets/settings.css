@@ -5888,3 +5888,25 @@ body.is-settings .set2-pop .set2-pop-f:focus, body.is-settings .set2-pop .set2-p
 .set2-col.is-aimy.is-flat .set2-ov-v, .set2-col.is-aimy.is-flat .set2-ov-s, .set2-col.is-aimy.is-flat .set2-ov-chips { grid-column: 1 / -1; margin: 0; }
 .set2-col.is-aimy.is-flat .set2-ov-v { font-weight: var(--fw-semibold); }
 .set2-col.is-aimy.is-flat .set2-ov-card.is-err .set2-sp-note { color: var(--ink-err); }
+
+/* ── USAGE: THE CONTROLS ONLY ──
+   Nour likes the page as it is; buttons, the product switch, search and
+   dropdowns match the AiMY look, and nothing else moves. The limit field
+   (.set2-us-fx) keeps its frame, which says its state. */
+.set2-col.is-aimy-ctl .btn { border-radius: var(--r-pill); font-weight: var(--fw-semibold); }
+.set2-col.is-aimy-ctl .btn-sm { padding: 0.375rem 0.875rem; font-size: 0.8125rem; }
+.set2-col.is-aimy-ctl .btn-ghost { background: transparent; border-color: transparent; box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover); color: var(--ink-primary); }
+.set2-col.is-aimy-ctl .btn-ghost:hover { background: var(--card-bg-raised); }
+.set2-col.is-aimy-ctl .btn:active { transform: scale(0.98); }
+.set2-col.is-aimy-ctl .set2-us-hb[disabled] { box-shadow: inset 0 0 0 0.0625rem var(--card-border); background: transparent; }
+.set2-col.is-aimy-ctl .seg { background: transparent; border: 0; border-radius: var(--r-pill); padding: 0.1875rem; box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover); }
+.set2-col.is-aimy-ctl .seg .seg-btn { border-radius: var(--r-pill); font-weight: var(--fw-semibold); color: var(--ink-secondary); }
+.set2-col.is-aimy-ctl .seg .seg-btn.active { background: rgba(var(--accent-rgb), 0.16); box-shadow: inset 0 0 0 0.0625rem var(--brand); color: var(--ink-primary); }
+/* the sliding highlight carries the wash and the ring, the button stays clear */
+.set2-col.is-aimy-ctl .set2-us-ind { background: rgba(var(--accent-rgb), 0.16); box-shadow: inset 0 0 0 0.0625rem var(--brand); }
+.set2-col.is-aimy-ctl .set2-us-seg.has-ind .seg-btn.active { background: transparent; box-shadow: none; }
+.set2-col.is-aimy-ctl .k-search { border: 0; border-bottom: 0.0625rem solid var(--card-border-hover); border-radius: 0; padding: 0; height: 2rem; background: transparent; }
+.set2-col.is-aimy-ctl .k-search:focus-within { border-bottom-color: var(--brand); box-shadow: none; }
+.set2-col.is-aimy-ctl .set2-dd .v2-dropdown-btn { border-radius: var(--r-pill); background: transparent; border-color: transparent; box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover); padding-inline: 0.875rem 0.75rem; }
+.set2-col.is-aimy-ctl .set2-dd .v2-dropdown-btn:hover { background: var(--card-bg-raised); }
+.set2-col.is-aimy-ctl .set2-dd .v2-dropdown-panel { border-radius: 1rem; }
