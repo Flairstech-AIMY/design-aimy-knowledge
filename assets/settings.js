@@ -5752,7 +5752,7 @@
         ${/* The column of numbers needs a name or it is six figures against
               six words. "Held by" went with the line in the detail; this says
               what they COUNT, which is what the reader is asking. */ ''}
-        <div class="set2-rl-ft">People holding each role.</div>
+
       </aside>`;
   }
 
@@ -5799,9 +5799,7 @@
             <button class="set2-lnk" type="button" data-role-vs="">Show all ${CAP_FLAT.length}</button>
           </div>` : ''}
 
-        ${locks ? `<div class="set2-note" style="margin-top:1rem">${I.lock} <b>Always</b> is not a
-          stronger <b>Full</b>. It marks a capability that cannot be given away: if every admin
-          surrendered it, nothing inside the product could grant it back.</div>` : ''}
+        ${locks ? `<div class="set2-note" style="margin-top:1rem">${I.lock} <b>Always</b> can’t be taken away, so no one can lock the workspace out of it.</div>` : ''}
       </div>`;
   }
 
@@ -6239,8 +6237,7 @@
               ? `<div class="set2-sp-note">and ${fx.people.up.length - 4} more</div>` : ''}
           </div>` : ''}
 
-        <p class="set2-sc-ft"><b class="set2-num">${LEAF_TOTAL}</b> addressable units across six
-          levels. Nothing on this canvas edits the hierarchy.</p>
+        <p class="set2-sc-ft"><b class="set2-num">${LEAF_TOTAL}</b> units across six levels. Read only.</p>
       </aside>`;
   }
 
@@ -6532,7 +6529,7 @@
     return `
       <section class="set2-sec" id="st-window">
         <div class="set2-sec-h"><h2 class="set2-sec-t">Data relevance range</h2></div>
-        <div class="set2-sub">How far back AiMY reads when it answers from ${esc(prodOf(st))}, per data source.</div>
+        <div class="set2-sub">How far back AiMY reads, per data source.</div>
 
         <div class="set2-ret-card">
           ${list.map((c) => `
@@ -6550,8 +6547,6 @@
         ${/* It deletes nothing. That is Trigger delete, further down this page,
               and the two are the settings most often confused for each other —
               so the reference names the heading it points at. */ ''}
-        <p class="set2-fine">Reading only. Nothing is removed here — that is
-          <b>Trigger delete</b>, below.</p>
       </section>`;
   }
 
@@ -7874,10 +7869,10 @@
               reads as unfinished; the sentence under it says the same thing
               in words and the rows say it in numbers. */ ''}
         <div class="set2-sec-h"><h2 class="set2-sec-t">Trigger delete</h2></div>
-        <div class="set2-sub">Remove synced data older than a set threshold, per data source.</div>
+        <div class="set2-sub">Delete synced data older than this, per data source.</div>
         <div class="set2-danger" role="note">
           <span class="set2-danger-i" aria-hidden="true">${I.warn}</span>
-          <span>This action is irreversible. Deleted records cannot be recovered.</span>
+          <span>Deleted records can’t be recovered.</span>
         </div>
         <div class="set2-ret-card">
           ${rows.map((r) => `
@@ -8030,11 +8025,7 @@
                 the pill that is already up here for the same reason. */ ''}
           ${one ? `<span class="set2-sec-end">${pill(e0.last[1], e0.last[2])}${
             whTestBtn(list[0])}</span>` : ''}</div>
-        <div class="set2-sub">Configure endpoints to activate the knowledge enrichment workflow for ${one ? 'this data source' : 'each data source'}.</div>
-        <div class="set2-info" role="note">
-          <span class="set2-info-i" aria-hidden="true">${I.info}</span>
-          <span>These webhooks are called when knowledge enrichment is triggered from your side.</span>
-        </div>
+        <div class="set2-sub">Where AiMY calls you when knowledge enrichment runs${one ? '' : ', per data source'}.</div>
         ${list.map((c, i) => whGroup(c, i, !one)).join('')}
       </section>`;
   };
@@ -8063,7 +8054,7 @@
   function whGroup(c, i, named) {
     const e = ENDPOINTS[c.id];
     const last = e.last[0]
-      ? 'Last call: ' + e.last[0] + ' \u2014 ' + e.last[2]
+      ? 'Last call ' + e.last[0] + ', ' + e.last[2].toLowerCase()
       : 'Never called \u2014 live, but nothing has reached it yet.';
     /* The health was in the pill and only in the pill, which a selector cannot
        read. A quick action has to be able to find the endpoint that is down,
@@ -9285,8 +9276,7 @@
      margin, so the line read as the first thing in the CONTENT rather than as
      part of the heading. A description belongs to its title. */
   const PAGE_LEDE = {
-    selling: () => `From <b>AiMY Sales</b> — what you pick here is what it
-      offers you when you build a campaign.`,
+    selling: () => `What you pick here is what <b>AiMY Sales</b> offers when you build a campaign.`,
     archive: () => `Out of the library and out of every answer — kept, not deleted.
       Restoring one puts it back exactly as it was.`
   };
@@ -9569,7 +9559,10 @@
        whether one of them is open or not. Suppressing the header now would
        leave the page unnamed the moment you pressed a row. */
     const pw = pageOf(st);
-    return `<div class="set2-col${m.wide || (pw && pw.wide) ? ' is-wide' : ''}">`
+    /* The Tone & Voice / Dynamic context look, page by page: Client and
+       User & access. Agents has it natively; Archive and the library don't. */
+    const aimyLook = m.id === 'webhooks' || (pw && ['fields', 'relevance', 'people', 'roles', 'scopes', 'selling'].indexOf(pw.id) > -1);
+    return `<div class="set2-col${m.wide || (pw && pw.wide) ? ' is-wide' : ''}${aimyLook ? ' is-aimy' : ''}">`
       + head(st)
       + inner + `</div>`;
   }

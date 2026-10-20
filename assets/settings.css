@@ -5738,3 +5738,94 @@ button.set2-us-sl:disabled { cursor: not-allowed; }
   .set2-dc-work.has-pan, .set2-dc-panw > .set2-dc-pan { transition: none; }
   .set2-dc-bar i, .set2-dc-stg, .set2-dc-r { transition: none; }
 }
+
+/* ═══ THE AiMY LOOK ON THE OTHER CLIENT AND USER & ACCESS PAGES ════════
+   Nour, 20 Oct: the Tone & Voice / Dynamic context aesthetic everywhere in
+   Client and User & access. Scoped by `.set2-col.is-aimy` (body() sets it for
+   those pages only), so Agents, Archive and the library keep theirs.
+   Sections are 20px tiles with an inset edge; buttons, dropdowns and scope
+   pickers are pills; inputs are underlines; chips and status pills are
+   outlined; rows lose their hairlines and get a raised fill on hover; the
+   selected thing gets the AiMY wash. Modals opened from these pages share
+   the pill buttons and underline inputs. */
+.set2-col.is-aimy .set2-sec { padding: 1.25rem; border-radius: 1.25rem; background: var(--card-bg); box-shadow: inset 0 0 0 0.0625rem var(--card-border); }
+.set2-col.is-aimy .set2-sec + .set2-sec { margin-top: 0.875rem; }
+.set2-col.is-aimy .set2-sec-h { border-bottom: 0; padding-bottom: 0; margin-bottom: 0.25rem; }
+.set2-col.is-aimy .set2-sec-t { font-size: 1.25rem; font-weight: var(--fw-bold); letter-spacing: -0.01em; color: var(--ink-primary); }
+.set2-col.is-aimy .set2-sub { font-size: 0.875rem; color: var(--ink-secondary); margin: 0.125rem 0 1rem; }
+.set2-col.is-aimy #st-scopes.set2-sec { padding: 0; background: none; box-shadow: none; }
+
+/* buttons */
+.set2-col.is-aimy .btn, .set2-modal .btn { border-radius: var(--r-pill); font-weight: var(--fw-semibold); }
+.set2-col.is-aimy .btn-sm, .set2-modal .btn-sm { padding: 0.375rem 0.875rem; font-size: 0.8125rem; }
+.set2-col.is-aimy .btn-ghost, .set2-modal .btn-ghost { background: transparent; border-color: transparent; box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover); color: var(--ink-primary); }
+.set2-col.is-aimy .btn-ghost:hover, .set2-modal .btn-ghost:hover { background: var(--card-bg-raised); }
+.set2-col.is-aimy .btn:active, .set2-modal .btn:active { transform: scale(0.98); }
+.set2-col.is-aimy .set2-fbar > .btn, .set2-col.is-aimy .set2-sc-bar-end > .btn { border-radius: var(--r-pill); }
+.set2-col.is-aimy .set2-wh-copy, .set2-col.is-aimy .set2-ret-del, .set2-col.is-aimy .set2-kebab { border-radius: var(--r-pill); }
+
+/* inputs: an underline, brand when focused */
+.set2-col.is-aimy .set2-fld, .set2-modal .set2-fld { background: transparent; border: 0; border-bottom: 0.0625rem solid var(--card-border-hover); border-radius: 0; padding: 0.4375rem 0; box-shadow: none; }
+.set2-col.is-aimy .set2-wh-f .set2-fld { padding-right: 2.25rem; }
+.set2-col.is-aimy .set2-fld:focus, .set2-col.is-aimy .set2-fld:focus-visible,
+.set2-modal .set2-fld:focus, .set2-modal .set2-fld:focus-visible { outline: none; border-bottom-color: var(--brand); box-shadow: none; }
+.set2-modal .set2-fld.is-bad { border-bottom-color: var(--err); }
+.set2-col.is-aimy .k-search { border: 0; border-bottom: 0.0625rem solid var(--card-border-hover); border-radius: 0; padding: 0; height: 2rem; }
+.set2-col.is-aimy .k-search:focus-within { border-bottom-color: var(--brand); box-shadow: none; }
+
+/* dropdowns and scope pickers: pills */
+.set2-col.is-aimy .set2-dd .v2-dropdown-btn, .set2-col.is-aimy .set2-scope-pick { border-radius: var(--r-pill); background: transparent; border-color: transparent; box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover); }
+.set2-col.is-aimy .set2-dd .v2-dropdown-btn { padding-inline: 0.875rem 0.75rem; }
+.set2-col.is-aimy .set2-dd .v2-dropdown-btn:hover, .set2-col.is-aimy .set2-scope-pick:hover { background: var(--card-bg-raised); }
+.set2-col.is-aimy .set2-dd .v2-dropdown-btn.active-filter { background: var(--aimy-wash); box-shadow: inset 0 0 0 0.0625rem var(--brand); }
+.set2-col.is-aimy .set2-dd .v2-dropdown-panel { border-radius: 1rem; }
+
+/* chips and status pills: outlined */
+.set2-col.is-aimy .set2-chip { background: transparent; box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover); color: var(--ink-primary); }
+.set2-col.is-aimy .set2-chip.is-role { background: var(--aimy-wash); box-shadow: inset 0 0 0 0.0625rem var(--aimy-wash-edge); }
+.set2-col.is-aimy .set2-pill { background: transparent; box-shadow: inset 0 0 0 0.0625rem currentColor; }
+
+/* rows: no hairlines, a raised fill on hover, the AiMY wash when chosen */
+.set2-col.is-aimy .set2-ret-card { border: 0; display: grid; gap: 0.125rem; }
+.set2-col.is-aimy .set2-ret-row { border-radius: var(--r-lg); transition: background var(--t-fast) var(--ease-out); }
+.set2-col.is-aimy .set2-ret-row + .set2-ret-row { border-top: 0; }
+.set2-col.is-aimy .set2-ret-row:hover { background: var(--card-bg-raised); }
+.set2-col.is-aimy .set2-sp-row { border-radius: var(--r-lg); }
+.set2-col.is-aimy .set2-sp-row:hover { background: var(--card-bg-raised); }
+.set2-col.is-aimy .set2-sp-row.is-picked { background: var(--aimy-wash); }
+.set2-col.is-aimy .set2-sp-gt, .set2-col.is-aimy .set2-rl-gt { border-bottom: 0; font-size: 0.75rem; font-weight: var(--fw-semibold); letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--ink-secondary); padding-inline: 0.5rem; }
+.set2-col.is-aimy .set2-rl-cap { border-bottom: 0; border-radius: var(--r-lg); padding-inline: 0.5rem; transition: background var(--t-fast) var(--ease-out); }
+.set2-col.is-aimy .set2-rl-cap:hover { background: var(--card-bg-raised); }
+.set2-col.is-aimy .set2-rl-r { border-radius: var(--r-lg); }
+.set2-col.is-aimy .set2-rl-r.is-on { background: var(--aimy-wash); box-shadow: inset 0 0 0 0.0625rem var(--aimy-wash-edge); }
+.set2-col.is-aimy .set2-wh-grp + .set2-wh-grp { border-top: 0; box-shadow: 0 -0.0625rem 0 var(--card-border); }
+
+/* Full / View / None: the pill switch */
+.set2-col.is-aimy .seg { background: transparent; border: 0; border-radius: var(--r-pill); padding: 0.1875rem; box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover); }
+.set2-col.is-aimy .seg .seg-btn { border-radius: var(--r-pill); font-weight: var(--fw-semibold); color: var(--ink-secondary); transition: background var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out); }
+.set2-col.is-aimy .seg .seg-btn.active { background: rgba(var(--accent-rgb), 0.16); box-shadow: inset 0 0 0 0.0625rem var(--brand); color: var(--ink-primary); }
+
+/* notes */
+.set2-col.is-aimy .set2-info { border: 0; border-radius: 1rem; background: var(--aimy-wash); box-shadow: inset 0 0 0 0.0625rem var(--aimy-wash-edge); }
+.set2-col.is-aimy .set2-danger { border: 0; border-radius: 1rem; box-shadow: inset 0 0 0 0.0625rem var(--err-border); }
+.set2-col.is-aimy .set2-note { border-left: 0; border-radius: 1rem; background: var(--card-bg-raised); padding: 0.75rem 1rem; color: var(--ink-primary); }
+.set2-col.is-aimy .set2-empty { background: transparent; border-radius: 1rem; box-shadow: inset 0 0 0 0.0625rem var(--card-border); }
+
+/* scopes: the canvas and the inspector are tiles; a chosen node gets the wash */
+.set2-col.is-aimy .set2-sc-canvas, .set2-col.is-aimy .set2-sc-insp { border-radius: 1.25rem; box-shadow: inset 0 0 0 0.0625rem var(--card-border); }
+.set2-col.is-aimy .set2-sc-n { border-radius: 0.75rem; }
+.set2-col.is-aimy .set2-sc-n.is-on { background: var(--aimy-wash); border-color: var(--brand); }
+.set2-col.is-aimy .set2-sc-fact { border-radius: var(--r-lg); }
+
+/* small parts */
+.set2-col.is-aimy .set2-ck2 { border-radius: 0.375rem; }
+.set2-col.is-aimy .set2-bulk { border-radius: 1rem; }
+.set2-col.is-aimy .set2-av { box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover); }
+.set2-modal { border-radius: 1.25rem; }
+
+/* the pickers these pages open (client, role, what you sell): same family */
+body.is-settings .set2-pop { border-radius: 1rem; }
+body.is-settings .set2-pop .set2-pop-i { border-radius: var(--r-lg); }
+body.is-settings .set2-pop .set2-pop-i.is-on, body.is-settings .set2-pop .set2-pop-i[aria-pressed="true"] { background: var(--aimy-wash); }
+body.is-settings .set2-pop .set2-pop-f { background: transparent; border: 0; border-bottom: 0.0625rem solid var(--card-border-hover); border-radius: 0; box-shadow: none; }
+body.is-settings .set2-pop .set2-pop-f:focus, body.is-settings .set2-pop .set2-pop-f:focus-visible { outline: none; border-bottom-color: var(--brand); }
