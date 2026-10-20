@@ -5600,7 +5600,7 @@ button.set2-us-sl:disabled { cursor: not-allowed; }
 /* a mapped value on two lines: what Freshdesk sends across the top (with
    remove), what AiMY shows under it, both full width, so a long nested
    value like "AccuRoute Desktop > Scanning" never wraps into a column */
-.set2-dc-vr.is-val { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "raw x" "lab lab"; gap: 0.125rem 0.5rem; padding: 0.5rem 0.625rem; border-radius: 0.75rem; }
+.set2-dc-vr.is-val { min-height: 0; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "raw x" "lab lab"; gap: 0.125rem 0.5rem; padding: 0.5rem 0.625rem; border-radius: 0.75rem; }
 .set2-dc-vr.is-val + .set2-dc-vr.is-val { margin-top: 0.125rem; }
 .set2-dc-vr.is-val:hover, .set2-dc-vr.is-val:focus-within { background: var(--card-bg-raised); }
 .set2-dc-vr.is-val > i { grid-area: raw; align-self: center; }
@@ -5659,7 +5659,10 @@ button.set2-us-sl:disabled { cursor: not-allowed; }
 .set2-dc-ps.is-warn { background: var(--warn-bg); }
 .set2-dc-ps .agv-lnk { justify-self: start; }
 .set2-dc-pt { font-weight: var(--fw-semibold); }
-.set2-dc-vl { display: grid; gap: 0.125rem; max-height: 18rem; overflow: auto; }
+/* rows keep their own height and the list scrolls: with a max-height and
+   min-height on the rows, grid shrank each two-line row to 2rem and it
+   spilled into the next one */
+.set2-dc-vl { display: grid; gap: 0.125rem; max-height: 18rem; overflow: auto; grid-auto-rows: max-content; align-content: start; }
 .set2-dc-vr { display: grid; grid-template-columns: minmax(3.5rem, 38%) minmax(0, 1fr) auto; gap: 0.625rem; align-items: center; min-height: 2rem; }
 /* a subfield in the column: name, then its key under it */
 .set2-dc-sr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.625rem; align-items: center; padding: 0.25rem 0; }
