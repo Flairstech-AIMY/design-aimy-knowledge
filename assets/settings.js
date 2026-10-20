@@ -7081,7 +7081,7 @@
     { id: 'r5', f: 'tags', op: 'contains', v: ['AI_ignore'], mode: 'Skip', on: true, sys: true, eff: 7 }
   ];
   const DC_FOCUS = { ar: 'Affects Product (AR)', rel: 'Accuroute - Relates To', l2: 'Affects Product (AR) L2' };
-  const DC_STEPS = ['Map fields', 'Choose which tickets sync', 'Choose what the Copilot searches by', 'Check and sync'];
+  const DC_STEPS = ['Map fields', 'Choose which tickets sync', 'Search by', 'Check and sync'];
   const DC_WHAT = [
     'What each field means to AiMY. Later steps can only use these.',
     'Which tickets this product syncs. Tickets already synced stay.',
@@ -7337,7 +7337,7 @@
     const groups = {};
     no.forEach((f) => { (groups[f.t] = groups[f.t] || []).push(f.a); });
     const blocked = no.length ? `<p class="set2-dc-none">Can’t be searched by: ${Object.keys(groups).map((t) => groups[t].join(', ') + ' (' + why[t] + ')').join('; ')}.</p>` : '';
-    return `${top}<div class="set2-dc-th is-foc"><span class="agv-k">Search by</span><span class="agv-k">Field</span><span class="agv-k">Name the agent sees</span><span class="agv-k">Tag, for #${t.no}</span></div>
+    return `${top}<div class="set2-dc-th is-foc"><span class="agv-k">On</span><span class="agv-k">Field</span><span class="agv-k">Name the agent sees</span><span class="agv-k">Tag, for #${t.no}</span></div>
       <div class="set2-dc-list" id="dcfocl">${rows}</div>${blocked}`;
   }
 
@@ -7375,7 +7375,7 @@
     const C = [
       [dcN(d.fields.length), 'of ' + d.cat.n + ' fields'],
       !d.fields.length ? ['0', 'rules'] : s[1] === 'fault' ? ['Paused', lost + ' rule broken'] : !d.rules.length ? ['All', 'tickets sync'] : [dcN(dcKept(d)), 'of ' + dcN(d.total) + ' tickets'],
-      [String(nf), nf ? 'fields it searches by' : 'searches the whole ticket'],
+      [String(nf), nf ? 'fields' : 'the whole ticket'],
       d.cat.down ? ['Failed', d.crm + ' not answering'] : ({ locked: ['Not yet', 'after steps 1 and 2'], wait: ['Paused', 'fix step 2'], fault: ['Failed', 'last sync'],
         run: [d.sync.pct + '%', 'syncing now'], todo: ['Ready', d.hist.length ? 'not synced since the change' : 'never synced'],
         done: [now ? 'Now' : '02:00', now ? 'just synced' : 'synced tonight'] })[s[3]]
