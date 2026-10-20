@@ -7144,11 +7144,38 @@
         { when: '19 Oct, 02:00', res: 'ok', kept: 1907, skip: 429, took: '3 min 38 s' },
         { when: '18 Oct, 02:00', res: 'ok', kept: 1899, skip: 425, took: '3 min 51 s' },
         { when: '17 Oct, 14:12', res: 'ok', kept: 1893, skip: 424, took: '4 min 02 s', who: 'Run by Mohamed Hassan, last 30 days' }];
-    } else if (c.health && c.health[0] === 'is-err') {
-      const r = (c.runs || []).filter((x) => x[5])[0];
-      d.cat.down = (r && r[5].why) || 'AiMY could not reach ' + c.crm + '.';
-      d.sync.st = 'failed';
-      d.hist = r ? [{ when: r[0], res: 'fail', why: r[5].why }] : [];
+    } else {
+      /* Every other ticket source opens set up too (Nour 20 Oct): all the
+         standard fields mapped (AccuRoute's own custom fields stay with
+         AccuRoute), the product's form and group kept, the three system
+         tags skipped, Product, Type and Version to search by, and four
+         nightly runs. What the rules skip adds up to the tickets the source
+         holds beyond the synced ones. */
+      const kept = c.records || 400, total = Math.round(kept / 0.82), cut = total - kept;
+      const share = [0.5, 0.26, 0.12, 0.08];
+      const eff = share.map((x) => Math.round(cut * x));
+      eff.push(cut - eff.reduce((x, y) => x + y, 0));
+      d.total = total;
+      d.fields = DC_FIELDS.map((f) => f.id).filter((id) => ['ar', 'rel', 'l2'].indexOf(id) < 0);
+      d.rules = [
+        { id: 'r1', f: 'form', op: 'is one of', v: [c.product], mode: 'Keep', on: true, eff: eff[0] },
+        { id: 'r2', f: 'group', op: 'is one of', v: [c.product], mode: 'Keep', on: true, eff: eff[1] },
+        { id: 'r3', f: 'tags', op: 'contains', v: ['closed_by_merge'], mode: 'Skip', on: true, sys: true, eff: eff[2] },
+        { id: 'r4', f: 'tags', op: 'contains', v: ['ADS_automated_notification_closed'], mode: 'Skip', on: true, sys: true, eff: eff[3] },
+        { id: 'r5', f: 'tags', op: 'contains', v: ['AI_ignore'], mode: 'Skip', on: true, sys: true, eff: eff[4] }
+      ];
+      d.focus = { product: 'Product', type: 'Type', ver: 'Version' };
+      d.subs = { req: ['name', 'email'] };
+      d.sync.st = 'done';
+      const run = (when, k, took, who) => Object.assign({ when, res: 'ok', kept: k, skip: total - k, took }, who ? { who } : {});
+      d.hist = [run('Tonight, 02:00', kept, '2 min 18 s'), run('19 Oct, 02:00', kept - 4, '2 min 11 s'),
+        run('18 Oct, 02:00', kept - 9, '2 min 26 s'), run('17 Oct, 14:12', kept - 12, '2 min 40 s', 'Run by Mohamed Hassan, last 30 days')];
+      if (c.health && c.health[0] === 'is-err') {
+        const r = (c.runs || []).filter((x) => x[5])[0];
+        d.cat.down = (r && r[5].why) || 'AiMY could not reach ' + c.crm + '.';
+        d.sync.st = 'failed';
+        if (r) d.hist.unshift({ when: r[0], res: 'fail', why: r[5].why });
+      }
     }
     return d;
   }
