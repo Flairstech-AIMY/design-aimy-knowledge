@@ -7244,7 +7244,7 @@
         + v.slice(0, 2).map(([r, l]) => `<span><i>${esc(r)}</i> → ${esc(l)}</span>`).join('')
         + (v.length > 2 ? `<b>+${v.length - 2}</b>` : '') + (miss ? `<em>${miss} to label</em>` : '') + '</button>';
     }
-    return `<button class="set2-dc-vp${on}" type="button" data-dc="vals" data-id="${f.id}">${d.resolve[f.id] !== false ? dcN(f.n || 0) + ' names' : 'IDs'}<b>Change</b></button>`;
+    return `<button class="set2-dc-vp${on}" type="button" data-dc="vals" data-id="${f.id}">${d.resolve[f.id] !== false ? 'By name' : 'By ID'}<b>Change</b></button>`;
   }
   function dcLostNote(d) {
     if (!d.rules.some((r) => dcBroken(d, r))) return '';
@@ -7496,14 +7496,19 @@
         ${dcNamesFirst(f) && (f.n || 0) > 20 ? `<button class="agv-lnk set2-dc-sm" type="button" data-dc="useNames" data-id="${id}">Use names from ${esc(d.crm)} instead</button>` : ''}</div>`;
     } else {
       const on = d.resolve[id] !== false, list = DC_NAMED[id] || [];
-      b += `<div class="set2-dc-ps"><span class="set2-dc-row"><span class="set2-dc-grow">Show names, not IDs</span>${dcTog(on, 'Show names, not IDs', 'data-dc-res="' + id + '"')}</span>
-        ${on && list.length ? `<input class="set2-dc-u" id="dcqn" placeholder="Find one of ${dcN(f.n)}" aria-label="Find a name"><div class="set2-dc-vl" id="dcnl">${list.map((n) => `<span class="set2-dc-vr is-1" data-name="${esc(n.toLowerCase())}">${esc(n)}</span>`).join('')}</div>` : ''}
+      /* Freshdesk sends these as IDs. The choice is whether AiMY looks each
+         one up and uses the name, said with an example of each, not a switch
+         called "names". */
+      b += `<div class="set2-dc-ps"><span class="agv-k">How ${esc(f.a)} shows</span>
+        <span class="set2-dc-seg" role="group" aria-label="How ${esc(f.a)} shows"><button type="button" data-dc="setRes" data-id="${id}" data-v="1" aria-pressed="${on}">By name</button><button type="button" data-dc="setRes" data-id="${id}" data-v="0" aria-pressed="${!on}">By ID</button></span>
+        <span class="set2-dc-meta">${on ? esc(d.crm) + ' sends an ID. AiMY looks up the name, so rules and answers say \u201c' + esc(list[0] || 'the name') + '\u201d.' : 'Rules and answers use the ID ' + esc(d.crm) + ' sends, like 48000123456.'}</span>
+        ${on && list.length ? `<span class="agv-k">${dcN(f.n)} in ${esc(d.crm)}</span><input class="set2-dc-u" id="dcqn" placeholder="Find one" aria-label="Find one"><div class="set2-dc-vl" id="dcnl">${list.map((n) => `<span class="set2-dc-vr is-1" data-name="${esc(n.toLowerCase())}">${esc(n)}</span>`).join('')}</div>` : ''}
         <button class="agv-lnk set2-dc-sm" type="button" data-dc="startMap" data-id="${id}">Label values by hand instead</button></div>`;
     }
     if (DC_SUB[id]) {
       const have = (d.subs || {})[id] || [], free = DC_SUB[id].filter((x) => have.indexOf(x[0]) < 0);
       b = `<div class="set2-dc-ps"><span class="agv-k">Subfields</span>
-        ${have.length ? `<div class="set2-dc-vl">${have.map((k) => `<span class="set2-dc-vr"><i>${esc(dcSubKey(d, id, k))}</i><span>${esc(dcSubName(id, k))}</span>${dcIb('ask', 'Remove ' + dcSubName(id, k), I.x, 'data-what="rmSub" data-id="' + id + '" data-sub="' + k + '"')}</span>`).join('')}</div>` : `<span class="set2-dc-meta">None yet. Add the parts of the ${esc(f.a.toLowerCase())} AiMY should read.</span>`}
+        ${have.length ? `<div class="set2-dc-vl">${have.map((k) => `<span class="set2-dc-sr"><span><b>${esc(dcSubName(id, k))}</b><i>${esc(dcSubKey(d, id, k))}</i></span>${dcIb('ask', 'Remove ' + dcSubName(id, k), I.x, 'data-what="rmSub" data-id="' + id + '" data-sub="' + k + '"')}</span>`).join('')}</div>` : `<span class="set2-dc-meta">None yet. Add the parts of the ${esc(f.a.toLowerCase())} AiMY should read.</span>`}
         ${free.length ? `<span class="set2-dc-vals">${free.map((x) => `<button class="agv-chip set2-dc-seen" type="button" data-dc="subAdd" data-id="${id}" data-sub="${x[0]}">${I.plus}${esc(x[1])}</button>`).join('')}</span>` : ''}</div>` + b;
     }
     return dcPanHead(esc(f.a) + (DC_SUB[id] ? '' : ' values')) + `<div class="set2-dc-pan-b">${b}</div>`;
@@ -12119,6 +12124,7 @@
       render(() => { const b = $('[data-cf-ok]'); if (b) b.focus(); });
     },
     cfCancel() { DCU.confirm = null; render(); },
+    setRes(d, el) { const id = el.dataset.id, v = el.dataset.v === '1'; if ((d.resolve[id] !== false) === v) return; d.resolve[id] = v; dcBump(d, 0); render(); },
     addSub(d, el) { if (DCU.pan && DCU.pan.type === 'field' && DCU.pan.id === el.dataset.id) return; dcOpenPan({ type: 'field', id: el.dataset.id }); },
     subAdd(d, el) {
       const u = dcSnap(d), id = el.dataset.id, k = el.dataset.sub;

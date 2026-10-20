@@ -5625,6 +5625,10 @@ button.set2-us-sl:disabled { cursor: not-allowed; }
 .set2-dc-pt { font-weight: var(--fw-semibold); }
 .set2-dc-vl { display: grid; gap: 0.125rem; max-height: 18rem; overflow: auto; }
 .set2-dc-vr { display: grid; grid-template-columns: 3.5rem minmax(0, 1fr) auto; gap: 0.625rem; align-items: center; min-height: 2rem; }
+/* a subfield in the column: name, then its key under it */
+.set2-dc-sr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.625rem; align-items: center; padding: 0.25rem 0; }
+.set2-dc-sr b { display: block; font-weight: var(--fw-semibold); color: var(--ink-primary); }
+.set2-dc-sr i { display: block; font-style: normal; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-secondary); overflow-wrap: anywhere; }
 .set2-dc-vr > i { font-style: normal; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-secondary); }
 .set2-dc-vr.is-1 { grid-template-columns: 1fr; color: var(--ink-primary); }
 .set2-dc-vd { margin: 0 0.25rem; display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.75rem 1rem; border-radius: 1rem; font-size: 0.875rem; color: var(--ink-primary); }
