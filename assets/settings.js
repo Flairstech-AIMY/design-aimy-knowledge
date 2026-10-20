@@ -10409,9 +10409,18 @@
       const at = list.indexOf(val);
       if (at > -1) list.splice(at, 1); else list.push(val);
       DIRTY.add('reach:' + sid);
+      /* ── PICKING DOESN'T REBUILD THE MENU ──
+         It used to repaint the menu from scratch, which replayed its opening
+         animation on every tick: a jump under the pointer. The ticked item
+         changes in place; after the page repaints, the same menu is only
+         re-anchored to the new Edit button, with no animation. */
+      const pop = document.getElementById('setPop');
+      rv2.classList.toggle('is-on', at < 0);
+      rv2.setAttribute('aria-pressed', String(at < 0));
       render();
       const anchor = $('[data-pick-' + (kind === 'agents' ? 'ag' : 'pr') + '="' + sid + '"]');
-      if (anchor) paintReachPick(anchor, s0, kind); else closePop();
+      if (pop && pop.isConnected && anchor) { POP_OPENER = anchor; placePop(pop, anchor); }
+      else if (anchor) paintReachPick(anchor, s0, kind); else closePop();
       return;
     }
 
