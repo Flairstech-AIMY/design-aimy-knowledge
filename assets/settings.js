@@ -2177,7 +2177,7 @@
             <p class="set2-ov-s">${esc(TRIGGER_WHY[s.trigger])}</p>
           </div>
           ${reachCard(s, 'Agents', 'ag', ag.map(agentName), 'is-role',
-                      'None, so this skill can2019t run.')}
+                      'None, so this skill can’t run.')}
           ${reachCard(s, 'Products', 'pr', pr, 'is-scope',
                       'None, so this skill applies nowhere.')}
           <div class="set2-ov-card">
