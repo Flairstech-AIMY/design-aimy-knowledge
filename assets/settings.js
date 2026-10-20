@@ -7229,10 +7229,10 @@
     const rows = d.fields.map((id) => DCF[id]).map((f) => {
       const sel = DCU.pan && DCU.pan.type === 'field' && DCU.pan.id === f.id, ub = dcUsedBy(d, f.id), key = dcKeyOf(d, f.id);
       return `<div class="set2-dc-r is-map${sel ? ' is-sel' : ''}" data-name="${esc((f.a + ' ' + key).toLowerCase())}">
-        <span class="set2-dc-n">${esc(f.a)}</span>
+        <span class="set2-dc-n">${esc(f.a)}${ub ? `<span class="set2-dc-at">${ub}</span>` : ''}</span>
         <span class="set2-dc-key">${esc(key)}</span>
         <span class="set2-dc-v">${dcValCell(d, f)}</span>
-        <span class="set2-dc-e">${ub ? `<span class="agv-chip">${ub}</span>` : ''}${dcIb('rmField', 'Remove ' + f.a, I.trash, 'data-id="' + f.id + '"')}</span></div>`;
+        <span class="set2-dc-e">${dcIb('rmField', 'Remove ' + f.a, I.trash, 'data-id="' + f.id + '"')}</span></div>`;
     }).join('');
     return `${dcLostNote(d)}
       <div class="set2-dc-th is-map"><span class="agv-k">AiMY field</span><span class="agv-k">${esc(d.crm)} key</span><span class="agv-k">Values</span><span></span></div>
