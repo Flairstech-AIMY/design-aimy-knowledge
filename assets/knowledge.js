@@ -15648,9 +15648,14 @@
   const USE_FALLBACK = { limit: 300, used: 93, unit: 'chats', slice: 500, month: 'October', sessLimit: 50,
                          sessPer: 'per working day', resets: '1 Nov',
                          org: 'FlairsTech', orgPlan: 6, orgExtra: 1, price: 150, orgPaceExtra: 3, monthEnd: '31 Oct',
+                         units: [{ id: 'copilot', name: 'Chats', unit: 'chats', used: 93, limit: 300, slice: 500, price: 150, orgExtra: 1, sessLimit: 50 },
+                                 { id: 'cptix', name: 'Tickets', unit: 'tickets', used: 24, limit: 120, slice: 200, price: 100, orgExtra: 0, sessLimit: 25 }],
                          link: 'console.html?m=agents&sec=usage' };
-  /* Copilot counts chats (Nour 21 Oct), so the short window is today's chats. */
+  /* Copilot counts chats (Nour 21 Oct), so the short window is today's chats;
+     tickets answered today are their own count (USE_TODAY by unit id). */
   let USE_SESSION = 7;
+  const USE_TODAY = { cptix: 2 };
+  const useToday = (x) => x.id === 'copilot' || !x.id ? USE_SESSION : (USE_TODAY[x.id] || 0);
   const useNow = () => {
     const S = window.AIMY_SETTINGS;
     return S && S.usageMine ? S.usageMine() : USE_FALLBACK;
@@ -15683,35 +15688,40 @@
      link that leaves, so it ends in an arrow, not an ellipsis (an ellipsis
      promises a dialog). */
   /* What YOUR use today costs, said where today's use is (Nour 21 Oct: the
-     widget is personal). Once your organization is past its plan, each unit
-     is billed at the slice price spread over the slice; before that, your
-     use is included. */
-  const useCostToday = (u) => {
-    if (!u.org || !u.price || !u.slice) return '';
-    if (!u.orgExtra) return 'Included in your plan. ';
-    const c = USE_SESSION * u.price / u.slice;
-    return `<span class="is-warn">$${c.toFixed(2)}</span> extra. `;
+     widget is personal). A unit whose plan your organization is past is
+     billed at the slice price spread over the slice; one still within it is
+     included, and says so when the other is not. */
+  const useCostToday = (units) => {
+    const billed = units.filter((x) => x.orgExtra && x.price && x.slice);
+    if (!billed.length) return 'Included in your plan. ';
+    const c = billed.reduce((a, x) => a + useToday(x) * x.price / x.slice, 0);
+    const inc = units.filter((x) => !x.orgExtra).map((x) => x.unit);
+    return `<span class="is-warn">$${c.toFixed(2)}</span> extra${inc.length ? ', ' + esc(inc.join(' and ')) + ' included' : ''}. `;
   };
   const useMeter = (p, lv) => `<span class="use-pop-m ${lv}" aria-hidden="true"><i style="--p:${Math.min(1, Math.max(0, p)).toFixed(4)}"></i></span>`;
   function usePopBody(u) {
-    const past = useLevel(u.used, u.limit);
-    const sess = useLevel(USE_SESSION, u.sessLimit);
-    const sp = useSliceP(u);
-    return `
+    /* one block per unit Copilot counts (chats, tickets), then today across them */
+    const units = u.units && u.units.length ? u.units : [Object.assign({ name: 'Usage' }, u)];
+    const month = (x) => {
+      const past = useLevel(x.used, x.limit), sp = useSliceP(x);
+      return `
       <div class="use-pop-g">
-        <div class="use-pop-r"><span>${esc(u.month || 'This month')}</span>
-          <b>Slice ${useSliceN(u)}, ${Math.round(sp * 100)}% full</b></div>
+        <div class="use-pop-r"><span>${esc(x.name)}, ${esc(u.month || 'this month')}</span>
+          <b>Slice ${useSliceN(x)}, ${Math.round(sp * 100)}% full</b></div>
         ${useMeter(sp, '')}
-        <p class="use-pop-s"><b>${useFmt(u.used)}</b> ${esc(u.unit)} so far. ${past
-          ? `<span class="is-warn">${useFmt(u.used - u.limit)} past your share of ${useFmt(u.limit)}</span>; you can keep going.`
-          : `Your share is ${useFmt(u.limit)}.`}</p>
-      </div>
+        <p class="use-pop-s"><b>${useFmt(x.used)}</b> ${esc(x.unit)} so far. ${past
+          ? `<span class="is-warn">${useFmt(x.used - x.limit)} past your share of ${useFmt(x.limit)}</span>; you can keep going.`
+          : `Your share is ${useFmt(x.limit)}.`}</p>
+      </div>`;
+    };
+    /* the daily share is only said when you pass it (Nour: simplify) */
+    const overDay = units.filter((x) => x.sessLimit != null && useToday(x) > x.sessLimit);
+    return `${units.map(month).join('')}
       <div class="use-pop-g">
         <div class="use-pop-r"><span>Today</span>
-          <b class="${sess}">${useFmt(USE_SESSION)} ${esc(u.unit)}</b></div>
-        <p class="use-pop-s">${useCostToday(u)}${u.sessLimit == null ? ''
-          : sess ? `<span class="is-warn">Past the ${useFmt(u.sessLimit)} share for one day</span>; you can keep going.`
-          : `Share: ${useFmt(u.sessLimit)} a day.`}</p>
+          <b class="${overDay.length ? 'is-warn' : ''}">${units.map((x) => useFmt(useToday(x)) + ' ' + esc(x.unit)).join(', ')}</b></div>
+        <p class="use-pop-s">${useCostToday(units)}${overDay.length
+          ? `<span class="is-warn">Past today’s ${esc(overDay.map((x) => x.unit).join(' and '))} share</span>; you can keep going.` : ''}</p>
       </div>
       <a class="use-pop-a" href="${esc(u.link)}"><span>Usage</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>`;
   }

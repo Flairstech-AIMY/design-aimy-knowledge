@@ -12542,6 +12542,14 @@
     return { limit: usLimit(m, US_ME.id), used: usUsed(m, US_ME.id), unit: m.unit, slice: US_SLICE[m.id], month: US_PERIOD.name,
              org: usAt(US_ME.org).n.name, orgPlan: oPlan, orgExtra: usExtraN(m, US_ME.org, oU), price: US_PRICE[m.id], orgPaceExtra: oPace,
              monthEnd: US_PERIOD.days + ' ' + US_PERIOD.short,
+             /* every unit Copilot counts (chats, tickets), each with its own share,
+                slice and price; the popover lists them all (Nour 21 Oct) */
+             units: usUnits(m.prod).map((x) => {
+               const ou = usUsed(x, US_ME.org);
+               return { id: x.id, name: x.uname, unit: x.unit, used: usUsed(x, US_ME.id), limit: usLimit(x, US_ME.id),
+                        slice: US_SLICE[x.id], price: US_PRICE[x.id], orgExtra: usExtraN(x, US_ME.org, ou),
+                        sessLimit: x.sess ? US_SESS[x.id][US_ME.org] : null };
+             }),
              sessLimit: m.sess ? US_SESS[m.id][US_ME.org] : null, sessPer: m.sess ? m.sess.per : '',
              resets: US_PERIOD.resets,
              /* The page as the rail opens it: the plan, all organisations.
