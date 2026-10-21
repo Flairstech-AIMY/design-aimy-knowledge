@@ -280,6 +280,7 @@
     all('[data-nt-draft]').forEach((i) => { i.placeholder = hint(); i.setAttribute('aria-label', hint()); });
     if (cvParts && cvParts.ov.classList.contains('is-meeting')) cvParts.input.setAttribute('placeholder', hint());
     slots('status').forEach((e) => { e.textContent = STATUS[S.phase] || ''; });
+    if (cvParts) { const b = $('.nt-back span', cvParts.ov); if (b) b.textContent = live ? 'Back to the meeting' : 'Close'; }
     slots('chat-sub').forEach((e) => { e.textContent = 'Meeting, ' + (STATUS[S.phase] || '').toLowerCase(); });
     if (!live) slots('who').forEach((e) => { e.textContent = 'The meeting has ended'; });
     slots('count').forEach((e) => {
@@ -585,9 +586,17 @@
      card above the command bar: it reaches you with the orb collapsed or
      closed. Pressing it opens the notes. Built from the analysis (decisions,
      to-dos and whose they are) and the summary, not written separately. */
+  /* Opening the notes from outside the widget (the message card, the bell)
+     goes to the canvas: that is where a finished meeting is read. */
+  function openInCanvas(tab) {
+    S.closed = false;
+    if (tab && tab !== S.tab) { S.drafts[S.tab] = S.draft; S.tab = tab; S.draft = S.drafts[tab] || ''; syncDraft(null); }
+    if (S.view === 'canvas') { paint(); scrollAll(true); return; }
+    toCanvas();
+  }
   function say(kind) {
     const k = K(); if (!k || !k.say) return;
-    const open = (tab) => () => { S.closed = false; S.tab = tab; if (S.view === 'canvas') paint(); else setView('card'); };
+    const open = (tab) => () => openInCanvas(tab);
     if (kind === 'fail') {
       k.say(`The summary for <b>${MEET}</b> didn’t finish. The recording and the transcript are safe, and nothing was sent.`, open('chat'));
       return;
@@ -749,15 +758,19 @@
     const here = cvParts && cvParts.ov.classList.contains('is-meeting');
     if (here) $$('.ov-chat.is-here', host).forEach((b) => { b.classList.remove('is-here'); b.removeAttribute('aria-current'); });
     const find = $('.ov-chat-find', host); if (!find) return;
-    find.insertAdjacentHTML('afterend', `<div class="ov-chat-group nt-chat-now"><div class="ov-chat-cap">${isLive() ? 'Now' : 'Today'}</div>
-      <div class="ov-chat-row"><button class="ov-chat${here ? ' is-here' : ''}" type="button" data-nt-row ${here ? 'aria-current="true"' : ''}>
+    const row = `<div class="ov-chat-row"><button class="ov-chat${here ? ' is-here' : ''}" type="button" data-nt-row ${here ? 'aria-current="true"' : ''}>
         <span class="ov-chat-lines"><span class="ov-chat-name">${isLive() ? rec : ''}${MEET}</span><span class="ov-chat-agent" data-nt="chat-sub">Meeting, ${(STATUS[S.phase] || '').toLowerCase()}</span></span>
-      </button></div></div>`);
+      </button></div>`;
+    /* Running, it is the only thing under Now. Over, it is one of today's
+       conversations, first in the group the column already has. */
+    const today = !isLive() && $$('.ov-chat-group', host).find((g) => /^today$/i.test(($('.ov-chat-cap', g) || {}).textContent || ''));
+    if (today) { $('.ov-chat-cap', today).insertAdjacentHTML('afterend', row); return; }
+    find.insertAdjacentHTML('afterend', `<div class="ov-chat-group nt-chat-now"><div class="ov-chat-cap">${isLive() ? 'Now' : 'Today'}</div>${row}</div>`);
   }
   /* Rows for the topnav bell, in its own shape. */
   function bellRows() {
     return S.nfs.map((n) => ({ id: n.id, type: 'Meeting notes', when: n.at, body: n.t + '. ' + n.x, cta: n.go === 'retry' ? 'Try again' : 'Open the notes',
-      needs: 'canvas', nav: 'console.html', go: () => { S.closed = false; if (n.go === 'retry' && S.phase === 'failed') retry(); S.tab = 'notes'; if (S.view === 'fold') setView('card'); else paint(); } }));
+      needs: 'canvas', nav: 'console.html', go: () => { if (n.go === 'retry' && S.phase === 'failed') { retry(); openInCanvas('chat'); } else openInCanvas('notes'); } }));
   }
   /* The prototype panel's "Meeting notes, each state". */
   const JUMPS = {
