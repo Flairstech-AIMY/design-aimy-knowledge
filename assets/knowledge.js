@@ -3380,6 +3380,10 @@
     </div>`;
   }
 
+  /* What the bell lists: anything the notetaker has finished (its rows carry
+     the same fields and a `go`), then what needs you. */
+  const bellRows = () => (window.AIMY_NOTES ? window.AIMY_NOTES.bellRows() : []).concat(needsYou());
+
   const bell = {
     btn: null, panel: null, list: null, dot: null, count: null, open: false, read: {},
 
@@ -3409,7 +3413,7 @@
 
       const clear = $('#ntfClear');
       if (clear) clear.addEventListener('click', () => {
-        needsYou().forEach((t) => { this.read[t.id] = true; });
+        bellRows().forEach((t) => { this.read[t.id] = true; });
         this.paint();
         this.sync();
       });
@@ -3452,7 +3456,7 @@
        without anything having to remember to tell it. */
     sync() {
       if (!this.btn) return;
-      const n = needsYou().filter((t) => !this.read[t.id]).length;
+      const n = bellRows().filter((t) => !this.read[t.id]).length;
       if (this.count) { this.count.textContent = n; this.count.hidden = n === 0; }
       if (this.dot) this.dot.hidden = n === 0;
       this.btn.setAttribute('aria-label', n === 0
@@ -3462,7 +3466,7 @@
     },
 
     paint() {
-      const q = needsYou();
+      const q = bellRows();
       this.list.innerHTML = '';
       if (!q.length) {
         const empty = document.createElement('li');
@@ -8745,6 +8749,9 @@
       ${q && !others.length
         ? `<p class="ov-chat-none">Nothing else matches “${esc(CHAT_Q)}” — in a title or in anything said.</p>`
         : ''}`;
+    /* A meeting AiMY is taking notes in is the first row while it runs
+       (notetaker.js). It lives there, not in THREADS: it is not a thread. */
+    if (window.AIMY_NOTES) window.AIMY_NOTES.chatRow(host);
     /* The caret goes back where it was: repainting the column on every
        keystroke would otherwise send it to the end of the word. */
     const box = $('#chatFind');
@@ -11348,6 +11355,11 @@
       ['Usage, other days in October', 'Opens Agents > Usage on that day, use carried on at the same pace.', [
         ['6 Oct', 'us:6'], ['22 Oct, today', 'us:22'], ['28 Oct', 'us:28']
       ]],
+      /* AIMY-2684: the meeting notetaker (notetaker.js) in each state. */
+      ['Meeting notes, each state', 'The Silk companion over the Console, on the Upland check-in.', [
+        ['collapsed', 'nt:collapsed'], ['card', 'nt:card'], ['canvas', 'nt:canvas'], ['paused', 'nt:paused'],
+        ['after the meeting', 'nt:after'], ['notes ready', 'nt:ready'], ['too short', 'nt:short'], ['failed', 'nt:failed'], ['off', 'nt:off']
+      ]],
       /* Your usage widget (the AiMY mark's popover) in each state. */
       ['Usage widget, each state', 'Opens your usage on the AiMY mark in that state.', [
         ['chats over, tickets within', 'uw:chats'], ['over on both', 'uw:both'], ['within both', 'uw:none']
@@ -11408,6 +11420,7 @@
       return;
     }
     if (kind === 'uw') { useScenario(arg); return; }
+    if (kind === 'nt') { if (window.AIMY_NOTES) { proto.toggle(false); window.AIMY_NOTES.jump(arg); } return; }
     if (kind === 'us') {
       const S = window.AIMY_SETTINGS;
       if (S && S.usDay) S.usDay(+arg);
@@ -16534,6 +16547,14 @@
        stage rather than a dead end. */
     if (forcedState === 'loading') setTimeout(() => { location.href = location.pathname; }, 2200);
   }
+
+  /* The few things notetaker.js needs from this file, and nothing else. */
+  window.AIMY_KNOW = {
+    canvas: { show: (basis) => canvas.show(basis), close: (opts) => canvas.close(opts), isOpen: () => canvas.open },
+    toast: (msg, undo, sub) => toast(msg, undo, sub),
+    paintChats: () => paintChats(),
+    bellSync: () => bell.sync()
+  };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
