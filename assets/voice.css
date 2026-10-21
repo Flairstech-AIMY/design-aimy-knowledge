@@ -348,7 +348,7 @@ body.vx-staged { overflow: hidden; }
 .vx-end { background: var(--ink-primary); color: var(--body-bg); }
 .vx-end:hover { opacity: 0.88; }
 
-/* The Meeting note taker: a labelled pill on its own line under mute and end,
+/* Take meeting notes: a labelled pill on its own line under mute and end,
    because what it does is not a glyph anyone already knows, and an icon
    needing a tooltip has none on a phone. Only where notetaker.js is loaded;
    without it the break is gone too and the pair sits exactly as before. */

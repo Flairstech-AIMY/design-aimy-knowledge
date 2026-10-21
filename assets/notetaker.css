@@ -252,7 +252,7 @@
 .vx-stage.nt-asking .vx-state { display: none; }
 /* While it asks, the orb steps back so the question always fits above the
    dock, however short the window: smaller, and sized to the height as well
-   as the width. The Meeting note taker pill is the button that asked, so it goes
+   as the width. The Take meeting notes pill is the button that asked, so it goes
    until the answer. */
 .vx-stage .vx-orb { transition: width var(--t-slow) var(--ease-out); }
 .vx-stage.nt-asking .vx-orb { width: min(11rem, 22vh, 40vw); }

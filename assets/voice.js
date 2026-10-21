@@ -500,12 +500,12 @@
         '<div class="vx-dock">' +
           `<button class="vx-round vx-mute" type="button" aria-pressed="false" aria-label="Mute" title="Mute">${svg(I.mic, 22, 'vx-i-on')}${svg(I.micOff, 22, 'vx-i-off')}</button>` +
           `<button class="vx-round vx-end" type="button" aria-label="End the voice session" title="End">${svg(I.x, 22)}</button>` +
-          /* The Meeting note taker, where the page has it (notetaker.js, Knowledge's
+          /* Take meeting notes, where the page has the notetaker (notetaker.js, Knowledge's
              Console): on its own line under the pair, so mute and end stay
              the call's two controls. Without it the pill never shows, so
              this file still works unchanged on every other page. */
           '<span class="vx-dock-br" aria-hidden="true"></span>' +
-          `<button class="vx-notes" type="button" hidden>${svg(I.notes, 18)}Meeting note taker</button>` +
+          `<button class="vx-notes" type="button" hidden>${svg(I.notes, 18)}Take meeting notes</button>` +
         '</div>' +
       '</div>');
     stage = $('#vxStage');
