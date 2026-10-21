@@ -6616,10 +6616,11 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
 .type-card .tc-kind svg { width: 0.75rem; height: 0.75rem; }
 /* The one coloured thing on the card, and it is four characters wide. */
 .tc-st {
-  display: inline-flex; align-items: center; gap: 0.25rem;
+  display: inline-flex; align-items: center; gap: 0.375rem;
   font-weight: var(--fw-semibold); color: var(--st);
 }
-.tc-dot { width: 0.375rem; height: 0.375rem; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.tc-st svg { width: 0.875rem; height: 0.875rem; flex-shrink: 0; }
+.tc-st > span { color: var(--ink-primary); }
 .tc-who {
   max-width: 12ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   background: none; border: 0; padding: 0; cursor: pointer;

@@ -4052,15 +4052,16 @@
       : exit;
   }
 
-  /* Status as ink, not as a pill above the title. The dot and the word take the
-     status tone and sit INSIDE the meta line, where colour and weight carry
+  /* Status as ink, not as a pill above the title. The status icon takes the
+     tone and the word stays ink (Nour 21 Oct: keep the icons on the card);
+     they sit INSIDE the meta line, where colour and weight carry
      them without outranking the document's name — the same move GitHub makes
      for open and closed. The card's left edge takes the tone too, so a
      screenful reads at a glance and a document with nothing wrong stays quiet. */
   function statusInk(o) {
     const s = STATUS[o.status];
     return `<span class="tc-st" title="${esc(o.statusSet
-      ? 'Set by ' + (o.statusBy || USER.owner) + '. ' + s.why : s.why)}"><i class="tc-dot"></i>${esc(s.label)}` +
+      ? 'Set by ' + (o.statusBy || USER.owner) + '. ' + s.why : s.why)}">${s.ico}<span>${esc(s.label)}</span>` +
       `${o.statusSet ? '<span class="pin-dot" aria-label="set by hand"></span>' : ''}</span>`;
   }
 
