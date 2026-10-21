@@ -15682,6 +15682,16 @@
      has nothing to fill, so it says so and draws no meter. The way out is a
      link that leaves, so it ends in an arrow, not an ellipsis (an ellipsis
      promises a dialog). */
+  /* What YOUR use today costs, said where today's use is (Nour 21 Oct: the
+     widget is personal). Once your organization is past its plan, each unit
+     is billed at the slice price spread over the slice; before that, your
+     use is included. */
+  const useCostToday = (u) => {
+    if (!u.org || !u.price || !u.slice) return '';
+    if (!u.orgExtra) return 'Included in your plan. ';
+    const c = USE_SESSION * u.price / u.slice;
+    return `<span class="is-warn">$${c.toFixed(2)}</span> extra. `;
+  };
   const useMeter = (p, lv) => `<span class="use-pop-m ${lv}" aria-hidden="true"><i style="--p:${Math.min(1, Math.max(0, p)).toFixed(4)}"></i></span>`;
   function usePopBody(u) {
     const past = useLevel(u.used, u.limit);
@@ -15696,19 +15706,12 @@
           ? `<span class="is-warn">${useFmt(u.used - u.limit)} past your share of ${useFmt(u.limit)}</span>; you can keep going.`
           : `Your share is ${useFmt(u.limit)}.`}</p>
       </div>
-      ${u.org ? `<div class="use-pop-g">
-        <div class="use-pop-r"><span>Extra this month</span>
-          <b class="${u.orgExtra ? 'is-warn' : ''}">$${useFmt(u.orgExtra * u.price)}</b></div>
-        <p class="use-pop-s">${u.orgExtra
-          ? `${esc(u.org)}, ${u.orgExtra} slice${u.orgExtra === 1 ? '' : 's'} past the plan.`
-          : `${esc(u.org)} is within its plan.`}</p>
-      </div>` : ''}
       <div class="use-pop-g">
         <div class="use-pop-r"><span>Today</span>
           <b class="${sess}">${useFmt(USE_SESSION)} ${esc(u.unit)}</b></div>
-        <p class="use-pop-s">${u.sessLimit == null ? 'No session share'
+        <p class="use-pop-s">${useCostToday(u)}${u.sessLimit == null ? ''
           : sess ? `<span class="is-warn">Past the ${useFmt(u.sessLimit)} share for one day</span>; you can keep going.`
-          : `Share ${esc(u.sessPer || 'per working day')}: ${useFmt(u.sessLimit)} ${esc(u.unit)}`}</p>
+          : `Share: ${useFmt(u.sessLimit)} a day.`}</p>
       </div>
       <a class="use-pop-a" href="${esc(u.link)}"><span>Usage</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>`;
   }

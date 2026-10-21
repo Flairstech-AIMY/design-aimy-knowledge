@@ -8022,6 +8022,8 @@ button.aimy-float-icon:focus-visible { outline: 0.125rem solid var(--brand); out
   font-variant-numeric: tabular-nums; white-space: nowrap;
 }
 .use-pop-r b.is-warn { color: var(--ink-warn); }
+/* a cost or a past-share note inside a line: amber, at the line's weight plus one */
+.use-pop-s .is-warn { color: var(--ink-warn); font-weight: var(--fw-semibold); }
 .use-pop-r b.is-err  { color: var(--ink-err); }
 .use-pop-s {
   margin: 0.4375rem 0 0; font-size: var(--ty-micro); color: var(--ink-secondary);
