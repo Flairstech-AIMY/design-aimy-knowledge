@@ -6047,3 +6047,9 @@ body.is-settings .set2-pop .set2-pop-f:focus, body.is-settings .set2-pop .set2-p
   font-size: 0.75rem; line-height: 1.3; padding: 0.1875rem 0.625rem; min-height: 0; height: auto;
 }
 .set2-us-stem { height: 0.5rem; }
+
+/* ── Slices past the plan or share: an amber edge, filled or not (Nour 21 Oct) ──
+   The started ones fill amber already; the one filling and the ones still
+   to come at this pace carry the edge, so the extra run reads as one block. */
+.set2-us-cell.is-past { box-shadow: inset 0 0 0 0.0625rem color-mix(in srgb, var(--ink-warn) 75%, transparent); }
+.set2-us-cell.is-past:not(.is-fore) { background: color-mix(in srgb, var(--ink-warn) 10%, transparent); }

@@ -3992,7 +3992,9 @@
       /* Paid by the slice: every slice past the plan wears its price under
          it, amber once started, plain ink while it is only the forecast. */
       const price = paid && sh && lo > sh && (full || cur || fc) ? `<em>${usMoney(q * US_PRICE[m.id])}</em>` : '';
-      out += `<span class="set2-us-cell${full ? ' is-full' : ''}${fc ? ' is-fore' : ''}${over ? ' is-over' : ''}${end ? ' is-share' : ''}"><i style="--p:${p.toFixed(3)}"></i><b>${f(inside)}</b>${price}</span>`;
+      /* every slice past the plan or share wears an amber edge, empty ones too (Nour 21 Oct) */
+      const past = sh && lo > sh;
+      out += `<span class="set2-us-cell${full ? ' is-full' : ''}${fc ? ' is-fore' : ''}${over ? ' is-over' : ''}${end ? ' is-share' : ''}${past ? ' is-past' : ''}"><i style="--p:${p.toFixed(3)}"></i><b>${f(inside)}</b>${price}</span>`;
     }
     return { html: out, q: q, n: n, fore: fore, sh: sh };
   }
