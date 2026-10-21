@@ -6035,3 +6035,16 @@ body.is-settings .set2-pop .set2-pop-f:focus, body.is-settings .set2-pop .set2-p
 .set2-dc-srch.is-on { background: rgba(var(--accent-rgb), 0.16); box-shadow: inset 0 0 0 0.0625rem var(--brand); }
 .set2-dc-vr.is-tag { display: flex; align-items: center; gap: 0.625rem; min-width: 0; }
 .set2-dc-vr.is-tag .set2-dc-key { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── The units switch, smaller than the products it hangs from (Nour 21 Oct) ──
+   It was the products' size, so without the stem it read as a second row of
+   equals. Now it is a step down: 12px, tighter, a brand edge and a faint
+   brand fill, and the stem meets it with no gap. These sit last so they
+   win over the page-wide `.is-aimy-ctl .seg` pill rules. */
+.set2-col.is-aimy-ctl .set2-us-hang .set2-us-useg {
+  padding: 0.125rem; box-shadow: inset 0 0 0 0.0625rem rgba(var(--brand-rgb), 0.55); background: rgba(var(--accent-rgb), 0.05);
+}
+.set2-col.is-aimy-ctl .set2-us-hang .set2-us-useg .seg-btn {
+  font-size: 0.75rem; line-height: 1.3; padding: 0.1875rem 0.625rem; min-height: 0; height: auto;
+}
+.set2-us-stem { height: 0.5rem; }
