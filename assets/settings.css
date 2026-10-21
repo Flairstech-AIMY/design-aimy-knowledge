@@ -5984,6 +5984,20 @@ body.is-settings .set2-pop .set2-pop-f:focus, body.is-settings .set2-pop .set2-p
 .set2-us-cells.is-sm .set2-us-cell > b { display: none; }
 @media (prefers-reduced-motion: no-preference) { .set2-us-cell > b { transition: opacity 120ms ease-out; } }
 
+/* ── Paid by the slice (Nour 21 Oct, slices pro max C) ──
+   On an organization every slice past its plan carries its price under it:
+   amber once the slice has started (billed), plain ink while it is only the
+   forecast. The hover number inside the cell is unchanged. */
+.set2-us-cells.is-paid { row-gap: 1.375rem; padding-bottom: 1.125rem; }
+.set2-us-cell > em {
+  position: absolute; left: 50%; top: calc(100% + 0.25rem); transform: translateX(-50%);
+  font-style: normal; font-size: 0.625rem; line-height: 1; font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink-warn); pointer-events: none;
+}
+.set2-us-cell.is-fore > em { color: var(--ink-secondary); }
+.set2-us-cells.is-sm .set2-us-cell > em { display: none; }
+.set2-us-xs { color: var(--ink-warn); font-weight: var(--fw-semibold); }
+
 /* ── Map fields, with Search by inside it (Nour 20 Oct, variant D) ──
    Three steps on the strip; a view switch over the mapping table; searched
    fields carry an AiMY pill on their row that opens the Copilot view. */

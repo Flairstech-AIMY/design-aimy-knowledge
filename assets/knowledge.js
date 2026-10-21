@@ -11342,6 +11342,11 @@
         ['empty', 'dc:empty'], ['half done', 'dc:half'], ['needs a fix', 'dc:fault'],
         ['Freshdesk down', 'dc:down'], ['syncing', 'dc:syncing'], ['all set', 'dc:done']
       ]],
+      /* Paid by the slice only shows once an organization is past its plan,
+         which on 6 Oct none is. Use carries on at the same pace. */
+      ['Usage, later in October', 'Opens Agents > Usage on that day, use carried on at the same pace.', [
+        ['6 Oct, today', 'us:6'], ['21 Oct', 'us:21'], ['28 Oct', 'us:28']
+      ]],
       ['Non-happy states', '', [
         ['loading', 'url:?state=loading'],
         ['error', 'url:?state=error'],
@@ -11395,6 +11400,12 @@
       const S = window.AIMY_SETTINGS;
       if (S && S.dcState) S.dcState(arg);
       patch({ m: 'config', sec: 'fields', sc: 'Upland', sp: 'AccuRoute Support', crm: '' });
+      return;
+    }
+    if (kind === 'us') {
+      const S = window.AIMY_SETTINGS;
+      if (S && S.usDay) S.usDay(+arg);
+      patch({ m: 'agents', sec: 'usage' });
       return;
     }
     if (kind === 'peek') {

@@ -3880,7 +3880,18 @@
      flagged for an admin, never blocked. The top level's number is what
      everyone is expected to use, so the shares under it still split
      something, but the page never draws it as an end. */
-  const US_SLICE = { copilot: 10000, qa: 500, voice: 250 };
+  const US_SLICE = { copilot: 10000, qa: 500, voice: 100 };
+  /* ── PAID BY THE SLICE (Nour 21 Oct, "slices pro max", variant C) ──
+     An organization's share is its PLAN: the slices it has paid for this
+     month. Past them use keeps going, and each further slice is billed to
+     the organization when it starts, at this price, like a data top-up.
+     Companies, products and people below keep shares, which are flagged
+     and never billed. Prices are examples until billing confirms them. */
+  const US_PRICE = { copilot: 40, qa: 600, voice: 35 };
+  const usMoney = (n) => '$' + Math.round(n).toLocaleString('en-US');
+  const usPlanN = (m, id) => Math.max(1, Math.round(usLimit(m, id) / US_SLICE[m.id]));
+  /* slices started past the plan: each is billed as it starts */
+  const usExtraN = (m, id, u) => Math.max(0, Math.ceil(u / US_SLICE[m.id]) - usPlanN(m, id));
   /* last month, for the pace to be read against */
   const US_PREV = { name: 'September', copilot: 431000, qa: 9180, voice: 3920 };
   const usSliceN = (m, u) => Math.floor(u / US_SLICE[m.id]) + 1;     /* the slice the next unit lands in */
@@ -3888,11 +3899,11 @@
   const usSlices = (m, u) => Math.max(1, Math.ceil(u / US_SLICE[m.id]));
   /* Past a share, or close to it. Said in a pill and in words, never by
      fading the row; amber, not red, because nothing has stopped. */
-  function usStanding(used, lim) {
-    if (lim <= 0) return used > 0 ? ['is-warn', 'Past share'] : null;
+  function usStanding(used, lim, plan) {
+    if (lim <= 0) return used > 0 ? ['is-warn', plan ? 'Past the plan' : 'Past share'] : null;
     const r = used / lim;
-    if (r > 1) return ['is-warn', 'Past share'];
-    if (r >= 0.85) return ['is-info', 'Close to share'];
+    if (r > 1) return ['is-warn', plan ? 'Past the plan' : 'Past share'];
+    if (r >= 0.85) return ['is-info', plan ? 'Close to the plan' : 'Close to share'];
     return null;
   }
   /* The strip: one cell per slice. Full ones solid, the current one filling
@@ -3900,7 +3911,7 @@
      share, a mark sits after the cell where the share ends and cells past
      it turn amber. Past `max` cells, one cell stands for several slices and
      the key says so. */
-  function usCells(m, used, share, max) {
+  function usCells(m, used, share, max, paid) {
     const z = US_SLICE[m.id], n = usSliceN(m, used);
     const fore = Math.max(n, Math.ceil(used / US_PERIOD.day * US_PERIOD.days / z));
     const sh = share ? Math.max(1, Math.ceil(share / z)) : 0;
@@ -3919,14 +3930,17 @@
          sit in the cell (83, 500, 5.9K). */
       const inside = Math.max(0, Math.min(q * z, used - (lo - 1) * z));
       const f = (n) => n < 1000 ? String(Math.round(n)) : n < 10000 ? (Math.floor(n / 100) / 10).toString().replace(/\.0$/, '') + 'K' : Math.floor(n / 1000) + 'K';
-      out += `<span class="set2-us-cell${full ? ' is-full' : ''}${fc ? ' is-fore' : ''}${over ? ' is-over' : ''}${end ? ' is-share' : ''}"><i style="--p:${p.toFixed(3)}"></i><b>${f(inside)}</b></span>`;
+      /* Paid by the slice: every slice past the plan wears its price under
+         it, amber once started, plain ink while it is only the forecast. */
+      const price = paid && sh && lo > sh && (full || cur || fc) ? `<em>${usMoney(q * US_PRICE[m.id])}</em>` : '';
+      out += `<span class="set2-us-cell${full ? ' is-full' : ''}${fc ? ' is-fore' : ''}${over ? ' is-over' : ''}${end ? ' is-share' : ''}"><i style="--p:${p.toFixed(3)}"></i><b>${f(inside)}</b>${price}</span>`;
     }
     return { html: out, q: q, n: n, fore: fore, sh: sh };
   }
   const usPct = (used, lim) => lim > 0 ? Math.min(1, used / lim) : (used > 0 ? 1 : 0);
   const usFillCls = (used, lim) => {
     const s = usStanding(used, lim);
-    return s && s[1] === 'Past share' ? ' is-warn' : '';
+    return s && s[0] === 'is-warn' ? ' is-warn' : '';
   };
 
   /* Where the page stands, all from the URL.
@@ -4124,7 +4138,7 @@
       </li>`;
     const L = usLimit(m, id);
     const used = usUsed(m, id);
-    const pace = usPaceWord(m, used, id ? L : 0);
+    const pace = d === 1 ? usPlanWord(m, id, used) : usPaceWord(m, used, id ? L : 0);
     const lock = US_EDIT ? ' disabled title="Save or cancel the limits you are editing first"' : '';
     return `
       <li class="set2-us-lv${next != null ? ' is-path' : ''}">
@@ -4149,6 +4163,15 @@
     if (L && used > L) return ['is-warn', 'Past its share'];
     if (L && proj > L) return ['is-warn', 'Passes its share around ' + Math.floor(P.day + (L - used) / rate) + ' ' + P.short];
     return [L ? 'is-ok' : '', 'About ' + usSlices(m, proj) + ' slices in ' + P.name];
+  }
+  /* The same line for an organization, said against its plan. */
+  function usPlanWord(m, id, used) {
+    const P = US_PERIOD, rate = used / P.day, xs = usExtraN(m, id, used);
+    if (!rate) return ['', 'Nothing used yet'];
+    if (xs) return ['is-warn', xs + ' past the plan, ' + usMoney(xs * US_PRICE[m.id])];
+    const over = usSlices(m, rate * P.days) - usPlanN(m, id);
+    return over > 0 ? ['is-warn', 'Past the plan around ' + Math.floor(P.day + (usPlanN(m, id) * US_SLICE[m.id] - used) / rate) + ' ' + P.short]
+      : ['is-ok', 'Within the plan'];
   }
 
 
@@ -4256,15 +4279,39 @@
     const x = usAt(id);
     const L = usLimit(m, id);
     const used = usUsed(m, id);
-    const bad = usStanding(used, L);
+    /* an organization's share is its plan, paid by the slice */
+    const paid = x.depth === 1;
+    const plan = paid ? usPlanN(m, id) : 0;
+    const xs = paid ? usExtraN(m, id, used) : 0;
+    const bad = usStanding(used, paid ? plan * US_SLICE[m.id] : L, paid);
     const p = usPct(used, L);
     const parent = x.parent != null ? usAt(x.parent).n : null;
     const where = parent && parent.id ? parent.name : 'everyone';
     const src = US_SET[m.id][id] != null ? 'set by admin' + (parent && parent.id ? ' on ' + where : '')
       : parent && parent.id ? 'an equal share of ' + where + '’s' : 'an equal share of what everyone is expected to use';
-    const c = usCells(m, used, id ? L : 0, 60);
+    const c = usCells(m, used, id ? (paid ? plan * US_SLICE[m.id] : L) : 0, 60, paid);
     const z = US_SLICE[m.id];
     const fp = Math.round(usSliceP(m, used) * 100);
+    if (paid) return `
+      <div class="set2-us-hero">
+        <div class="set2-us-now">
+          <span class="set2-us-k">${AIMY_MK(12, 14)}<span>${esc(x.n.name)} · Used in ${US_PERIOD.name}</span>
+            ${bad ? pill(bad[0], bad[0] === 'is-warn' ? 'Past the plan, nothing stopped' : bad[1]) : ''}</span>
+          <p class="set2-us-big"><b class="set2-num">${usFmt(used)}</b>
+            <span>${esc(m.unit)}, ${xs ? `slice ${c.n}: <span class="set2-us-xs">${xs} extra slice${xs === 1 ? '' : 's'} so far</span>`
+              : `slice ${c.n} of the ${plan} in the plan, ${fp}% full`}</span></p>
+          <div class="set2-us-cells is-paid" role="img" aria-label="Slice ${c.n}, ${fp}% full. The plan is ${plan} slices${
+            xs ? ', ' + xs + ' started past it' : ''}">${c.html}</div>
+          <p class="set2-us-key"><span><i></i>Used</span><span><i class="is-fore"></i>The rest of ${US_PERIOD.name} at today’s pace</span><span><i class="is-share"></i>The plan: ${
+            plan} slices, ${esc(src)}</span><span>${c.q > 1 ? 'A cell is ' + c.q + ' slices of ' + usFmt(z) : 'A cell is one slice, ' + usFmt(z)} ${esc(m.unit)}. Each slice past the plan is billed when it starts.</span></p>
+        </div>
+        <dl class="set2-us-facts">
+          ${usExtraFact(m, id, used)}
+          ${usPaceFact(m, used, L, id)}
+          ${usWatchFact(m, id)}
+          ${usSessFact(m, id)}
+        </dl>
+      </div>`;
     return `
       <div class="set2-us-hero">
         <div class="set2-us-now">
@@ -4301,7 +4348,13 @@
     const proj = rate * P.days;
     let b, t, cls = '';
     if (!rate) { b = 'Nothing used yet'; t = 'No pace to project from'; }
-    else {
+    else if (id && usAt(id).depth === 1) {
+      /* an organization: counted against its plan, in slices and money */
+      const plan = usPlanN(m, id), end = usSlices(m, proj), over = Math.max(0, end - plan);
+      b = 'About ' + end + ' slices in ' + P.name;
+      if (over) { cls = 'is-warn'; t = over + ' past the plan by ' + P.days + ' ' + P.short + ', about ' + usMoney(over * US_PRICE[m.id]); }
+      else t = 'Within the ' + plan + ' in the plan';
+    } else {
       b = 'About ' + usSlices(m, proj) + ' slices in ' + P.name;
       t = 'About ' + usFmt(Math.round(proj / 100) * 100) + ' ' + m.unit + ', at ' + usFmt(rate) + ' a day';
       if (!id) t += '. ' + US_PREV.name + ' used ' + usSlices(m, US_PREV[m.id]);
@@ -4316,6 +4369,22 @@
       <div class="set2-us-fact">
         <dt>At this pace</dt>
         <dd><b class="${cls}">${esc(b)}</b><span>${esc(t)}</span></dd>
+      </div>`;
+  }
+
+  /* ── WHAT THE PLAN HAS COST ON TOP ──
+     The first fact on an organization: the slices started past its plan
+     and what they come to. Before any, it says which slice starts the
+     billing and what one costs, so nobody meets the price by surprise. */
+  function usExtraFact(m, id, used) {
+    const plan = usPlanN(m, id), xs = usExtraN(m, id, used), pr = US_PRICE[m.id];
+    return `
+      <div class="set2-us-fact">
+        <dt>Extra this month ${tip('usExtraTip', 'extra slices', 'Use never stops. Each slice past the plan is billed to '
+          + usAt(id).n.name + ' when it starts, ' + usMoney(pr) + ' a slice of ' + usFmt(US_SLICE[m.id]) + ' ' + m.unit + '. The price is an example.')}</dt>
+        <dd><b class="${xs ? 'is-warn' : ''}">${usMoney(xs * pr)}</b><span>${xs
+          ? xs + ' slice' + (xs === 1 ? '' : 's') + ' past the plan, ' + usMoney(pr) + ' each'
+          : 'Starts with slice ' + (plan + 1) + ', ' + usMoney(pr) + ' a slice'}</span></dd>
       </div>`;
   }
 
@@ -4635,7 +4704,9 @@
     const deeper = x.depth <= 3;
     const lim = sp.lim[k.id];
     const used = usUsed(m, k.id);
-    const bad = usStanding(used, lim);
+    /* an organization's row is measured against its plan, in whole slices */
+    const org = x.depth === 1;
+    const bad = usStanding(used, org ? usPlanN(m, k.id) * US_SLICE[m.id] : lim, org);
     const isSet = US_EDIT ? usParse(US_EDIT.vals[k.id]) != null && !isNaN(usParse(US_EDIT.vals[k.id]))
                           : US_SET[m.id][k.id] != null;
     const sub = (() => {
@@ -4675,7 +4746,7 @@
         <span class="set2-us-use">
           <span class="set2-us-use-t"><b class="set2-num">${usFmt(used)}</b>
             ${bad ? pill(bad[0], bad[1]) : `<span class="set2-us-pc">slice ${usSliceN(m, used)}</span>`}</span>
-          <span class="set2-us-cells is-sm" aria-hidden="true">${usCells(m, used, lim, 24).html}</span>
+          <span class="set2-us-cells is-sm" aria-hidden="true">${usCells(m, used, org ? usPlanN(m, k.id) * US_SLICE[m.id] : lim, 24).html}</span>
         </span>
         <span class="set2-us-r-lim">
           ${US_EDIT ? `
@@ -12741,8 +12812,24 @@
     render();
   }
 
+  /* ── USAGE LATER IN THE MONTH, FOR THE PROTOTYPE PANEL ──
+     On 6 Oct nobody is past a plan yet, so paid slices never show. This
+     moves the month to another day with every leaf's use carried on at its
+     own pace (straight line from the seed), so the billed state is real
+     data on the page rather than a picture of it. */
+  const US_USED_0 = JSON.parse(JSON.stringify(US_USED));
+  function usDay(n) {
+    const day = Math.max(1, Math.min(US_PERIOD.days, Math.round(n)));
+    Object.keys(US_USED_0).forEach((m) => Object.keys(US_USED_0[m]).forEach((id) => {
+      US_USED[m][id] = Math.round(US_USED_0[m][id] * day / 6);
+    }));
+    US_PERIOD.day = day; US_PERIOD.left = US_PERIOD.days - day + 1;
+    render();
+  }
+
   window.AIMY_SETTINGS = {
     dcState: dcState,
+    usDay: usDay,
     usageMine: usageMine,
     usageSpend: usageSpend,
     _pages: function (st) {
