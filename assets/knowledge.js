@@ -15700,23 +15700,31 @@
   };
   const useMeter = (p, lv) => `<span class="use-pop-m ${lv}" aria-hidden="true"><i style="--p:${Math.min(1, Math.max(0, p)).toFixed(4)}"></i></span>`;
   function usePopBody(u) {
-    /* one block per unit Copilot counts (chats, tickets), then today across them */
-    const units = u.units && u.units.length ? u.units : [Object.assign({ name: 'Usage' }, u)];
-    const month = (x) => {
-      const past = useLevel(x.used, x.limit), sp = useSliceP(x);
+    /* ── Distilled (21 Oct, /impeccable distill) ──
+       The widget answers one question: how am I doing against my share, and
+       what is it costing. So: the month once, then one line per unit (its
+       name, "187 of 300", a bar of your share), then today with its cost.
+       Gone: the month repeated per unit, the slice in each header (slices are
+       the Usage page's measure; the ring on the mark still shows them), and
+       the sentence that restated the line above it. Past a share the number
+       and bar turn amber and one line says so in words. */
+    const units = u.units && u.units.length ? u.units : [Object.assign({ name: 'Chats' }, u)];
+    const line = (x) => {
+      const past = useLevel(x.used, x.limit);
       return `
-      <div class="use-pop-g">
-        <div class="use-pop-r"><span>${esc(x.name)}, ${esc(u.month || 'this month')}</span>
-          <b>Slice ${useSliceN(x)}</b></div>
-        ${useMeter(sp, '')}
-        <p class="use-pop-s"><b>${useFmt(x.used)}</b> ${esc(x.unit)} so far. ${past
-          ? `<span class="is-warn">${useFmt(x.used - x.limit)} past your share of ${useFmt(x.limit)}</span>; you can keep going.`
-          : `Your share is ${useFmt(x.limit)}.`}</p>
-      </div>`;
+        <div class="use-pop-u"><span>${esc(x.name)}</span>
+          <b class="${past}">${useFmt(x.used)} <small>of ${useFmt(x.limit)}</small></b></div>
+        ${useMeter(x.limit ? x.used / x.limit : 0, past)}
+        ${past ? `<p class="use-pop-s"><span class="is-warn">${useFmt(x.used - x.limit)} ${esc(x.unit)} past your share.</span> You can keep going.</p>` : ''}`;
     };
+    const month = () => `
+      <div class="use-pop-g">
+        <div class="use-pop-r"><span>${esc(u.month || 'This month')}</span></div>
+        ${units.map(line).join('')}
+      </div>`;
     /* the daily share is only said when you pass it (Nour: simplify) */
     const overDay = units.filter((x) => x.sessLimit != null && useToday(x) > x.sessLimit);
-    return `${units.map(month).join('')}
+    return `${month()}
       <div class="use-pop-g">
         <div class="use-pop-r"><span>Today</span>
           <b class="${overDay.length ? 'is-warn' : ''}">${units.map((x) => useFmt(useToday(x)) + ' ' + esc(x.unit)).join(', ')}</b></div>

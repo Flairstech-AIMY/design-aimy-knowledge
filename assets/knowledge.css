@@ -8030,6 +8030,15 @@ button.aimy-float-icon:focus-visible { outline: 0.125rem solid var(--brand); out
   font-variant-numeric: tabular-nums;
 }
 .use-pop-s b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
+/* one line per unit: its name, then used of your share (distilled 21 Oct) */
+.use-pop-u {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem;
+  margin-top: 0.75rem; font-size: var(--ty-meta); color: var(--ink-primary);
+}
+.use-pop-u b { font-weight: var(--fw-semibold); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.use-pop-u b small { font-size: inherit; font-weight: var(--fw-medium); color: var(--ink-secondary); }
+.use-pop-u b.is-warn { color: var(--ink-warn); }
+.use-pop-u + .use-pop-m { margin-top: 0.375rem; }
 /* The ring on the mark, unrolled: same brand fill, amber from 85%, red when
    spent. Scaled, never sized, so the fill moves on the compositor. */
 .use-pop-m {
