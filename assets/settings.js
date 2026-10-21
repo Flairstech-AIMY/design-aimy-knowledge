@@ -1722,7 +1722,19 @@
   }
 
   /* ═══ ATOMS ═══ */
-  const pill = (k, t) => `<span class="set2-pill ${k}"><i></i>${esc(t)}</span>`;
+  /* A status is a state icon and a word (Nour 21 Oct, option C): the icon
+     carries the colour and a shape of its own (check, alert, cross, info,
+     dashed circle), so the state reads without colour; the word is plain
+     ink. Lucide, verbatim. */
+  const PILL_ICO = {
+    'is-ok': '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+    'is-warn': '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+    'is-err': '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
+    'is-info': '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+    'is-mute': '<path d="M10.1 2.182a10 10 0 0 1 3.8 0"/><path d="M13.9 21.818a10 10 0 0 1-3.8 0"/><path d="M17.609 3.721a10 10 0 0 1 2.69 2.7"/><path d="M2.182 13.9a10 10 0 0 1 0-3.8"/><path d="M20.279 17.609a10 10 0 0 1-2.7 2.69"/><path d="M21.818 10.1a10 10 0 0 1 0 3.8"/><path d="M3.721 6.391a10 10 0 0 1 2.7-2.69"/><path d="M6.391 20.279a10 10 0 0 1-2.69-2.7"/>'
+  };
+  const pill = (k, t) => `<span class="set2-pill ${k}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${
+    PILL_ICO[k] || PILL_ICO['is-mute']}</svg><span>${esc(t)}</span></span>`;
   const ck = (st, label) =>
     `<button class="set2-ck" role="checkbox" aria-checked="${st}" aria-label="${esc(label)}" type="button" tabindex="-1">${st === 'mixed' ? I.dash : I.tick}</button>`;
   /* `locked` is a REASON, not a boolean: a control you cannot use has to say
@@ -7561,7 +7573,8 @@
   const dcIsLookup = (f) => ['lookup', 'choice', 'person'].indexOf(f.t) > -1;
   const DC_LABEL = { done: 'Done', todo: 'To do', fault: 'Needs a fix', locked: 'Waiting', wait: 'Paused', run: 'Syncing' };
   const DC_PILL = { done: 'is-ok', todo: 'is-info', fault: 'is-err', locked: 'is-warn', wait: 'is-warn', run: 'is-info' };
-  const dcPill = (s) => `<span class="set2-dc-st ${DC_PILL[s]}">${s === 'done' ? I.tick : s === 'fault' ? I.warn : s === 'locked' ? I.lock : s === 'wait' ? DCI.pause : s === 'run' ? DCI.ref : ''}${DC_LABEL[s]}</span>`;
+  /* a step's state is a status like any other: icon and word (Nour 21 Oct) */
+  const dcPill = (s) => pill(DC_PILL[s], DC_LABEL[s]);
 
   /* the rail row's note and its one fix */
   function dcPageState(st) {

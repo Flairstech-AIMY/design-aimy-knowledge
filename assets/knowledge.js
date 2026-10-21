@@ -245,7 +245,7 @@
   function statusBadge(value, byHand) {
     const s = STATUS[value];
     return `<span class="trust-state ts-${s.tone}${s.excluded ? ' is-excluded' : ''}${byHand ? ' is-pinned' : ''}" ` +
-           `data-status="${value}" title="${esc(byHand ? 'Set by hand. ' + byHand : s.why)}">${s.ico}${s.label}` +
+           `data-status="${value}" title="${esc(byHand ? 'Set by hand. ' + byHand : s.why)}">${s.ico}<span>${s.label}</span>` +
            `${byHand ? '<span class="pin-dot" aria-label="set by hand"></span>' : ''}</span>`;
   }
 
@@ -3801,8 +3801,8 @@
      not have to relearn where trust lives per type.
   ═══════════════════════════════════════════════ */
   const approvalPill = (state) => state === 'approved'
-    ? `<span class="tc-approval is-approved">${ICO.check.replace('<svg', '<svg width="11" height="11"')}Approved</span>`
-    : `<span class="tc-approval is-pending">${ICO.clock.replace('<svg', '<svg width="11" height="11"')}Awaiting approval</span>`;
+    ? `<span class="tc-approval is-approved">${ICO.check.replace('<svg', '<svg width="11" height="11"')}<span>Approved</span></span>`
+    : `<span class="tc-approval is-pending">${ICO.clock.replace('<svg', '<svg width="11" height="11"')}<span>Awaiting approval</span></span>`;
 
 
 
@@ -3926,9 +3926,9 @@
        vocabulary, because a ticket that says "Awaiting legal" is telling you
        something none of our seven statuses can. */
     ticket:   (o) => (o.x.status === 'Resolved'
-        ? '<div class="tc-tags"><span class="tag tag-ok">'
-        : '<div class="tc-tags"><span class="tag tag-warn">') +
-      esc(tagCase(o.x.status)) + '</span></div>' +
+        ? '<div class="tc-tags"><span class="tag tag-ok">' + ICO.check
+        : '<div class="tc-tags"><span class="tag tag-warn">' + ICO.clock) +
+      '<span>' + esc(tagCase(o.x.status)) + '</span></span></div>' +
       (o.x.resolution && o.x.resolution !== '—' ? tcSum(o.x.resolution) : ''),
 
     /* Fit, then the two axes an ICP is filed on, as the tags the profile is
@@ -4052,15 +4052,16 @@
       : exit;
   }
 
-  /* Status as ink, not as a pill above the title. The dot and the word take the
-     status tone and sit INSIDE the meta line, where colour and weight carry
+  /* Status as ink, not as a pill above the title. The status icon takes the
+     tone and the word stays ink (Nour 21 Oct: icon and word everywhere); they
+     sit INSIDE the meta line, where colour and weight carry
      them without outranking the document's name — the same move GitHub makes
      for open and closed. The card's left edge takes the tone too, so a
      screenful reads at a glance and a document with nothing wrong stays quiet. */
   function statusInk(o) {
     const s = STATUS[o.status];
     return `<span class="tc-st" title="${esc(o.statusSet
-      ? 'Set by ' + (o.statusBy || USER.owner) + '. ' + s.why : s.why)}"><i class="tc-dot"></i>${esc(s.label)}` +
+      ? 'Set by ' + (o.statusBy || USER.owner) + '. ' + s.why : s.why)}">${s.ico}<span>${esc(s.label)}</span>` +
       `${o.statusSet ? '<span class="pin-dot" aria-label="set by hand"></span>' : ''}</span>`;
   }
 
