@@ -356,3 +356,8 @@
   #ntfBell.nt-ring svg { animation: none; }
   .nt-peek { transition: opacity var(--t-fast) linear; transform: none; }
 }
+
+/* The quick questions are about a meeting that is running; once it ends,
+   the notes answer them, so they go (the bar still asks). */
+.nt-w:not([data-phase="live"]) .nt-chips,
+.aimy-overlay.is-meeting:not([data-nt-phase="live"]) .nt-cv-chips { display: none !important; }
