@@ -3631,8 +3631,12 @@
      company. Which of the two is right is a ruling to ask for, not to make.
 
      ── THE UNIT IS THE AIMY PRODUCT'S ──
-     Copilot counts tokens, QA counts tickets, Voice counts minutes, and each
-     has its own plan and its own split. Voice stops at Product: its callers
+     A product counts in one or more units, and each unit has its own plan,
+     its own split and its own slices (Nour 21 Oct: "copilot has chats and
+     tickets"). Copilot counts chats and tickets, QA tickets reviewed, Voice
+     minutes. Each unit is a meter here, grouped by `prod`, so the whole
+     machinery below works per unit unchanged; the switch shows products,
+     and a product with more than one unit gets a second switch for them. Voice stops at Product: its callers
      are not employees, so there is nobody below a product to give a share to.
      The machinery is the same so the day Voice gains users is a `depth` edit.
 
@@ -3642,15 +3646,21 @@
      has no sessions and says so rather than offering a field that does
      nothing. */
   const US_METERS = [
-    { id: 'copilot', name: 'Copilot', unit: 'tokens', depth: 4,
-      sess: { per: 'per session', d: 'What one Copilot session is expected to use, for anyone in this '
-        + 'organization. A session that goes past it keeps going and is flagged here.' } },
-    { id: 'qa', name: 'QA', unit: 'tickets', depth: 4,
+    { id: 'copilot', prod: 'copilot', name: 'Copilot', uname: 'Chats', unit: 'chats', depth: 4,
+      sess: { per: 'per working day', d: 'How many Copilot chats one person in this organization is expected '
+        + 'to have in a working day. Past it, nobody is stopped; it is flagged here.' } },
+    { id: 'cptix', prod: 'copilot', name: 'Copilot', uname: 'Tickets', unit: 'tickets', depth: 4,
+      sess: { per: 'per working day', d: 'How many tickets one person in this organization is expected to '
+        + 'answer with Copilot in a working day. Past it, nobody is stopped; it is flagged here.' } },
+    { id: 'qa', prod: 'qa', name: 'QA', uname: 'Tickets', unit: 'tickets', depth: 4,
       sess: { per: 'per working day', d: 'A QA session is a whole working day, so this is how many '
         + 'tickets one person in this organization is expected to take in a day. Past it, nobody is stopped.' } },
-    { id: 'voice', name: 'Voice', unit: 'minutes', depth: 3, sess: null }
+    { id: 'voice', prod: 'voice', name: 'Voice', uname: 'Minutes', unit: 'minutes', depth: 3, sess: null }
   ];
   const usMeter = (id) => US_METERS.filter((x) => x.id === id)[0] || US_METERS[0];
+  /* the units of one product, and a meter's name where units must be told apart */
+  const usUnits = (prod) => US_METERS.filter((x) => x.prod === prod);
+  const usLabel = (m) => usUnits(m.prod).length > 1 ? m.name + ' ' + m.unit : m.name;
   const US_LEVEL = ['Workspace', 'Organization', 'Company', 'Product', 'Employee'];
   const US_PLURAL = ['plans', 'organizations', 'companies', 'products', 'employees'];
   const US_ICO = ['', 'org', 'co', 'pkg', ''];
@@ -3751,15 +3761,17 @@
      Shaped to the team lead's numbers: Upland is pinned, the other two
      split what is left, and inside FileBound two people were moved off the
      even split, which is the case the page exists for. */
-  const US_PLAN = { copilot: 500000, qa: 12000, voice: 4100 };
+  const US_PLAN = { copilot: 25000, cptix: 8000, qa: 12000, voice: 4100 };
   const US_SET = {
-    copilot: { upland: 200000, flairstech: 60000, kmc: 120000, ultriva: 50000,
-               'filebound.hana': 12000, 'filebound.omar': 4000 },
+    copilot: { upland: 10000, flairstech: 3000, kmc: 6000, ultriva: 2500,
+               'filebound.hana': 600, 'filebound.omar': 200 },
+    cptix:   { upland: 4000 },
     qa:      { upland: 5000, kcx: 1800 },
     voice:   { valsoft: 1500 }
   };
   const US_SESS = {
-    copilot: { upland: 6000, valsoft: null, flairstech: 5000 },
+    copilot: { upland: 60, valsoft: null, flairstech: 50 },
+    cptix:   { upland: 25, valsoft: null, flairstech: null },
     qa:      { upland: 40, valsoft: 30, flairstech: null },
     voice:   {}
   };
@@ -3768,6 +3780,7 @@
   const US_WHEN = {
     copilot: { '': ['2 Oct', 'A. Mahfouz'], upland: ['2 Oct', 'A. Mahfouz'],
                kmc: ['28 Sep', 'Tarek Ahmed'], filebound: ['4 Oct', 'Hana Saleh'] },
+    cptix: { '': ['2 Oct', 'A. Mahfouz'], upland: ['2 Oct', 'A. Mahfouz'] },
     qa: { '': ['30 Sep', 'A. Mahfouz'], upland: ['30 Sep', 'A. Mahfouz'] },
     voice: { '': ['1 Oct', 'Nour Wael'] }
   };
@@ -3823,10 +3836,11 @@
      run comfortably under, and which one is hot differs between Copilot, QA
      and Voice. The people pinned below (at or near their limit) are not
      scaled; they are the point. */
-  const US_USED = { copilot: {}, qa: {}, voice: {} };
+  const US_USED = { copilot: {}, cptix: {}, qa: {}, voice: {} };
   (function seedUse() {
     const RATIO = [0.14, 0.23, 0.09, 0.31, 0.17, 0.36, 0.07, 0.21, 0.12, 0.27, 0.19, 0.05, 0.24];
     const PACE = { copilot: { upland: 1.25, valsoft: 0.55, flairstech: 0.6 },
+                   cptix:   { upland: 0.8, valsoft: 1.25, flairstech: 0.55 },
                    qa:      { upland: 0.6, valsoft: 1.3, flairstech: 0.5 },
                    voice:   { upland: 0.55, valsoft: 1.35, flairstech: 0.6 } };
     /* The organisation a node sits under. usPath is declared further down
@@ -3834,6 +3848,7 @@
     const orgOf = (id) => { let x = id; while (usAt(x).parent) x = usAt(x).parent; return x; };
     const PIN = { copilot: { 'filebound.omar': 1, 'filebound.karim': 0.91, 'ultriva.zaki': 0.87,
                              'interfax.farida': 1, 'helpdesk.nour': 0.31 },
+                  cptix: { 'interfax.amr': 0.92 },
                   qa: { 'kapost.hazem': 0.93, 'macpractice.ravi': 1 },
                   voice: { macpractice: 0.88 } };
     US_METERS.forEach((m) => {
@@ -3880,20 +3895,20 @@
      flagged for an admin, never blocked. The top level's number is what
      everyone is expected to use, so the shares under it still split
      something, but the page never draws it as an end. */
-  const US_SLICE = { copilot: 10000, qa: 500, voice: 100 };
+  const US_SLICE = { copilot: 500, cptix: 200, qa: 500, voice: 100 };
   /* ── PAID BY THE SLICE (Nour 21 Oct, "slices pro max", variant C) ──
      An organization's share is its PLAN: the slices it has paid for this
      month. Past them use keeps going, and each further slice is billed to
      the organization when it starts, at this price, like a data top-up.
      Companies, products and people below keep shares, which are flagged
      and never billed. Prices are examples until billing confirms them. */
-  const US_PRICE = { copilot: 40, qa: 600, voice: 35 };
+  const US_PRICE = { copilot: 150, cptix: 100, qa: 600, voice: 35 };
   const usMoney = (n) => '$' + Math.round(n).toLocaleString('en-US');
   const usPlanN = (m, id) => Math.max(1, Math.round(usLimit(m, id) / US_SLICE[m.id]));
   /* slices started past the plan: each is billed as it starts */
   const usExtraN = (m, id, u) => Math.max(0, Math.ceil(u / US_SLICE[m.id]) - usPlanN(m, id));
   /* last month, for the pace to be read against */
-  const US_PREV = { name: 'September', copilot: 431000, qa: 9180, voice: 3920 };
+  const US_PREV = { name: 'September', copilot: 21800, cptix: 7100, qa: 9180, voice: 3920 };
   const usSliceN = (m, u) => Math.floor(u / US_SLICE[m.id]) + 1;     /* the slice the next unit lands in */
   const usSliceP = (m, u) => (u % US_SLICE[m.id]) / US_SLICE[m.id];   /* how full it is */
   const usSlices = (m, u) => Math.max(1, Math.ceil(u / US_SLICE[m.id]));
@@ -4078,11 +4093,18 @@
         <div class="set2-us-top">
           <div class="seg set2-ag-seg set2-us-seg" role="radiogroup" aria-label="Which AiMY product">
             <span class="set2-us-ind" aria-hidden="true"></span>
-            ${US_METERS.map((x) => `
+            ${US_METERS.filter((x, i) => US_METERS.findIndex((y) => y.prod === x.prod) === i).map((x) => `
+              <button class="seg-btn${x.prod === m.prod ? ' active' : ''}" type="button" role="radio"
+                      aria-checked="${x.prod === m.prod}" tabindex="${x.prod === m.prod ? 0 : -1}"
+                      data-us-meter="${x.id}" data-us-prod="${x.prod}">${esc(x.name)}</button>`).join('')}
+          </div>
+          ${usUnits(m.prod).length > 1 ? `
+          <div class="seg set2-us-useg" role="radiogroup" aria-label="Which ${esc(m.name)} unit">
+            ${usUnits(m.prod).map((x) => `
               <button class="seg-btn${x.id === m.id ? ' active' : ''}" type="button" role="radio"
                       aria-checked="${x.id === m.id}" tabindex="${x.id === m.id ? 0 : -1}"
-                      data-us-meter="${x.id}">${esc(x.name)}<span class="set2-us-unit">${esc(x.unit)}</span></button>`).join('')}
-          </div>
+                      data-us-meter="${x.id}">${esc(x.uname)}</button>`).join('')}
+          </div>` : ''}
         </div>
         ${pl.people ? usHero(m, id) + usAlloc(m, id, st) : usLadder(pl, st)}
       </section>`;
@@ -4542,7 +4564,7 @@
     if (v !== was) {
       US_SLICE[m.id] = v;
       DIRTY.add('slice:' + m.id);
-      if (API && API.toast) API.toast(m.name + ' slices are now ' + usFmt(v) + ' ' + m.unit + '.', () => { US_SLICE[m.id] = was; render(); });
+      if (API && API.toast) API.toast(usLabel(m) + ' slices are now ' + usFmt(v) + ' ' + m.unit + '.', () => { US_SLICE[m.id] = was; render(); });
     }
     render(() => { const b = $('[data-us-slice-open]'); if (b) b.focus(); });
   }
@@ -4551,7 +4573,7 @@
     if (!m.sess) return `
       <div class="set2-us-fact">
         <dt>Session share</dt>
-        <dd><b>Not used</b><span>Voice calls are not grouped into sessions</span></dd>
+        <dd><b>Not used</b><span>${esc(m.name)} ${esc(m.unit)} are not counted per day</span></dd>
       </div>`;
     const v = US_SESS[m.id][id];
     const ed = US_SESS_ED;
@@ -4684,7 +4706,7 @@
     return `<span class="set2-us-also">${ms.map((o) => {
       const u = usUsed(o, k.id), L = usLimit(o, k.id), bad = usStanding(u, L);
       return `<button class="set2-us-also-b" type="button" data-us-also="${o.id}|${esc(k.id)}"
-          title="Open ${esc(k.name)} in ${esc(o.name)}"><b>${esc(o.name)}</b>
+          title="Open ${esc(k.name)} in ${esc(usLabel(o))}"><b>${esc(o.name)}</b>
         <span><span class="set2-us-also-l">${usFmt(u)}</span><span class="set2-us-also-s">${usShort(u)}</span> ${esc(o.unit)}, slice ${usSliceN(o, u)}</span>
         ${bad && bad[1] === 'Past share' ? pill(bad[0], bad[1]) : ''}
         ${I.chev || ''}</button>`;
@@ -10337,6 +10359,7 @@
     const usM = e.target.closest('[data-us-meter]');
     if (usM) {
       const v = usM.getAttribute('data-us-meter');
+      if (usM.dataset.usProd && usM.dataset.usProd === usPlace(st).m.prod) return;
       if (v !== usPlace(st).m.id) {
         const ind = $('.set2-us-ind');
         if (ind && ind.style.width) US_IND_FROM = { l: parseFloat(ind.style.transform.slice(11)), w: parseFloat(ind.style.width) };
@@ -12303,7 +12326,7 @@
     }
     const usMk = e.target.closest && e.target.closest('[data-us-meter]');
     if (usMk && /^Arrow(Left|Right|Up|Down)$/.test(e.key)) {
-      const group = $$('[data-us-meter]');
+      const group = $$('[data-us-meter]', usMk.closest('[role="radiogroup"]'));
       const step = /Right|Down/.test(e.key) ? 1 : -1;
       const next = group[(group.indexOf(usMk) + step + group.length) % group.length];
       e.preventDefault();

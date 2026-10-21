@@ -15644,10 +15644,11 @@
      disagree; the gate, which has no settings.js, carries the same row as a
      fixture. A question costs a rough estimate, added to the session and to
      the plan, so the ring moves as you use it. */
-  const USE_FALLBACK = { limit: 6000, used: 1860, unit: 'tokens', slice: 10000, month: 'October', sessLimit: 5000,
-                         sessPer: 'per session', resets: '1 Nov',
+  const USE_FALLBACK = { limit: 300, used: 93, unit: 'chats', slice: 500, month: 'October', sessLimit: 50,
+                         sessPer: 'per working day', resets: '1 Nov',
                          link: 'console.html?m=agents&sec=usage' };
-  let USE_SESSION = 1240;
+  /* Copilot counts chats (Nour 21 Oct), so the short window is today's chats. */
+  let USE_SESSION = 7;
   const useNow = () => {
     const S = window.AIMY_SETTINGS;
     return S && S.usageMine ? S.usageMine() : USE_FALLBACK;
@@ -15664,10 +15665,8 @@
   const useSliceP = (u) => (u.used % (u.slice || 10000)) / (u.slice || 10000);
 
   function useSpend(text) {
-    /* A question in and an answer out, roughly: a base for the answer plus
-       the question's own length in tokens. An estimate, and named as one in
-       the comment rather than dressed as a meter reading. */
-    const n = 180 + Math.ceil(String(text || '').length / 4) * 3;
+    /* Copilot counts chats, so each question asked is one. */
+    const n = 1;
     USE_SESSION += n;
     const S = window.AIMY_SETTINGS;
     if (S && S.usageSpend) S.usageSpend(n); else USE_FALLBACK.used += n;
@@ -15696,11 +15695,11 @@
           : `Your share is ${useFmt(u.limit)}.`}</p>
       </div>
       <div class="use-pop-g">
-        <div class="use-pop-r"><span>This conversation</span>
+        <div class="use-pop-r"><span>Today</span>
           <b class="${sess}">${useFmt(USE_SESSION)} ${esc(u.unit)}</b></div>
         <p class="use-pop-s">${u.sessLimit == null ? 'No session share'
-          : sess ? `<span class="is-warn">Past the ${useFmt(u.sessLimit)} share for one session</span>; you can keep going.`
-          : `Share for one session: ${useFmt(u.sessLimit)} ${esc(u.unit)}`}</p>
+          : sess ? `<span class="is-warn">Past the ${useFmt(u.sessLimit)} share for one day</span>; you can keep going.`
+          : `Share ${esc(u.sessPer || 'per working day')}: ${useFmt(u.sessLimit)} ${esc(u.unit)}`}</p>
       </div>
       <a class="use-pop-a" href="${esc(u.link)}"><span>Usage</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>`;
   }
