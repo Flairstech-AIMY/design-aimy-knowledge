@@ -3929,7 +3929,9 @@
      to these, leaf by leaf, so companies and people keep their spread. */
   const US_TODAY = 22;
   (function usLand22() {
-    const AT = { copilot: { upland: 1.12, valsoft: 0.9, flairstech: 0.55 },
+    /* FlairsTech's chats sit just past its plan so the signed-in person
+       (who is in FlairsTech) sees a cost in the mark's popover. */
+    const AT = { copilot: { upland: 1.12, valsoft: 0.9, flairstech: 1.25 },
                  cptix:   { upland: 1.06, valsoft: 0.72, flairstech: 0.93 },
                  qa:      { upland: 1.15, valsoft: 0.95, flairstech: 0.5 },
                  voice:   { upland: 1.2, valsoft: 0.85, flairstech: 0.6 } };
@@ -12534,7 +12536,12 @@
   function usageMine() {
     const m = usMeter(US_ME.meter);
     usForget();
+    /* the organization's plan and what it has cost on top, for the popover (Nour 21 Oct) */
+    const oU = usUsed(m, US_ME.org), oPlan = usPlanN(m, US_ME.org);
+    const oPace = Math.max(0, usSlices(m, oU / US_PERIOD.day * US_PERIOD.days) - oPlan);
     return { limit: usLimit(m, US_ME.id), used: usUsed(m, US_ME.id), unit: m.unit, slice: US_SLICE[m.id], month: US_PERIOD.name,
+             org: usAt(US_ME.org).n.name, orgPlan: oPlan, orgExtra: usExtraN(m, US_ME.org, oU), price: US_PRICE[m.id], orgPaceExtra: oPace,
+             monthEnd: US_PERIOD.days + ' ' + US_PERIOD.short,
              sessLimit: m.sess ? US_SESS[m.id][US_ME.org] : null, sessPer: m.sess ? m.sess.per : '',
              resets: US_PERIOD.resets,
              /* The page as the rail opens it: the plan, all organisations.

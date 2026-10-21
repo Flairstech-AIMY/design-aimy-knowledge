@@ -15647,6 +15647,7 @@
      the plan, so the ring moves as you use it. */
   const USE_FALLBACK = { limit: 300, used: 93, unit: 'chats', slice: 500, month: 'October', sessLimit: 50,
                          sessPer: 'per working day', resets: '1 Nov',
+                         org: 'FlairsTech', orgPlan: 6, orgExtra: 1, price: 150, orgPaceExtra: 3, monthEnd: '31 Oct',
                          link: 'console.html?m=agents&sec=usage' };
   /* Copilot counts chats (Nour 21 Oct), so the short window is today's chats. */
   let USE_SESSION = 7;
@@ -15695,6 +15696,13 @@
           ? `<span class="is-warn">${useFmt(u.used - u.limit)} past your share of ${useFmt(u.limit)}</span>; you can keep going.`
           : `Your share is ${useFmt(u.limit)}.`}</p>
       </div>
+      ${u.org ? `<div class="use-pop-g">
+        <div class="use-pop-r"><span>Extra this month</span>
+          <b class="${u.orgExtra ? 'is-warn' : ''}">$${useFmt(u.orgExtra * u.price)}</b></div>
+        <p class="use-pop-s">${u.orgExtra
+          ? `${esc(u.org)}, ${u.orgExtra} slice${u.orgExtra === 1 ? '' : 's'} past the plan.`
+          : `${esc(u.org)} is within its plan.`}</p>
+      </div>` : ''}
       <div class="use-pop-g">
         <div class="use-pop-r"><span>Today</span>
           <b class="${sess}">${useFmt(USE_SESSION)} ${esc(u.unit)}</b></div>
