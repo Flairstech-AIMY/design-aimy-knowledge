@@ -185,7 +185,7 @@
             `<button class="nt-ib" type="button" data-nt-act="collapse" aria-label="Collapse to the orb" title="Collapse">${ic('min', 16)}</button>` +
             `<button class="nt-ib nt-after-only" type="button" data-nt-act="close" aria-label="Close the meeting notes" title="Close">${ic('x', 16)}</button></div>
           </div>
-          <div class="nt-tabs" role="tablist"><button type="button" role="tab" data-nt-tab="chat" aria-selected="true">Chat</button><button type="button" role="tab" data-nt-tab="notes" aria-selected="false">Notes</button>${ctl()}</div>
+          <div class="nt-tabs" role="tablist"><button type="button" role="tab" data-nt-tab="chat" aria-selected="true">Transcription</button><button type="button" role="tab" data-nt-tab="notes" aria-selected="false">Notes</button>${ctl()}</div>
           <div class="nt-body"><div class="nt-stream" data-nt-stream></div>${notesPanel()}</div>
           <form class="nt-cz" data-nt-form>${chips()}
             <div class="overlay-input-bar nt-ask-bar"><span class="nt-ask-mark" aria-hidden="true">${MARK(16)}</span><input class="overlay-input nt-in" data-nt-draft placeholder="${ASK}" aria-label="${ASK}" autocomplete="off"><button class="overlay-send" aria-label="Ask">${ic('send', 14)}</button></div>
@@ -215,7 +215,7 @@
     wrap.insertAdjacentHTML('beforebegin', `<div class="nt-cv" data-nt-cv>
       <div class="nt-cv-h"><span class="nt-orb is-xs" data-nt-orb="canvas"><canvas></canvas></span>
         <div class="nt-ht"><b>${MEET}</b><span class="nt-ps">${rec}${status}${timer}</span><span class="nt-who" data-nt="who"></span></div>
-        <div class="nt-tabs nt-cv-tabs" role="tablist"><button type="button" role="tab" data-nt-tab="chat" aria-selected="true">Chat</button><button type="button" role="tab" data-nt-tab="notes" aria-selected="false">Notes</button></div>
+        <div class="nt-tabs nt-cv-tabs" role="tablist"><button type="button" role="tab" data-nt-tab="chat" aria-selected="true">Transcription</button><button type="button" role="tab" data-nt-tab="notes" aria-selected="false">Notes</button></div>
         ${ctl()}<button class="btn btn-ghost btn-sm nt-back" type="button" data-nt-act="back">${ic('min', 14)}<span>Back to the meeting</span></button>
       </div>
       <div class="nt-stream nt-cv-stream" data-nt-stream></div>
