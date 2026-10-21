@@ -15692,16 +15692,21 @@
      has nothing to fill, so it says so and draws no meter. The way out is a
      link that leaves, so it ends in an arrow, not an ellipsis (an ellipsis
      promises a dialog). */
-  /* What YOUR use today costs, said where today's use is (Nour 21 Oct: the
-     widget is personal). A unit whose plan your organization is past is
-     billed at the slice price spread over the slice; one still within it is
+  /* ── Your extra, not the organization's (Nour 21 Oct) ──
+     The widget is personal; the Usage page is the organization's. So the
+     extra here is what YOUR use past YOUR share comes to, at the slice price
+     spread over the slice (a unit's price). Today counts today's use of a
+     unit you are already past your share of; a unit within your share is
      included, and says so when the other is not. */
+  const useUnitPrice = (x) => x.price && x.slice ? x.price / x.slice : 0;
+  const usePast = (x) => x.limit > 0 && x.used > x.limit;
+  const useMoney = (n) => '$' + n.toFixed(2);
   const useCostToday = (units) => {
-    const billed = units.filter((x) => x.orgExtra && x.price && x.slice);
-    if (!billed.length) return 'Included in your plan. ';
-    const c = billed.reduce((a, x) => a + useToday(x) * x.price / x.slice, 0);
-    const inc = units.filter((x) => !x.orgExtra).map((x) => x.unit);
-    return `<span class="is-warn">$${c.toFixed(2)}</span> extra${inc.length ? ', ' + esc(inc.join(' and ')) + ' included' : ''}. `;
+    const past = units.filter((x) => usePast(x) && useUnitPrice(x));
+    if (!past.length) return 'Included in your share. ';
+    const c = past.reduce((a, x) => a + useToday(x) * useUnitPrice(x), 0);
+    const inc = units.filter((x) => !usePast(x)).map((x) => x.unit);
+    return `<span class="is-warn">${useMoney(c)}</span> extra${inc.length ? ', ' + esc(inc.join(' and ')) + ' included' : ''}. `;
   };
   const useMeter = (p, lv) => `<span class="use-pop-m ${lv}" aria-hidden="true"><i style="--p:${Math.min(1, Math.max(0, p)).toFixed(4)}"></i></span>`;
   function usePopBody(u) {
@@ -15720,7 +15725,8 @@
         <div class="use-pop-u"><span>${esc(x.name)}</span>
           <b class="${past}">${useFmt(x.used)} <small>of ${useFmt(x.limit)}</small></b></div>
         ${useMeter(x.limit ? x.used / x.limit : 0, past)}
-        ${past ? `<p class="use-pop-s"><span class="is-warn">${useFmt(x.used - x.limit)} ${esc(x.unit)} past your share.</span> You can keep going.</p>` : ''}`;
+        ${past ? `<p class="use-pop-s"><span class="is-warn">${useFmt(x.used - x.limit)} ${esc(x.unit)} past your share, ${
+          useMoney((x.used - x.limit) * useUnitPrice(x))} extra.</span> You can keep going.</p>` : ''}`;
     };
     const month = () => `
       <div class="use-pop-g">
