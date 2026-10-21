@@ -15705,10 +15705,14 @@
      share of says what today's use of it adds; the month's total for that
      unit is on its own line above, so the two never repeat each other. */
   const useCostToday = (units) => {
-    if (!units.some((x) => usePast(x) && useUnitPrice(x))) return 'Included in your share. ';
-    return units.map((x) => usePast(x) && useUnitPrice(x)
-      ? `<span class="is-warn">${useMoney(useToday(x) * useUnitPrice(x))}</span> for ${esc(x.unit)}`
-      : esc(x.unit) + ' included').join(', ') + '. ';
+    const past = units.filter((x) => usePast(x) && useUnitPrice(x));
+    if (!past.length) return 'Within your share. ';
+    /* "$2.10 extra on chats, $1.00 on tickets." then any unit still within
+       its share said as its own sentence, so no price reads as covering it */
+    const within = units.filter((x) => !usePast(x)).map((x) => x.unit);
+    const cap = (w) => w.charAt(0).toUpperCase() + w.slice(1);
+    return past.map((x, i) => `<span class="is-warn">${useMoney(useToday(x) * useUnitPrice(x))}</span>${i ? '' : ' extra'} on ${esc(x.unit)}`).join(', ') + '. '
+      + (within.length ? esc(cap(within.join(' and '))) + ' are within your share. ' : '');
   };
   const useMeter = (p, lv) => `<span class="use-pop-m ${lv}" aria-hidden="true"><i style="--p:${Math.min(1, Math.max(0, p)).toFixed(4)}"></i></span>`;
   function usePopBody(u) {
