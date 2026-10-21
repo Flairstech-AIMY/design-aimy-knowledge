@@ -5982,12 +5982,15 @@ body.is-settings .set2-pop .set2-pop-f:focus, body.is-settings .set2-pop .set2-p
    On an organization every slice past its plan carries its price under it:
    amber once the slice has started (billed), plain ink while it is only the
    forecast. The hover number inside the cell is unchanged. */
-.set2-us-cells.is-paid { row-gap: 1.375rem; padding-bottom: 1.125rem; }
+.set2-us-cells.is-paid { row-gap: 1.125rem; padding-bottom: 1rem; }
+/* The price shows only on the hovered slice (Nour 21 Oct), with its number. */
 .set2-us-cell > em {
   position: absolute; left: 50%; top: calc(100% + 0.25rem); transform: translateX(-50%);
   font-style: normal; font-size: 0.625rem; line-height: 1; font-weight: var(--fw-semibold);
-  font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink-warn); pointer-events: none;
+  font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink-warn); pointer-events: none; opacity: 0;
 }
+.set2-us-cell:hover > em { opacity: 1; }
+@media (prefers-reduced-motion: no-preference) { .set2-us-cell > em { transition: opacity 120ms ease-out; } }
 .set2-us-cell.is-fore > em { color: var(--ink-secondary); }
 .set2-us-cells.is-sm .set2-us-cell > em { display: none; }
 .set2-us-xs { color: var(--ink-warn); font-weight: var(--fw-semibold); }

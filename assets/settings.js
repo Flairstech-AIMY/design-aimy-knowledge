@@ -3907,6 +3907,34 @@
   const usPlanN = (m, id) => Math.max(1, Math.round(usLimit(m, id) / US_SLICE[m.id]));
   /* slices started past the plan: each is billed as it starts */
   const usExtraN = (m, id, u) => Math.max(0, Math.ceil(u / US_SLICE[m.id]) - usPlanN(m, id));
+
+  /* ── EVERY STATE ON THE PAGE AT ONCE (Nour 21 Oct) ──
+     Today is 22 Oct (US_TODAY, applied by usDay at the end of the file),
+     and each organization is set to land in a different place by then, per
+     unit, as a share of its plan: Upland past it (billed), Valsoft close
+     and passing it at this pace, FlairsTech within it, with the exceptions
+     noted so every unit shows more than one state. The seed above is scaled
+     to these, leaf by leaf, so companies and people keep their spread. */
+  const US_TODAY = 22;
+  (function usLand22() {
+    const AT = { copilot: { upland: 1.12, valsoft: 0.9, flairstech: 0.55 },
+                 cptix:   { upland: 1.06, valsoft: 0.72, flairstech: 0.93 },
+                 qa:      { upland: 1.15, valsoft: 0.95, flairstech: 0.5 },
+                 voice:   { upland: 1.2, valsoft: 0.85, flairstech: 0.6 } };
+    US_METERS.forEach((m) => Object.keys(AT[m.id]).forEach((org) => {
+      if (!usIn(m, org)) return;
+      const now = usUsed(m, org);
+      if (!now) return;
+      /* the seed is a day-6 figure, so aim at day 6 of the same pace */
+      const want = AT[m.id][org] * usPlanN(m, org) * US_SLICE[m.id] * 6 / US_TODAY;
+      const k = want / now;
+      Object.keys(US_USED[m.id]).forEach((id) => {
+        /* usPath is declared further down, so climb with usAt */
+        let x = id; while (x && x !== org) x = usAt(x).parent;
+        if (x === org) US_USED[m.id][id] = Math.round(US_USED[m.id][id] * k);
+      });
+    }));
+  })();
   /* last month, for the pace to be read against */
   const US_PREV = { name: 'September', copilot: 21800, cptix: 7100, qa: 9180, voice: 3920 };
   const usSliceN = (m, u) => Math.floor(u / US_SLICE[m.id]) + 1;     /* the slice the next unit lands in */
@@ -12841,14 +12869,15 @@
      own pace (straight line from the seed), so the billed state is real
      data on the page rather than a picture of it. */
   const US_USED_0 = JSON.parse(JSON.stringify(US_USED));
-  function usDay(n) {
+  function usDay(n, quiet) {
     const day = Math.max(1, Math.min(US_PERIOD.days, Math.round(n)));
     Object.keys(US_USED_0).forEach((m) => Object.keys(US_USED_0[m]).forEach((id) => {
       US_USED[m][id] = Math.round(US_USED_0[m][id] * day / 6);
     }));
     US_PERIOD.day = day; US_PERIOD.left = US_PERIOD.days - day + 1;
-    render();
+    if (!quiet) render();
   }
+  usDay(US_TODAY, true);
 
   window.AIMY_SETTINGS = {
     dcState: dcState,
