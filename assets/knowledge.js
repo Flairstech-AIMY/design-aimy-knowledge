@@ -15701,12 +15701,14 @@
   const useUnitPrice = (x) => x.price && x.slice ? x.price / x.slice : 0;
   const usePast = (x) => x.limit > 0 && x.used > x.limit;
   const useMoney = (n) => '$' + n.toFixed(2);
+  /* Today, broken down by unit (Nour 21 Oct): each unit you are past your
+     share of says what today's use of it adds; the month's total for that
+     unit is on its own line above, so the two never repeat each other. */
   const useCostToday = (units) => {
-    const past = units.filter((x) => usePast(x) && useUnitPrice(x));
-    if (!past.length) return 'Included in your share. ';
-    const c = past.reduce((a, x) => a + useToday(x) * useUnitPrice(x), 0);
-    const inc = units.filter((x) => !usePast(x)).map((x) => x.unit);
-    return `<span class="is-warn">${useMoney(c)}</span> extra${inc.length ? ', ' + esc(inc.join(' and ')) + ' included' : ''}. `;
+    if (!units.some((x) => usePast(x) && useUnitPrice(x))) return 'Included in your share. ';
+    return units.map((x) => usePast(x) && useUnitPrice(x)
+      ? `<span class="is-warn">${useMoney(useToday(x) * useUnitPrice(x))}</span> for ${esc(x.unit)}`
+      : esc(x.unit) + ' included').join(', ') + '. ';
   };
   const useMeter = (p, lv) => `<span class="use-pop-m ${lv}" aria-hidden="true"><i style="--p:${Math.min(1, Math.max(0, p)).toFixed(4)}"></i></span>`;
   function usePopBody(u) {
@@ -15726,7 +15728,7 @@
           <b class="${past}">${useFmt(x.used)} <small>of ${useFmt(x.limit)}</small></b></div>
         ${useMeter(x.limit ? x.used / x.limit : 0, past)}
         ${past ? `<p class="use-pop-s"><span class="is-warn">${useFmt(x.used - x.limit)} ${esc(x.unit)} past your share, ${
-          useMoney((x.used - x.limit) * useUnitPrice(x))} extra.</span> You can keep going.</p>` : ''}`;
+          useMoney((x.used - x.limit) * useUnitPrice(x))} extra this month.</span> You can keep going.</p>` : ''}`;
     };
     const month = () => `
       <div class="use-pop-g">
