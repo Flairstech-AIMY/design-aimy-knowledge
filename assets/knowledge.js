@@ -15707,7 +15707,7 @@
       return `
       <div class="use-pop-g">
         <div class="use-pop-r"><span>${esc(x.name)}, ${esc(u.month || 'this month')}</span>
-          <b>Slice ${useSliceN(x)}, ${Math.round(sp * 100)}% full</b></div>
+          <b>Slice ${useSliceN(x)}</b></div>
         ${useMeter(sp, '')}
         <p class="use-pop-s"><b>${useFmt(x.used)}</b> ${esc(x.unit)} so far. ${past
           ? `<span class="is-warn">${useFmt(x.used - x.limit)} past your share of ${useFmt(x.limit)}</span>; you can keep going.`
