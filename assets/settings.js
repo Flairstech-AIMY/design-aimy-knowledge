@@ -3934,6 +3934,10 @@
         if (x === org) US_USED[m.id][id] = Math.round(US_USED[m.id][id] * k);
       });
     }));
+    /* The signed-in person (Nour, IT Helpdesk) stays well within their share
+       on 22 Oct, so the AiMY mark's ring keeps its usual colour (Nour asked
+       for it back); amber there means you yourself are past your share. */
+    US_USED.copilot['helpdesk.nour'] = Math.round(0.62 * usLimit(usMeter('copilot'), 'helpdesk.nour') * 6 / US_TODAY);
   })();
   /* last month, for the pace to be read against */
   const US_PREV = { name: 'September', copilot: 21800, cptix: 7100, qa: 9180, voice: 3920 };
