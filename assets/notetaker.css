@@ -174,33 +174,31 @@
 .nt-np li.is-none::before { display: none; }
 .nt-np-state { margin: 0; font-size: var(--ty-meta); color: var(--ink-secondary); }
 
-/* ── Asking AiMY: the AiMY composer ─────────────────────────────────────
+/* ── The composer: the AiMY composer ────────────────────────────────────
    The same bar as the canvas and the command bar (aimy-ds.css draws it):
-   the mark, the field, the round send. It only asks; notes are written in
-   Notes, where they are read. */
+   the mark, the field, the round send. One bar under both tabs: on Chat it
+   asks AiMY, on Notes it adds a private note. */
 .nt-cz { display: grid; gap: 0.5rem; padding: 0.5rem 0.625rem 0.75rem; }
-.nt-w[data-tab="notes"] .nt-chat-only { display: none; }
+.nt-w[data-tab="notes"] .nt-chips { display: none; }
 .nt-chips { display: flex; flex-wrap: wrap; gap: 0.375rem; }
 .nt-chip { height: 1.75rem; padding: 0 0.6875rem; border: 0; border-radius: 999px; background: var(--surface-sunken); box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover);
   font-size: var(--ty-micro); font-weight: var(--fw-semibold); color: var(--ink-primary); white-space: nowrap; cursor: pointer; }
 .nt-chip:hover { box-shadow: inset 0 0 0 0.0625rem rgba(var(--brand-rgb), 0.45); }
 .nt-ask-bar { display: flex; align-items: center; gap: 0.5rem; padding: 0.375rem 0.375rem 0.375rem 0.5rem; }
-.nt-ask-bar .aimy-float-icon { display: grid; place-items: center; flex: none; }
+/* The mark, drawn like the composer's but not the usage widget: that one
+   lives on the Console's own bars, and this composer is only the meeting's. */
+.nt-ask-mark { width: 2.25rem; height: 2.25rem; border-radius: 50%; display: grid; place-items: center; flex: none;
+  background: linear-gradient(135deg, #3d1f6b 0%, #1a3a6e 50%, #163b5e 100%); border: 0.0625rem solid rgba(139,79,244,0.3); box-shadow: 0 0 0.75rem rgba(100,60,200,0.25); }
+:root[data-theme="light"] .nt-ask-mark { background: linear-gradient(135deg, #f2ecff, #e6efff); border-color: rgba(110,70,220,0.28); box-shadow: 0 0 0.75rem rgba(110,70,220,0.15); }
+.nt-ask-mark .nt-mk { width: 1.125rem; height: 1.25rem; }
+.aimy-overlay.is-meeting .overlay-input-bar > .aimy-float-icon.has-use::before { display: none; }
+.aimy-overlay.is-meeting .overlay-input-bar > .aimy-float-icon { cursor: default; }
 .nt-ask-bar .nt-mk { color: var(--brand); }
 .nt-in { flex: 1; min-width: 0; height: 2rem; padding: 0 0.125rem; border: 0; background: transparent; font: inherit; font-size: var(--ty-meta); color: var(--ink-primary); }
 /* The bar draws the focus; the field inside it must not draw a second one. */
 .nt-in, .nt-in:focus, .nt-in:focus-visible { outline: none; box-shadow: none; }
 .nt-in::placeholder { color: var(--ink-quiet); opacity: 1; }
 .nt-ask-bar .overlay-send { flex: none; }
-
-/* Your notes: one line at the end of the list, type and press Enter. */
-.nt-add { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.125rem; padding: 0 0.75rem; height: 2.375rem; border-radius: 0.75rem;
-  background: var(--surface-sunken); box-shadow: inset 0 0 0 0.0625rem var(--card-border); transition: box-shadow var(--t-fast) var(--ease-out); }
-.nt-add:focus-within { box-shadow: inset 0 0 0 0.0625rem rgba(var(--brand-rgb), 0.5); }
-.nt-add > .nt-ic { color: var(--nt-brand-ink); }
-.nt-add-in { flex: 1; min-width: 0; height: 100%; border: 0; background: transparent; font: inherit; font-size: var(--ty-meta); color: var(--ink-primary); }
-.nt-add-in, .nt-add-in:focus, .nt-add-in:focus-visible { outline: none; box-shadow: none; }
-.nt-add-in::placeholder { color: var(--ink-quiet); opacity: 1; }
 
 /* ── The canvas, while the meeting is open in it ─────────────────────────
    The card's two views, at the canvas's own measure: Chat (the stream, with
@@ -212,7 +210,7 @@
 .aimy-overlay.is-meeting .overlay-main { justify-content: stretch; align-items: stretch; }
 .aimy-overlay.is-meeting .overlay-input-wrap { align-self: center; width: 100%; }
 .aimy-overlay.is-meeting .nt-cv-chips { display: flex; margin-bottom: 0.5rem; }
-.aimy-overlay.is-meeting[data-nt-tab="notes"] :is(.nt-cv-stream, .nt-cv-chips, .overlay-input-wrap) { display: none; }
+.aimy-overlay.is-meeting[data-nt-tab="notes"] :is(.nt-cv-stream, .nt-cv-chips) { display: none; }
 .aimy-overlay.is-meeting[data-nt-tab="chat"] .nt-cv-np { display: none; }
 /* The bar is the meeting's bar: send is always send, and the microphone is
    already in the meeting. */
@@ -310,7 +308,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nt-w, .nt-fold, .nt-card, .nt-badge, .nt-tabs button, .nt-wd, .nt-add, .nt-x { transition: none; }
+  .nt-w, .nt-fold, .nt-card, .nt-badge, .nt-tabs button, .nt-wd, .nt-x { transition: none; }
   .nt-cl, .nt-an, .nt-yn, .nt-q, .nt-am, .nt-np li, .nt-nf, .nt-nf.is-out, .nt-cons > *, .nt-step .nt-ic, .nt-step b, .nt-rec { animation: none; }
   .nt-box { transition: none; }
   .nt-wd.is-pre { opacity: 1; filter: none; }

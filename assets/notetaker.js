@@ -117,7 +117,10 @@
   /* Speech pace, a breath between speakers, and how long each step takes. */
   const WORD_MS = 150, LINE_GAP = 1300, STEP_MS = 2600, SHORT_S = 30, BANNER_MS = 6000;
   const STATUS = { live: 'Taking notes', ended: 'Meeting ended', writing: 'Writing the notes', ready: 'Notes ready', short: 'Too short to summarise', failed: 'Notes not written' };
+  /* One composer, and the tab says what it does. */
   const ASK = 'Ask AiMY about this meeting';
+  const NOTE = 'Add a private note';
+  const hint = () => (S.tab === 'notes' ? NOTE : ASK);
   /* How long after the last word the call is treated as over. */
   const HANGUP_MS = 3500;
 
@@ -152,8 +155,7 @@
     <p class="nt-np-state" data-nt="np-state" hidden></p>
     <div class="nt-np-live"><p class="nt-np-wait">${MARK(14)}<span>AiMY writes the summary, decisions and to-dos when the meeting ends. Until then, this is where your own notes go.</span></p></div>
     <div class="nt-np-final" data-nt="final"></div>
-    <section><h5>${ic('pen', 14)}Your notes${only}</h5><ul data-nt="mine"></ul>
-      <form class="nt-add" data-nt-noteform>${ic('pen', 14)}<input class="nt-add-in" data-nt-notedraft placeholder="Add a note and press Enter" aria-label="Add a private note" autocomplete="off"></form></section>
+    <section><h5>${ic('pen', 14)}Your notes${only}</h5><ul data-nt="mine"><li class="is-none">Write one in the bar below. Only you see them.</li></ul></section>
   </div>`;
   function finalHTML() {
     return `<div class="nt-sum"><p>${SUMMARY}</p></div>
@@ -183,8 +185,8 @@
           </div>
           <div class="nt-tabs" role="tablist"><button type="button" role="tab" data-nt-tab="chat" aria-selected="true">Chat</button><button type="button" role="tab" data-nt-tab="notes" aria-selected="false">Notes</button>${ctl()}</div>
           <div class="nt-body"><div class="nt-stream" data-nt-stream></div>${notesPanel()}</div>
-          <form class="nt-cz nt-chat-only" data-nt-form>${chips()}
-            <div class="overlay-input-bar nt-ask-bar"><span class="aimy-float-icon" aria-hidden="true">${MARK(16)}</span><input class="overlay-input nt-in" data-nt-draft placeholder="${ASK}" aria-label="${ASK}" autocomplete="off"><button class="overlay-send" aria-label="Ask">${ic('send', 14)}</button></div>
+          <form class="nt-cz" data-nt-form>${chips()}
+            <div class="overlay-input-bar nt-ask-bar"><span class="nt-ask-mark" aria-hidden="true">${MARK(16)}</span><input class="overlay-input nt-in" data-nt-draft placeholder="${ASK}" aria-label="${ASK}" autocomplete="off"><button class="overlay-send" aria-label="Ask">${ic('send', 14)}</button></div>
           </form>
         </div>
       </div>
@@ -226,6 +228,13 @@
       if (!ov.classList.contains('is-meeting')) return;
       if (e.target.closest('.nt-cv, .nt-cv-chips')) onClick(e);
     });
+    /* The canvas bar's mark is the usage widget's everywhere else. In the
+       meeting it is only the mark: its hover, focus and click stop here,
+       before the usage popover's document listeners hear them. */
+    const useMark = $('.overlay-input-bar > .aimy-float-icon', ov);
+    if (useMark) ['mouseover', 'focusin', 'click'].forEach((t) => useMark.addEventListener(t, (e) => {
+      if (ov.classList.contains('is-meeting')) { e.stopPropagation(); if (t === 'click') e.preventDefault(); }
+    }));
     $('.nt-cv', ov).addEventListener('submit', onSubmit);
     $('.nt-cv', ov).addEventListener('input', onDraft);
     /* Every other conversation in the column is still a conversation: going
@@ -268,7 +277,8 @@
     if (cvParts) { cvParts.ov.dataset.ntPhase = S.phase; cvParts.ov.dataset.ntTab = S.tab; }
     $('.nt-fold', root).setAttribute('aria-expanded', String(S.view !== 'fold'));
     all('[data-nt-tab]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.ntTab === S.tab)));
-    if (cvParts && cvParts.ov.classList.contains('is-meeting')) cvParts.input.setAttribute('placeholder', ASK);
+    all('[data-nt-draft]').forEach((i) => { i.placeholder = hint(); i.setAttribute('aria-label', hint()); });
+    if (cvParts && cvParts.ov.classList.contains('is-meeting')) cvParts.input.setAttribute('placeholder', hint());
     slots('status').forEach((e) => { e.textContent = STATUS[S.phase] || ''; });
     slots('chat-sub').forEach((e) => { e.textContent = 'Meeting, ' + (STATUS[S.phase] || '').toLowerCase(); });
     if (!live) slots('who').forEach((e) => { e.textContent = 'The meeting has ended'; });
@@ -400,7 +410,7 @@
   function begin(o) {
     clearAll();
     mountWidget();
-    Object.assign(S, { phase: o.phase || 'live', view: o.view || 'fold', tab: o.tab || 'chat', draft: '', noteDraft: '', how: '', clock: o.clock || 0,
+    Object.assign(S, { phase: o.phase || 'live', view: o.view || 'fold', tab: o.tab || 'chat', draft: '', drafts: { chat: '', notes: '' }, how: '', clock: o.clock || 0,
                        unread: o.unread || 0, items: [], steps: null, nfs: [], failNext: false, closed: false });
     S.n = o.n || 0;
     for (let i = 0; i < S.n; i++) {
@@ -409,7 +419,7 @@
       if (o.mine && i === 6) { const keep = S.n; S.n = 7; S.items.push(answer('catch')); S.n = keep; }
     }
     if (o.after) o.after();
-    all('[data-nt-draft], [data-nt-notedraft]').forEach((i) => { i.value = ''; });
+    all('[data-nt-draft]').forEach((i) => { i.value = ''; });
     redraw();
     if (isLive() && !o.still) { runClock(); next(o.first || 1800); }
   }
@@ -608,15 +618,17 @@
     S.draft = '';
     all('[data-nt-draft]').forEach((i) => { i.value = ''; });
     if (cvParts && cvParts.ov.classList.contains('is-meeting')) cvParts.input.value = '';
-    add(answer(null, x), true);
+    if (S.tab === 'notes') add({ type: 'mine', x, t: S.clock }, true);
+    else add(answer(null, x), true);
     scrollAll(true);
   }
-  function addNote(from) {
-    const x = S.noteDraft.trim(); if (!x) return;
-    S.noteDraft = '';
-    all('[data-nt-notedraft]').forEach((i) => { i.value = ''; });
-    add({ type: 'mine', x, t: S.clock }, true);
-    if (from) from.focus({ preventScroll: true });
+  /* Each tab keeps what you were typing in it. */
+  function setTab(t) {
+    if (t === S.tab) return;
+    S.drafts[S.tab] = S.draft;
+    S.tab = t; S.draft = S.drafts[t] || '';
+    syncDraft(null);
+    paint(); scrollAll(true);
   }
   function syncDraft(from) {
     all('[data-nt-draft]').forEach((i) => { if (i !== from) i.value = S.draft; });
@@ -624,18 +636,17 @@
   }
   function onDraft(e) {
     if (e.target.matches('[data-nt-draft]')) { S.draft = e.target.value; syncDraft(e.target); }
-    if (e.target.matches('[data-nt-notedraft]')) { S.noteDraft = e.target.value; all('[data-nt-notedraft]').forEach((i) => { if (i !== e.target) i.value = S.noteDraft; }); }
   }
   function onSubmit(e) {
     e.preventDefault();
-    if (e.target.matches('[data-nt-noteform]')) addNote(e.target.querySelector('input')); else send();
+    send();
   }
   function toast(msg, undo, sub) { const k = K(); if (k && k.toast) k.toast(msg, undo, sub); }
 
   function onClick(e) {
     const a = e.target.closest('[data-nt-act], [data-nt-tab], [data-nt-ask]');
     if (!a) return;
-    if (a.dataset.ntTab) { S.tab = a.dataset.ntTab; paint(); scrollAll(true); return; }
+    if (a.dataset.ntTab) { setTab(a.dataset.ntTab); return; }
     if (a.dataset.ntAsk) { add(answer(a.dataset.ntAsk), true); scrollAll(true); return; }
     const act = a.dataset.ntAct;
     if (act === 'open') setView('card');
