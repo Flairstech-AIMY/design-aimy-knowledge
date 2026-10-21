@@ -4119,6 +4119,7 @@
       <section class="set2-sec is-headless set2-us${enter ? ' is-enter' : ''}" id="st-usage">
         ${pl.people ? usBack(m, id) : ''}
         <div class="set2-us-top">
+          <div class="set2-us-pick">
           <div class="seg set2-ag-seg set2-us-seg" role="radiogroup" aria-label="Which AiMY product">
             <span class="set2-us-ind" aria-hidden="true"></span>
             ${US_METERS.filter((x, i) => US_METERS.findIndex((y) => y.prod === x.prod) === i).map((x) => `
@@ -4127,12 +4128,18 @@
                       data-us-meter="${x.id}" data-us-prod="${x.prod}">${esc(x.name)}</button>`).join('')}
           </div>
           ${usUnits(m.prod).length > 1 ? `
-          <div class="seg set2-us-useg" role="radiogroup" aria-label="Which ${esc(m.name)} unit">
-            ${usUnits(m.prod).map((x) => `
-              <button class="seg-btn${x.id === m.id ? ' active' : ''}" type="button" role="radio"
-                      aria-checked="${x.id === m.id}" tabindex="${x.id === m.id ? 0 : -1}"
-                      data-us-meter="${x.id}">${esc(x.uname)}</button>`).join('')}
+          <!-- The units hang from the chosen product on a stem (Nour 21 Oct,
+               variant D): usSegInd puts the stem under the product's middle. -->
+          <div class="set2-us-hang">
+            <span class="set2-us-stem" aria-hidden="true"></span>
+            <div class="seg set2-us-useg" role="radiogroup" aria-label="Which ${esc(m.name)} unit">
+              ${usUnits(m.prod).map((x) => `
+                <button class="seg-btn${x.id === m.id ? ' active' : ''}" type="button" role="radio"
+                        aria-checked="${x.id === m.id}" tabindex="${x.id === m.id ? 0 : -1}"
+                        data-us-meter="${x.id}">${esc(x.uname)}</button>`).join('')}
+            </div>
           </div>` : ''}
+          </div>
         </div>
         ${pl.people ? usHero(m, id) + usAlloc(m, id, st) : usLadder(pl, st)}
       </section>`;
@@ -4961,14 +4968,30 @@
       ind.style.transform = 'translateX(' + r.l + 'px)';
       ind.style.borderRadius = getComputedStyle(on).borderRadius;
     };
-    place();
+    /* A product with several units: its stem drops from the middle of the
+       chosen product, and the units centre on the stem where there is room
+       (they never start left of the switch). */
+    const hang = seg.parentElement.querySelector('.set2-us-hang');
+    const stem = hang && hang.querySelector('.set2-us-stem'), useg = hang && hang.querySelector('.set2-us-useg');
+    const seat = () => {
+      if (!hang) return;
+      /* measured against the column it hangs in, not offsetLeft, whose
+         parent changes with what the page is showing */
+      const a = on.getBoundingClientRect(), cx = a.left + a.width / 2 - seg.parentElement.getBoundingClientRect().left;
+      stem.style.marginLeft = (cx - stem.offsetWidth / 2) + 'px';
+      useg.style.marginLeft = Math.max(0, cx - useg.offsetWidth / 2) + 'px';
+    };
+    place(); seat();
     seg.classList.add('has-ind');
-    if (!seg._usRO && window.ResizeObserver) { seg._usRO = new ResizeObserver(place); seg._usRO.observe(seg); }
+    if (!seg._usRO && window.ResizeObserver) { seg._usRO = new ResizeObserver(() => { place(); seat(); }); seg._usRO.observe(seg); }
     const from = US_IND_FROM;
     US_IND_FROM = null;
     if (!from || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const to = box();
     if (from.l === to.l && from.w === to.w) return;
+    /* a new product's units arrive after it: a short drop and fade */
+    if (hang) hang.animate([{ opacity: 0, transform: 'translateY(-4px)' }, { opacity: 1, transform: 'none' }],
+      { duration: 250, delay: 120, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'backwards' });
     ind.animate([
       { transform: 'translateX(' + from.l + 'px)', width: from.w + 'px' },
       { transform: 'translateX(' + to.l + 'px)', width: to.w + 'px' }
