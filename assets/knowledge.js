@@ -16034,7 +16034,19 @@
       const body = $('#peekBody');
       body.style.maxHeight = '';
       $('#aimyFloatWrap').classList.add('has-peek');
+      this.go = null;
       return body;
+    },
+
+    /* A message AiMY starts itself (notetaker.js: the meeting's notes are
+       ready). Like the greeting it starts no conversation; pressing it does
+       what the sender asks instead of opening the canvas. Not over an open
+       canvas, which is where that sender already speaks. */
+    say(html, go) {
+      if (!this.el || canvas.open) return false;
+      this.stream(this.up(), html, () => this.settle());
+      this.go = go || null;
+      return true;
     },
 
     /* Hello, before anything is asked. Only in the card: a greeting is not a
@@ -16151,6 +16163,7 @@
 
     open() {
       this.all();
+      if (this.go) { const go = this.go; this.hide(); go(); return; }
       canvas.show(this.basis);
     },
 
@@ -16552,6 +16565,7 @@
   window.AIMY_KNOW = {
     canvas: { show: (basis) => canvas.show(basis), close: (opts) => canvas.close(opts), isOpen: () => canvas.open },
     toast: (msg, undo, sub) => toast(msg, undo, sub),
+    say: (html, go) => peek.say(html, go),
     paintChats: () => paintChats(),
     bellSync: () => bell.sync()
   };

@@ -102,6 +102,8 @@
     11: { k: 'dec',  h: 'Decided',    x: 'Next meeting Tuesday 27 Oct, same time.' }
   };
   const SUMMARY = 'The Freshdesk sync dropped parent tickets because the merge tag rule matched them too. The rule gets split by Thursday, then 14 days are re-synced. Plan needs labels before it can be a focus field, and Upland wants a value note before the November renewal.';
+  /* The summary's one line for a message that has room for one. */
+  const GIST = 'The merge tag rule gets split by Thursday, then the last 14 days are re-synced.';
   const DECIDED = ['Split the merge tag rule: skip merged tickets, keep the parent.', 'Re-sync the last 14 days once the rule is split.', 'Next check-in Tuesday 27 Oct, same time.'];
   const TODO = [
     { who: 'you',   x: 'Split the merge tag rule',               m: 'Nour Ali, Thu 22 Oct' },
@@ -569,13 +571,29 @@
         S.steps[i] = 'fail'; drawSteps(); S.phase = 'failed';
         add({ type: 'fail' }, true);
         notify({ k: 'fail', t: 'Notes not written', x: 'The summary didn’t finish. Your transcript is safe.', act: 'Try again', go: 'retry' });
+        say('fail');
         return;
       }
       S.steps[i] = 'done'; drawSteps();
       notify({ k: 'ok', t: STEPS[i].done, x: STEPS[i].nf, act: i === 2 ? 'Open the notes' : '', go: 'open-notes' });
       if (i < 2) { S.steps[i + 1] = 'run'; drawSteps(); runSteps(i + 1); return; }
       S.phase = 'ready'; add({ type: 'result' }, true);
+      say('ready');
     }, STEP_MS);
+  }
+  /* What the three steps found, said by AiMY in the Console's own message
+     card above the command bar: it reaches you with the orb collapsed or
+     closed. Pressing it opens the notes. Built from the analysis (decisions,
+     to-dos and whose they are) and the summary, not written separately. */
+  function say(kind) {
+    const k = K(); if (!k || !k.say) return;
+    const open = (tab) => () => { S.closed = false; S.tab = tab; if (S.view === 'canvas') paint(); else setView('card'); };
+    if (kind === 'fail') {
+      k.say(`The summary for <b>${MEET}</b> didn’t finish. The recording and the transcript are safe, and nothing was sent.`, open('chat'));
+      return;
+    }
+    const yours = TODO.filter((t) => t.who === 'you').length;
+    k.say(`Your notes for <b>${MEET}</b> are ready. ${GIST} <b>${DECIDED.length} decisions, ${TODO.length} to-dos</b>, ${yours === 1 ? 'one' : yours} of them yours.`, open('notes'));
   }
   function drawSteps() {
     all('[data-nt-steps]').forEach((el) => {
