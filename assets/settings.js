@@ -4346,7 +4346,9 @@
     const where = parent && parent.id ? parent.name : 'everyone';
     const src = US_SET[m.id][id] != null ? 'set by admin' + (parent && parent.id ? ' on ' + where : '')
       : parent && parent.id ? 'an equal share of ' + where + '’s' : 'an equal share of what everyone is expected to use';
-    const c = usCells(m, used, id ? (paid ? plan * US_SLICE[m.id] : L) : 0, 60, paid);
+    /* Every slice past a plan or a share carries its price on hover, at
+       every level (Nour 21 Oct); only the organization's are billed. */
+    const c = usCells(m, used, id ? (paid ? plan * US_SLICE[m.id] : L) : 0, 60, !!id);
     const z = US_SLICE[m.id];
     const fp = Math.round(usSliceP(m, used) * 100);
     if (paid) return `
@@ -4380,7 +4382,7 @@
             ${bad ? pill(bad[0], bad[1]) : ''}</span>
           <p class="set2-us-big"><b class="set2-num">${usFmt(used)}</b>
             <span>${esc(m.unit)}, ${c.n - 1 === 1 ? '1 slice' : (c.n - 1) + ' slices'} full and slice ${c.n} at ${fp}%</span></p>
-          <div class="set2-us-cells" role="img" aria-label="${c.n - 1} slices full, slice ${c.n} ${fp}% full${
+          <div class="set2-us-cells${id ? ' is-paid' : ''}" role="img" aria-label="${c.n - 1} slices full, slice ${c.n} ${fp}% full${
             id ? ', its share ends after slice ' + c.sh : ''}">${c.html}</div>
           <p class="set2-us-key"><span><i></i>Used</span><span><i class="is-fore"></i>The rest of ${US_PERIOD.name} at today’s pace</span>${
             id ? `<span><i class="is-share"></i>Share: ${usFmt(L)}, ${esc(src)}</span>` : ''}<span>${
@@ -4803,7 +4805,7 @@
         <span class="set2-us-use">
           <span class="set2-us-use-t"><b class="set2-num">${usFmt(used)}</b>
             ${bad ? pill(bad[0], bad[1]) : `<span class="set2-us-pc">slice ${usSliceN(m, used)}</span>`}</span>
-          <span class="set2-us-cells is-sm" aria-hidden="true">${usCells(m, used, org ? usPlanN(m, k.id) * US_SLICE[m.id] : lim, 24).html}</span>
+          <span class="set2-us-cells is-sm" aria-hidden="true">${usCells(m, used, org ? usPlanN(m, k.id) * US_SLICE[m.id] : lim, 24, true).html}</span>
         </span>
         <span class="set2-us-r-lim">
           ${US_EDIT ? `

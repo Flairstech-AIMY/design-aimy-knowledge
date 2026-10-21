@@ -5999,7 +5999,8 @@ body.is-settings .set2-pop .set2-pop-f:focus, body.is-settings .set2-pop .set2-p
 .set2-us-cell:hover > em { opacity: 1; }
 @media (prefers-reduced-motion: no-preference) { .set2-us-cell > em { transition: opacity 120ms ease-out; } }
 .set2-us-cell.is-fore > em { color: var(--ink-secondary); }
-.set2-us-cells.is-sm .set2-us-cell > em { display: none; }
+/* the small strips in rows have no number, but keep the price on hover */
+.set2-us-cells.is-sm .set2-us-cell > em { top: calc(100% + 0.1875rem); font-size: 0.5625rem; z-index: 1; }
 .set2-us-xs { color: var(--ink-warn); font-weight: var(--fw-semibold); }
 
 /* ── Map fields, with Search by inside it (Nour 20 Oct, variant D) ──
