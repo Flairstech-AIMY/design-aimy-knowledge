@@ -11348,6 +11348,10 @@
       ['Usage, other days in October', 'Opens Agents > Usage on that day, use carried on at the same pace.', [
         ['6 Oct', 'us:6'], ['22 Oct, today', 'us:22'], ['28 Oct', 'us:28']
       ]],
+      /* Your usage widget (the AiMY mark's popover) in each state. */
+      ['Usage widget, each state', 'Opens your usage on the AiMY mark in that state.', [
+        ['chats over, tickets within', 'uw:chats'], ['over on both', 'uw:both'], ['within both', 'uw:none']
+      ]],
       ['Non-happy states', '', [
         ['loading', 'url:?state=loading'],
         ['error', 'url:?state=error'],
@@ -11403,6 +11407,7 @@
       patch({ m: 'config', sec: 'fields', sc: 'Upland', sp: 'AccuRoute Support', crm: '' });
       return;
     }
+    if (kind === 'uw') { useScenario(arg); return; }
     if (kind === 'us') {
       const S = window.AIMY_SETTINGS;
       if (S && S.usDay) S.usDay(+arg);
@@ -15645,11 +15650,11 @@
      disagree; the gate, which has no settings.js, carries the same row as a
      fixture. A question costs a rough estimate, added to the session and to
      the plan, so the ring moves as you use it. */
-  const USE_FALLBACK = { limit: 300, used: 93, unit: 'chats', slice: 500, month: 'October', sessLimit: 50,
+  const USE_FALLBACK = { limit: 300, used: 336, unit: 'chats', slice: 500, month: 'October', sessLimit: 50,
                          sessPer: 'per working day', resets: '1 Nov',
                          org: 'FlairsTech', orgPlan: 6, orgExtra: 1, price: 150, orgPaceExtra: 3, monthEnd: '31 Oct',
-                         units: [{ id: 'copilot', name: 'Chats', unit: 'chats', used: 93, limit: 300, slice: 500, price: 150, orgExtra: 1, sessLimit: 50 },
-                                 { id: 'cptix', name: 'Tickets', unit: 'tickets', used: 24, limit: 120, slice: 200, price: 100, orgExtra: 0, sessLimit: 25 }],
+                         units: [{ id: 'copilot', name: 'Chats', unit: 'chats', used: 336, limit: 300, slice: 500, price: 150, orgExtra: 1, sessLimit: 50 },
+                                 { id: 'cptix', name: 'Tickets', unit: 'tickets', used: 72, limit: 120, slice: 200, price: 100, orgExtra: 0, sessLimit: 25 }],
                          link: 'console.html?m=agents&sec=usage' };
   /* Copilot counts chats (Nour 21 Oct), so the short window is today's chats;
      tickets answered today are their own count (USE_TODAY by unit id). */
@@ -15732,6 +15737,24 @@
           ? `<span class="is-warn">Past today’s ${esc(overDay.map((x) => x.unit).join(' and '))} share</span>; you can keep going.` : ''}</p>
       </div>
       <a class="use-pop-a" href="${esc(u.link)}"><span>Usage</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>`;
+  }
+
+  /* ── The widget in each state (prototype panel) ──
+     Past your chats share only (the default), past both, or within both.
+     In the Console the figures are the Usage page's own (usMeState); on the
+     gate they are the fixture. The popover opens pinned so it can be read. */
+  const USE_AT = { chats: [1.12, 0.6], both: [1.12, 1.15], none: [0.62, 0.6] };
+  function useScenario(name) {
+    const S = window.AIMY_SETTINGS;
+    if (S && S.usMeState) S.usMeState(name);
+    else {
+      const at = USE_AT[name] || USE_AT.chats;
+      USE_FALLBACK.units.forEach((x, i) => { x.used = Math.round(at[i] * x.limit); });
+      USE_FALLBACK.used = USE_FALLBACK.units[0].used;
+    }
+    paintUseMark();
+    const mark = $$(USE_MARK).filter((el) => el.offsetParent)[0];
+    if (mark) { closeUsePop(); openUsePop(mark, false); USE_PINNED = true; }
   }
 
   /* The ring shows the WORSE of the two limits, because either one is the

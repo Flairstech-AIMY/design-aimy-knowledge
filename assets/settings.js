@@ -3928,6 +3928,9 @@
      noted so every unit shows more than one state. The seed above is scaled
      to these, leaf by leaf, so companies and people keep their spread. */
   const US_TODAY = 22;
+  /* The signed-in person's chats and tickets as a share of their share, per
+     prototype state: past both, within both, or past chats only (default). */
+  const US_ME_AT = { chats: [1.12, 0.6], both: [1.12, 1.15], none: [0.62, 0.6] };
   (function usLand22() {
     /* FlairsTech's chats sit just past its plan so the signed-in person
        (who is in FlairsTech) sees a cost in the mark's popover. */
@@ -3948,10 +3951,13 @@
         if (x === org) US_USED[m.id][id] = Math.round(US_USED[m.id][id] * k);
       });
     }));
-    /* The signed-in person (Nour, IT Helpdesk) stays well within their share
-       on 22 Oct, so the AiMY mark's ring keeps its usual colour (Nour asked
-       for it back); amber there means you yourself are past your share. */
-    US_USED.copilot['helpdesk.nour'] = Math.round(0.62 * usLimit(usMeter('copilot'), 'helpdesk.nour') * 6 / US_TODAY);
+    /* The signed-in person (Nour, IT Helpdesk) on 22 Oct: past their chats
+       share, within their tickets share (Nour 21 Oct: the scenario is over
+       the limit of chats). The prototype panel switches it (usMeState). */
+    US_ME_AT.chats.forEach((f, i) => {
+      const id = ['copilot', 'cptix'][i];
+      US_USED[id]['helpdesk.nour'] = Math.round(f * usLimit(usMeter(id), 'helpdesk.nour') * 6 / US_TODAY);
+    });
   })();
   /* last month, for the pace to be read against */
   const US_PREV = { name: 'September', copilot: 21800, cptix: 7100, qa: 9180, voice: 3920 };
@@ -12938,8 +12944,20 @@
   }
   usDay(US_TODAY, true);
 
+  /* The usage widget in each state, for the prototype panel: the signed-in
+     person's chats and tickets set against their shares on today's date. */
+  function usMeState(name) {
+    const at = US_ME_AT[name] || US_ME_AT.chats;
+    usForget();
+    ['copilot', 'cptix'].forEach((id, i) => {
+      US_USED[id]['helpdesk.nour'] = Math.round(at[i] * usLimit(usMeter(id), 'helpdesk.nour'));
+    });
+    render();
+  }
+
   window.AIMY_SETTINGS = {
     dcState: dcState,
+    usMeState: usMeState,
     usDay: usDay,
     usageMine: usageMine,
     usageSpend: usageSpend,
