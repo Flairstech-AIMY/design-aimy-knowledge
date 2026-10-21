@@ -115,7 +115,7 @@
     { run: 'Summarizing',              done: 'Summary written',     sub: 'Posted below and in Notes',                     nf: 'Your meeting notes are ready.' }
   ];
   /* Speech pace, a breath between speakers, and how long each step takes. */
-  const WORD_MS = 150, LINE_GAP = 1300, STEP_MS = 2600, SHORT_S = 30, BANNER_MS = 6000;
+  const WORD_MS = 150, LINE_GAP = 1300, STEP_MS = 2600, SHORT_S = 30;
   const STATUS = { live: 'Taking notes', ended: 'Meeting ended', writing: 'Writing the notes', ready: 'Notes ready', short: 'Too short to summarise', failed: 'Notes not written' };
   /* One composer, and the tab says what it does. */
   const ASK = 'Ask AiMY about this meeting';
@@ -189,8 +189,7 @@
             <div class="overlay-input-bar nt-ask-bar"><span class="nt-ask-mark" aria-hidden="true">${MARK(16)}</span><input class="overlay-input nt-in" data-nt-draft placeholder="${ASK}" aria-label="${ASK}" autocomplete="off"><button class="overlay-send" aria-label="Ask">${ic('send', 14)}</button></div>
           </form>
         </div>
-      </div>
-      <div class="nt-banners" id="ntBanners" aria-live="polite"></div>`);
+      </div>`);
     root = $('#ntWidget');
     root.addEventListener('click', onClick);
     root.addEventListener('submit', onSubmit);
@@ -200,7 +199,6 @@
       e.stopPropagation(); setView('fold');
       $('.nt-fold', root).focus();
     });
-    $('#ntBanners').addEventListener('click', onClick);
     bindDrag();
     const silk = window.AIMY_VOICE && window.AIMY_VOICE.silk;
     $$('[data-nt-orb] canvas', root).forEach((c) => { if (silk) c._silk = silk(c); });
@@ -592,24 +590,40 @@
     redraw(); runSteps(2);
   }
 
-  /* ── Notifications ───────────────────────────────────────────────────── */
+  /* ── Notifications ───────────────────────────────────────────────────────
+     Each finished step is a row in the topnav bell, nothing that floats over
+     the work: the step itself already ticks off in the chat, and the bell's
+     count is how you hear about it when the card is folded or closed. */
   let nfSeq = 0;
   function notify(n) {
     n.id = 'nt-' + (++nfSeq); n.at = clock(S.clock);
     S.nfs.unshift(n);
-    const host = $('#ntBanners'); if (!host) return;
-    host.insertAdjacentHTML('afterbegin', bannerHTML(n));
-    const el = host.firstElementChild;
-    while (host.children.length > 3) host.lastElementChild.remove();
-    setTimeout(() => { el.classList.add('is-out'); setTimeout(() => el.remove(), 360); }, BANNER_MS);
     paint();
+    ring(n);
   }
-  function bannerHTML(n) {
-    const icon = n.k === 'fail' ? ic('alert', 15) : n.k === 'short' ? ic('hourglass', 15) : ic('check', 15);
-    return `<div class="nt-nf" role="status"><span class="nt-nf-i is-${n.k}">${icon}</span>` +
-      `<span class="nt-nf-t"><span class="nt-nf-src">${MARK(11)}AiMY, ${n.at}</span><b>${n.t}</b><span>${n.x}</span>` +
-      `${n.act ? `<button class="nt-lk" type="button" data-nt-act="${n.go}">${n.act}</button>` : ''}</span>` +
-      `<button class="nt-ib" type="button" data-nt-act="nf-x" aria-label="Dismiss" title="Dismiss">${ic('x', 14)}</button></div>`;
+  /* The bell says it, briefly: it rocks, and one line drops from it for
+     about a second. Not while its panel is open (the row is already there),
+     and only the latest when two arrive close together. */
+  const PEEK_MS = 1400;
+  let peekT = 0;
+  function ring(n) {
+    const bell = $('#ntfBell'), panel = $('#ntfPanel');
+    if (!bell || (panel && !panel.hidden)) return;
+    if (!reduced()) { bell.classList.remove('nt-ring'); void bell.offsetWidth; bell.classList.add('nt-ring'); }
+    let peek = $('#ntPeek');
+    if (!peek) { document.body.insertAdjacentHTML('beforeend', '<div class="nt-peek" id="ntPeek" role="status" aria-live="polite"></div>'); peek = $('#ntPeek'); }
+    peek.innerHTML = `${n.k === 'fail' ? ic('alert', 13) : MARK(12)}<span><b>${n.t}</b></span>`;
+    /* Centred under the bell, kept inside the window; the point stays aimed
+       at the bell even when the line is pushed in from the edge. */
+    const r = bell.getBoundingClientRect(), w = peek.offsetWidth, cx = r.left + r.width / 2;
+    const left = Math.max(12, Math.min(innerWidth - w - 12, cx - w / 2));
+    peek.style.top = Math.round(r.bottom + 10) + 'px';
+    peek.style.left = Math.round(left) + 'px';
+    peek.style.setProperty('--nt-peek-x', Math.round(cx - left) + 'px');
+    peek.classList.toggle('is-fail', n.k === 'fail');
+    peek.classList.remove('is-on'); void peek.offsetWidth; peek.classList.add('is-on');
+    clearTimeout(peekT);
+    peekT = setTimeout(() => peek.classList.remove('is-on'), PEEK_MS);
   }
 
   /* ── Doing things ────────────────────────────────────────────────────── */
@@ -659,7 +673,6 @@
     else if (act === 'close') closeWidget();
     else if (act === 'retry') retry();
     else if (act === 'open-notes') { S.tab = 'notes'; if (S.view === 'fold') setView('card'); else paint(); }
-    else if (act === 'nf-x') { const n = a.closest('.nt-nf'); n.classList.add('is-out'); setTimeout(() => n.remove(), 360); }
     else if (act === 'send') toast('Sent to Dana, Priya and Ahmed', 'Undo', 'AiMY’s notes only. Your own notes stay with you.');
     else if (act === 'tasks') toast('4 tasks made', 'Undo', 'Each with its owner and date');
     else if (act === 'doc') toast('Saved as a Meeting notes document', null, 'Linked to Upland, with the full transcript');

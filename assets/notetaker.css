@@ -248,31 +248,28 @@
 .nt-x:active { transform: scale(0.94); }
 .nt-w:not([data-view="fold"]) .nt-x { opacity: 0; pointer-events: none; }
 
-/* ── Notifications: banners that stack; the bell keeps them ──────────── */
-.nt-banners { position: fixed; top: calc(var(--topbar-height, 3.5rem) + 0.75rem); right: max(1rem, env(safe-area-inset-right)); z-index: 970;
-  width: min(20.625rem, calc(100vw - 2rem)); display: grid; gap: 0.5rem; pointer-events: none; }
-.nt-nf { pointer-events: auto; display: grid; grid-template-columns: 1.75rem minmax(0, 1fr) auto; gap: 0.625rem; align-items: start;
-  padding: 0.625rem 0.625rem 0.625rem 0.75rem; border-radius: 0.875rem; background: var(--card-bg); box-shadow: var(--nt-shadow);
-  animation: nt-nf-in var(--t-slow) var(--ease-out) both; }
-.nt-nf.is-out { animation: nt-nf-out 350ms var(--ease-out) both; }
-@keyframes nt-nf-in { from { opacity: 0; transform: translateY(-0.5rem) scale(0.98); filter: blur(0.125rem); } to { opacity: 1; transform: none; filter: none; } }
-@keyframes nt-nf-out { to { opacity: 0; transform: translateX(1rem); filter: blur(0.125rem); } }
-.nt-nf-i { width: 1.75rem; height: 1.75rem; border-radius: 50%; display: grid; place-items: center; background: rgba(78, 214, 161, 0.14); color: var(--ok); }
-.nt-nf-i.is-fail { background: rgba(255, 114, 130, 0.14); color: var(--ink-err); }
-.nt-nf-i.is-short { background: var(--brand-dim); color: var(--nt-brand-ink); }
-.nt-nf-t { display: grid; gap: 0.125rem; min-width: 0; }
-.nt-nf-t b { font-size: var(--ty-meta); font-weight: var(--fw-bold); color: var(--ink-primary); }
-.nt-nf-t > span:not(.nt-nf-src) { font-size: var(--ty-meta); color: var(--ink-secondary); }
-.nt-nf-src { display: flex; align-items: center; gap: 0.375rem; font-size: 0.6875rem; font-weight: var(--fw-semibold); color: var(--ink-secondary); }
-.nt-lk { justify-self: start; margin-top: 0.125rem; padding: 0; border: 0; background: none; font: inherit; font-size: var(--ty-micro); font-weight: var(--fw-bold); color: var(--nt-brand-ink); cursor: pointer; }
-
 /* ── Starting from the voice stage ───────────────────────────────────── */
 .vx-stage.nt-asking .vx-state { display: none; }
+/* While it asks, the orb steps back so the question always fits above the
+   dock, however short the window: smaller, and sized to the height as well
+   as the width. The AI Note Taker pill is the button that asked, so it goes
+   until the answer. */
+.vx-stage .vx-orb { transition: width var(--t-slow) var(--ease-out); }
+.vx-stage.nt-asking .vx-orb { width: min(11rem, 22vh, 40vw); }
+.vx-stage.nt-asking .vx-center { gap: 1.25rem; }
+.vx-stage.nt-asking :is(.vx-notes, .vx-dock-br) { display: none; }
+@media (max-height: 640px) {
+  .vx-stage.nt-asking .vx-orb { width: min(7rem, 16vh); }
+  .vx-stage.nt-asking .nt-cons { gap: 0.5rem; }
+  .vx-stage.nt-asking .nt-cons-p { display: none; }
+}
 /* The question takes the place of the line under the orb, centred like it,
    with no box: the stage is the surface. Each line rises in on a short
    stagger, so the orb's "Listening" reads as turning into the question. */
 .nt-cons { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; width: min(28rem, 100%); text-align: center; }
-.nt-cons > * { animation: nt-rise var(--t-slow) var(--ease-out) both; }
+.nt-cons > * { animation: nt-cons-in var(--t-slow) var(--ease-out) both; }
+/* No blur on these: the orb is resizing under them at the same moment. */
+@keyframes nt-cons-in { from { opacity: 0; transform: translateY(0.5rem); } to { opacity: 1; transform: none; } }
 .nt-cons > :nth-child(2) { animation-delay: 40ms; }
 .nt-cons > :nth-child(3) { animation-delay: 80ms; }
 .nt-cons > :nth-child(4) { animation-delay: 120ms; }
@@ -309,13 +306,11 @@
 
 @media (prefers-reduced-motion: reduce) {
   .nt-w, .nt-fold, .nt-card, .nt-badge, .nt-tabs button, .nt-wd, .nt-x { transition: none; }
-  .nt-cl, .nt-an, .nt-yn, .nt-q, .nt-am, .nt-np li, .nt-nf, .nt-nf.is-out, .nt-cons > *, .nt-step .nt-ic, .nt-step b, .nt-rec { animation: none; }
+  .nt-cl, .nt-an, .nt-yn, .nt-q, .nt-am, .nt-np li, .nt-cons > *, .nt-step .nt-ic, .nt-step b, .nt-rec { animation: none; }
   .nt-box { transition: none; }
   .nt-wd.is-pre { opacity: 1; filter: none; }
 }
 
-/* The bell panel holds the same notifications; banners step aside while it is open. */
-body:has(#ntfPanel:not([hidden])) .nt-banners { opacity: 0; pointer-events: none; }
 
 /* ── Stop, in words ─────────────────────────────────────────── */
 .nt-tabs { align-items: center; }
@@ -335,3 +330,29 @@ body:has(#ntfPanel:not([hidden])) .nt-banners { opacity: 0; pointer-events: none
 .nt-np-wait { margin: 0; display: grid; grid-template-columns: 1rem minmax(0, 1fr); gap: 0.5rem; padding: 0.625rem 0.75rem; border-radius: 0.75rem;
   background: var(--aimy-wash); box-shadow: inset 0 0 0 0.0625rem var(--aimy-wash-edge); font-size: var(--ty-meta); color: var(--ink-primary); line-height: 1.5; }
 .nt-np-wait .nt-mk { margin-top: 0.1875rem; }
+
+/* ── The bell, when a step finishes ──────────────────────────────────────
+   It rocks from its top, the way a bell hangs: three swings that die away,
+   600ms. One line drops from under it, says what finished, and goes after
+   about a second: 250ms in, 150ms out, no blur, nothing to press. */
+#ntfBell.nt-ring svg { transform-origin: 50% 8%; animation: nt-ring 600ms var(--ease-out) both; }
+@keyframes nt-ring {
+  0% { transform: rotate(0); } 15% { transform: rotate(14deg); } 32% { transform: rotate(-11deg); }
+  50% { transform: rotate(7deg); } 68% { transform: rotate(-4deg); } 84% { transform: rotate(2deg); } 100% { transform: rotate(0); }
+}
+.nt-peek { position: fixed; z-index: 965; display: flex; align-items: center; gap: 0.5rem; max-width: min(20rem, calc(100vw - 2rem));
+  height: 2.125rem; padding: 0 0.875rem; border-radius: 999px; background: var(--card-bg); color: var(--ink-primary);
+  box-shadow: var(--nt-shadow); font-size: var(--ty-micro); white-space: nowrap; pointer-events: none;
+  transform-origin: var(--nt-peek-x, 50%) 0; opacity: 0; transform: translateY(-0.375rem) scale(0.96);
+  transition: opacity var(--t-fast) var(--ease-out), transform var(--t-fast) var(--ease-out); }
+.nt-peek.is-on { opacity: 1; transform: none; transition-duration: var(--t-base); }
+.nt-peek::before { content: ""; position: absolute; top: -0.3125rem; left: calc(var(--nt-peek-x, 50%) - 0.3125rem); width: 0.625rem; height: 0.625rem;
+  background: var(--card-bg); transform: rotate(45deg); border-radius: 0.125rem 0 0 0; box-shadow: -0.0625rem -0.0625rem 0 var(--card-border-hover); }
+.nt-peek { box-shadow: var(--nt-shadow), inset 0 0 0 0.0625rem var(--card-border-hover); }
+.nt-peek > span { overflow: hidden; text-overflow: ellipsis; }
+.nt-peek b { font-weight: var(--fw-semibold); }
+.nt-peek.is-fail .nt-ic { color: var(--ink-err); }
+@media (prefers-reduced-motion: reduce) {
+  #ntfBell.nt-ring svg { animation: none; }
+  .nt-peek { transition: opacity var(--t-fast) linear; transform: none; }
+}
