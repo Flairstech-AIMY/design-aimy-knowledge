@@ -6075,6 +6075,9 @@ body.is-settings .set2-pop .set2-pop-f:focus, body.is-settings .set2-pop .set2-p
   .set2-us-gear[aria-expanded="true"] svg { transform: rotate(60deg); }
 }
 .set2-us-glyph { display: inline-grid; place-items: center; margin-left: 0.25rem; color: var(--ink-secondary); }
+/* a unit that carries a mark centres it on the name, not on the baseline,
+   where it sat 1.6px high (Nour 22 Oct: "align icons and text") */
+.set2-us-useg .seg-btn:has(.set2-us-glyph) { display: inline-flex; align-items: center; }
 .set2-us-glyph svg { width: 0.75rem; height: 0.75rem; }
 .set2-us-glyph.is-stop { color: var(--ink-err); }
 
