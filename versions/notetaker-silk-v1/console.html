@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- viewport-fit=cover is what makes env(safe-area-inset-*) report anything
+       other than 0 on iOS. Four places in this build already write
+       `env(safe-area-inset-bottom, 0px)` and chat.css says in as many words
+       that it returns "0 today as well since the viewport meta does not opt
+       into viewport-fit=cover" — so the composer could not clear a home
+       indicator, because the page was never told there was one. The rules were
+       correct and inert; this is the line that switches them on.
+
+       interactive-widget=resizes-content makes the soft keyboard shrink the
+       LAYOUT viewport rather than only the visual one, so the fixed composer
+       is lifted by the browser instead of being left underneath the keyboard.
+
+       Neither changes anything on a desktop, where every inset is 0 and there
+       is no soft keyboard — the 1536 reference is untouched. Matches AiMY
+       Sales and AiMY QA. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+  <title>AiMY Console</title>
+
+  <link rel="icon" type="image/svg+xml" href="assets/Aimy-full.svg" />
+  <link rel="apple-touch-icon" href="assets/Aimy-full.svg" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="assets/aimy-ds.css?v=46" />
+  <link rel="stylesheet" href="assets/knowledge.css?v=342" />
+  <!-- The settings modules render into this page's stage now, so their
+       stylesheet loads with it. Nothing in it paints console markup: every
+       rule is namespaced `.set2-`, apart from `kbd` and `.w-lock`, neither of
+       which the console renders. -->
+  <link rel="stylesheet" href="assets/settings.css?v=635" />
+  <link rel="stylesheet" href="assets/voice.css?v=13" />
+  <link rel="stylesheet" href="assets/notetaker.css?v=12" />
+
+  <script>
+    /* Apply saved theme before paint to avoid flash. Default = dark. */
+    (function () {
+      try {
+        var saved = localStorage.getItem('aimy-ds-theme');
+        if (saved === 'light') document.documentElement.setAttribute('data-theme', 'light');
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body data-page="workbench">
+
+<!-- AiMY logo symbols — inlined per page because external <use href> fails under file://
+     Identical to design-system/index.html -->
+<svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true" focusable="false">
+  <defs>
+    <radialGradient id="aimy-rg" cx="75.72" cy="73.83" fx="75.72" fy="73.83" r="70.54" gradientUnits="userSpaceOnUse">
+      <stop offset=".26" stop-color="#8c4ff4"/>
+      <stop offset=".36" stop-color="#8250f4"/>
+      <stop offset=".51" stop-color="#6954f6"/>
+      <stop offset=".7" stop-color="#3f5bf9"/>
+      <stop offset=".92" stop-color="#0764fe"/>
+      <stop offset=".95" stop-color="#06f"/>
+    </radialGradient>
+    <symbol id="aimy-logo-small" viewBox="0 0 151.43 147.66">
+      <path fill="var(--aimy-mark, url(#aimy-rg))" d="m84.2,6.76c1.09-2.9,3.26-3.67,6.2-3.46,3.04.21,6.12-.04,9.17.09,3.09.13,4.19,1.99,2.72,4.73-2.8,5.23-5.69,10.4-8.64,15.54-.91,1.59-1.31,2.9-.3,4.69,1.09,1.94,1.68,4.16,2.47,6.27.56,1.48,1.14,2.9,3.1,2.84,2.03-.06,2.38-1.54,2.71-3.11,1.1-5.1,2.22-10.19,3.39-15.28.66-2.88,1.64-3.2,3.7-1.18,3.15,3.08,6.22,6.25,9.37,9.33,1.29,1.26,1.36,2.4.1,3.7-1.25,1.29-2.47,2.62-3.66,3.97-.61.69-1.13,1.49-.46,2.42.68.94,1.55.61,2.42.27,4.51-1.8,9.04-3.53,13.53-5.39,1.83-.76,3.32-.47,4.67.87,2.49,2.47,5.04,4.9,7.42,7.47,2.54,2.73,1.91,4.74-1.77,5.82-5.69,1.67-11.39,3.26-17.1,4.85-1.37.38-2.26.89-2.75,2.47-.76,2.47-2.02,4.8-3.1,7.17-.61,1.35-.72,2.59.51,3.68,1.25,1.11,2.44.75,3.68-.05,4.53-2.92,9.07-5.83,13.64-8.69,2.5-1.57,3.33-1.08,3.36,1.91.04,4.22-.08,8.45.05,12.67.07,2.39-.98,3.24-3.21,3.2-1.53-.03-3.06.06-4.59.14-1.02.06-2.06.26-2.2,1.52-.13,1.15.81,1.46,1.65,1.82,4.29,1.85,8.54,3.8,12.88,5.53,2.16.86,3.1,2.23,3.06,4.5-.06,3.33.02,6.65-.04,9.98-.08,3.82-1.88,4.89-5.2,3.07-5.2-2.84-10.38-5.72-15.53-8.66-1.34-.76-2.38-1.03-3.92-.2-2.28,1.22-4.82,1.95-7.26,2.86-1.4.53-2.29,1.38-2.17,3,.13,1.67,1.24,2.19,2.69,2.5,5.27,1.12,10.53,2.27,15.78,3.49,2.92.67,3.16,1.56,1.07,3.69-3.09,3.14-6.26,6.21-9.33,9.38-1.27,1.3-2.36,1.38-3.66.09-1.27-1.27-2.63-2.45-3.98-3.65-.69-.62-1.48-1.14-2.42-.5-.97.66-.64,1.53-.29,2.4,1.76,4.42,3.43,8.88,5.28,13.26.95,2.24.47,3.9-1.24,5.51-2.23,2.09-4.32,4.33-6.51,6.47-3.13,3.06-5.22,2.5-6.45-1.76-1.58-5.52-3.13-11.05-4.64-16.59-.4-1.48-1.02-2.39-2.66-2.9-2.39-.74-4.62-1.97-6.92-3.01-1.43-.65-2.78-.8-3.9.57-1.05,1.29-.54,2.46.25,3.69,2.88,4.45,5.73,8.92,8.55,13.41,1.65,2.62,1.17,3.48-1.98,3.52-4.14.05-8.28-.06-12.41.06-2.47.07-3.33-1.01-3.38-3.37-.04-1.94.39-3.96-.55-5.82-1.74-2.18-2.36-.35-2.92.91-1.76,3.94-3.56,7.87-5.08,11.9-1.11,2.96-2.92,4.25-6.1,4.03-2.77-.2-5.57-.01-8.36-.06-4.27-.07-5.4-1.95-3.37-5.63,2.74-4.95,5.49-9.9,8.31-14.8.9-1.56,1.33-2.86.29-4.67-1.15-2-1.75-4.32-2.56-6.51-.53-1.44-1.25-2.6-3.04-2.53-1.83.08-2.32,1.31-2.64,2.85-1.1,5.18-2.24,10.36-3.44,15.52-.67,2.88-1.65,3.17-3.72,1.13-3.08-3.02-6.08-6.14-9.19-9.14-1.49-1.44-1.54-2.68-.06-4.1,1.1-1.06,2.11-2.22,3.13-3.36.73-.81,1.57-1.72.72-2.83-.76-1-1.8-.44-2.72-.08-4.27,1.69-8.56,3.31-12.78,5.1-2.23.95-3.93.54-5.56-1.18-2.29-2.42-4.75-4.67-7.02-7.1-2.34-2.51-1.78-4.64,1.49-5.62,5.6-1.67,11.22-3.27,16.86-4.79,1.77-.48,2.96-1.11,3.53-3.1.67-2.31,1.91-4.45,2.9-6.66.65-1.44.72-2.79-.65-3.89-1.32-1.05-2.45-.47-3.67.32-4.36,2.84-8.76,5.65-13.17,8.41-2.76,1.73-3.71,1.23-3.74-1.95-.04-4.14.09-8.28-.03-12.41-.06-2.34.89-3.26,3.18-3.21,1.7.04,3.41-.17,5.12-.3.87-.06,1.62-.4,1.76-1.36.15-1-.58-1.41-1.36-1.75-4.37-1.89-8.7-3.87-13.12-5.63-2.25-.9-3.23-2.35-3.19-4.71.06-3.33-.07-6.66.04-9.98.12-3.56,2.07-4.64,5.2-2.93,5.13,2.79,10.23,5.62,15.3,8.52,1.5.86,2.72,1.22,4.44.29,2.12-1.15,4.5-1.81,6.77-2.67,1.47-.55,2.53-1.38,2.37-3.15-.15-1.68-1.35-2.16-2.76-2.46-5.19-1.13-10.37-2.25-15.55-3.44-2.86-.66-3.17-1.67-1.16-3.73,3.02-3.09,6.14-6.07,9.13-9.19,1.44-1.51,2.67-1.53,4.1-.06,1.07,1.09,2.21,2.12,3.36,3.12.8.7,1.66,1.64,2.81.74,1-.78.45-1.8.08-2.71-1.69-4.27-3.3-8.56-5.1-12.78-.97-2.26-.48-3.92,1.19-5.56,2.24-2.2,4.29-4.6,6.51-6.82,2.52-2.52,5.28-1.85,6.29,1.53,1.68,5.69,3.31,11.4,4.86,17.13.42,1.53,1.09,2.38,2.7,2.9,2.47.8,4.79,2.05,7.17,3.11,1.38.61,2.62.55,3.64-.69.98-1.19.61-2.32-.13-3.46-2.82-4.38-5.65-8.75-8.42-13.17-.58-.93-1.69-1.87-.93-3.15.68-1.15,1.94-.76,2.97-.77,4.13-.04,8.27.06,12.4-.03,2.07-.04,2.97.78,2.95,2.84-.01,1.71.14,3.41.26,5.12.07.94.34,1.85,1.47,1.96.98.1,1.41-.63,1.73-1.42,1.76-4.23,3.52-8.46,5.28-12.68Zm-22.36,61.41c-3.34,1.86-6.31,1.33-9.12-1.21-2.13-1.92-4.4-3.7-6.68-5.44-1.37-1.05-5.46-.12-5.88,1.48-.4,1.51,1.45,1.62,2.35,2.26,2.26,1.62,2.42,2.82.44,4.99-1.2,1.31-1.86,2.77-.81,4.36,1.07,1.61,2.68,2.01,4.5,1.25,1.66-.69,3.35-1.31,4.95-2.11,3.35-1.67,6.39-1.47,9.13,1.21,2.48,5.78.4,9.43-5.84,10.19-2.94.36-5.9.59-8.84.99-1.71.24-3.72,3.37-3.04,4.99.74,1.75,2.14.27,3.18.13,2.82-.39,3.74.25,3.89,3.17.09,1.76.6,3.29,2.48,3.69,2.06.43,3.44-.64,4.21-2.52.82-1.99,1.6-4,2.44-5.99,1.06-2.53,2.86-4.12,5.72-4.2,2.6-.07,4.55,1.12,5.68,3.4,1.22,2.48.87,4.87-.94,7.03-1.56,1.86-3.06,3.77-4.61,5.63-2.97,3.57-2.9,4.91.52,8.4.47-.79.92-1.56,1.38-2.32,1.77-2.93,2.86-3.11,5.4-.87,1.35,1.19,2.84,1.7,4.39.59,1.5-1.08,1.78-2.66,1.12-4.34-.89-2.26-1.96-4.45-2.77-6.73-1.32-3.73.56-7.35,4.17-8.3,3.57-.94,7.08,1.37,7.7,5.21.4,2.48.6,5,.8,7.5.41,4.94.97,5.53,5.99,5.97.04.05.08.11.13.14.01,0,.07-.05.11-.08-.09,0-.19,0-.28,0,.48-1.21-.26-2.26-.46-3.37-.48-2.69.29-3.75,2.95-3.8,1.88-.03,3.52-.5,3.93-2.51.45-2.19-.81-3.54-2.79-4.32-2.01-.78-4.01-1.57-5.99-2.42-2.45-1.05-3.89-2.93-3.98-5.6-.08-2.55,1.12-4.54,3.41-5.68,2.38-1.18,4.72-.92,6.82.76,1.9,1.51,3.77,3.05,5.64,4.6,3.87,3.21,4.66,3.2,8.75-.27-1.04-.61-2.07-1.14-3.02-1.79-2.24-1.53-2.4-2.82-.54-4.79,1.28-1.36,2.12-2.83.94-4.56-1.2-1.75-2.96-1.85-4.82-1.09-2.08.86-4.11,1.83-6.22,2.59-3.73,1.35-7.49-.5-8.38-4.02-.96-3.81,1.3-7.23,5.33-7.83,2.48-.37,5-.59,7.51-.78,4.75-.36,5.44-1.05,5.77-6.3-1.15.29-2.24.62-3.35.82-2.62.49-3.71-.35-3.78-3.03-.05-1.89-.52-3.49-2.57-3.85-2.07-.36-3.39.78-4.14,2.67-.83,2.09-1.62,4.2-2.57,6.23-1.68,3.6-5.57,4.91-8.76,3.05-3.36-1.96-4.18-6.1-1.75-9.32,1.57-2.08,3.27-4.06,4.93-6.07,2.94-3.56,2.89-4.57-.43-8.15-.08.02-.2.01-.23.06-.3.44-.6.89-.88,1.35-2.3,3.81-2.75,3.89-6.21,1.3-1.24-.93-2.61-1.34-3.97-.31-1.33,1.02-1.89,2.42-1.26,4.06.84,2.18,1.74,4.33,2.67,6.47,1.16,2.67.88,5.12-1.13,7.24-1.79,1.89-4.12,2.26-6.47,1.44-2.61-.91-3.96-2.91-4.18-5.72-.25-3.13-.61-6.26-1.01-9.38-.24-1.92-3.07-4.03-5.03-3.37-2.01.68-.22,2.24-.11,3.34.27,2.74-.36,3.64-3.35,3.81-1.79.1-3.25.69-3.58,2.6-.31,1.81.57,3.15,2.24,3.88,1.73.76,3.5,1.42,5.24,2.15,5.82,2.41,6.87,6.44,2.99,11.41Z"/>
+    </symbol>
+    <symbol id="aimy-logo-full" viewBox="0 0 418.18 147.66">
+      <g fill="#0366ff">
+        <path d="m209.6,97.25h-25.58l-4.1,12.11h-17.48l24.8-68.54h19.33l24.8,68.54h-17.67l-4.1-12.11Zm-4.3-12.89l-8.49-25.09-8.4,25.09h16.89Z"/>
+        <path d="m255.58,40.82v68.54h-16.7V40.82h16.7Z"/>
+        <path d="m345.31,40.82v68.54h-16.7v-41.1l-15.33,41.1h-13.47l-15.43-41.2v41.2h-16.7V40.82h19.72l19.23,47.45,19.04-47.45h19.63Z"/>
+        <path d="m416.1,40.82l-23.73,45.89v22.65h-16.7v-22.65l-23.73-45.89h18.94l13.28,28.71,13.18-28.71h18.75Z"/>
+      </g>
+      <path fill="var(--aimy-mark, url(#aimy-rg))" d="m81.08,8.02c1.09-2.9,3.26-3.67,6.2-3.46,3.04.21,6.12-.04,9.17.09,3.09.13,4.19,1.99,2.72,4.73-2.8,5.23-5.69,10.4-8.64,15.54-.91,1.59-1.31,2.9-.3,4.69,1.09,1.94,1.68,4.16,2.47,6.27.56,1.48,1.14,2.9,3.1,2.84,2.03-.06,2.38-1.54,2.71-3.11,1.1-5.1,2.22-10.19,3.39-15.28.66-2.88,1.64-3.2,3.7-1.18,3.15,3.08,6.22,6.25,9.37,9.33,1.29,1.26,1.36,2.4.1,3.7-1.25,1.29-2.47,2.62-3.66,3.97-.61.69-1.13,1.49-.46,2.42.68.94,1.55.61,2.42.27,4.51-1.8,9.04-3.53,13.53-5.39,1.83-.76,3.32-.47,4.67.87,2.49,2.47,5.04,4.9,7.42,7.47,2.54,2.73,1.91,4.74-1.77,5.82-5.69,1.67-11.39,3.26-17.1,4.85-1.37.38-2.26.89-2.75,2.47-.76,2.47-2.02,4.8-3.1,7.17-.61,1.35-.72,2.59.51,3.68,1.25,1.11,2.44.75,3.68-.05,4.53-2.92,9.07-5.83,13.64-8.69,2.5-1.57,3.33-1.08,3.36,1.91.04,4.22-.08,8.45.05,12.67.07,2.39-.98,3.24-3.21,3.2-1.53-.03-3.06.06-4.59.14-1.02.06-2.06.26-2.2,1.52-.13,1.15.81,1.46,1.65,1.82,4.29,1.85,8.54,3.8,12.88,5.53,2.16.86,3.1,2.23,3.06,4.5-.06,3.33.02,6.65-.04,9.98-.08,3.82-1.88,4.89-5.2,3.07-5.2-2.84-10.38-5.72-15.53-8.66-1.34-.76-2.38-1.03-3.92-.2-2.28,1.22-4.82,1.95-7.26,2.86-1.4.53-2.29,1.38-2.17,3,.13,1.67,1.24,2.19,2.69,2.5,5.27,1.12,10.53,2.27,15.78,3.49,2.92.67,3.16,1.56,1.07,3.69-3.09,3.14-6.26,6.21-9.33,9.38-1.27,1.3-2.36,1.38-3.66.09-1.27-1.27-2.63-2.45-3.98-3.65-.69-.62-1.48-1.14-2.42-.5-.97.66-.64,1.53-.29,2.4,1.76,4.42,3.43,8.88,5.28,13.26.95,2.24.47,3.9-1.24,5.51-2.23,2.09-4.32,4.33-6.51,6.47-3.13,3.06-5.22,2.5-6.45-1.76-1.58-5.52-3.13-11.05-4.64-16.59-.4-1.48-1.02-2.39-2.66-2.9-2.39-.74-4.62-1.97-6.92-3.01-1.43-.65-2.78-.8-3.9.57-1.05,1.29-.54,2.46.25,3.69,2.88,4.45,5.73,8.92,8.55,13.41,1.65,2.62,1.17,3.48-1.98,3.52-4.14.05-8.28-.06-12.41.06-2.47.07-3.33-1.01-3.38-3.37-.04-1.94.39-3.96-.55-5.82-1.74-2.18-2.36-.35-2.92.91-1.76,3.94-3.56,7.87-5.08,11.9-1.11,2.96-2.92,4.25-6.1,4.03-2.77-.2-5.57-.01-8.36-.06-4.27-.07-5.4-1.95-3.37-5.63,2.74-4.95,5.49-9.9,8.31-14.8.9-1.56,1.33-2.86.29-4.67-1.15-2-1.75-4.32-2.56-6.51-.53-1.44-1.25-2.6-3.04-2.53-1.83.08-2.32,1.31-2.64,2.85-1.1,5.18-2.24,10.36-3.44,15.52-.67,2.88-1.65,3.17-3.72,1.13-3.08-3.02-6.08-6.14-9.19-9.14-1.49-1.44-1.54-2.68-.06-4.1,1.1-1.06,2.11-2.22,3.13-3.36.73-.81,1.57-1.72.72-2.83-.76-1-1.8-.44-2.72-.08-4.27,1.69-8.56,3.31-12.78,5.1-2.23.95-3.93.54-5.56-1.18-2.29-2.42-4.75-4.67-7.02-7.1-2.34-2.51-1.78-4.64,1.49-5.62,5.6-1.67,11.22-3.27,16.86-4.79,1.77-.48,2.96-1.11,3.53-3.1.67-2.31,1.91-4.45,2.9-6.66.65-1.44.72-2.79-.65-3.89-1.32-1.05-2.45-.47-3.67.32-4.36,2.84-8.76,5.65-13.17,8.41-2.76,1.73-3.71,1.23-3.74-1.95-.04-4.14.09-8.28-.03-12.41-.06-2.34.89-3.26,3.18-3.21,1.7.04,3.41-.17,5.12-.3.87-.06,1.62-.4,1.76-1.36.15-1-.58-1.41-1.36-1.75-4.37-1.89-8.7-3.87-13.12-5.63-2.25-.9-3.23-2.35-3.19-4.71.06-3.33-.07-6.66.04-9.98.12-3.56,2.07-4.64,5.2-2.93,5.13,2.79,10.23,5.62,15.3,8.52,1.5.86,2.72,1.22,4.44.29,2.12-1.15,4.5-1.81,6.77-2.67,1.47-.55,2.53-1.38,2.37-3.15-.15-1.68-1.35-2.16-2.76-2.46-5.19-1.13-10.37-2.25-15.55-3.44-2.86-.66-3.17-1.67-1.16-3.73,3.02-3.09,6.14-6.07,9.13-9.19,1.44-1.51,2.67-1.53,4.1-.06,1.07,1.09,2.21,2.12,3.36,3.12.8.7,1.66,1.64,2.81.74,1-.78.45-1.8.08-2.71-1.69-4.27-3.3-8.56-5.1-12.78-.97-2.26-.48-3.92,1.19-5.56,2.24-2.2,4.29-4.6,6.51-6.82,2.52-2.52,5.28-1.85,6.29,1.53,1.68,5.69,3.31,11.4,4.86,17.13.42,1.53,1.09,2.38,2.7,2.9,2.47.8,4.79,2.05,7.17,3.11,1.38.61,2.62.55,3.64-.69.98-1.19.61-2.32-.13-3.46-2.82-4.38-5.65-8.75-8.42-13.17-.58-.93-1.69-1.87-.93-3.15.68-1.15,1.94-.76,2.97-.77,4.13-.04,8.27.06,12.4-.03,2.07-.04,2.97.78,2.95,2.84-.01,1.71.14,3.41.26,5.12.07.94.34,1.85,1.47,1.96.98.1,1.41-.63,1.73-1.42,1.76-4.23,3.52-8.46,5.28-12.68Zm-22.36,61.41c-3.34,1.86-6.31,1.33-9.12-1.21-2.13-1.92-4.4-3.7-6.68-5.44-1.37-1.05-5.46-.12-5.88,1.48-.4,1.51,1.45,1.62,2.35,2.26,2.26,1.62,2.42,2.82.44,4.99-1.2,1.31-1.86,2.77-.81,4.36,1.07,1.61,2.68,2.01,4.5,1.25,1.66-.69,3.35-1.31,4.95-2.11,3.35-1.67,6.39-1.47,9.13,1.21,2.48,5.78.4,9.43-5.84,10.19-2.94.36-5.9.59-8.84.99-1.71.24-3.72,3.37-3.04,4.99.74,1.75,2.14.27,3.18.13,2.82-.39,3.74.25,3.89,3.17.09,1.76.6,3.29,2.48,3.69,2.06.43,3.44-.64,4.21-2.52.82-1.99,1.6-4,2.44-5.99,1.06-2.53,2.86-4.12,5.72-4.2,2.6-.07,4.55,1.12,5.68,3.4,1.22,2.48.87,4.87-.94,7.03-1.56,1.86-3.06,3.77-4.61,5.63-2.97,3.57-2.9,4.91.52,8.4.47-.79.92-1.56,1.38-2.32,1.77-2.93,2.86-3.11,5.4-.87,1.35,1.19,2.84,1.7,4.39.59,1.5-1.08,1.78-2.66,1.12-4.34-.89-2.26-1.96-4.45-2.77-6.73-1.32-3.73.56-7.35,4.17-8.3,3.57-.94,7.08,1.37,7.7,5.21.4,2.48.6,5,.8,7.5.41,4.94.97,5.53,5.99,5.97.04.05.08.11.13.14.01,0,.07-.05.11-.08-.09,0-.19,0-.28,0,.48-1.21-.26-2.26-.46-3.37-.48-2.69.29-3.75,2.95-3.8,1.88-.03,3.52-.5,3.93-2.51.45-2.19-.81-3.54-2.79-4.32-2.01-.78-4.01-1.57-5.99-2.42-2.45-1.05-3.89-2.93-3.98-5.6-.08-2.55,1.12-4.54,3.41-5.68,2.38-1.18,4.72-.92,6.82.76,1.9,1.51,3.77,3.05,5.64,4.6,3.87,3.21,4.66,3.2,8.75-.27-1.04-.61-2.07-1.14-3.02-1.79-2.24-1.53-2.4-2.82-.54-4.79,1.28-1.36,2.12-2.83.94-4.56-1.2-1.75-2.96-1.85-4.82-1.09-2.08.86-4.11,1.83-6.22,2.59-3.73,1.35-7.49-.5-8.38-4.02-.96-3.81,1.3-7.23,5.33-7.83,2.48-.37,5-.59,7.51-.78,4.75-.36,5.44-1.05,5.77-6.3-1.15.29-2.24.62-3.35.82-2.62.49-3.71-.35-3.78-3.03-.05-1.89-.52-3.49-2.57-3.85-2.07-.36-3.39.78-4.14,2.67-.83,2.09-1.62,4.2-2.57,6.23-1.68,3.6-5.57,4.91-8.76,3.05-3.36-1.96-4.18-6.1-1.75-9.32,1.57-2.08,3.27-4.06,4.93-6.07,2.94-3.56,2.89-4.57-.43-8.15-.08.02-.2.01-.23.06-.3.44-.6.89-.88,1.35-2.3,3.81-2.75,3.89-6.21,1.3-1.24-.93-2.61-1.34-3.97-.31-1.33,1.02-1.89,2.42-1.26,4.06.84,2.18,1.74,4.33,2.67,6.47,1.16,2.67.88,5.12-1.13,7.24-1.79,1.89-4.12,2.26-6.47,1.44-2.61-.91-3.96-2.91-4.18-5.72-.25-3.13-.61-6.26-1.01-9.38-.24-1.92-3.07-4.03-5.03-3.37-2.01.68-.22,2.24-.11,3.34.27,2.74-.36,3.64-3.35,3.81-1.79.1-3.25.69-3.58,2.6-.31,1.81.57,3.15,2.24,3.88,1.73.76,3.5,1.42,5.24,2.15,5.82,2.41,6.87,6.44,2.99,11.41Z"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div id="appEllipse" aria-hidden="true"></div>
+
+<!-- ══════════════════════════════════════════════
+     TOPNAV — shared ecosystem chrome
+══════════════════════════════════════════════ -->
+<div class="app-topnav">
+  <div class="topnav-logo">
+    <!-- Opens the briefing. Only exists below 1040px, where the rail is a
+         drawer rather than a column; above that it would offer to reveal
+         something already on screen. Inside .topnav-logo, not beside it: the
+         topnav is three flex regions with the tab strip centred between the
+         flanks, and a fourth sibling would move that centre. -->
+    <button class="rail-toggle" id="railToggle" type="button"
+            aria-expanded="false" aria-controls="appSidebar"
+            aria-label="Open the briefing" title="Briefing">
+      <svg viewBox="0 0 24 24" aria-hidden="true" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg>
+    </button>
+    <div class="topnav-logo-mark">
+      <svg width="140" height="43" viewBox="0 0 418.18 147.66" aria-label="AiMY"><use href="#aimy-logo-full"/></svg>
+    </div>
+
+    <!-- ══ THE PRODUCTS, WHERE THE STRIP CANNOT STAND ═══════════════════
+         Below 900 — the rung where this page's rail and its canvas column
+         both become drawers — the products leave the bar and hang from the
+         mark instead. Identical to index.html's, filled by the same function
+         off this page's own strip, so the two shells cannot drift. Argued in
+         knowledge.css §WHY THE MENU IS NOT KEYED TO THE STRIP'S OWN LIMIT.
+
+         It sits after the mark and after the rail toggle, which is the order
+         the masthead already reads in: the way into this page's panel, the
+         page's identity, then the way to a different product. -->
+    <span class="prod-anchor">
+      <button class="prod-chev" id="prodChev" type="button"
+              aria-haspopup="menu" aria-expanded="false" aria-controls="prodMenu"
+              aria-label="Switch product" title="Products">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div class="menu prod-menu" id="prodMenu" role="menu" aria-label="AiMY products" hidden></div>
+    </span>
+  </div>
+
+  <div class="topnav-tabs">
+    <!-- ══ THE PRODUCT STRIP ═══════════════════════════════════════════
+         AiMY is first and it is the only tab with a CHAT GATE behind it. The
+         other four are consoles: workbenches with the canvas inside them,
+         entered without passing a gate. That asymmetry is the reason the tab
+         order is what it is, and the reason a conversation's subtitle names
+         the tab it was held under.
+
+         `aria-current="page"` appears on exactly ONE of the three shells --
+         whichever page you are actually on. It used to sit on all three,
+         including settings.html where the element is a link pointing AWAY
+         from the current page: a control announcing "you are here" while
+         navigating elsewhere. `active` carries the product context; only
+         `aria-current` claims the page. -->
+    <div class="topnav-tabs-inner" role="navigation" aria-label="AiMY products">
+        <a class="topnav-tab active" href="index.html">
+          <svg width="18" height="20" viewBox="0 0 18 20"><use href="#aimy-logo-small"/></svg>
+          AiMY
+        </a>
+        <button class="topnav-tab" type="button">Connect</button>
+        <button class="topnav-tab" type="button">Talent</button>
+        <a class="topnav-tab" href="https://aimyqa.nour-ali.workers.dev/">QA</a>
+        <a class="topnav-tab" href="https://aimy-sales.nour-ali.workers.dev/">Sales</a>
+    </div>
+  </div>
+
+  <div class="topnav-right">
+    <button class="ds-theme-toggle" id="ds-theme-toggle" type="button" aria-label="Toggle light / dark theme" title="Toggle theme">
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
+    </button>
+
+    <!-- Notifications. This was an inert <div> carrying a hard-coded "3" and a
+         red dot nothing could clear — a count that is always three is not a
+         count. It is a real button now, and what it opens is the queue of what
+         is still waiting on a person, derived from the corpus. Every row ends
+         in the canvas rather than in a dead end. -->
+    <div class="ntf-anchor">
+      <button class="topnav-bell" id="ntfBell" type="button"
+              aria-haspopup="dialog" aria-expanded="false" aria-controls="ntfPanel"
+              aria-label="Notifications">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg>
+        <span class="bell-dot" id="ntfDot" hidden></span>
+      </button>
+      <div class="ntf-panel" id="ntfPanel" hidden role="dialog" aria-label="Needs you">
+        <div class="ntf-head">
+          <b>Needs you</b>
+          <span class="ntf-count" id="ntfCount" hidden>0</span>
+          <button class="ntf-clear" id="ntfClear" type="button">Mark all read</button>
+        </div>
+        <ul class="ntf-list" id="ntfList"></ul>
+        <div class="ntf-foot">
+          <button class="ntf-foot-btn" id="ntfAskAll" type="button">Ask AiMY what to do first</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- The pill carried a chevron and `role="button" tabindex="0"` with nothing
+         wired to it — focusable, announced as a button, and inert on activation,
+         which is worse than a plain <div> because it promises a menu that never
+         arrives. It is a real <button> now, and the chevron is true.
+
+         Anchored the same way the bell is: a zero-width `position: relative`
+         wrapper, so the panel hangs off the pill without widening the topnav.
+         The right cluster collides at 1114px and there is ~460px of slack at the
+         1536 reference, but only because nothing here is a new flex item. -->
+    <div class="user-anchor">
+      <button class="topnav-user" id="userPill" type="button"
+              aria-haspopup="menu" aria-expanded="false" aria-controls="userMenu">
+        <span class="topnav-avatar" id="userAvatar">NW</span>
+        <span class="topnav-user-info">
+          <span class="topnav-user-name" id="userName">Nour Wael</span>
+          <span class="topnav-user-role" id="userRole">Product Design</span>
+        </span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <!-- ══ IDENTITY ONLY ═══════════════════════════════════════════════
+           This carried four deep links into settings modules plus "All
+           settings" -- a second copy of the settings IA, duplicated verbatim
+           across three files, that went stale the moment a module was renamed
+           because nothing pointed at it from the page it described. Two of
+           those four modules no longer exist under those names.
+
+           What belongs under a name and a face is WHO YOU ARE. One Settings
+           item; search inside settings does what the shortcuts were for. -->
+      <div class="menu user-menu" id="userMenu" role="menu" aria-label="Account" hidden>
+        <div class="menu-label">Signed in as Nour Wael</div>
+        <!-- Settings left this menu. A dropdown under a face is where you put
+             things you need to FIND once; settings is used, and what is used
+             belongs on the rail. It is two rows down and to the left. -->
+        <button class="menu-item" role="menuitem" type="button">Viewing as&hellip;</button>
+        <div class="menu-sep"></div>
+        <!-- The way back to the gate. Without it the Console is a one-way
+             door: chat routes here from two places and nothing routed back,
+             which leaves the browser button as the only exit. -->
+        <a class="menu-item" role="menuitem" href="index.html">Back to chat</a>
+        <div class="menu-sep"></div>
+        <button class="menu-item" role="menuitem" type="button">Sign out</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="app-body">
+
+  <!-- ══════════════════════════════════════════════
+       SIDEBAR — the briefing. Not chat history, and not navigation.
+
+       The IA is one item, so there is nothing to navigate to. What the rail
+       carries instead is the briefing: who you are, what is yours, what needs
+       you, and where you left off. Every item in it is a FILTER LINK — it sets
+       the surface's state rather than going somewhere else. That is what lets
+       the briefing and the filters speak one language, and it is why four
+       pages could collapse into one.
+
+       Doctrine §2.1 — brief before conversation — still holds: the briefing
+       lands first and earns attention. It moved from a page to a persistent
+       rail. Declared as a deviation in README.md rather than smuggled through.
+  ══════════════════════════════════════════════ -->
+  <nav class="app-sidebar" id="appSidebar" aria-label="Briefing" tabindex="-1">
+    <div class="brief" id="brief"></div>
+
+    <!-- ══ THE WAY BACK ══════════════════════════════════════════════════
+         The chat is the front door and this is the workbench behind it, so
+         there has to be a door back that is not the browser button. The
+         account menu carries one, but two clicks inside a dropdown is where
+         you put a thing people should be able to find, not a thing they use.
+
+         Foot of the rail, mirroring where the gate keeps its Console link, so
+         the two surfaces point at each other from the same corner. Outside
+         `#brief` because `renderBrief` owns that element's innerHTML and would
+         paint over anything left inside it. -->
+    <div class="brief-rail-foot">
+      <a class="rail-back" href="index.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="15" height="15">
+          <path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/></svg>
+        <span class="rail-back-name">Back to chat</span>
+      </a>
+    </div>
+  </nav>
+
+  <!-- Dismiss surface for the drawer. Sibling of the rail so the two share one
+       stacking context and their z-indexes mean something relative to each
+       other. Inert and out of the tree until the drawer opens. -->
+  <div class="rail-scrim" id="railScrim"></div>
+
+  <!-- ══════════════════════════════════════════════
+       MAIN — filters → grid → viewer → editor, all in place
+  ══════════════════════════════════════════════ -->
+  <main class="app-main">
+    <div class="page-scroll" id="pageScroll">
+      <div class="page-inner">
+
+      <!-- The filters, visible. Chat sets these same controls, so what AiMY
+           understood is shown by the controls lighting up rather than said in
+           prose underneath them. -->
+      <div id="filterBar"></div>
+
+      <!-- Only for what a dropdown cannot say: several values on one axis,
+           free text, an answer's document set, a custom property. -->
+      <div id="chipBar"></div>
+
+      <!-- The surface: always the grid. Documents open over it, never instead
+           of it. -->
+      <div id="wbStage"></div>
+
+      </div>
+    </div>
+
+    <!-- ══ The settings sheet. Same overlay pattern as a document, because it
+         is the same kind of thing: something you open over the work, act on,
+         and close. `?settings=source:confluence` — addressable, so a setting
+         can be linked to like everything else here. ══ -->
+    <div class="doc-overlay" id="setOverlay" role="dialog" aria-modal="true" aria-label="Settings" hidden>
+      <div class="doc-sheet is-settings" id="setSheet"></div>
+    </div>
+
+    <!-- ══ The input. Not a chat box — it drives the page. Four routes.
+         Fixed and centred on the WINDOW, not on the main column. ══ -->
+    <div class="aimy-float-wrap" id="aimyFloatWrap">
+      <!-- The row that teaches the input what it takes.
+
+           Nine filters left the filter row because the input already speaks
+           them, and a filter you can only reach by knowing the word is not a
+           filter. Every chip here is a word the lexicon understands, so
+           clicking one and typing it do the same thing — which is the whole
+           lesson: these are examples, not the list.
+
+           `trust=expired` and `trust=due` stood here and did nothing. `trust`
+           is not a filter key, so addFilter fell through to its else branch,
+           serialize never wrote it and the chip changed nothing. Same defect as
+           the Work state dropdown that left the row. -->
+      <div class="filter-tray" id="floatFilterTray">
+        <div class="filter-tray-inner">
+          <button class="filter-chip" data-quick="status=conflicting">Conflicting</button>
+          <button class="filter-chip" data-quick="status=unowned">Unowned</button>
+          <button class="filter-chip" data-quick="status=outdated">Out of date</button>
+          <button class="filter-chip" data-quick="mine=1">Mine</button>
+        </div>
+      </div>
+
+      <div class="aimy-float-bar" id="aimyFloatBar">
+        <!-- Also the way back. Opening a document closes the canvas, and this
+             mark reopens the same thread — it already carries the unread count,
+             so it is already the thing on screen that means AiMY has something
+             for you. -->
+        <button class="aimy-float-icon" id="canvasOpen" type="button" aria-label="Open the AiMY canvas">
+          <!-- Counts what AiMY did while you were reading something else. The
+               canvas collects rather than interrupts, so this is how the record
+               announces itself. -->
+          <span class="float-badge" hidden aria-label="unread in the canvas">0</span>
+          <svg width="18" height="20" viewBox="0 0 18 20"><use href="#aimy-logo-small"/></svg>
+        </button>
+        <input class="aimy-float-input" id="floatInput" type="text"
+               placeholder="Ask, filter, or name a document…"
+               autocomplete="off" spellcheck="false" aria-label="Drive the surface" />
+        <button class="aimy-float-send" id="floatSend" aria-label="Run">
+          <svg class="send-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ══ Canvas overlay — opens for questions and generative work only.
+         Not for filtering, not for opening a known document, not for writes. ══ -->
+    <div class="aimy-overlay" id="aimyOverlay" role="dialog" aria-label="AiMY Canvas">
+
+      <!-- ══ THE CONVERSATIONS COLUMN ══════════════════════════════════════
+           A log of conversations is not navigation, which is why it is not in
+           the app sidebar — that rail is the briefing and says so in as many
+           words. It is navigation INSIDE a conversation, which is what this
+           column is and where it belongs.
+
+           Empty here and painted by `paintChats`: every row is a thread that
+           only exists at runtime. Ported from AiMY Sales, the one product in
+           the ecosystem that had it; the deviation is declared in README.md.
+      ══════════════════════════════════════════════════════════════════ -->
+      <aside class="overlay-chats" id="overlayChats" aria-label="Conversations"></aside>
+
+      <!-- ══ AND THE THREAD BEHIND IT IS DISMISSABLE ══════════════════════
+           The briefing rail has had a scrim since it became a drawer, and the
+           gate has one; this drawer was the only one of the three without. It
+           cost two things. A drawer over a thread that does not dim reads as a
+           column that has appeared BESIDE the thread rather than over it, and
+           — the real defect — pressing the thread was the one gesture that
+           obviously ought to shut it and did nothing, leaving the toggle in
+           the drawer's own top-left corner as the only way out.
+
+           Inside `.aimy-overlay` and `position: absolute`, not `fixed`: the
+           canvas is itself fixed and, below 720, inset to the top of the
+           window — a scrim against the VIEWPORT would start above the surface
+           it belongs to. Against its own overlay it cannot.
+
+           Present at every width, painted at none of them until the drawer
+           exists, which is `.rail-scrim`'s own pattern in this file. -->
+      <div class="ov-chats-scrim" id="ovChatsScrim"></div>
+
+      <div class="overlay-main">
+        <!-- Below 900px the conversations column is a drawer rather than a
+             fixed rail, for the same reason the briefing is: the thread needs
+             the width, and deleting the list is not the same as ranking it
+             second. -->
+        <button class="ov-chats-toggle" id="ovChatsToggle" type="button"
+                aria-expanded="false" aria-controls="overlayChats"
+                aria-label="Conversations" title="Conversations">
+          <!-- Lucide `panel-left`, the same glyph the rail toggle above carries
+               and the same one AiMY Sales now uses on ITS conversation toggle.
+               It was three bars: a hamburger says "a menu", and what this opens
+               is a PANEL beside the thread — which is the distinction the
+               panel-left glyph draws and the reason the rail already uses it.
+               Two controls doing the same job across two products, one glyph. -->
+          <svg viewBox="0 0 24 24" aria-hidden="true" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg>
+        </button>
+        <div class="overlay-badge">
+          <svg width="11" height="11" viewBox="0 0 18 20"><use href="#aimy-logo-small"/></svg>
+          AiMY Canvas
+        </div>
+        <button class="overlay-close" data-overlay-close aria-label="Close canvas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+          </svg>
+        </button>
+
+        <!-- The canvas shows its basis without being asked (§4, Level 5).
+             Absolutely positioned, so revealing it never shifts the thread. -->
+        <div class="overlay-context-bar" id="overlayContextBar">
+          <span class="overlay-context-label">Based on</span>
+          <div class="overlay-context-tags" id="overlayContextTags"></div>
+        </div>
+
+        <!-- The openers are drawn by `paintThread` now, not written here. Static
+             markup could only ever be hidden, never brought back — and a thread you
+             switch away from and return to empty has to show them again. A thing
+             that should come back has to be rendered, not hidden. -->
+        <div class="overlay-thread" id="overlayThread" aria-live="polite"></div>
+
+        <div class="overlay-input-wrap">
+          <div class="overlay-input-bar">
+            <!-- The mark is the way to your usage: its rim fills with the
+                 month's plan used, and pressing it opens Plan / Session.
+                 A button so it can be pressed; it looks exactly as it did. -->
+            <button class="aimy-float-icon" type="button" aria-label="Your usage">
+              <svg width="16" height="18" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>
+            </button>
+            <textarea class="overlay-input" id="overlayInput" placeholder="Ask AiMY anything…" rows="1"
+                      spellcheck="false" autocomplete="off" data-submit-on-enter aria-label="Ask AiMY"></textarea>
+            <button class="overlay-send" id="overlaySend" aria-label="Send">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
+            </button>
+          </div>
+        </div>
+      </div><!-- /.overlay-main -->
+    </div>
+  </main>
+</div>
+
+<!-- Drop a file anywhere on the workbench. Covers the whole window, because
+     asking someone to aim at a target is the thing drag and drop exists to avoid. -->
+<div class="drop-layer" id="dropLayer" hidden aria-hidden="true">
+  <div class="drop-card">
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
+    <span class="drop-title">Drop to add to the corpus</span>
+    <span class="drop-sub">A draft per file, owned by you. Nothing goes live until you say so.</span>
+  </div>
+</div>
+
+<!-- Commit surfaces and toasts mount here -->
+<!-- The peek: one panel, anchored by script to whatever entity was
+     clicked. Lives at the body so it can be anchored to anything. -->
+<div class="peek" id="peek" role="dialog" aria-label="About this" hidden></div>
+
+<div id="commitHost"></div>
+<div id="toastHost"></div>
+<!-- Where a run and its receipt land. Outside the grid, because a commit can
+     change the page under them and neither should be repainted away. -->
+<div id="agentHost" hidden></div>
+
+
+<!-- Where the settings modals mount: the dry run, the typed-count deletions,
+     the new-skill sheet, the file upload, adding people. It lives at the body
+     for the same reason the peek does — a dialog anchored inside the scroll
+     port inherits that port's clipping and its stacking context, and neither
+     is something a modal should be subject to.
+
+     This was missing when settings moved off its own page, and nothing said
+     so: `paintModal` writes into `$('#setModal')`, which was null, so every
+     modal in the file failed silently on a host that was never there. -->
+<div id="setModal"></div>
+
+<!-- ══════════════════════════════════════════════
+     PROTOTYPE CONTROLS — not product UI.
+
+     Collapsed to an icon in the bottom-right corner, expanding upward on click.
+     Fixed, so it can never push anything; lifted above the input band on the
+     widths where the two would otherwise overlap, because the bottom-centre
+     band belongs to the input and the toast and a dev tool does not get to
+     take it.
+
+     Its contents are rendered from the live corpus rather than hard-coded, so
+     every link resolves to a document that really is in that state — which is
+     the point of it at this stage: reaching a superseded document with nothing
+     linked, or a source that is down, should be one click and not a hunt.
+══════════════════════════════════════════════ -->
+<div class="proto" id="proto">
+  <div class="proto-panel" id="protoPanel" hidden></div>
+  <button class="proto-toggle" id="protoToggle" type="button"
+          aria-expanded="false" aria-controls="protoPanel"
+          aria-label="Prototype controls" title="Prototype controls">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 19h-5"/><path d="M21 5h-7"/><path d="M8 10v4"/><path d="M8 12H3"/></svg>
+  </button>
+</div>
+
+
+<script src="assets/motion.js?v=31"></script>
+<script src="assets/aimy-ds.js?v=31"></script>
+<!-- BEFORE knowledge.js, the way chat.js loads before it on the gate. Two
+     reasons, both about order: this file registers its Escape handler at parse
+     time and the settings modal is the shallowest layer on the page, so it has
+     to answer first; and knowledge.js hands it `patch` and `readURL` from
+     inside its own `init`, which waits for DOMContentLoaded either way. -->
+<script src="assets/settings.js?v=649"></script>
+<!-- The four patterns AiMY does not already have. Optional: every call site in
+     knowledge.js is guarded, so the console runs without them. -->
+<script src="assets/halaska-kit.bundle.js?v=37"></script>
+<script src="assets/halaska-bridge.js?v=32"></script>
+<script src="assets/halaska-mounts.js?v=32"></script>
+
+<script src="assets/knowledge.js?v=456"></script>
+<script src="assets/voice.js?v=21"></script>
+<script src="assets/notetaker.js?v=13"></script>
+</body>
+</html>

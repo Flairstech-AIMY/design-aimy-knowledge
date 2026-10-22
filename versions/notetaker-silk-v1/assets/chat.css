@@ -1,0 +1,1048 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   chat.css — the gate
+
+   Loaded after knowledge.css, and only by index.html. Everything here is
+   prefixed `gate-` except the two topnav additions, and nothing here restyles
+   a Console class: the conversation column, the thread, the message bubbles
+   and the composer bar are the Console's own components, reused by id. What
+   this file does is take them out of an overlay and give them a page.
+
+   ── Two constraints this file is written under ──
+
+   TYPE AND INK. `gate-` is not in css-audit's OUT_OF_SCOPE list, and that is
+   deliberate — the gate is built on the five --ty-* steps and the --ink-*
+   roles rather than exempted from them. --fs-* does not appear below.
+
+   MOTION. Every animated property is `transform` or `opacity`, with exactly
+   one stated exception: the rail collapse transitions `grid-template-columns`,
+   which costs layout, and the comment on `.gate-body` says why it is still the
+   right call. Nothing else animates width, height, top, left, filter or
+   box-shadow. Where a shadow changes, it is a pre-rendered pseudo-element whose
+   opacity moves.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════
+   SHELL
+═══════════════════════════════════════════════ */
+/* GRID, NOT FLEX, so the rail can collapse by animating a TRACK rather than a
+   width. This is the one declaration on this page that costs layout per frame,
+   and it is deliberate: the alternatives are worse. Translating the rail off
+   leaves a 15rem hole until it lands, and snapping the column to zero jumps the
+   conversation sideways. A 200ms track transition is what every editor and
+   chat client does for the same panel, and it is short and narrow. */
+.gate-body {
+  display: grid;
+  grid-template-columns: 15rem minmax(0, 1fr);
+  /* ══ ONE ROW, AND IT NEVER GROWS ═══════════════════════════════════
+     Without this the implicit row is `auto`, which sizes to content. A long
+     answer made the main column ask for 858px, the row granted it, the rail
+     stretched to match, and `overflow: hidden` on a body fixed at 804 quietly
+     guillotined the bottom 54px — taking the composer AND the rail's Console
+     link off screen, and leaving the thread with nothing to scroll because it
+     had already been given all the height it wanted.
+
+     `minmax(0, 1fr)` pins the row to the body. Everything inside then has a
+     definite height to be constrained by, which is what turns the thread into
+     a scroll container instead of a growing one. */
+  grid-template-rows: minmax(0, 1fr);
+  /* dvh, not vh: the mobile URL bar collapses and a vh-sized column jumps by
+     its height when it does. */
+  height: calc(100dvh - var(--topbar-height));
+  overflow: hidden;
+  transition: grid-template-columns var(--t-base) var(--ease-out);
+}
+
+/* Grid and flex items default to `min-height: auto`, which means "never
+   smaller than my content" — the override that lets a child scroll rather than
+   push. Needed at every level between the body and the thread, or the one that
+   is missing is the one that grows. */
+.gate-rail,
+.gate-main { min-height: 0; }
+body[data-rail="collapsed"] .gate-body { grid-template-columns: 0rem minmax(0, 1fr); }
+
+.gate-main {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+}
+
+/* ══ THE SCRIM IS NEVER A GRID ITEM ════════════════════════════════════
+   It only becomes visible below 900px, and it used to take its `position:
+   fixed` from inside that media query alone. That was harmless while
+   `.gate-body` was flex — a childless flex item is zero-wide — and it broke
+   the page the moment the parent became a grid: three children in a
+   two-column grid put the rail at (1,1), THE SCRIM at (1,2), and the main
+   column at (2,1). The conversation ended up underneath the rail, 240px wide.
+
+   Taking it out of flow at every width is the fix, and it is also just true:
+   a dismiss surface is never part of a layout. */
+.gate-scrim {
+  position: fixed;
+  inset: var(--topbar-height) 0 0;
+  z-index: 29;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════
+   THE AMBIENT LAYER
+
+   Two blurred ellipses in the design system's own brand hues, at twice the
+   alpha its `--grad-ellipse-*` tokens carry. The first pass used the tokens
+   unchanged and was too quiet to register as movement at all. No new COLOUR is
+   introduced — only more of the ones already there.
+
+   `position: fixed` keeps them out of the scrolling thread: a filter-blurred
+   layer inside a scroll container repaints on every scroll frame, which is
+   the single most expensive mistake available here. Fixed, they rasterise
+   once and the compositor moves them.
+═══════════════════════════════════════════════ */
+.gate-bloom {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity var(--t-slow) var(--ease-out);
+}
+
+.gate-bloom-a,
+.gate-bloom-b {
+  position: absolute;
+  /* Oversized so a drifting edge never enters the frame. */
+  inset: -20%;
+  /* Promoted only while the bloom is alive. Released below, when the thread
+     fills — a permanently promoted full-viewport layer is GPU memory held for
+     nothing. */
+  will-change: transform, opacity;
+}
+
+/* TWICE THE DESIGN SYSTEM'S ALPHA, and stated here rather than by editing the
+   tokens — `--grad-ellipse-1/2` are shared with the Console and the library
+   page, and doubling them there would repaint two surfaces nobody asked to
+   change. Same hues, same stops, same geometry; every alpha is exactly 2x the
+   token it came from. */
+.gate-bloom-a {
+  background: radial-gradient(ellipse at 30% 50%,
+    rgba(0, 102, 255, 0.36) 0%, rgba(97, 173, 241, 0.20) 28%, transparent 60%);
+  animation: gate-drift-a 29s var(--ease-out) infinite alternate;
+}
+.gate-bloom-b {
+  background: radial-gradient(ellipse at 75% 70%,
+    rgba(111, 223, 226, 0.20) 0%, rgba(139, 79, 244, 0.14) 38%, transparent 60%);
+  animation: gate-drift-b 37s var(--ease-out) infinite alternate;
+}
+
+/* 29 and 37 are coprime, so the two layers take just over 17 minutes to return
+   to the same relative position. Nothing on screen ever repeats visibly.
+
+   The travel is wider than it was as well: at the first amplitude the movement
+   was real but below the threshold anybody would notice it, which is the worst
+   of both — the cost of animating with none of the effect. */
+@keyframes gate-drift-a {
+  from { transform: translate3d(-9%, -5%, 0) scale(1);    opacity: 0.72; }
+  to   { transform: translate3d(10%, 6%, 0)  scale(1.32); opacity: 1; }
+}
+@keyframes gate-drift-b {
+  from { transform: translate3d(7%, 8%, 0)    scale(1.26); opacity: 0.55; }
+  to   { transform: translate3d(-10%, -6%, 0) scale(1);    opacity: 0.95; }
+}
+
+/* ══ DUST ══════════════════════════════════════════════════════════════
+   Twenty-eight motes, each one absolutely positioned from `--x`/`--y` and
+   animated on transform and opacity alone. CSS keyframes rather than a canvas
+   and a requestAnimationFrame loop, for two reasons: a rAF particle system
+   burns main-thread time every frame for an effect nobody is meant to look
+   directly at, and this repo's own harness notes that rAF cannot be relied on
+   to fire at all in the review pane. Keyframes run on the compositor and need
+   no clock of ours.
+
+   Sizes and durations come from chat.js as custom properties, from a fixed
+   table — so the field is identical on every load and can be argued with.
+   `--t` is the travel distance, `--d` the duration, `--i` the delay index. */
+.gate-dust { position: absolute; inset: 0; }
+
+.gate-mote {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--s);
+  height: var(--s);
+  border-radius: var(--r-pill);
+  background: rgba(226, 238, 255, 0.85);
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: gate-mote-drift var(--d) linear infinite;
+  animation-delay: calc(var(--i) * -1.7s);
+}
+
+/* One cycle: rise by `--t`, with a slow fade up and back down so a mote is
+   never seen appearing or vanishing at a hard edge.
+
+   ══ AND THE PEAK IS SCALEABLE PER THEME ═══════════════════════
+   `--o` comes off the fixed table in chat.js and runs 0.13 to 0.35, so even
+   at the top of its cycle a mote is a third opaque at most. That is right
+   against #171a1c, where a third of near-white still reads. It is most of
+   why the light field looked empty whatever colour was tried on it — the
+   treatment was being judged at a quarter strength.
+
+   A multiplier rather than a second table: the table is one field, shared,
+   and the relative brightness between motes is the thing that makes it look
+   like depth rather than a grid. This scales all of them and keeps that.
+
+   Defaults to 1, so dark does not move. */
+@keyframes gate-mote-drift {
+  0%   { transform: translate3d(0, 0, 0);                    opacity: 0; }
+  18%  { opacity: calc(var(--o) * var(--o-mul, 1)); }
+  76%  { opacity: calc(var(--o) * var(--o-mul, 1)); }
+  100% { transform: translate3d(var(--dx), var(--t), 0);     opacity: 0; }
+}
+
+/* ══ IN A CONVERSATION: THE SAME GROUND, STILL MOVING ══════════════════
+   Two rules stood here in turn and both are gone.
+
+   The first faded the bloom to nothing once a thread started, on the reasoning
+   that a transcript reads better against a flat surface. What it actually did
+   was change the colour of the page the moment you asked a question — you land
+   on one background and get a different one for answering, which reads as a
+   bug rather than as focus.
+
+   The second kept the colour and only stopped the motion, freezing each layer
+   with `animation-play-state: paused`. It fixed the colour change and left a
+   subtler version of the same fault: the ground is alive on the page you
+   arrive at and dead on the page you work on, so asking a question still
+   visibly costs you something. A frozen mote is also a mote that has stopped
+   for no reason a reader can name.
+
+   Neither is here now. The bloom and the motes run in the empty state and in a
+   conversation, at the same rate, because it is ONE ground and nothing about
+   asking a question is a reason for it to change. Reduced motion is still
+   honoured where it is declared, which is the one case where stopping is
+   something the reader asked for rather than something inferred for them. */
+
+/* ═══════════════════════════════════════════════
+   CONVERSATIONS
+═══════════════════════════════════════════════ */
+/* ══ ONE GROUND, NOT TWO PANELS ═══════════════════════════════════════
+   The rail carried `--panel-bg` (rgba(13,17,22,.95)) against a body of
+   rgb(23,26,28) — darker than the page it sits on, which read as a separate
+   window bolted to the side rather than as part of one surface. It is
+   transparent now, so the ambient layer runs underneath the conversation list
+   and the page is continuous edge to edge. A single hairline is all that marks
+   the division, and it only has to be findable, not loud.
+
+   `overflow: hidden` and `min-width: 0` are what let the grid track close on
+   it without the contents fighting for their intrinsic width. */
+.gate-rail {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border-right: 0.0625rem solid var(--hairline);
+  background: transparent;
+}
+
+/* Collapsed is not merely invisible: a zero-width column still holds focusable
+   rows, and tabbing into a panel that is not on screen is how a keyboard user
+   loses the caret. */
+body[data-rail="collapsed"] .gate-rail { visibility: hidden; }
+
+/* The column is the Console's, and it keeps its own padding and gap. What it
+   loses here is the border it carried as an overlay child — the rail draws
+   that now — and the fixed width, which the rail owns. */
+.gate-rail .overlay-chats {
+  width: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  border-right: 0;
+}
+
+/* ══ RAIL HEADER ═══════════════════════════════════════════════════════
+   A label and the control that closes the panel. The label is there because a
+   lone icon in an empty strip reads as decoration; two words make the strip a
+   header and the icon an action. */
+.gate-rail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  padding: 0.75rem 0.5rem 0.25rem 0.75rem;
+}
+.gate-rail-title {
+  font-size: var(--ty-micro);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-wider);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+/* ══ THE SIDE-PANEL TOGGLE IS ONE CONTROL ACROSS THE PRODUCT ═════════════
+   Same Lucide `panel-left`, same job — open or shut the conversations panel —
+   and until now four different treatments of it: the masthead's was a 2.125rem
+   boxed control at --r-md on a 4% ground, this one a bare 1.75rem glyph at
+   --r-sm with no ground at all. Two shells of one product, one control, and
+   you could not tell by looking that it was the same button.
+
+   THE MASTHEAD'S IS THE ONE THAT MOVES NOTHING. `.rail-toggle` is shared
+   chrome — AiMY Sales and AiMY QA carry the same class, and this file's own
+   topnav notes say in as many words that shared chrome is not a product's to
+   re-scale. It also sits in a row with the theme control and the bell, which
+   are the same 2.125rem box; a bare glyph there would be the odd one out. So
+   the gate's moves to it rather than the other way round.
+
+   `.gate-rail-peek` comes along because it IS this button in its other
+   placement — one attribute, one handler, only ever one of them on screen. It
+   keeps the raised ground and shadow its own rule gives it below 900, where it
+   floats over the thread rather than sitting in a header; that is about
+   elevation, not identity, and it is argued where it is set.
+
+   `pointer: coarse` still takes both to 2.75rem. A target sized for a thumb
+   outranks a size shared with a mouse-driven masthead. */
+.gate-rail-btn,
+.gate-rail-peek {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.125rem;
+  height: 2.125rem;
+  flex-shrink: 0;
+  padding: 0;
+  border: 0.0625rem solid rgba(255,255,255,0.08);
+  border-radius: var(--r-md);
+  background: rgba(255,255,255,0.04);
+  /* ══ THE SAME GREY THE OTHER TWO CARRY ════════════════════════
+     `--d400` / `--d200`, which is what `.rail-toggle` in the console masthead,
+     `.ov-chats-toggle` on the canvas and `.topnav-bell` all sit at, and what
+     Sales gives this button. This was `--ink-quiet` (`--d300`, #a8b5c5) at
+     rest and `--ink-primary` (`--d50`) on hover — a rung brighter standing
+     still and three rungs brighter under the cursor, on the same icon in the
+     same chip as the other two.
+
+     THIS ONE CHANGES THE 1536 RENDER, unlike its two counterparts: they are
+     painted only below 1040 and 900, this one is `inline-flex` at every width
+     and measures 34×34 on the gate at the reference size. Changed on an
+     explicit call to make all three identical, not as a side effect of the
+     responsive pass — which is the rule this is an exception to. */
+  color: var(--d400);
+  cursor: pointer;
+  transition: background-color var(--t-fast), color var(--t-fast);
+}
+.gate-rail-btn svg,
+.gate-rail-peek svg { width: 1.0625rem; height: 1.0625rem; }
+:root[data-theme="light"] .gate-rail-btn,
+:root[data-theme="light"] .gate-rail-peek {
+  background: rgba(16,24,40,0.04); border-color: rgba(16,24,40,0.10);
+}
+:root[data-theme="light"] .gate-rail-btn:hover,
+:root[data-theme="light"] .gate-rail-peek:hover { background: rgba(16,24,40,0.07); }
+/* The light half of this hover already said `rgba(16,24,40,0.07)`, the exact
+   value `.rail-toggle` uses — so only the dark half had drifted, to a solid
+   `--card-bg-raised` (#1c2630) where the masthead washes white at 8%. A pair
+   of rules that agree in one theme and not the other is drift, not intent. */
+.gate-rail-btn:hover,
+.gate-rail-peek:hover { background: rgba(255,255,255,0.08); color: var(--d200); }
+.gate-rail-btn:focus-visible,
+.gate-rail-peek:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
+
+/* The reopen control. Absolute inside `.gate-main`, at the left edge where the
+   rail used to begin, and present only while the rail is closed. */
+.gate-rail-peek {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 2;
+  display: none;
+}
+body[data-rail="collapsed"] .gate-rail-peek { display: inline-flex; }
+
+/* ══ NEW CONVERSATION, QUIETED ═════════════════════════════════════════
+   `paintChats` renders this as `btn btn-brand btn-sm` — a filled primary pill
+   running the full width of the column. Not one of Claude, Gemini, Mistral,
+   Grok or Perplexity fills that control: it is a plain row with a small icon
+   in every one of them, because it is the most obvious action on the panel and
+   obvious actions do not need shouting. A saturated block is also the single
+   loudest thing on a page whose whole point is the ambient field behind it.
+
+   Scoped to `.gate-rail` so the Console's canvas column keeps the button it
+   has always had. */
+.gate-rail .ov-chat-new {
+  justify-content: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.4375rem 0.625rem;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ink-quiet);
+  font-size: var(--ty-meta);
+  font-weight: var(--fw-medium);
+  box-shadow: none;
+  transition: background-color var(--t-fast), color var(--t-fast);
+}
+.gate-rail .ov-chat-new:hover {
+  background: var(--card-bg-raised);
+  color: var(--ink-primary);
+  box-shadow: none;
+}
+.gate-rail .ov-chat-new:active { transform: scale(0.99); }
+.gate-rail .ov-chat-new svg { opacity: 0.7; }
+
+.gate-rail-foot {
+  flex-shrink: 0;
+  padding: 0.5rem;
+  border-top: 0.0625rem solid var(--hairline);
+}
+
+.gate-console {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: var(--r-sm);
+  color: var(--ink-quiet);
+  text-decoration: none;
+  transition: background-color var(--t-fast), color var(--t-fast);
+}
+.gate-console:hover { background: var(--card-bg-raised); color: var(--ink-primary); }
+.gate-console:active { transform: translateY(0.0625rem); }
+.gate-console svg { flex-shrink: 0; opacity: 0.75; }
+
+/* One line, not two. The button named the destination and then described it,
+   and the description is the page you are about to be standing on. The
+   wrapper went with the subline: a column of one is a row. */
+.gate-console-name {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: var(--ty-meta); font-weight: var(--fw-semibold);
+}
+
+/* ═══════════════════════════════════════════════
+   STAGE
+═══════════════════════════════════════════════ */
+.gate-stage {
+  /* ══ THE MEASURE AND THE GUTTER ARE NAMED ══════════════════
+     They were literals here and in two breakpoints below, which was fine
+     while the stage was the only thing that read them. The active state now
+     hands the measure to the stage's CHILDREN (see the foot of this file), so
+     a second copy of `48rem` and `1.5rem` would be a pair that silently stops
+     agreeing the next time either breakpoint moves — and it would have
+     already: the 720 breakpoint drops the gutter to 1rem, and a hardcoded
+     1.5 in the active rules made the composer jump 16px on the first send.
+
+     `--gate-column` is what the PROSE gets, which is not the same number: the
+     thread is capped at 45rem by knowledge.css, and below 1240 the stage is
+     narrower than that, so the column is whichever binds first. */
+  --gate-measure: 48rem;
+  --gate-gutter: 1.5rem;
+  --gate-column: min(45rem, calc(var(--gate-measure) - 2 * var(--gate-gutter)));
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: var(--gate-measure);
+  padding: 0 var(--gate-gutter);
+  height: 100%;
+  /* Same reason as the grid items above: the last link in the chain from a
+     fixed-height body down to a scrolling thread. */
+  min-height: 0;
+}
+
+/* Empty: the composer sits on the optical centre with the greeting above it.
+   Active: the thread takes the height and the composer falls to the floor.
+   One flex container, two justifications — no measurement, no reflow work. */
+/* ══ `safe center`, AND THE WORD `safe` IS THE WHOLE FIX ═══════════
+   Plain `center` centres the column whatever its height — including when it is
+   TALLER than the stage, at which point it overflows equally at both ends and
+   `.gate-body`'s `overflow: hidden` clips both. Nothing here scrolls (that is
+   deliberate, and the reason is written at .gate-body), so whatever is cut off
+   is cut off permanently.
+
+   Which is what a phone in landscape is. Measured on the empty gate, the
+   column wanting ~342px against a stage of `100dvh - 60`:
+
+       844x390   composer bottom 396, 6px past the fold
+       740x360   composer bottom 381, 21px past the fold
+       667x375   greeting at y -14, behind the topbar
+
+   Three phone-landscape sizes where the surface loses either the thing it
+   greets you with or the thing it exists for, with no gesture that brings it
+   back. The overflow is not the defect — the unreachability is.
+
+   `safe` means: centre while it fits, fall back to flex-start the moment it
+   does not. Paired with `overflow-y: auto` the column then starts at the top
+   and scrolls, so the composer is always one flick away. Where the content
+   fits — every portrait phone, every laptop, the 1536 reference — `safe` is
+   `center` exactly and `auto` shows no scrollbar, so nothing moves.
+
+   No height breakpoint, on purpose: the column's height is a function of how
+   the greeting wraps, which is a function of width, so any number written here
+   would be right for one viewport and wrong for the next. This asks the
+   question the layout can actually answer — does it fit — every time. */
+body[data-thread="empty"] .gate-stage { justify-content: safe center; overflow-y: auto; }
+body[data-thread="empty"] .gate-stage .overlay-thread { flex: 0 0 auto; overflow: visible; }
+body[data-thread="active"] .gate-hero { display: none; }
+body[data-thread="active"] .gate-stage .overlay-thread {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  /* The bottom step is the gap between the last answer and the composer. At
+     0.5rem an answer ended almost against the input, which reads as the two
+     being one block rather than as a transcript above a place to type. 2rem
+     is on the ladder and gives the composer its own air.
+
+     Padding on the SCROLL CONTAINER rather than margin on the composer, so
+     the gap belongs to the scrolled content: the last line clears the input
+     when you are scrolled to the bottom, instead of hiding behind it. */
+  padding: 1.5rem 0 2rem;
+}
+
+/* The Console renders its openers inside the thread. The gate renders its own
+   below the composer, where every product of this shape puts them, so the
+   thread's copy is suppressed rather than duplicated. */
+.gate-stage .overlay-thread > .overlay-suggestions { display: none; }
+
+
+/* ── Greeting ── */
+.gate-hero {
+  text-align: center;
+  padding-bottom: 1.5rem;
+  animation: gate-rise var(--t-emphasis) var(--ease-out) both;
+}
+.gate-hello {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--ty-display);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-tight);
+  line-height: var(--lh-tight);
+  color: var(--ink-primary);
+}
+.gate-sub {
+  margin: 0.5rem 0 0;
+  font-size: var(--ty-body);
+  color: var(--ink-quiet);
+  line-height: var(--lh-snug);
+}
+
+/* ═══════════════════════════════════════════════
+   COMPOSER
+═══════════════════════════════════════════════ */
+.gate-composer {
+  flex-shrink: 0;
+  padding-bottom: 1.5rem;
+  animation: gate-rise var(--t-emphasis) var(--ease-out) var(--t-intent) both;
+}
+body[data-thread="active"] .gate-composer { animation: none; }
+
+.gate-stage .overlay-input-wrap { position: relative; padding: 0; }
+
+/* THE FOCUS GLOW IS PRE-RENDERED. A box-shadow that animates repaints a large
+   blurred region every frame; painted once on a pseudo-element and revealed by
+   opacity, it costs a compositor property and nothing else.
+
+   IT LAYERS OVER THE DESIGN SYSTEM'S OWN FOCUS RING, which sets a 3px halo in
+   `--accent-rgb` (139,79,244, purple) while both tokens here are 51,105,255,
+   blue. Focusing this control therefore lights two rings in two hues. Kept
+   deliberately — raised, reviewed, and left as it is. */
+.gate-stage .overlay-input-bar { position: relative; }
+.gate-stage .overlay-input-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 0.0625rem var(--card-border-focus), 0 0.5rem 2rem var(--brand-glow);
+  opacity: 0;
+  transition: opacity var(--t-base) var(--ease-out);
+  pointer-events: none;
+}
+.gate-stage .overlay-input-bar:focus-within::after { opacity: 1; }
+
+/* ── Suggestion chips ── */
+.gate-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+}
+body[data-thread="active"] .gate-chips { display: none; }
+
+/* The stagger. `--i` is set from markup and is already an exempt token in
+   css-audit — the repo established this pattern, this only reuses it. */
+.gate-chips .overlay-sugg-chip {
+  opacity: 0;
+  animation: gate-chip-in var(--t-emphasis) var(--ease-out) forwards;
+  animation-delay: calc(min(var(--i, 0), 8) * var(--t-stagger));
+}
+.gate-chips .overlay-sugg-chip:active { transform: scale(0.98); }
+
+/* ═══════════════════════════════════════════════
+   STATES
+═══════════════════════════════════════════════ */
+.gate-skeleton { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.5rem; }
+.gate-skeleton-row {
+  height: 2.25rem;
+  border-radius: var(--r-sm);
+  background: var(--card-bg-raised);
+  opacity: 0.5;
+  animation: gate-breathe 1.4s var(--ease-out) infinite alternate;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
+
+.gate-empty { padding: 1.5rem 0.75rem; text-align: center; }
+.gate-empty-title { font-size: var(--ty-meta); font-weight: var(--fw-semibold); color: var(--ink-quiet); }
+.gate-empty-sub { margin-top: 0.25rem; font-size: var(--ty-micro); color: var(--ink-faint); line-height: var(--lh-snug); }
+
+.gate-error {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: var(--r-md);
+  border: 0.0625rem solid var(--err);
+  background: var(--err-bg);
+  font-size: var(--ty-meta);
+  color: var(--ink-secondary);
+}
+
+.gate-toast-host { position: fixed; left: 0; right: 0; bottom: 1.5rem; z-index: 60; pointer-events: none; }
+.gate-toast-host > * { pointer-events: auto; }
+
+/* ═══════════════════════════════════════════════
+   KEYFRAMES — transform and opacity only
+═══════════════════════════════════════════════ */
+@keyframes gate-rise {
+  from { opacity: 0; transform: translate3d(0, 0.75rem, 0); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes gate-chip-in {
+  from { opacity: 0; transform: translate3d(0, 0.375rem, 0); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes gate-menu-in {
+  from { opacity: 0; transform: translate3d(0, 0.25rem, 0) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes gate-breathe {
+  from { opacity: 0.4; }
+  to   { opacity: 1; }
+}
+
+/* ═══════════════════════════════════════════════
+   LIGHT THEME
+
+   The two ellipse tokens are tuned for a dark ground. On white the same alpha
+   reads as a stain rather than as light, so the layer is pulled back — the
+   bloom is still there, it just has less to do when the page is already
+   bright.
+═══════════════════════════════════════════════ */
+/* ══ LIGHT NEEDS MORE OF THE BLOOM, NOT LESS ═══════════════════
+   This held the bloom at 0.55 in light, which is the instinct you get from
+   reading the alphas rather than the screen: 36% blue looks like a lot, so
+   halve it. But a translucent colour over near-black is high contrast and
+   the same colour over near-white is low, so the halving landed it under
+   the threshold where anything reads — a grey page with a hint of blue in
+   one corner, and none of the drift between the two layers visible at all.
+   The thing this surface is FOR is the colour moving.
+
+   Full opacity in both themes now, and the gradients are unchanged: on this
+   ground they come out as a blue-to-lavender-to-mint wash rather than the
+   glow they are in dark, which is what the same hues do on white and is
+   right. Judged on screen at both, not computed. */
+
+/* ══ AND THE MOTES WERE WHITE ON WHITE ═══════════════════════
+   `.gate-mote` is `rgba(226,238,255,0.85)` — very nearly white, which is
+   correct against #171a1c and completely invisible against #eef1f6. Twenty-
+   eight of them have been drifting up the light gate since it was built,
+   animating on the compositor, seen by nobody.
+
+   FOUR TREATMENTS WERE TRIED and the last of them is here, so the three that
+   are not are worth a line each: a slate dot read as grit, a flat black dot
+   read as dirt, and a violet spark read well but as decoration rather than
+   as light. This one is a white core with a ring and a blue glow — the ring
+   is what stops the core dissolving into a near-white ground, the glow is
+   what makes it shine, and together they read as a point of light rather
+   than as a mark ON the surface, which is what the dark theme's motes are.
+
+   AND THE REASON THE FIRST THREE WERE HARD TO JUDGE is in the keyframes
+   above, not here: every one of them was being looked at through `--o`, which
+   tops out at 0.35. The colour was never the whole problem. `--o-mul` turns
+   the field up in light only; peaks land at 0.72 to 0.86 measured, against
+   0.13 to 0.35 before.
+
+   Settled by putting five treatments on this exact background side by side.
+   It is a judgement about what the eye picks up off a gradient and there is
+   no number for that.
+
+   Static shadows, so they rasterise once: the animation is still transform
+   and opacity only, which is the promise the block above this makes about
+   why this is CSS and not a canvas.
+
+   The SIZE is left alone — 1.1px to 2.8px, from the fixed table in chat.js.
+   It is what gives the field its depth, and one value for all twenty-eight
+   would trade an invisible field for a flat one. */
+:root[data-theme="light"] .gate-dust { --o-mul: 2.4; }
+:root[data-theme="light"] .gate-mote {
+  background: #ffffff;
+  box-shadow: 0 0 0 0.5px rgba(60, 100, 225, 0.55),
+              0 0 7px 2px rgba(110, 145, 255, 0.85);
+}
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE — the existing ladder: 1240 · 1040 · 900 · 720 · 520
+═══════════════════════════════════════════════ */
+@media (max-width: 77.5rem) {   /* 1240 */
+  .gate-stage { --gate-measure: 44rem; }
+}
+
+@media (max-width: 65rem) {     /* 1040 */
+  .gate-rail { width: 13.5rem; }
+}
+
+/* The Console reveals its BRIEFING at 1040, and the shared `.rail-toggle` rule
+   turns the button on there. The gate has no briefing — what it collapses at
+   900 is the conversation column — so for the 140px in between the shared rule
+   would show a control that opens something already on screen. Off until 900,
+   then on. */
+
+
+/* 900 — the same point at which the Console turns its conversation column into
+   a drawer. Same threshold, same gesture, so the two surfaces behave alike. */
+@media (max-width: 56.25rem) {
+  .gate-rail {
+    position: fixed;
+    top: var(--topbar-height);
+    bottom: 0;
+    left: 0;
+    z-index: 30;
+    width: 16rem;
+    transform: translate3d(-100%, 0, 0);
+    transition: transform var(--t-base) var(--ease-out);
+  }
+  /* A drawer sits OVER the conversation, so it needs a ground of its own --
+     transparency is right for a column that is part of the page and wrong for
+     a panel floating above it. */
+  .gate-rail {
+    background: var(--panel-bg);
+    visibility: visible;
+    border-right: 0.0625rem solid var(--glass-border);
+  }
+  /* ══ ONE COLUMN, BECAUSE THERE IS ONLY ONE THING IN IT ═════════════════
+     The rail is `position: fixed` from here down, which takes it OUT OF THE
+     GRID ENTIRELY. The 15rem track it used to sit in stayed behind and kept
+     reserving its width, so `.gate-main` became the first item, landed in
+     that track, and rendered 240px wide inside a 375px phone with the
+     remaining 135px column standing empty beside it.
+
+     Every cramped thing on the gate at phone widths was this one track: the
+     hero wrapped after three words, the composer was 208px, and the chip
+     scroller had 208px to work with. One declaration, and all three take the
+     width of the screen.
+
+     It is written for EVERY rail state, not just the collapsed one. The
+     previous rule set the two-track template only under `[data-rail=
+     "collapsed"]` to stop the collapse animation closing the track — correct
+     reasoning about the wrong track. Out of flow is out of flow whether the
+     drawer is open, shut or mid-slide, so there is nothing here for the
+     collapsed state to protect. */
+  .gate-body,
+  body[data-rail="collapsed"] .gate-body { grid-template-columns: minmax(0, 1fr); }
+  body[data-rail="collapsed"] .gate-rail { visibility: hidden; }
+  body[data-rail="open"] .gate-rail { transform: none; visibility: visible; }
+  /* Base rules live outside this query now; only the reveal is width-bound. */
+  .gate-scrim { transition: opacity var(--t-base) var(--ease-out), visibility var(--t-base); }
+  body[data-rail="open"] .gate-scrim { opacity: 1; visibility: visible; pointer-events: auto; }
+}
+
+/* ══ A DRAWER INSIDE A DRAWER IS ONE DRAWER TOO MANY ═════════════════════
+   `.overlay-chats` is the Console's conversation column, and below 900 the
+   Console turns it into its own slide-in panel: absolutely positioned,
+   translated fully off to the left, `visibility: hidden`, and brought back
+   only by `.aimy-overlay.chats-open`.
+
+   The gate borrows that column but puts it inside `.gate-rail`, which IS the
+   drawer here. So below 900 the gate had two: the rail slid in correctly, and
+   the column inside it stayed translated off and invisible, because
+   `.aimy-overlay.chats-open` is a Console class that never appears on this
+   page. The rail opened onto its own header and footer with nothing between
+   them -- ten conversations and the New conversation button were all present
+   and all invisible.
+
+   The existing `.gate-rail .overlay-chats` rule already undoes the column's
+   OVERLAY-CHILD styling, and it outranks the Console's plain `.overlay-chats`
+   on specificity. It could not help here because it never declared these
+   properties, and specificity only settles declarations that exist. So they
+   are declared.
+
+   Written as its own block at the same 900 breakpoint rather than folded into
+   the base rule: this exists to answer a rule that only applies below 900, and
+   above 900 there is nothing here to undo. */
+@media (max-width: 56.25rem) {
+  .gate-rail .overlay-chats {
+    position: static;
+    transform: none;
+    visibility: visible;
+    width: auto;
+    /* The panel dressing belongs to the drawer, and the drawer is the rail.
+       Left on, the column would paint a second glass panel and a second
+       shadow inside the first. */
+    background: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/* Below 900 the rail is a DRAWER, and its header control travels off-screen
+   with it -- so the peek is not a nicety there, it is the only door. Shown
+   whenever the drawer is not open, and hidden once it is, because at that point
+   the header control and the scrim are both on screen to close it.
+
+   This rule replaces one that hid the peek at this width entirely. That left
+   the conversation list unreachable below 900 the moment the navbar toggle was
+   removed: both controls off-screen, no way in. */
+@media (max-width: 56.25rem) {
+  .gate-rail-peek { display: inline-flex; }
+  body[data-rail="open"] .gate-rail-peek { display: none; }
+
+  /* ══ THE PEEK FLOATS, SO THE THREAD MAKES ROOM FOR IT ═══════════════
+     The peek is absolutely positioned in `.gate-main`, which means it is over
+     the conversation rather than beside it. On a desktop that is invisible:
+     the stage is 44rem centred inside a much wider column, so the button sits
+     in the margin. As the viewport narrows the stage runs out of margin to
+     hide in, and below roughly 810px the button lands on top of the thread's
+     first element — the memory panel, whose own header icon it covers almost
+     exactly.
+
+     REPLACING the thread's top padding rather than adding to it. Padding the
+     stage as well would push the conversation down twice for one button.
+
+     Applied at 900 rather than at the ~810 where the collision actually
+     starts, because 810 is not a rung on this ladder and the cost of the
+     wider net is 40px of headroom on a tablet, which is not visible. */
+  body[data-thread="active"] .gate-stage .overlay-thread { padding-top: 4rem; }
+
+  /* Padding fixes where the conversation STARTS. It scrolls under the button
+     either way, and a transparent button with text moving through it reads as
+     a rendering fault. The raised card ground is what the hover state already
+     used, so the control keeps one material and only its elevation changes. */
+  .gate-rail-peek {
+    background: var(--card-bg-raised);
+    backdrop-filter: blur(0.5rem);
+    -webkit-backdrop-filter: blur(0.5rem);
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+@media (max-width: 45rem) {     /* 720 */
+  /* The home indicator sits over the bottom of the screen on a notched phone.
+     `env()` returns 0 everywhere else, and 0 today as well since the viewport
+     meta does not opt into `viewport-fit=cover` -- written the way the float
+     composer already writes it, so both are correct the moment it does. */
+  /* The gutter, not the padding: the active state reads it too. The bottom
+     is still set outright, since nothing else wants it. */
+  .gate-stage { --gate-gutter: 1rem; padding-bottom: calc(env(safe-area-inset-bottom, 0px)); }
+  /* .gate-console-sub used to be hidden here. It is gone from every width now. */
+
+  /* ══ THE GREETING KEEPS ITS SIZE ═══════════════════════════════════════
+     This used to drop to `--ty-title`, 17px against the 28px it has on a
+     desktop: the page's welcome set smaller than a card heading. It was a
+     reasonable defence when the column was 208px wide and "Hello, Nour"
+     wrapped, but the column is the width of the screen now and 28px fits
+     across 343px with room to spare. The shrink was treating a symptom of
+     the grid bug.
+
+     `balance` because a two-line subtitle broken 6/1 is the failure this
+     property exists for, and a centred block makes it obvious. */
+  .gate-hello { font-size: var(--ty-display); }
+  .gate-hello,
+  .gate-sub { text-wrap: balance; }
+
+  /* ══ THE OPENING SCREEN SITS LOW ═══════════════════════════════════════
+     Centred, the greeting and the composer floated in the middle of a phone
+     with 244px of nothing above them and 244px below: a balanced composition
+     that reads as an empty screen, because 265px of content cannot hold the
+     middle of an 812px viewport.
+
+     Bottom-weighted, the same content lands where a thumb already is, the
+     bloom gets the upper two thirds it was drawn to fill, and the empty space
+     reads as headroom rather than as a layout that failed to place anything.
+
+     It also survives the keyboard. When a soft keyboard opens the viewport
+     shrinks from the bottom; a centred column moves the composer up and out
+     from under the caret, and an end-aligned one keeps it against the
+     keyboard where it belongs.
+
+     EMPTY STATE ONLY. Once a thread is running the stage holds a scroller
+     that already fills the height, and end-alignment there would fight the
+     thread for the same space. */
+  body[data-thread="empty"] .gate-stage {
+    /* `safe`, for the reason the unprefixed rule above gives, and it matters
+       MORE here than there. An end-aligned column that outgrows its stage
+       overflows the START edge — the top — and a scroll container cannot
+       scroll to block-start overflow, so the greeting does not go off the
+       bottom where a flick would find it, it goes behind the topbar where
+       nothing reaches it. Measured at 667x375, a phone in landscape with the
+       Console sub-line already dropped: the greeting sat at y -14 with the
+       stage reporting ZERO scrollable height.
+
+       The auto margins below are what make this the interesting case. They
+       outrank `justify-content` for the space they claim — which the comment
+       under them says — but an auto margin resolves to 0 when there is no free
+       space to split, and at that point the alignment is the only thing left
+       deciding which end the overflow happens at. `safe` makes that answer
+       flex-start whenever the column does not fit, so the overflow lands on
+       the scrollable side. Where it fits, this is `flex-end` exactly. */
+    justify-content: safe flex-end;
+    padding-bottom: calc(3rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* ══ WHERE THE GREETING SITS ═══════════════════════════════════════════
+     End-alignment alone put the greeting directly on top of the composer and
+     left the whole upper half empty: the composer reached the thumb, and the
+     welcome arrived as a caption to an input box.
+
+     AUTO MARGINS SPLIT THE FREE SPACE, so the greeting centres in whatever is
+     left above the composer while the composer and its chips stay at the
+     bottom. One element with two auto margins does what a second nested
+     flex container would otherwise be needed for, and auto margins outrank
+     `justify-content` for the space they claim, so the two rules are not in
+     conflict -- the end-alignment still holds everything else down. */
+  body[data-thread="empty"] .gate-hero {
+    margin-top: auto;
+    margin-bottom: auto;
+  }
+}
+
+/* ══ A DOOR BIG ENOUGH TO HIT ════════════════════════════════════════════
+   Below 900 the rail is a drawer and these two buttons are the ONLY way into
+   it, so they are the most important controls on the screen at exactly the
+   width where they were smallest: 1.75rem, which is 28px, which is a target
+   sized for a cursor.
+
+   Keyed to `pointer: coarse` rather than to a width. The question is what is
+   doing the pointing, not how wide the window is — a touchscreen laptop at
+   1200px has the same problem and a narrow desktop window does not have it
+   at all. It also means nothing here can reach a mouse-driven display at any
+   size. The icon inside is left alone; the button grows around it. */
+@media (pointer: coarse) {
+  .gate-rail-btn,
+  .gate-rail-peek { width: 2.75rem; height: 2.75rem; }
+  .gate-rail-peek { top: 0.5rem; left: 0.5rem; }
+}
+
+@media (max-width: 32.5rem) {   /* 520 */
+  /* ══ THE CHIPS BECOME A CAROUSEL ═══════════════════════════════════════
+     `nowrap` alone was half the change. A flex item still SHRINKS in a
+     nowrap row, so each chip collapsed to its min-content width and wrapped
+     its own text down four lines — three 94x100px ovals where three pills
+     were meant to be, which is what a fully-rounded corner does to a box
+     that has become nearly square.
+
+     `flex-shrink: 0` is what makes the row overflow instead of squeezing,
+     and `white-space: nowrap` is what keeps a question on one line so the
+     pill stays a pill. The scroller was already here; it had nothing to
+     scroll because the chips kept folding themselves small enough to fit. */
+  .gate-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: flex-start;
+    /* The scrollbar is chrome on a decorative row, and on a phone it is drawn
+       over the chips rather than beside them. */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    /* A hard stop at the edge reads as "that is all of them"; a fade reads as
+       "there is more". This was the product strip's own device, borrowed —
+       and the strip no longer has it: below 900 the products leave the
+       masthead for a menu on the mark rather than scrolling in place
+       (knowledge.css §THE LAST RUNG). The reasoning survives the strip,
+       because it was never about the strip: these chips ARE a scroller, and a
+       scroller has to say so. */
+    -webkit-mask-image: linear-gradient(90deg, #000 0 90%, transparent 100%);
+            mask-image: linear-gradient(90deg, #000 0 90%, transparent 100%);
+  }
+  .gate-chips::-webkit-scrollbar { display: none; }
+  .gate-chips .overlay-sugg-chip { flex-shrink: 0; white-space: nowrap; }
+}
+
+/* ═══════════════════════════════════════════════
+   REDUCED MOTION
+
+   Not "no motion" — the bloom is the page's only decoration and removing it
+   entirely leaves a flat rectangle where something was clearly meant to be.
+   It is held on a single still frame instead, and everything that moved on
+   entrance simply arrives.
+═══════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .gate-bloom-a,
+  .gate-bloom-b {
+    animation: none;
+    will-change: auto;
+    opacity: 0.85;
+  }
+  .gate-bloom-a { transform: translate3d(0, 0, 0) scale(1.08); }
+  .gate-bloom-b { transform: translate3d(0, 0, 0) scale(1.06); }
+  .gate-hero,
+  .gate-composer,
+  .gate-chips .overlay-sugg-chip { animation: none; opacity: 1; }
+  .gate-skeleton-row { animation: none; opacity: 0.8; }
+  /* The motes are motion and nothing else -- held still they are just specks
+     of grit on the screen, so they go entirely rather than freeze. */
+  .gate-dust { display: none; }
+  .gate-rail,
+  .gate-body { transition: none; }
+}
+
+/* ══ THE THREAD SCROLLS ON THE WINDOW, NOT ON THE COLUMN ══════════
+   The console's canvas had the same defect and a two-line fix: its thread is
+   the scroller AND the measure, so widening it to the surface and putting the
+   measure in padding moves the bar to the window and changes nothing else.
+
+   The gate cannot be fixed in the same two lines, because here the thread is
+   not the column — `.gate-stage` is, and it holds the composer too. Widening
+   only the thread would leave a full-width scroller inside a 48rem box, which
+   is the same bar in the same wrong place.
+
+   SO THE STAGE GIVES UP THE MEASURE AND ITS CHILDREN TAKE IT. The stage runs
+   the width of the surface; the hero and the composer carry the 48rem and the
+   1.5rem gutter the stage used to carry, so they land exactly where they
+   landed before; and the thread — the one child that is a scroller — takes
+   the measure as padding instead, so its bar is at the window's edge and its
+   prose is still 45rem in the middle of it.
+
+   ACTIVE ONLY. The empty state centres the greeting and the composer on the
+   optical middle and scrolls the STAGE in phone landscape — the `safe center`
+   argument above — and none of that involves a thread that scrolls. Left
+   alone. The composer sits at the same x in both states, so crossing between
+   them still moves nothing.
+
+   EVERY NUMBER HERE IS THE STAGE'S OWN. Written as literals first, and two
+   breakpoints immediately disagreed with them — the composer lost 16px of
+   width the moment a thread opened on a phone, because the 720 rule drops the
+   gutter to 1rem and this did not hear it. They are variables at the top of
+   the file now and this reads them, so a breakpoint moves one number and both
+   states follow. */
+body[data-thread="active"] .gate-stage {
+  max-width: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+body[data-thread="active"] .gate-stage > * {
+  width: 100%;
+  max-width: var(--gate-measure);
+  margin-inline: auto;
+  padding-inline: var(--gate-gutter);
+}
+body[data-thread="active"] .gate-stage .overlay-thread {
+  max-width: none;
+  margin-inline: 0;
+  padding-left: max(var(--gate-gutter), calc((100% - var(--gate-column)) / 2));
+  padding-right: max(var(--gate-gutter), calc((100% - var(--gate-column)) / 2));
+}
