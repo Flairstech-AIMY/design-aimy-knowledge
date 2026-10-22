@@ -3941,6 +3941,7 @@
   let US_GEAR = false;
   let US_GEAR_IN = false;      /* the next paint opened the gear: bring the column into view */
   let US_GEAR_P = '';          /* the employee row whose own controls are open */
+  let US_HARD_NEW = '';        /* 'meter|id' of a limit being typed for the first time */
   /* Who is looking (Nour 22 Oct): '' is FlairsTech's admin, who sets limits
      and stops; an organization id is that client's own admin, who sees the
      page from their organization down and reads what FlairsTech set, with
@@ -4625,9 +4626,15 @@
     return h != null ? `
       <span class="set2-us-g-step">
         <button type="button" data-us-hard="${esc(ref)}|-1" aria-label="${step} less">${I.minus}</button>
-        <label class="set2-us-g-num"><input class="set2-us-g-in set2-num" data-us-hard-in="${esc(ref)}" value="${usFmt(h)}"
+        <label class="set2-us-g-num"><input class="set2-us-g-in set2-num" data-us-hard-in="${esc(ref)}" value="${usFmt(h)}" size="${usFmt(h).length}"
           inputmode="numeric" autocomplete="off" spellcheck="false" aria-label="${esc(u.uname)} limit a month, in ${esc(u.unit)}"><span>${esc(u.unit)}</span></label>
         <button type="button" data-us-hard="${esc(ref)}|1" aria-label="${step} more">${I.plus}</button></span>`
+      : US_HARD_NEW === ref ? `
+      <span class="set2-us-g-new">
+        <label class="set2-us-g-num"><input class="set2-us-g-in set2-num" data-us-hard-new="${esc(ref)}" value=""
+          inputmode="numeric" autocomplete="off" spellcheck="false"
+          aria-label="${esc(u.uname)} limit a month, in ${esc(u.unit)}. Enter to set, Escape to cancel"><span>${esc(u.unit)}</span></label>
+        <button class="set2-us-g-set is-brand" type="button" data-us-hard-ok="${esc(ref)}">Set</button></span>`
       : `<button class="set2-us-g-set" type="button" data-us-hard-on="${esc(ref)}">Set a limit</button>`;
   }
   const usGRemove = (u, id) => US_HARD[u.id][id] != null && usCan(usHardKey(u, id), true)
@@ -4662,6 +4669,31 @@
     /* Enter keeps you in the field to type again; leaving it stays left */
     const sel = '[data-us-hard-in="' + mid + '|' + o + '"]', had = document.activeElement === inp;
     render(() => { const f = $(sel); if (f && had) { f.focus({ preventScroll: true }); f.select(); } });
+  }
+  /* A first limit: "Set a limit" opens an empty field, with no number in
+     it or suggested in grey. Enter or Set sets it, with the toast's
+     undo; Escape, or leaving it empty, closes it with nothing set. */
+  function usHardNew(inp) {
+    const [mid, o] = inp.getAttribute('data-us-hard-new').split('|');
+    const m0 = usMeter(mid), hk = usHardKey(m0, o), v = usParse(inp.value);
+    if (v == null) { inp.focus(); if (API && API.toast) API.toast('Type the number of ' + m0.unit + ' to stop at, or press Escape.'); return; }
+    if (isNaN(v) || v < 1 || !usCan(hk, false)) {
+      inp.focus(); inp.select();
+      if (API && API.toast) API.toast('Type a whole number of ' + m0.unit + ', like 12000 or 12k.');
+      return;
+    }
+    US_HARD_NEW = '';
+    US_HARD[mid][o] = v;
+    if (US_VIEW) US_BY[hk] = US_VIEW;
+    const what = (o ? usName(o) + '’s ' : 'everyone’s ') + m0.name + ' ' + m0.unit;
+    if (API && API.toast) API.toast(usCap(what) + ' stop at ' + usFmt(v) + ' a month.', () => {
+      delete US_HARD[mid][o]; delete US_BY[hk]; render();
+    });
+    render(() => { const f = $('[data-us-hard-in="' + mid + '|' + o + '"]'); if (f) f.focus({ preventScroll: true }); });
+  }
+  function usHardNewCancel(ref) {
+    US_HARD_NEW = '';
+    render(() => { const b = $('[data-us-hard-on="' + ref + '"]'); if (b) b.focus({ preventScroll: true }); });
   }
   /* the small line under a limit: who set it, then what happens next */
   function usGLimitSay(u, id, x) {
@@ -4703,7 +4735,7 @@
       return `
         <section class="set2-us-g-u${u.id === m.id && units.length > 1 ? ' is-sel' : ''}" aria-label="${esc(u.uname)}">
           <div class="set2-us-g-row"><b class="set2-us-g-name">${esc(u.uname)}</b>
-            <span class="set2-us-g-state${st ? ' is-err' : ''}">${state}</span>${usGSwitch(key, u.uname + ' running', !mine && !cover, !!cover)}</div>
+            <span class="set2-us-g-state${st ? ' is-err' : ''}">${state}</span>${usGSwitch(key, u.uname + ' running', !st, !!cover || (!mine && !!st && st.by === 'limit'))}</div>
           <div class="set2-us-g-row"><span class="set2-us-g-lbl">Hard limit</span>${usGLimit(u, id)}</div>
           <p class="set2-us-g-sub">${esc(from + usGLimitSay(u, id, x))}${usGRemove(u, id)}</p>
         </section>`;
@@ -10871,6 +10903,19 @@
       render(() => { const b = $('[data-us-' + (stopIt ? 'resume' : 'stop') + '="' + key + '"]'); if (b) b.focus({ preventScroll: true }); });
       return;
     }
+    const usHO = e.target.closest('[data-us-hard-on]');
+    if (usHO) {
+      const ref = usHO.getAttribute('data-us-hard-on');
+      US_HARD_NEW = ref;
+      render(() => { const f = $('[data-us-hard-new="' + ref + '"]'); if (f) f.focus({ preventScroll: true }); });
+      return;
+    }
+    const usHK = e.target.closest('[data-us-hard-ok]');
+    if (usHK) {
+      const f = $('[data-us-hard-new="' + usHK.getAttribute('data-us-hard-ok') + '"]');
+      if (f) usHardNew(f);
+      return;
+    }
     const usH = e.target.closest('[data-us-hard], [data-us-hard-on], [data-us-hard-off]');
     if (usH) {
       const a = usH.hasAttribute('data-us-hard') ? 'step' : usH.hasAttribute('data-us-hard-on') ? 'on' : 'off';
@@ -12697,6 +12742,14 @@
         && !e.target.closest('[data-path],[data-add-sub],[data-tf],[data-crit-add],[data-prod-pick],[data-crm-pick],[data-client-pick]')) closePop();
   });
 
+  /* a first limit's field left empty closes with nothing set; moving to its
+     own Set button does not count as leaving */
+  document.addEventListener('focusout', (e) => {
+    const f = e.target.closest && e.target.closest('[data-us-hard-new]');
+    if (!f || f.value.trim() || (e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('[data-us-hard-ok]'))) return;
+    const ref = f.getAttribute('data-us-hard-new');
+    setTimeout(() => { if (US_HARD_NEW === ref) { US_HARD_NEW = ''; render(); } }, 0);
+  });
   document.addEventListener('change', (e) => {
     const hi = e.target.closest('[data-us-hard-in]');
     if (hi) { usHardType(hi); return; }
@@ -12799,6 +12852,12 @@
   document.addEventListener('keydown', (e) => {
     /* Usage: Enter saves and Escape cancels, in the split and in the session
        field alike; the meter switch is a radiogroup like the two below. */
+    const usHN = e.target.closest && e.target.closest('[data-us-hard-new]');
+    if (usHN && (e.key === 'Enter' || e.key === 'Escape')) {
+      e.preventDefault();
+      if (e.key === 'Enter') usHardNew(usHN); else usHardNewCancel(usHN.getAttribute('data-us-hard-new'));
+      return;
+    }
     const usHI = e.target.closest && e.target.closest('[data-us-hard-in]');
     if (usHI && (e.key === 'Enter' || e.key === 'Escape')) {
       e.preventDefault();
