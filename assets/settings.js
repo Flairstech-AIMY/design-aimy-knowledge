@@ -3950,6 +3950,22 @@
   /* a level the viewer can open: anything for FlairsTech, their own tree for a client */
   const usSeen = (id) => !US_VIEW || (!!id && usPath(id).indexOf(US_VIEW) > -1);
   const US_ASK = 'Contact your FlairsTech account manager to change it.';
+  /* Who set each limit and stop (Nour 22 Oct: "let Upland's admin set limits
+     and stops on their own companies, products and people, while
+     FlairsTech's stay read-only"). Keys are 'hard|meter|id' and the stop
+     keys; no entry means FlairsTech. A client's admin can set anything below
+     their organization, and change what they set; never the organization's
+     own, and never what FlairsTech set. FlairsTech's admin can change all. */
+  const US_BY = {};
+  const usHardKey = (m, id) => 'hard|' + m.id + '|' + id;
+  const usKeyId = (key) => key.split('|')[key.indexOf('hard|') === 0 ? 2 : 1];
+  function usCan(key, isSet) {
+    if (!US_VIEW) return true;
+    const id = usKeyId(key);
+    if (!id || id === US_VIEW || !usSeen(id)) return false;
+    return !isSet || US_BY[key] === US_VIEW;
+  }
+  const usWho = (key) => !US_BY[key] ? 'FlairsTech' : US_BY[key] === US_VIEW ? 'you' : usName(US_BY[key]) + '’s admin';
   const usName = (id) => id ? usAt(id).n.name : 'Everyone';
   const usStopKey = (by, id, m) => by === 'all' ? 'all|' + id : by === 'prod' ? 'prod|' + id + '|' + m.prod : 'unit|' + id + '|' + m.id;
   /* What stops this unit on this level, looking from the top down: the
@@ -4000,7 +4016,7 @@
     : usName(s.node) + '’s ' + m.name + (s.by === 'unit' ? ' ' + m.unit : '');
   const usStopWords = (m, s) => s.by === 'limit'
     ? usName(s.node) + ' reached its limit of ' + usFmt(s.lim) + ' ' + m.unit + '. They start again ' + US_PERIOD.resets + '.'
-    : 'Stopped by FlairsTech, ' + s.at + (s.own && s.by === 'unit' ? '' : ', with ' + usScopeName(m, s)) + '.';
+    : 'Stopped by ' + usWho(usStopKey(s.by, s.node, m)) + ', ' + s.at + (s.own && s.by === 'unit' ? '' : ', with ' + usScopeName(m, s)) + '.';
 
   /* ── EVERY STATE ON THE PAGE AT ONCE (Nour 21 Oct) ──
      Today is 22 Oct (US_TODAY, applied by usDay at the end of the file),
@@ -4549,7 +4565,8 @@
     if (!s || (s.own && (s.by === 'unit' || s.by === 'limit'))) return '';
     const here = esc(usName(id));
     if (s.own) return `<p class="set2-us-stopln" role="status">${I.octX}<span><b>${s.by === 'all' ? 'All of ' + here + ' is stopped'
-      : here + '’s ' + esc(m.name) + ' is stopped'}</b> since ${esc(s.at)}. ${usRO() ? 'FlairsTech stopped it. ' + US_ASK : 'Resume it from Limits and stops.'}</span></p>`;
+      : here + '’s ' + esc(m.name) + ' is stopped'}</b> since ${esc(s.at)}. ${usCan(usStopKey(s.by, s.node, m), true) ? 'Resume it from Limits and stops.'
+        : 'FlairsTech stopped it. ' + US_ASK}</span></p>`;
     const what = s.by === 'limit' ? esc(usName(s.node)) + ' reached its limit of ' + usFmt(s.lim) + ' ' + esc(m.unit)
       : esc(usCap(usScopeName(m, s))) + ' is stopped since ' + esc(s.at);
     return `<p class="set2-us-stopln" role="status">${I.octX}<span><b>${what}</b>, so ${here} ${
@@ -4582,7 +4599,7 @@
       <div class="set2-us-fact">
         <dt>Hard limit</dt>
         <dd><b class="${h != null && used >= h ? 'is-err' : ''}">${h == null ? 'None' : 'Stops at ' + usFmt(h) + ' ' + esc(m.unit)}</b><span>${
-          h == null ? 'Past the plan it keeps going, billed' : esc(usReach(m, id, h)) + ' Every month, set by FlairsTech.'}</span></dd>
+          h == null ? 'Past the plan it keeps going, billed' : esc(usReach(m, id, h)) + ' Every month, set by ' + esc(usWho(usHardKey(m, id))) + '.'}</span></dd>
       </div>`;
   }
 
@@ -4593,13 +4610,15 @@
      What reaches this level from above is said at the top and links up,
      and a scope already stopped above shows "With Upland" instead of a
      button. Each press acts at once and can be undone from the toast. */
-  const usGStop = (key, what, label) => usRO() ? '' : `<button class="btn btn-ghost btn-sm set2-us-g-stop" type="button" data-us-stop="${esc(key)}"${
+  const usGBy = (key) => `<span class="set2-us-g-by">${I.lock}Set by ${esc(usWho(key))}</span>`;
+  const usGStop = (key, what, label) => !usCan(key, false) ? '' : `<button class="btn btn-ghost btn-sm set2-us-g-stop" type="button" data-us-stop="${esc(key)}"${
     label ? ` aria-label="${esc(label)}"` : ''}>${I.octX}Stop ${esc(what)}</button>`;
-  const usGResume = (key, label) => usRO() ? '' : `<button class="btn btn-ghost btn-sm" type="button" data-us-resume="${esc(key)}"${
+  const usGResume = (key, label) => !usCan(key, true) ? usGBy(key) : `<button class="btn btn-ghost btn-sm" type="button" data-us-resume="${esc(key)}"${
     label ? ` aria-label="${esc(label)}"` : ''}>${I.play}Resume</button>`;
   function usGLimit(u, id) {
     const h = US_HARD[u.id][id], ref = u.id + '|' + id, step = usFmt(usHardStep(u, id));
-    if (usRO()) return `<b class="set2-us-g-ro">${h != null ? usFmt(h) + ' ' + esc(u.unit) : 'None'}</b>`;
+    if (!usCan(usHardKey(u, id), h != null)) return `<span class="set2-us-g-lim"><b class="set2-us-g-ro">${h != null ? usFmt(h) + ' ' + esc(u.unit) : 'None'}</b>${
+      h != null ? usGBy(usHardKey(u, id)) : ''}</span>`;
     return h != null ? `
       <span class="set2-us-g-lim"><span class="set2-us-g-step">
         <button type="button" data-us-hard="${esc(ref)}|-1" aria-label="${step} less">${I.minus}</button>
@@ -4617,7 +4636,10 @@
     const scope = id ? `${nm}, ${/^[aeiou]/i.test(kind) ? 'an' : 'a'} ${kind}${x.parent ? ' in ' + usName(x.parent) : ''}. ${usRO() ? 'Its' : 'Its own'} limits and stops in ${m.name}.`
       : `Everyone in the workspace. Limits and stops for all of ${m.name} at once.`;
     /* a client's admin reads them; FlairsTech sets them */
-    const ro = usRO() ? `<p class="set2-us-g-ro-note">${I.lock}<span>Set by FlairsTech. ${US_ASK.replace('it.', 'any of these.')}</span></p>` : '';
+    const ro = !usRO() ? '' : id === US_VIEW
+      ? `<p class="set2-us-g-ro-note">${I.lock}<span>Set by FlairsTech. ${US_ASK.replace('it.', 'any of these.')}</span></p>`
+      : `<p class="set2-us-g-ro-note">${I.lock}<span>You can set limits and stops for ${esc(nm)}. Anything FlairsTech set is marked and stays as it is; ${
+        US_ASK.charAt(0).toLowerCase() + US_ASK.slice(1)}</span></p>`;
     /* from above: a stop or a reached limit, or a limit still running */
     const s = usStopped(m, id);
     const up = id ? [''].concat(usPath(x.parent || '')) : [];
@@ -10786,14 +10808,18 @@
       const stopIt = usSt.hasAttribute('data-us-stop');
       const key = usSt.getAttribute(stopIt ? 'data-us-stop' : 'data-us-resume');
       const [by, o, what] = key.split('|');
-      const was = US_STOP[key];
+      const was = US_STOP[key], wasBy = US_BY[key];
+      if (!usCan(key, !stopIt)) return;
       if (stopIt) US_STOP[key] = usStopNow(); else delete US_STOP[key];
+      /* who did it: a client's admin is remembered, FlairsTech is the default */
+      if (stopIt && US_VIEW) US_BY[key] = US_VIEW; else delete US_BY[key];
       const on = usName(o), whose = o ? on + '’s ' : 'everyone’s ';
       const name = by === 'all' ? (o ? 'all of ' + on : 'all of AiMY, for everyone')
         : by === 'prod' ? whose + US_METERS.find((x) => x.prod === what).name
         : whose + usMeter(what).name + ' ' + usMeter(what).unit;
       if (API && API.toast) API.toast((stopIt ? 'Stopped ' : 'Resumed ') + name + '.', () => {
         if (was) US_STOP[key] = was; else delete US_STOP[key];
+        if (wasBy) US_BY[key] = wasBy; else delete US_BY[key];
         render();
       });
       render(() => { const b = $('[data-us-' + (stopIt ? 'resume' : 'stop') + '="' + key + '"]'); if (b) b.focus({ preventScroll: true }); });
@@ -10803,7 +10829,10 @@
     if (usH) {
       const a = usH.hasAttribute('data-us-hard') ? 'step' : usH.hasAttribute('data-us-hard-on') ? 'on' : 'off';
       const [mid, o, dir] = usH.getAttribute(a === 'step' ? 'data-us-hard' : a === 'on' ? 'data-us-hard-on' : 'data-us-hard-off').split('|');
-      const m0 = usMeter(mid), z = usHardStep(m0, o), was = US_HARD[mid][o];
+      const m0 = usMeter(mid), z = usHardStep(m0, o), was = US_HARD[mid][o], hk = usHardKey(m0, o), wasBy = US_BY[hk];
+      if (!usCan(hk, a !== 'on')) return;
+      if (a === 'on' && US_VIEW) US_BY[hk] = US_VIEW;
+      if (a === 'off') delete US_BY[hk];
       if (a === 'on') US_HARD[mid][o] = usHardNext(m0, o);
       else if (a === 'step') US_HARD[mid][o] = Math.max(z, was + (+dir) * z);
       else delete US_HARD[mid][o];
@@ -10811,6 +10840,7 @@
       if (API && API.toast) API.toast(US_HARD[mid][o] == null ? 'No hard limit on ' + what + '.'
         : what.charAt(0).toUpperCase() + what.slice(1) + ' stop at ' + usFmt(US_HARD[mid][o]) + ' a month.', () => {
         if (was == null) delete US_HARD[mid][o]; else US_HARD[mid][o] = was;
+        if (wasBy) US_BY[hk] = wasBy; else delete US_BY[hk];
         render();
       });
       const sel = a === 'off' ? '[data-us-hard-on="' + mid + '|' + o + '"]' : a === 'on' ? '[data-us-hard="' + mid + '|' + o + '|1"]'
@@ -13353,12 +13383,21 @@
   function usViewAs(state) {
     const cm = usMeter('copilot');
     delete US_STOP['prod|upland|copilot'];
+    delete US_STOP['unit|kmc|cptix']; delete US_BY['unit|kmc|cptix'];
+    delete US_HARD.copilot.kmc; delete US_BY['hard|copilot|kmc'];
     US_HARD.copilot.upland = 12000;
+    /* KMC as Upland's admin left it: tickets stopped by them, and a chats
+       limit FlairsTech put on KMC, which they can read but not change */
+    if (state === 'own') {
+      US_STOP['unit|kmc|cptix'] = '22 Oct, 09:05'; US_BY['unit|kmc|cptix'] = 'upland';
+      US_HARD.copilot.kmc = 8500;
+    }
     US_VIEW = state === 'ft' ? '' : 'upland';
     if (state === 'none') delete US_HARD.copilot.upland;
     if (state === 'reached') US_HARD.copilot.upland = Math.floor(usUsed(cm, 'upland') / US_SLICE.copilot) * US_SLICE.copilot;
     if (state === 'stopped') US_STOP['prod|upland|copilot'] = '21 Oct, 16:20';
     US_GEAR = state !== 'ft' && state !== 'none';
+    US_VIEW = state === 'ft' ? '' : 'upland';
     US_GEAR_P = '';
     render();
   }

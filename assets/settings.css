@@ -6153,6 +6153,9 @@ body.is-settings .set2-pop .set2-pop-f:focus, body.is-settings .set2-pop .set2-p
 /* A client's own admin reads FlairsTech's limits and stops (Nour 22 Oct):
    values in ink where the controls were, and one line saying who to ask. */
 .set2-us-g-ro { font-size: var(--ty-meta); font-weight: var(--fw-semibold); color: var(--ink-primary); }
+/* what someone else set, where a control would be: who, with a lock */
+.set2-us-g-by { display: inline-flex; align-items: center; gap: 0.3125rem; font-size: var(--ty-micro); font-weight: var(--fw-semibold); color: var(--ink-secondary); white-space: nowrap; }
+.set2-us-g-by svg { width: 0.75rem; height: 0.75rem; }
 .set2-us-g-ro-note {
   display: flex; align-items: flex-start; gap: 0.5rem; margin: 0; padding: 0.5rem 0.625rem; border-radius: var(--r-md);
   font-size: var(--ty-micro); color: var(--ink-primary); box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover);
