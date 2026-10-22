@@ -63,7 +63,6 @@
     x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
     retry: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
     file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
-    mail: '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
     cal: '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
     hourglass: '<path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/>'
   };
@@ -73,13 +72,6 @@
 
   /* ── The meeting (fixture) ───────────────────────────────────────────── */
   const MEET = 'Upland weekly check-in';
-  const PHOTO = 'https://randomuser.me/api/portraits/';
-  const P = {
-    dana:  { name: 'Dana Whitfield', short: 'Dana',  ini: 'DW', photo: PHOTO + 'women/44.jpg' },
-    priya: { name: 'Priya Raman',    short: 'Priya', ini: 'PR', photo: PHOTO + 'women/65.jpg' },
-    ahmed: { name: 'Ahmed Mahfouz',  short: 'Ahmed', ini: 'AM', photo: PHOTO + 'men/46.jpg' },
-    you:   { name: 'Nour Ali',       short: 'You',   ini: 'NA', photo: null }
-  };
   /* Your side of the meeting: all AiMY can hear. */
   const L = [
     { t: 48,  x: 'Got it. So about half of last week’s tickets never came into AiMY.' },
@@ -113,11 +105,11 @@
   /* The summary's one line for a message that has room for one. */
   const GIST = 'The merge tag rule gets split by Thursday, then the last 14 days are re-synced.';
   const DECIDED = ['Split the merge tag rule: skip merged tickets, keep the parent.', 'Re-sync the last 14 days once the rule is split.', 'Next check-in Tuesday 27 Oct, same time.'];
+  /* Yours only: AiMY heard what you took on, not what the others did. */
   const TODO = [
-    { who: 'you',   x: 'Split the merge tag rule',               m: 'Nour Ali, Thu 22 Oct' },
-    { who: 'priya', x: 'Send the labels for the six Plan codes', m: 'Priya Raman, today' },
-    { who: 'you',   x: 'Re-sync the last 14 days',               m: 'Nour Ali, Fri 23 Oct' },
-    { who: 'ahmed', x: 'Renewal note from the Usage page',       m: 'Ahmed Mahfouz, Fri 30 Oct' }
+    { x: 'Split the merge tag rule',      m: 'Thursday 22 Oct' },
+    { x: 'Re-sync the last 14 days',      m: 'Friday 23 Oct, after the split' },
+    { x: 'Map the four live Plan codes',  m: 'When the Plan labels arrive' }
   ];
   /* What each step found depends on what there was: your lines, and how
      many notes you added. */
@@ -129,8 +121,8 @@
       sub: () => Math.floor(S.clock / 60) + ' min ' + (S.clock % 60) + ' s, ' + plural(said(), 'thing', 'things') + ' you said',
       nf: () => 'Transcript ready: ' + plural(said(), 'thing', 'things') + ' you said.' },
     { run: 'Analyzing what was said',  done: 'Analysis done',
-      sub: () => (noted() ? 'With your ' + plural(noted(), 'note', 'notes') + ': ' : '') + '3 decisions, 4 to-dos, 1 thing you’re waiting on',
-      nf: () => 'Found 3 decisions and 4 to-dos.' },
+      sub: () => (noted() ? 'With your ' + plural(noted(), 'note', 'notes') + ': ' : '') + '3 decisions, ' + TODO.length + ' to-dos for you, 1 thing you’re waiting on',
+      nf: () => 'Found 3 decisions and ' + TODO.length + ' to-dos for you.' },
     { run: 'Summarizing',              done: 'Summary written', sub: () => 'Posted below and in Notes', nf: () => 'Your meeting notes are ready.' }
   ];
   /* Speech pace, a breath between speakers, and how long each step takes. */
@@ -154,9 +146,6 @@
   const on = () => S.phase !== 'off';
 
   /* ── Pieces ──────────────────────────────────────────────────────────── */
-  const av = (k, sm) => P[k].photo
-    ? `<img class="nt-av${sm ? ' is-sm' : ''}" src="${P[k].photo}" alt="" decoding="async">`
-    : `<span class="nt-av${sm ? ' is-sm' : ''}">${P[k].ini}</span>`;
   const words = (x) => x.split(' ').map((w) => `<span class="nt-wd">${esc(w)}</span>`).join(' ');
   const rec = '<span class="nt-rec" aria-hidden="true"></span>';
   const only = `<span class="nt-only">${ic('lock', 11)}Only you</span>`;
@@ -180,10 +169,9 @@
   function finalHTML() {
     return `<div class="nt-sum"><p>${SUMMARY}</p></div>
       <div class="nt-rs"><h6>Decided</h6><ul>${DECIDED.map((d) => `<li>${ic('check', 15)}<span>${d}</span></li>`).join('')}</ul>
-      <h6>To do</h6><ul>${TODO.map((t) => `<li>${av(t.who, true)}<span>${t.x}<small>${t.m}</small></span></li>`).join('')}</ul>
+      <h6>Your to-dos</h6><ul>${TODO.map((t) => `<li>${ic('square', 15, 'nt-i-todo')}<span>${t.x}<small>${t.m}</small></span></li>`).join('')}</ul>
       <div class="nt-btns"><button class="btn btn-brand btn-sm" type="button" data-nt-act="doc">${ic('file', 14)}Open as a document</button>` +
-      `<button class="btn btn-ghost btn-sm" type="button" data-nt-act="send">${ic('mail', 14)}Send to everyone</button>` +
-      `<button class="btn btn-ghost btn-sm" type="button" data-nt-act="tasks">${ic('todo', 14)}Make 4 tasks</button></div></div>`;
+      `<button class="btn btn-ghost btn-sm" type="button" data-nt-act="tasks">${ic('todo', 14)}Make ${TODO.length} tasks</button></div></div>`;
   }
 
   /* ── The widget: the orb, and the card it opens into ─────────────────── */
@@ -622,8 +610,7 @@
       k.say(`The summary for <b>${MEET}</b> didn’t finish. The recording and the transcript are safe, and nothing was sent.`, open('chat'));
       return;
     }
-    const yours = TODO.filter((t) => t.who === 'you').length;
-    k.say(`Your notes for <b>${MEET}</b> are ready. ${GIST} <b>${DECIDED.length} decisions, ${TODO.length} to-dos</b>, ${yours === 1 ? 'one' : yours === 2 ? 'two' : yours} of them yours.`, open('notes'));
+    k.say(`Your notes for <b>${MEET}</b> are ready. ${GIST} <b>${DECIDED.length} decisions, ${TODO.length} to-dos for you.</b>`, open('notes'));
   }
   function drawSteps() {
     all('[data-nt-steps]').forEach((el) => {
@@ -721,8 +708,7 @@
     else if (act === 'close') closeWidget();
     else if (act === 'retry') retry();
     else if (act === 'open-notes') { S.tab = 'notes'; if (S.view === 'fold') setView('card'); else paint(); }
-    else if (act === 'send') toast('Sent to Dana, Priya and Ahmed', 'Undo', 'The summary, decisions and to-dos. Your notes and the transcript stay with you.');
-    else if (act === 'tasks') toast('4 tasks made', 'Undo', 'Each with its owner and date');
+    else if (act === 'tasks') toast(TODO.length + ' tasks made', 'Undo', 'Each with its date');
     else if (act === 'doc') toast('Saved as a Meeting notes document', null, 'Linked to Upland, with the full transcript');
   }
 
