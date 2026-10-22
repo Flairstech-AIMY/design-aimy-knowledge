@@ -1,0 +1,263 @@
+diff --git a/assets/knowledge.js b/assets/knowledge.js
+index 2c54770..62a812d 100644
+--- a/assets/knowledge.js
++++ b/assets/knowledge.js
+@@ -3380,6 +3380,10 @@
+     </div>`;
+   }
+ 
++  /* What the bell lists: anything the notetaker has finished (its rows carry
++     the same fields and a `go`), then what needs you. */
++  const bellRows = () => (window.AIMY_NOTES ? window.AIMY_NOTES.bellRows() : []).concat(needsYou());
++
+   const bell = {
+     btn: null, panel: null, list: null, dot: null, count: null, open: false, read: {},
+ 
+@@ -3409,7 +3413,7 @@
+ 
+       const clear = $('#ntfClear');
+       if (clear) clear.addEventListener('click', () => {
+-        needsYou().forEach((t) => { this.read[t.id] = true; });
++        bellRows().forEach((t) => { this.read[t.id] = true; });
+         this.paint();
+         this.sync();
+       });
+@@ -3452,7 +3456,7 @@
+        without anything having to remember to tell it. */
+     sync() {
+       if (!this.btn) return;
+-      const n = needsYou().filter((t) => !this.read[t.id]).length;
++      const n = bellRows().filter((t) => !this.read[t.id]).length;
+       if (this.count) { this.count.textContent = n; this.count.hidden = n === 0; }
+       if (this.dot) this.dot.hidden = n === 0;
+       this.btn.setAttribute('aria-label', n === 0
+@@ -3462,7 +3466,7 @@
+     },
+ 
+     paint() {
+-      const q = needsYou();
++      const q = bellRows();
+       this.list.innerHTML = '';
+       if (!q.length) {
+         const empty = document.createElement('li');
+@@ -8745,6 +8749,9 @@
+       ${q && !others.length
+         ? `<p class="ov-chat-none">Nothing else matches “${esc(CHAT_Q)}” — in a title or in anything said.</p>`
+         : ''}`;
++    /* A meeting AiMY is taking notes in is the first row while it runs
++       (notetaker.js). It lives there, not in THREADS: it is not a thread. */
++    if (window.AIMY_NOTES) window.AIMY_NOTES.chatRow(host);
+     /* The caret goes back where it was: repainting the column on every
+        keystroke would otherwise send it to the end of the word. */
+     const box = $('#chatFind');
+@@ -11348,6 +11355,11 @@
+       ['Usage, other days in October', 'Opens Agents > Usage on that day, use carried on at the same pace.', [
+         ['6 Oct', 'us:6'], ['22 Oct, today', 'us:22'], ['28 Oct', 'us:28']
+       ]],
++      /* AIMY-2684: the meeting notetaker (notetaker.js) in each state. */
++      ['Meeting notes, each state', 'The Silk companion over the Console, on the Upland check-in.', [
++        ['collapsed', 'nt:collapsed'], ['card', 'nt:card'], ['canvas', 'nt:canvas'], ['paused', 'nt:paused'],
++        ['after the meeting', 'nt:after'], ['notes ready', 'nt:ready'], ['too short', 'nt:short'], ['failed', 'nt:failed'], ['off', 'nt:off']
++      ]],
+       /* Your usage widget (the AiMY mark's popover) in each state. */
+       ['Usage widget, each state', 'Opens your usage on the AiMY mark in that state.', [
+         ['chats over, tickets within', 'uw:chats'], ['over on both', 'uw:both'], ['within both', 'uw:none']
+@@ -11408,6 +11420,7 @@
+       return;
+     }
+     if (kind === 'uw') { useScenario(arg); return; }
++    if (kind === 'nt') { if (window.AIMY_NOTES) { proto.toggle(false); window.AIMY_NOTES.jump(arg); } return; }
+     if (kind === 'us') {
+       const S = window.AIMY_SETTINGS;
+       if (S && S.usDay) S.usDay(+arg);
+@@ -16021,9 +16034,21 @@
+       const body = $('#peekBody');
+       body.style.maxHeight = '';
+       $('#aimyFloatWrap').classList.add('has-peek');
++      this.go = null;
+       return body;
+     },
+ 
++    /* A message AiMY starts itself (notetaker.js: the meeting's notes are
++       ready). Like the greeting it starts no conversation; pressing it does
++       what the sender asks instead of opening the canvas. Not over an open
++       canvas, which is where that sender already speaks. */
++    say(html, go) {
++      if (!this.el || canvas.open) return false;
++      this.stream(this.up(), html, () => this.settle());
++      this.go = go || null;
++      return true;
++    },
++
+     /* Hello, before anything is asked. Only in the card: a greeting is not a
+        conversation, so it starts none, and pressing it opens the canvas on
+        whatever thread the URL names (the canvas's openers when there is
+@@ -16138,6 +16163,7 @@
+ 
+     open() {
+       this.all();
++      if (this.go) { const go = this.go; this.hide(); go(); return; }
+       canvas.show(this.basis);
+     },
+ 
+@@ -16535,6 +16561,15 @@
+     if (forcedState === 'loading') setTimeout(() => { location.href = location.pathname; }, 2200);
+   }
+ 
++  /* The few things notetaker.js needs from this file, and nothing else. */
++  window.AIMY_KNOW = {
++    canvas: { show: (basis) => canvas.show(basis), close: (opts) => canvas.close(opts), isOpen: () => canvas.open },
++    toast: (msg, undo, sub) => toast(msg, undo, sub),
++    say: (html, go) => peek.say(html, go),
++    paintChats: () => paintChats(),
++    bellSync: () => bell.sync()
++  };
++
+   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+   else init();
+ })();
+diff --git a/assets/voice.css b/assets/voice.css
+index 7406c51..0afa509 100644
+--- a/assets/voice.css
++++ b/assets/voice.css
+@@ -348,6 +348,27 @@ body.vx-staged { overflow: hidden; }
+ .vx-end { background: var(--ink-primary); color: var(--body-bg); }
+ .vx-end:hover { opacity: 0.88; }
+ 
++/* Take meeting notes: a labelled pill on its own line under mute and end,
++   because what it does is not a glyph anyone already knows, and an icon
++   needing a tooltip has none on a phone. Only where notetaker.js is loaded;
++   without it the break is gone too and the pair sits exactly as before. */
++.vx-dock { flex-wrap: wrap; row-gap: 0.875rem; }
++.vx-dock-br { flex-basis: 100%; height: 0; }
++.vx-dock:has(.vx-notes[hidden]) .vx-dock-br { display: none; }
++.vx-notes {
++  display: inline-flex; align-items: center; gap: 0.5rem;
++  height: 2.5rem; padding: 0 1.125rem; border: 0; border-radius: 999px;
++  background: var(--card-bg-raised); color: var(--ink-primary);
++  box-shadow: inset 0 0 0 0.0625rem var(--card-border);
++  font: inherit; font-size: var(--ty-meta); font-weight: var(--fw-semibold); cursor: pointer;
++  transition: box-shadow var(--t-fast) var(--ease-out), transform var(--t-press) var(--ease-out);
++}
++.vx-notes[hidden] { display: none; }
++.vx-notes svg { width: 1.125rem; height: 1.125rem; color: var(--brand); }
++.vx-notes:hover { box-shadow: inset 0 0 0 0.0625rem rgba(var(--brand-rgb), 0.5); }
++.vx-notes:active { transform: scale(0.97); }
++.vx-notes:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.1875rem; }
++
+ @media (prefers-reduced-motion: reduce) {
+   .vx-wave i { transform: scaleY(0.35); transition: none; }
+   .overlay-send > .vx-i-send,
+diff --git a/assets/voice.js b/assets/voice.js
+index a7abe5b..e1e0f9c 100644
+--- a/assets/voice.js
++++ b/assets/voice.js
+@@ -76,7 +76,8 @@
+     x:      '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+     check:  '<path d="M20 6 9 17l-5-5"/>',
+     clip:   '<path d="m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551"/>',
+-    file:   '<path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>'
++    file:   '<path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
++    notes:  '<path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/>'
+   };
+   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+ 
+@@ -128,7 +129,7 @@
+   const BARS = [];
+   let ASK = null;
+ 
+-  let stage, orb, silk, state, heard, liveClock, mute, end;
++  let stage, orb, silk, state, heard, liveClock, mute, end, notes;
+ 
+   /* One thing at a time, page-wide. `mode` is '' | 'rec' | 'note' | 'live' |
+      'error'; `bar` is the composer dictating or showing a note. */
+@@ -499,6 +500,12 @@
+         '<div class="vx-dock">' +
+           `<button class="vx-round vx-mute" type="button" aria-pressed="false" aria-label="Mute" title="Mute">${svg(I.mic, 22, 'vx-i-on')}${svg(I.micOff, 22, 'vx-i-off')}</button>` +
+           `<button class="vx-round vx-end" type="button" aria-label="End the voice session" title="End">${svg(I.x, 22)}</button>` +
++          /* Take meeting notes, where the page has the notetaker (notetaker.js, Knowledge's
++             Console): on its own line under the pair, so mute and end stay
++             the call's two controls. Without it the pill never shows, so
++             this file still works unchanged on every other page. */
++          '<span class="vx-dock-br" aria-hidden="true"></span>' +
++          `<button class="vx-notes" type="button" hidden>${svg(I.notes, 18)}Take meeting notes</button>` +
+         '</div>' +
+       '</div>');
+     stage = $('#vxStage');
+@@ -512,6 +519,12 @@
+     mute.addEventListener('click', toggleMute);
+     orb.addEventListener('click', interrupt);
+     end.addEventListener('click', endSession);
++    /* The notetaker asks for consent on this stage and, on yes, takes the
++       orb into the corner and ends the voice session itself. */
++    notes = $('.vx-notes', stage);
++    notes.addEventListener('click', () => {
++      if (window.AIMY_NOTES && S.mode === 'live') window.AIMY_NOTES.fromVoice({ stage: stage, orb: orb, done: endSession });
++    });
+   }
+ 
+   /* ══ THE EMPTY BAR IS THE VOICE BAR ═════════════════════════════════════
+@@ -802,6 +815,7 @@
+     S.asked = S.spoke = false;
+     openStage();
+     mute.hidden = false;
++    notes.hidden = !window.AIMY_NOTES || window.AIMY_NOTES.isOn();
+     liveClock.hidden = false;
+     end.setAttribute('aria-label', 'End the voice session');
+     end.title = 'End';
+@@ -976,6 +990,7 @@
+     heard.textContent = '';
+     orb.disabled = true;
+     mute.hidden = true;
++    notes.hidden = true;
+     liveClock.hidden = true;
+     end.setAttribute('aria-label', 'Close');
+     end.title = 'Close';
+diff --git a/console.html b/console.html
+index bbd962e..27c0bf5 100644
+--- a/console.html
++++ b/console.html
+@@ -34,7 +34,8 @@
+        rule is namespaced `.set2-`, apart from `kbd` and `.w-lock`, neither of
+        which the console renders. -->
+   <link rel="stylesheet" href="assets/settings.css?v=635" />
+-  <link rel="stylesheet" href="assets/voice.css?v=11" />
++  <link rel="stylesheet" href="assets/voice.css?v=13" />
++  <link rel="stylesheet" href="assets/notetaker.css?v=12" />
+ 
+   <script>
+     /* Apply saved theme before paint to avoid flash. Default = dark. */
+@@ -509,7 +510,8 @@
+ <script src="assets/halaska-bridge.js?v=32"></script>
+ <script src="assets/halaska-mounts.js?v=32"></script>
+ 
+-<script src="assets/knowledge.js?v=454"></script>
+-<script src="assets/voice.js?v=16"></script>
++<script src="assets/knowledge.js?v=456"></script>
++<script src="assets/voice.js?v=21"></script>
++<script src="assets/notetaker.js?v=13"></script>
+ </body>
+ </html>
+diff --git a/index.html b/index.html
+index 8542917..8172677 100644
+--- a/index.html
++++ b/index.html
+@@ -30,7 +30,7 @@
+   <link rel="stylesheet" href="assets/aimy-ds.css?v=46" />
+   <link rel="stylesheet" href="assets/knowledge.css?v=342" />
+   <link rel="stylesheet" href="assets/chat.css?v=65" />
+-  <link rel="stylesheet" href="assets/voice.css?v=11" />
++  <link rel="stylesheet" href="assets/voice.css?v=13" />
+ 
+   <script>
+     /* Apply saved theme before paint to avoid flash. Default = dark. */
+@@ -373,7 +373,7 @@
+ <script src="assets/halaska-bridge.js?v=32"></script>
+ <script src="assets/halaska-mounts.js?v=32"></script>
+ 
+-<script src="assets/knowledge.js?v=454"></script>
+-<script src="assets/voice.js?v=16"></script>
++<script src="assets/knowledge.js?v=456"></script>
++<script src="assets/voice.js?v=21"></script>
+ </body>
+ </html>
