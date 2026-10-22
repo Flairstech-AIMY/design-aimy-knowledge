@@ -5002,15 +5002,28 @@
      its limit, a small meter, and the standing when it is near or out.
      Each one opens that product's split for this company. A product the
      company doesn't use isn't listed, so there is no empty slot. */
+  /* One chip per OTHER product (Nour 22 Oct: on QA, Copilot came twice,
+     once for chats and once for tickets, and on Copilot a tickets chip
+     repeated the units switch). A product with several units says them all
+     in its one chip, each in its own unit, and opens on the first. */
   function usAlso(m, k) {
-    const ms = US_METERS.filter((o) => o.id !== m.id && usIn(o, k.id));
-    if (!ms.length) return '';
-    return `<span class="set2-us-also">${ms.map((o) => {
-      const u = usUsed(o, k.id), L = usLimit(o, k.id), bad = usStanding(u, L);
-      return `<button class="set2-us-also-b" type="button" data-us-also="${o.id}|${esc(k.id)}"
-          title="Open ${esc(k.name)} in ${esc(usLabel(o))}"><b>${esc(o.name)}</b>
-        <span><span class="set2-us-also-l">${usFmt(u)}</span><span class="set2-us-also-s">${usShort(u)}</span> ${esc(o.unit)}, slice ${usSliceN(o, u)}</span>
-        ${bad && bad[1] === 'Past share' ? pill(bad[0], bad[1]) : ''}
+    const prods = [];
+    US_METERS.forEach((o) => {
+      if (o.prod === m.prod || !usIn(o, k.id)) return;
+      let g = prods.find((p) => p.prod === o.prod);
+      if (!g) prods.push(g = { prod: o.prod, name: o.name, ms: [] });
+      g.ms.push(o);
+    });
+    if (!prods.length) return '';
+    return `<span class="set2-us-also">${prods.map((g) => {
+      const parts = g.ms.map((o) => ({ o: o, u: usUsed(o, k.id) }));
+      const past = parts.some((x) => { const b = usStanding(x.u, usLimit(x.o, k.id)); return b && b[1] === 'Past share'; });
+      const one = parts.length === 1;
+      return `<button class="set2-us-also-b" type="button" data-us-also="${g.ms[0].id}|${esc(k.id)}"
+          title="Open ${esc(k.name)} in ${esc(g.name)}"><b>${esc(g.name)}</b>
+        <span>${parts.map((x) => `<span class="set2-us-also-l">${usFmt(x.u)}</span><span class="set2-us-also-s">${usShort(x.u)}</span> ${esc(x.o.unit)}`).join(', ')}${
+          one ? ', slice ' + usSliceN(parts[0].o, parts[0].u) : ''}</span>
+        ${past ? pill('is-warn', 'Past share') : ''}
         ${I.chev || ''}</button>`;
     }).join('')}</span>`;
   }
