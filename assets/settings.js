@@ -3924,40 +3924,74 @@
   /* slices started past the plan: each is billed as it starts */
   const usExtraN = (m, id, u) => Math.max(0, Math.ceil(u / US_SLICE[m.id]) - usPlanN(m, id));
 
-  /* ── A HARD STOP (Nour 22 Oct, the "Hard stop" variants, B) ──
-     Past the plan nothing stops, unless FlairsTech says so, and only on an
-     organization. Two ways. A hard limit, counted in the unit itself and
-     kept every month: past it that unit stops until the 1st. A stop, now,
-     on the whole organization, one of its products or one unit, until it is
-     resumed. Companies, products and people under the organization share
-     its fate; there is nothing to set below it. The gear at the end of the
-     units swaps the card's facts for these (US_GEAR). Upland's chats carry a
-     limit of 12,000 so the result shows on arrival. */
-  const US_HARD = { copilot: { upland: 12000 }, cptix: {}, qa: {}, voice: {} };   /* org -> units a month */
-  const US_STOP = {};          /* 'org|upland', 'prod|upland|copilot', 'unit|upland|cptix' -> when */
+  /* ── A HARD STOP, AT EVERY LEVEL (Nour 22 Oct, the "Hard stop" variants, B) ──
+     Past a plan or a share nothing stops, unless FlairsTech says so. Two
+     ways, on any level: Everyone, an organization, a company, a product, a
+     person. A hard limit, counted in the unit itself on that level's own
+     use and kept every month: past it that unit stops there until the 1st.
+     A stop, now, on everything the level uses, one of its products or one
+     unit, until it is resumed. Each level has its own (Nour: "company limits
+     has company, not the org's"); a stop or a reached limit above a level
+     reaches everything under it, and the page says where it comes from.
+     The gear at the end of the units swaps the card's facts for the level's
+     own controls (US_GEAR); an employee row has its own gear (US_GEAR_P).
+     Upland's chats carry a limit of 12,000 so the result shows on arrival. */
+  const US_HARD = { copilot: { upland: 12000 }, cptix: {}, qa: {}, voice: {} };   /* level id ('' everyone) -> units a month */
+  const US_STOP = {};          /* 'all|kmc', 'prod|kmc|copilot', 'unit|kmc|cptix' -> when; '' is everyone */
   let US_GEAR = false;
   let US_GEAR_IN = false;      /* the next paint opened the gear: bring the column into view */
-  const usOrg = (id) => { for (let x = id; x; x = usAt(x).parent) if (usAt(x).depth === 1) return x; return ''; };
-  const usStopKey = (by, org, m) => by === 'org' ? 'org|' + org : by === 'prod' ? 'prod|' + org + '|' + m.prod : 'unit|' + org + '|' + m.id;
-  /* what stops this unit at this level, the widest first; null when it runs */
+  let US_GEAR_P = '';          /* the employee row whose own controls are open */
+  const usName = (id) => id ? usAt(id).n.name : 'Everyone';
+  const usStopKey = (by, id, m) => by === 'all' ? 'all|' + id : by === 'prod' ? 'prod|' + id + '|' + m.prod : 'unit|' + id + '|' + m.id;
+  /* What stops this unit on this level, looking from the top down: the
+     first stop or reached limit on the way wins. `own` when it is this
+     level's. null while it runs. */
   function usStopped(m, id) {
-    const o = usOrg(id);
-    if (!o) return null;
-    for (const by of ['org', 'prod', 'unit']) {
-      const at = US_STOP[usStopKey(by, o, m)];
-      if (at) return { by: by, at: at, org: o };
+    const path = [''].concat(id ? usPath(id) : []);
+    for (const n of path) {
+      for (const by of ['all', 'prod', 'unit']) {
+        const at = US_STOP[usStopKey(by, n, m)];
+        if (at) return { by: by, at: at, node: n, own: n === id };
+      }
+      const h = US_HARD[m.id][n];
+      if (h != null && usUsed(m, n) >= h) return { by: 'limit', node: n, lim: h, own: n === id };
     }
-    const h = US_HARD[m.id][o];
-    return h != null && usUsed(m, o) >= h ? { by: 'limit', org: o, lim: h } : null;
+    return null;
+  }
+  /* the stop a wider scope puts on this level's unit, product or everything */
+  function usCover(m, id, scope) {
+    const nm = usName(id);
+    if (scope === 'unit' && US_STOP[usStopKey('prod', id, m)]) return nm === 'Everyone' ? 'everyone’s ' + m.name : nm + '’s ' + m.name;
+    if (scope !== 'all' && US_STOP[usStopKey('all', id, m)]) return 'all of ' + nm;
+    const up = id ? [''].concat(usPath(usAt(id).parent || '').filter(Boolean)) : [];
+    for (const n of up) {
+      if (US_STOP[usStopKey('all', n, m)] || (scope !== 'all' && US_STOP[usStopKey('prod', n, m)])
+        || (scope === 'unit' && US_STOP[usStopKey('unit', n, m)])) return usName(n);
+    }
+    return '';
+  }
+  /* A limit is stepped by the slice on an organization and above; below,
+     where shares are smaller, by a tenth of the share. */
+  function usHardStep(m, id) {
+    const x = usAt(id);
+    if (!id || x.depth <= 2) return US_SLICE[m.id];
+    return Math.max(10, Math.round(usLimit(m, id) / 100) * 10);
+  }
+  function usHardNext(m, id) {
+    const z = usHardStep(m, id), used = usUsed(m, id);
+    const share = id && usAt(id).depth === 1 ? usPlanN(m, id) * US_SLICE[m.id] : usLimit(m, id);
+    return Math.ceil(Math.max(share, used) / z) * z + 2 * z;
   }
   const usStopNow = () => {
     const d = new Date();
     return US_PERIOD.day + ' ' + US_PERIOD.short + ', ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
   };
+  /* "Upland’s Copilot", "all of KMC", "FileBound’s Copilot chats" */
+  const usScopeName = (m, s) => s.by === 'all' ? 'all of ' + usName(s.node)
+    : usName(s.node) + '’s ' + m.name + (s.by === 'unit' ? ' ' + m.unit : '');
   const usStopWords = (m, s) => s.by === 'limit'
-    ? usAt(s.org).n.name + ' reached its limit of ' + usFmt(s.lim) + ' ' + m.unit + '. They start again ' + US_PERIOD.resets + '.'
-    : 'Stopped by FlairsTech, ' + s.at + (s.by === 'org' ? ', with all of ' + usAt(s.org).n.name
-      : s.by === 'prod' ? ', with all of ' + usAt(s.org).n.name + '’s ' + m.name : '') + '.';
+    ? usName(s.node) + ' reached its limit of ' + usFmt(s.lim) + ' ' + m.unit + '. They start again ' + US_PERIOD.resets + '.'
+    : 'Stopped by FlairsTech, ' + s.at + (s.own && s.by === 'unit' ? '' : ', with ' + usScopeName(m, s)) + '.';
 
   /* ── EVERY STATE ON THE PAGE AT ONCE (Nour 21 Oct) ──
      Today is 22 Oct (US_TODAY, applied by usDay at the end of the file),
@@ -4429,7 +4463,7 @@
        and a pill once something stops, a red cap where a limit ends the
        strip, a line over the card when more than this unit is stopped. */
     const stop = usStopped(m, id);
-    const hard = paid ? US_HARD[m.id][id] : null;
+    const hard = US_HARD[m.id][id];
     const left = hard != null && !stop ? hard - used : null;
     const c = usCells(m, used, id ? (paid ? plan * US_SLICE[m.id] : L) : 0, 60, !!id, hard);
     const z = US_SLICE[m.id];
@@ -4444,7 +4478,7 @@
         <div class="set2-us-now">
           <span class="set2-us-k">${AIMY_MK(12, 14)}<span>${esc(x.n.name)} · Used in ${US_PERIOD.name}</span>
             ${state || (bad ? pill(bad[0], bad[0] === 'is-warn' ? 'Past the plan, nothing stopped' : bad[1]) : '')}</span>
-          ${usStopLine(m, stop, x)}
+          ${usStopLine(m, stop, x, id)}
           <p class="set2-us-big"><b class="set2-num">${usFmt(used)}</b>
             <span>${esc(m.unit)}, ${xs ? `slice ${c.n}: <span class="set2-us-xs">${xs} extra slice${xs === 1 ? '' : 's'} so far</span>`
               : `slice ${c.n} of the ${plan} in the plan, ${fp}% full`}</span></p>
@@ -4469,7 +4503,7 @@
           <span class="set2-us-k">${AIMY_MK(12, 14)}<span>${id ? esc(x.n.name) : 'Everyone'} · Used in ${
             US_PERIOD.name}</span>
             ${state || (bad ? pill(bad[0], bad[1]) : '')}</span>
-          ${usStopLine(m, stop, x)}
+          ${usStopLine(m, stop, x, id)}
           <p class="set2-us-big"><b class="set2-num">${usFmt(used)}</b>
             <span>${esc(m.unit)}, ${c.n - 1 === 1 ? '1 slice' : (c.n - 1) + ' slices'} full and slice ${c.n} at ${fp}%</span></p>
           <div class="set2-us-cells${id ? ' is-paid' : ''}${stop ? ' is-stopped' : ''}" role="img" aria-label="${c.n - 1} slices full, slice ${c.n} ${fp}% full${
@@ -4488,22 +4522,27 @@
   }
 
   /* ── THE HARD STOP ON THE PAGE (Nour 22 Oct) ──
-     The switch says it first: a lock on a unit with a limit, a stop mark on
-     one that is stopped. The card says the rest in words. */
+     The switch says it first: a stop mark on a unit that is stopped on this
+     level, for whatever reason, and a lock on one with this level's own
+     limit. The card says the rest in words. */
+  const usCap = (w) => w.charAt(0).toUpperCase() + w.slice(1);
   function usGlyph(x, id) {
-    const o = usOrg(id);
-    if (!o) return '';
-    const s = usStopped(x, id);
-    if (s && s.by !== 'limit') return `<span class="set2-us-glyph is-stop" title="Stopped">${I.octX}</span>`;
-    return US_HARD[x.id][o] != null ? `<span class="set2-us-glyph" title="Has a hard limit">${I.lock}</span>` : '';
+    if (usStopped(x, id)) return `<span class="set2-us-glyph is-stop" title="Stopped">${I.octX}</span>`;
+    return US_HARD[x.id][id] != null ? `<span class="set2-us-glyph" title="Has a hard limit">${I.lock}</span>` : '';
   }
-  /* A stop wider than the unit on the card (the organization, or its whole
-     product) gets a line over the card; the way back is the gear. */
-  function usStopLine(m, s, x) {
-    if (!s || (s.by !== 'org' && s.by !== 'prod')) return '';
-    const on = usAt(s.org).n.name;
-    return `<p class="set2-us-stopln" role="status">${I.octX}<span><b>${s.by === 'org' ? 'All of ' + esc(on) + ' is stopped'
-      : esc(on) + '’s ' + esc(m.name) + ' is stopped'}</b> since ${esc(s.at)}${x.depth > 1 ? ', so ' + esc(x.n.name) + ' is too' : ''}. Resume it from Limits and stops.</p>`;
+  /* A line over the card when the stop is wider than its unit, or comes from
+     a level above. One from above names that level and opens it, because
+     that is the only place it can be lifted. */
+  function usStopLine(m, s, x, id) {
+    if (!s || (s.own && (s.by === 'unit' || s.by === 'limit'))) return '';
+    const here = esc(usName(id));
+    if (s.own) return `<p class="set2-us-stopln" role="status">${I.octX}<span><b>${s.by === 'all' ? 'All of ' + here + ' is stopped'
+      : here + '’s ' + esc(m.name) + ' is stopped'}</b> since ${esc(s.at)}. Resume it from Limits and stops.</span></p>`;
+    const what = s.by === 'limit' ? esc(usName(s.node)) + ' reached its limit of ' + usFmt(s.lim) + ' ' + esc(m.unit)
+      : esc(usCap(usScopeName(m, s))) + ' is stopped since ' + esc(s.at);
+    return `<p class="set2-us-stopln" role="status">${I.octX}<span><b>${what}</b>, so ${here} ${
+      s.by === 'limit' ? 'stops too until ' + US_PERIOD.resets : 'is too'}.
+      <button class="set2-us-who is-strong" type="button" data-us-go="${esc(s.node)}">Open ${esc(usName(s.node))}</button></span></p>`;
   }
   function usStopFact(m, s) {
     return `
@@ -4512,101 +4551,115 @@
         <dd><b class="is-err">${s.by === 'limit' ? 'Limit reached' : 'Stopped'}</b><span>${esc(usStopWords(m, s))}</span></dd>
       </div>`;
   }
-  /* when a limit is reached at the organization's pace */
-  function usReach(m, o, h) {
-    const used = usUsed(m, o), rate = used / US_PERIOD.day;
-    if (used >= h) return 'Reached. They start again ' + US_PERIOD.resets + '.';
+  /* when a limit is reached at this level's pace */
+  function usReach(m, id, h) {
+    const used = usUsed(m, id), rate = used / US_PERIOD.day;
+    if (used >= h) return 'Reached. It starts again ' + US_PERIOD.resets + '.';
     const d = rate ? Math.floor(US_PERIOD.day + (h - used) / rate) : Infinity;
     return d <= US_PERIOD.days ? 'Reached around ' + d + ' ' + US_PERIOD.short + ' at this pace.' : 'Not reached in ' + US_PERIOD.name + ' at this pace.';
   }
-  /* The limit as a fact: an organization always says it; a company or a
-     product under one says the organization's when there is one; everyone
-     lists who is stopped or limited, when anyone is. */
+  /* This level's own limit as a fact: an organization always says it (its
+     plan is billed, so "none" is worth saying); any other level when it has
+     one. */
   function usHardFact(m, id) {
-    const x = usAt(id), o = usOrg(id);
-    if (!o) {
-      const set = usKids(m, '').filter((k) => usStopped(m, k.id) || US_HARD[m.id][k.id] != null);
-      if (!set.length) return '';
-      return `
-      <div class="set2-us-fact">
-        <dt>Stopped or limited</dt>
-        <dd><b>${esc(set.map((k) => k.name).join(', '))}</b><span>${esc(set.map((k) => {
-          const s = usStopped(m, k.id);
-          return k.name + ': ' + (s ? (s.by === 'limit' ? 'limit reached' : 'stopped') : 'stops at ' + usFmt(US_HARD[m.id][k.id]));
-        }).join('. '))}</span></dd>
-      </div>`;
-    }
-    const h = US_HARD[m.id][o], on = usAt(o).n.name, used = usUsed(m, o);
-    if (x.depth > 1 && h == null) return '';
+    const x = usAt(id), h = US_HARD[m.id][id];
+    if (h == null && !(id && x.depth === 1)) return '';
+    const used = usUsed(m, id);
     return `
       <div class="set2-us-fact">
-        <dt>${x.depth > 1 ? esc(on) + '’s hard limit' : 'Hard limit'}</dt>
+        <dt>Hard limit</dt>
         <dd><b class="${h != null && used >= h ? 'is-err' : ''}">${h == null ? 'None' : 'Stops at ' + usFmt(h) + ' ' + esc(m.unit)}</b><span>${
-          h == null ? 'Past the plan it keeps going, billed'
-          : x.depth > 1 ? (used >= h ? 'Reached, for everything in ' + esc(on) : usFmt(h - used) + ' left for all of ' + esc(on))
-          : esc(usReach(m, o, h)) + ' Every month, set by FlairsTech.'}</span></dd>
+          h == null ? 'Past the plan it keeps going, billed' : esc(usReach(m, id, h)) + ' Every month, set by FlairsTech.'}</span></dd>
       </div>`;
   }
 
   /* ── LIMITS AND STOPS, IN THE FACTS COLUMN (Nour 22 Oct, variant B) ──
-     The gear swaps the card's facts for these, in the same place and at the
-     same size, so the strip stays beside every change. They are always the
-     organization's: on a company or a product the list is its organization's
-     and says so; on Everyone it lists the organizations. Each press acts at
-     once and can be undone from the toast. */
+     The gear swaps the card's facts for the level's OWN controls, in the
+     same place and at the same size, so the strip stays beside every
+     change: Everyone's on Everyone, KMC's on KMC, FileBound's on FileBound.
+     What reaches this level from above is said at the top and links up,
+     and a scope already stopped above shows "With Upland" instead of a
+     button. Each press acts at once and can be undone from the toast. */
+  const usGStop = (key, what, label) => `<button class="btn btn-ghost btn-sm set2-us-g-stop" type="button" data-us-stop="${esc(key)}"${
+    label ? ` aria-label="${esc(label)}"` : ''}>${I.octX}Stop ${esc(what)}</button>`;
+  const usGResume = (key, label) => `<button class="btn btn-ghost btn-sm" type="button" data-us-resume="${esc(key)}"${
+    label ? ` aria-label="${esc(label)}"` : ''}>${I.play}Resume</button>`;
+  function usGLimit(u, id) {
+    const h = US_HARD[u.id][id], ref = u.id + '|' + id, step = usFmt(usHardStep(u, id));
+    return h != null ? `
+      <span class="set2-us-g-lim"><span class="set2-us-g-step">
+        <button type="button" data-us-hard="${esc(ref)}|-1" aria-label="${step} less">${I.minus}</button>
+        <output class="set2-num">${usFmt(h)} ${esc(u.unit)}</output>
+        <button type="button" data-us-hard="${esc(ref)}|1" aria-label="${step} more">${I.plus}</button></span>
+        <button class="set2-us-g-x" type="button" data-us-hard-off="${esc(ref)}" aria-label="Remove the limit" title="Remove the limit">${I.x}</button></span>`
+      : `<button class="btn btn-ghost btn-sm" type="button" data-us-hard-on="${esc(ref)}">${I.lock}Set a limit</button>`;
+  }
   function usGearPanel(m, id) {
-    const o = usOrg(id);
+    const x = usAt(id), nm = usName(id), units = usUnits(m.prod);
     const head = `
       <div class="set2-us-g-hd"><span class="set2-us-g-t">${I.gear}<b>Limits and stops</b></span>
         <button class="set2-us-g-x" type="button" data-us-gear aria-label="Close Limits and stops" title="Close">${I.x}</button></div>`;
-    const stopB = (key, what) => `<button class="btn btn-ghost btn-sm set2-us-g-stop" type="button" data-us-stop="${esc(key)}">${I.octX}Stop ${esc(what)}</button>`;
-    const resB = (key) => `<button class="btn btn-ghost btn-sm" type="button" data-us-resume="${esc(key)}">${I.play}Resume</button>`;
-    if (!o) return `${head}
-      <p class="set2-us-g-scope">${esc(m.name)}, by organization. Limits are set inside each one; its name takes you there.</p>
-      <div class="set2-us-g-list">${usKids(m, '').map((k) => {
-        const key = 'prod|' + k.id + '|' + m.prod, all = US_STOP['org|' + k.id], at = all || US_STOP[key], h = US_HARD[m.id][k.id];
-        return `
-        <div class="set2-us-g-org${at ? ' is-off' : ''}">
-          <span><button class="set2-us-who is-strong" type="button" data-us-go="${esc(k.id)}">${esc(k.name)}</button>
-            <span class="${at ? 'is-err' : ''}">${at ? 'Stopped since ' + esc(at) : h != null ? 'Running. Stops at ' + usFmt(h) + ' ' + esc(m.unit) : 'Running. No limit'}</span></span>
-          ${all ? `<span class="set2-us-g-with">All of ${esc(k.name)}</span>` : at ? resB(key) : stopB(key, m.name)}
-        </div>`;
-      }).join('')}</div>`;
-    const on = usAt(o).n.name, units = usUnits(m.prod), x = usAt(id);
+    const kind = id ? US_LEVEL[x.depth].toLowerCase() : '';
+    const scope = id ? `${nm}, ${/^[aeiou]/i.test(kind) ? 'an' : 'a'} ${kind}${x.parent ? ' in ' + usName(x.parent) : ''}. Its own limits and stops in ${m.name}.`
+      : `Everyone in the workspace. Limits and stops for all of ${m.name} at once.`;
+    /* from above: a stop or a reached limit, or a limit still running */
+    const s = usStopped(m, id);
+    const up = id ? [''].concat(usPath(x.parent || '')) : [];
+    const lim = up.filter((n) => US_HARD[m.id][n] != null).pop();
+    const above = s && !s.own ? `
+      <p class="set2-us-g-inh">${I.octX}<span>${s.by === 'limit' ? esc(usName(s.node)) + ' reached its limit of ' + usFmt(s.lim) + ' ' + esc(m.unit)
+        : esc(usCap(usScopeName(m, s))) + ' is stopped'}, so this is too.
+        <button class="set2-us-who is-strong" type="button" data-us-go="${esc(s.node)}">Open ${esc(usName(s.node))}</button></span></p>`
+      : lim != null ? `<p class="set2-us-g-note">${esc(usName(lim))}’s limit of ${usFmt(US_HARD[m.id][lim])} ${esc(m.unit)} also applies here: ${
+        usFmt(Math.max(0, US_HARD[m.id][lim] - usUsed(m, lim)))} left for all of ${esc(usName(lim))}.</p>` : '';
     const unitRow = (u) => {
-      const s = usStopped(u, o), key = usStopKey('unit', o, u), mine = US_STOP[key], h = US_HARD[u.id][o];
-      const wide = s && (s.by === 'org' || s.by === 'prod');
-      const ref = u.id + '|' + o;
+      const st = usStopped(u, id), key = usStopKey('unit', id, u), mine = US_STOP[key], h = US_HARD[u.id][id];
+      const cover = mine ? '' : usCover(u, id, 'unit');
+      const word = mine ? 'stopped since ' + esc(mine) : cover ? '' : st && st.by === 'limit'
+        ? (st.own ? 'limit reached' : esc(usName(st.node)) + '’s limit reached') : 'running';
       return `
         <div class="set2-us-g-u${u.id === m.id && units.length > 1 ? ' is-sel' : ''}${mine ? ' is-off' : ''}">
-          <div class="set2-us-g-r"><span><b>${esc(u.uname)}</b> <span class="${mine || (s && s.by === 'limit') ? 'is-err' : ''}">${
-            mine ? 'stopped since ' + esc(mine) : s && s.by === 'limit' ? 'limit reached' : wide ? '' : 'running'}</span></span>
-            ${wide ? `<span class="set2-us-g-with">With ${esc(s.by === 'org' ? on : u.name)}</span>` : mine ? resB(key) : stopB(key, u.unit)}</div>
-          <div class="set2-us-g-r"><span>Hard limit a month</span>${h != null ? `
-            <span class="set2-us-g-lim"><span class="set2-us-g-step">
-              <button type="button" data-us-hard="${esc(ref)}|-1" aria-label="One slice less">${I.minus}</button>
-              <output class="set2-num">${usFmt(h)} ${esc(u.unit)}</output>
-              <button type="button" data-us-hard="${esc(ref)}|1" aria-label="One slice more">${I.plus}</button></span>
-              <button class="set2-us-g-x" type="button" data-us-hard-off="${esc(ref)}" aria-label="Remove the limit" title="Remove the limit">${I.x}</button></span>`
-            : `<button class="btn btn-ghost btn-sm" type="button" data-us-hard-on="${esc(ref)}">${I.lock}Set a limit</button>`}</div>
-          <p class="set2-us-g-sub">${h != null ? esc(usReach(u, o, h)) : 'None: past the plan it keeps going, billed by the slice.'}</p>
+          <div class="set2-us-g-r"><span><b>${esc(u.uname)}</b> <span class="${mine || (st && st.by === 'limit') ? 'is-err' : ''}">${word}</span></span>
+            ${cover ? `<span class="set2-us-g-with">With ${esc(cover)}</span>` : mine ? usGResume(key) : usGStop(key, u.unit)}</div>
+          <div class="set2-us-g-r"><span>Hard limit a month</span>${usGLimit(u, id)}</div>
+          <p class="set2-us-g-sub">${h != null ? esc(usReach(u, id, h)) : !id ? 'None: nothing stops everyone at once.'
+            : x.depth === 1 ? 'None: past the plan it keeps going, billed by the slice.' : 'None: past its share it keeps going, flagged.'}</p>
         </div>`;
     };
-    const wideRow = (key, title, sub, what) => {
-      const at = US_STOP[key], all = key !== 'org|' + o && US_STOP['org|' + o];
+    const wideRow = (key, scopeBy, title, sub, what) => {
+      const at = US_STOP[key], cover = at ? '' : usCover(m, id, scopeBy);
       return `
         <div class="set2-us-g-org${at ? ' is-off' : ''}">
           <span><b>${esc(title)}</b><span class="${at ? 'is-err' : ''}">${at ? 'Stopped since ' + esc(at) : esc(sub)}</span></span>
-          ${all ? `<span class="set2-us-g-with">With ${esc(on)}</span>` : at ? resB(key) : stopB(key, what)}
+          ${cover ? `<span class="set2-us-g-with">With ${esc(cover)}</span>` : at ? usGResume(key) : usGStop(key, what)}
         </div>`;
     };
     return `${head}
-      <p class="set2-us-g-scope">${esc(on)}’s ${esc(m.name)}${x.depth > 1 ? ', for everything in ' + esc(on) + '. Limits and stops belong to the organization.' : '. Only FlairsTech can change these.'}</p>
+      <p class="set2-us-g-scope">${esc(scope)}</p>
+      ${above}
       <div class="set2-us-g-list">
         ${units.map(unitRow).join('')}
-        ${units.length > 1 ? wideRow('prod|' + o + '|' + m.prod, 'All of ' + m.name, units.map((u) => u.unit).join(' and ') + ' together', m.name) : ''}
-        ${wideRow('org|' + o, 'All of ' + on, 'Every product, for everyone at ' + on, on)}
+        ${units.length > 1 ? wideRow(usStopKey('prod', id, m), 'prod', 'All of ' + m.name, units.map((u) => u.unit).join(' and ') + ' together', m.name) : ''}
+        ${wideRow(usStopKey('all', id, m), 'all', id ? 'All of ' + nm : 'All of AiMY', id ? 'Every product, for everyone in ' + nm : 'Every product, for everyone', id ? nm : 'everything')}
       </div>`;
+  }
+
+  /* An employee's own controls, in their row: the row's use and share give
+     way to them while the row's gear is pressed (Nour 22 Oct: "user
+     limits"). Same parts as the card's: a stop for this unit, its limit. */
+  function usPersonCtl(m, k) {
+    const id = k.id, st = usStopped(m, id), key = usStopKey('unit', id, m), mine = US_STOP[key], h = US_HARD[m.id][id];
+    const cover = mine ? '' : usCover(m, id, 'unit');
+    const first = k.name.split(' ')[0];
+    const word = mine ? 'Stopped since ' + esc(mine) : cover ? 'Stopped with ' + esc(cover)
+      : st && st.by === 'limit' ? (st.own ? 'Limit reached' : esc(usName(st.node)) + '’s limit reached')
+      : st ? 'Stopped with ' + esc(usScopeName(m, st)) : 'Running';
+    return `
+      <span class="set2-us-r-ctl" role="group" aria-label="${esc(first)}’s limits and stops">
+        <span class="set2-us-r-cst${st ? ' is-err' : ''}">${word}${h != null && !(st && st.by === 'limit') ? '. ' + esc(usReach(m, id, h)) : ''}</span>
+        <span class="set2-us-r-cact">${usGLimit(m, id)}${cover || (st && !mine && st.by !== 'limit') ? ''
+          : mine ? usGResume(key, 'Resume ' + first + '’s ' + m.unit) : usGStop(key, m.unit, 'Stop ' + first + '’s ' + m.unit)}</span>
+      </span>`;
   }
 
   /* ── PACE ──
@@ -4979,6 +5032,10 @@
     const org = x.depth === 1;
     const bad = usStanding(used, org ? usPlanN(m, k.id) * US_SLICE[m.id] : lim, org);
     const stop = usStopped(m, k.id);
+    /* an employee row carries its own gear; pressed, its controls replace
+       the use and the share for that row (not while shares are edited) */
+    const person = x.depth === 4 && !US_EDIT;
+    const gearOn = person && US_GEAR_P === k.id;
     const isSet = US_EDIT ? usParse(US_EDIT.vals[k.id]) != null && !isNaN(usParse(US_EDIT.vals[k.id]))
                           : US_SET[m.id][k.id] != null;
     const sub = (() => {
@@ -5000,7 +5057,7 @@
     const initials = k.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join('');
     return `
       <div class="set2-us-r${bad ? ' ' + bad[0] : ''}${flag ? ' has-' + flag[0].slice(3) : ''}${
-        was ? ' is-path' : ''}" role="listitem"
+        was ? ' is-path' : ''}${person ? ' is-person' : ''}${gearOn ? ' is-gear' : ''}" role="listitem"
            data-us-row="${esc(k.id)}">
         <span class="set2-us-ico">${x.depth === 4 ? `<span class="set2-us-av">${esc(initials)}${US_PHOTO[k.person]
           ? `<img class="av-photo" src="${esc(US_PHOTO[k.person])}" alt="" loading="lazy" decoding="async">` : ''}</span>` : I[US_ICO[x.depth]]}</span>
@@ -5019,9 +5076,9 @@
           <span class="set2-us-use-t"><b class="set2-num">${usFmt(used)}</b>
             ${stop ? pill('is-err', stop.by === 'limit' ? 'Limit reached' : 'Stopped') : bad ? pill(bad[0], bad[1]) : `<span class="set2-us-pc">slice ${usSliceN(m, used)}</span>`}</span>
           <span class="set2-us-cells is-sm${stop ? ' is-stopped' : ''}" aria-hidden="true">${usCells(m, used, org ? usPlanN(m, k.id) * US_SLICE[m.id] : lim, 24, true,
-            org ? US_HARD[m.id][k.id] : null).html}</span>
+            US_HARD[m.id][k.id]).html}</span>
         </span>
-        <span class="set2-us-r-lim">
+        ${gearOn ? usPersonCtl(m, k) : `<span class="set2-us-r-lim">
           ${US_EDIT ? `
             <span class="set2-us-fx${usFxCls(isSet, flag)}" data-us-fx="${esc(k.id)}">
               <button class="set2-us-rs" type="button" data-us-rs="${esc(k.id)}"${isSet ? '' : ' hidden'}
@@ -5037,8 +5094,10 @@
           : `
             <b class="set2-num">${usFmt(lim)}</b>
             <span class="set2-us-src${isSet ? ' is-set' : ''}">${isSet ? 'Set by admin' : 'Equal share'}</span>`}
-        </span>
-        <span class="set2-us-end">${deeper && !US_EDIT ? I.chev : ''}</span>
+        </span>`}
+        <span class="set2-us-end">${deeper && !US_EDIT ? I.chev : person ? `
+          <button class="set2-us-gear is-row" type="button" data-us-pgear="${esc(k.id)}" aria-expanded="${gearOn}"
+                  aria-label="${esc(k.name)}’s limits and stops" title="Limits and stops">${US_HARD[m.id][k.id] != null && !gearOn ? I.lock : I.gear}</button>` : ''}</span>
       </div>`;
   }
 
@@ -10683,6 +10742,15 @@
       });
       return;
     }
+    /* an employee's own gear: their row's use and share give way to their
+       limits and stops; one row at a time */
+    const usPG = e.target.closest('[data-us-pgear]');
+    if (usPG) {
+      const pid = usPG.getAttribute('data-us-pgear');
+      US_GEAR_P = US_GEAR_P === pid ? '' : pid;
+      render(() => { const g = $('[data-us-pgear="' + pid + '"]'); if (g) g.focus({ preventScroll: true }); });
+      return;
+    }
     const usSt = e.target.closest('[data-us-stop], [data-us-resume]');
     if (usSt) {
       const stopIt = usSt.hasAttribute('data-us-stop');
@@ -10690,9 +10758,10 @@
       const [by, o, what] = key.split('|');
       const was = US_STOP[key];
       if (stopIt) US_STOP[key] = usStopNow(); else delete US_STOP[key];
-      const on = usAt(o).n.name;
-      const name = by === 'org' ? 'all of ' + on + '’s AiMY use' : by === 'prod' ? on + '’s ' + usMeter(US_METERS.find((x) => x.prod === what).id).name
-        : on + '’s ' + usMeter(what).name + ' ' + usMeter(what).unit;
+      const on = usName(o), whose = o ? on + '’s ' : 'everyone’s ';
+      const name = by === 'all' ? (o ? 'all of ' + on : 'all of AiMY, for everyone')
+        : by === 'prod' ? whose + US_METERS.find((x) => x.prod === what).name
+        : whose + usMeter(what).name + ' ' + usMeter(what).unit;
       if (API && API.toast) API.toast((stopIt ? 'Stopped ' : 'Resumed ') + name + '.', () => {
         if (was) US_STOP[key] = was; else delete US_STOP[key];
         render();
@@ -10704,12 +10773,12 @@
     if (usH) {
       const a = usH.hasAttribute('data-us-hard') ? 'step' : usH.hasAttribute('data-us-hard-on') ? 'on' : 'off';
       const [mid, o, dir] = usH.getAttribute(a === 'step' ? 'data-us-hard' : a === 'on' ? 'data-us-hard-on' : 'data-us-hard-off').split('|');
-      const m0 = usMeter(mid), z = US_SLICE[mid], was = US_HARD[mid][o];
-      if (a === 'on') US_HARD[mid][o] = Math.max(usPlanN(m0, o) * z, Math.ceil(usUsed(m0, o) / z) * z) + 2 * z;
+      const m0 = usMeter(mid), z = usHardStep(m0, o), was = US_HARD[mid][o];
+      if (a === 'on') US_HARD[mid][o] = usHardNext(m0, o);
       else if (a === 'step') US_HARD[mid][o] = Math.max(z, was + (+dir) * z);
       else delete US_HARD[mid][o];
-      const on = usAt(o).n.name, what = on + '’s ' + m0.name + ' ' + m0.unit;
-      if (API && API.toast) API.toast(US_HARD[mid][o] == null ? 'No hard limit on ' + what + '. Past the plan they are billed by the slice.'
+      const what = (o ? usName(o) + '’s ' : 'everyone’s ') + m0.name + ' ' + m0.unit;
+      if (API && API.toast) API.toast(US_HARD[mid][o] == null ? 'No hard limit on ' + what + '.'
         : what.charAt(0).toUpperCase() + what.slice(1) + ' stop at ' + usFmt(US_HARD[mid][o]) + ' a month.', () => {
         if (was == null) delete US_HARD[mid][o]; else US_HARD[mid][o] = was;
         render();
