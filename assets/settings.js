@@ -3941,6 +3941,15 @@
   let US_GEAR = false;
   let US_GEAR_IN = false;      /* the next paint opened the gear: bring the column into view */
   let US_GEAR_P = '';          /* the employee row whose own controls are open */
+  /* Who is looking (Nour 22 Oct): '' is FlairsTech's admin, who sets limits
+     and stops; an organization id is that client's own admin, who sees the
+     page from their organization down and reads what FlairsTech set, with
+     nothing to press, and is told to contact FlairsTech to change it. */
+  let US_VIEW = '';
+  const usRO = () => !!US_VIEW;
+  /* a level the viewer can open: anything for FlairsTech, their own tree for a client */
+  const usSeen = (id) => !US_VIEW || (!!id && usPath(id).indexOf(US_VIEW) > -1);
+  const US_ASK = 'Contact your FlairsTech account manager to change it.';
   const usName = (id) => id ? usAt(id).n.name : 'Everyone';
   const usStopKey = (by, id, m) => by === 'all' ? 'all|' + id : by === 'prod' ? 'prod|' + id + '|' + m.prod : 'unit|' + id + '|' + m.id;
   /* What stops this unit on this level, looking from the top down: the
@@ -4104,7 +4113,10 @@
     const m = usMeter(st.meter);
     let tip = usAt(st.pool) ? st.pool : '';
     while (tip && (usAt(tip).depth > Math.min(3, m.depth) || !usIn(m, tip))) tip = usAt(tip).parent;
-    const path = [''].concat(usPath(tip));
+    /* A client's own admin starts at their organization (Nour 22 Oct): no
+       Everyone above it and no other organization beside it. */
+    if (US_VIEW && usPath(tip).indexOf(US_VIEW) < 0) tip = US_VIEW;
+    const path = US_VIEW ? usPath(tip) : [''].concat(usPath(tip));
     const people = st.at === 'people' && !!tip && usAt(tip).depth === 3 && m.depth === 4;
     const at = st.at === 'plan' ? '' : st.at;
     const id = !people && st.at && path.indexOf(at) > -1 ? at : tip;
@@ -4537,12 +4549,13 @@
     if (!s || (s.own && (s.by === 'unit' || s.by === 'limit'))) return '';
     const here = esc(usName(id));
     if (s.own) return `<p class="set2-us-stopln" role="status">${I.octX}<span><b>${s.by === 'all' ? 'All of ' + here + ' is stopped'
-      : here + '’s ' + esc(m.name) + ' is stopped'}</b> since ${esc(s.at)}. Resume it from Limits and stops.</span></p>`;
+      : here + '’s ' + esc(m.name) + ' is stopped'}</b> since ${esc(s.at)}. ${usRO() ? 'FlairsTech stopped it. ' + US_ASK : 'Resume it from Limits and stops.'}</span></p>`;
     const what = s.by === 'limit' ? esc(usName(s.node)) + ' reached its limit of ' + usFmt(s.lim) + ' ' + esc(m.unit)
       : esc(usCap(usScopeName(m, s))) + ' is stopped since ' + esc(s.at);
     return `<p class="set2-us-stopln" role="status">${I.octX}<span><b>${what}</b>, so ${here} ${
       s.by === 'limit' ? 'stops too until ' + US_PERIOD.resets : 'is too'}.
-      <button class="set2-us-who is-strong" type="button" data-us-go="${esc(s.node)}">Open ${esc(usName(s.node))}</button></span></p>`;
+      ${usSeen(s.node) ? `<button class="set2-us-who is-strong" type="button" data-us-go="${esc(s.node)}">Open ${esc(usName(s.node))}</button>`
+        : 'FlairsTech set it. ' + US_ASK}</span></p>`;
   }
   function usStopFact(m, s) {
     return `
@@ -4580,12 +4593,13 @@
      What reaches this level from above is said at the top and links up,
      and a scope already stopped above shows "With Upland" instead of a
      button. Each press acts at once and can be undone from the toast. */
-  const usGStop = (key, what, label) => `<button class="btn btn-ghost btn-sm set2-us-g-stop" type="button" data-us-stop="${esc(key)}"${
+  const usGStop = (key, what, label) => usRO() ? '' : `<button class="btn btn-ghost btn-sm set2-us-g-stop" type="button" data-us-stop="${esc(key)}"${
     label ? ` aria-label="${esc(label)}"` : ''}>${I.octX}Stop ${esc(what)}</button>`;
-  const usGResume = (key, label) => `<button class="btn btn-ghost btn-sm" type="button" data-us-resume="${esc(key)}"${
+  const usGResume = (key, label) => usRO() ? '' : `<button class="btn btn-ghost btn-sm" type="button" data-us-resume="${esc(key)}"${
     label ? ` aria-label="${esc(label)}"` : ''}>${I.play}Resume</button>`;
   function usGLimit(u, id) {
     const h = US_HARD[u.id][id], ref = u.id + '|' + id, step = usFmt(usHardStep(u, id));
+    if (usRO()) return `<b class="set2-us-g-ro">${h != null ? usFmt(h) + ' ' + esc(u.unit) : 'None'}</b>`;
     return h != null ? `
       <span class="set2-us-g-lim"><span class="set2-us-g-step">
         <button type="button" data-us-hard="${esc(ref)}|-1" aria-label="${step} less">${I.minus}</button>
@@ -4600,8 +4614,10 @@
       <div class="set2-us-g-hd"><span class="set2-us-g-t">${I.gear}<b>Limits and stops</b></span>
         <button class="set2-us-g-x" type="button" data-us-gear aria-label="Close Limits and stops" title="Close">${I.x}</button></div>`;
     const kind = id ? US_LEVEL[x.depth].toLowerCase() : '';
-    const scope = id ? `${nm}, ${/^[aeiou]/i.test(kind) ? 'an' : 'a'} ${kind}${x.parent ? ' in ' + usName(x.parent) : ''}. Its own limits and stops in ${m.name}.`
+    const scope = id ? `${nm}, ${/^[aeiou]/i.test(kind) ? 'an' : 'a'} ${kind}${x.parent ? ' in ' + usName(x.parent) : ''}. ${usRO() ? 'Its' : 'Its own'} limits and stops in ${m.name}.`
       : `Everyone in the workspace. Limits and stops for all of ${m.name} at once.`;
+    /* a client's admin reads them; FlairsTech sets them */
+    const ro = usRO() ? `<p class="set2-us-g-ro-note">${I.lock}<span>Set by FlairsTech. ${US_ASK.replace('it.', 'any of these.')}</span></p>` : '';
     /* from above: a stop or a reached limit, or a limit still running */
     const s = usStopped(m, id);
     const up = id ? [''].concat(usPath(x.parent || '')) : [];
@@ -4609,7 +4625,7 @@
     const above = s && !s.own ? `
       <p class="set2-us-g-inh">${I.octX}<span>${s.by === 'limit' ? esc(usName(s.node)) + ' reached its limit of ' + usFmt(s.lim) + ' ' + esc(m.unit)
         : esc(usCap(usScopeName(m, s))) + ' is stopped'}, so this is too.
-        <button class="set2-us-who is-strong" type="button" data-us-go="${esc(s.node)}">Open ${esc(usName(s.node))}</button></span></p>`
+        ${usSeen(s.node) ? `<button class="set2-us-who is-strong" type="button" data-us-go="${esc(s.node)}">Open ${esc(usName(s.node))}</button>` : ''}</span></p>`
       : lim != null ? `<p class="set2-us-g-note">${esc(usName(lim))}’s limit of ${usFmt(US_HARD[m.id][lim])} ${esc(m.unit)} also applies here: ${
         usFmt(Math.max(0, US_HARD[m.id][lim] - usUsed(m, lim)))} left for all of ${esc(usName(lim))}.</p>` : '';
     const unitRow = (u) => {
@@ -4636,6 +4652,7 @@
     };
     return `${head}
       <p class="set2-us-g-scope">${esc(scope)}</p>
+      ${ro}
       ${above}
       <div class="set2-us-g-list">
         ${units.map(unitRow).join('')}
@@ -13327,9 +13344,29 @@
     render();
   }
 
+  /* ── UPLAND'S ADMIN, FOR THE PROTOTYPE PANEL (Nour 22 Oct) ──
+     The Usage page as a client's own admin sees it: from Upland down, every
+     limit and stop a statement of what FlairsTech set. The states set
+     Upland's Copilot chats: nothing set, a limit coming up, the limit
+     reached, Copilot stopped. 'ft' goes back to FlairsTech's admin with the
+     page's own seed (a 12,000 limit, nothing stopped). */
+  function usViewAs(state) {
+    const cm = usMeter('copilot');
+    delete US_STOP['prod|upland|copilot'];
+    US_HARD.copilot.upland = 12000;
+    US_VIEW = state === 'ft' ? '' : 'upland';
+    if (state === 'none') delete US_HARD.copilot.upland;
+    if (state === 'reached') US_HARD.copilot.upland = Math.floor(usUsed(cm, 'upland') / US_SLICE.copilot) * US_SLICE.copilot;
+    if (state === 'stopped') US_STOP['prod|upland|copilot'] = '21 Oct, 16:20';
+    US_GEAR = state !== 'ft' && state !== 'none';
+    US_GEAR_P = '';
+    render();
+  }
+
   window.AIMY_SETTINGS = {
     dcState: dcState,
     usMeState: usMeState,
+    usViewAs: usViewAs,
     usDay: usDay,
     usageMine: usageMine,
     usageSpend: usageSpend,

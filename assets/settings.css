@@ -6150,6 +6150,15 @@ body.is-settings .set2-pop .set2-pop-f:focus, body.is-settings .set2-pop .set2-p
   .set2-us-facts.is-gear { border-top: 0.0625rem solid var(--brand); border-radius: 0 0 var(--r-xl) var(--r-xl); padding: 1rem 1.25rem 1.125rem; }
 }
 
+/* A client's own admin reads FlairsTech's limits and stops (Nour 22 Oct):
+   values in ink where the controls were, and one line saying who to ask. */
+.set2-us-g-ro { font-size: var(--ty-meta); font-weight: var(--fw-semibold); color: var(--ink-primary); }
+.set2-us-g-ro-note {
+  display: flex; align-items: flex-start; gap: 0.5rem; margin: 0; padding: 0.5rem 0.625rem; border-radius: var(--r-md);
+  font-size: var(--ty-micro); color: var(--ink-primary); box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover);
+}
+.set2-us-g-ro-note svg { width: 0.875rem; height: 0.875rem; flex: none; margin-top: 0.125rem; color: var(--ink-secondary); }
+
 /* An employee's row has its own gear (Nour 22 Oct, "user limits"); pressed,
    the row's use and share give way to that person's limits and stops. */
 .set2-us-r.is-person { grid-template-columns: 2rem minmax(0, 1.35fr) minmax(0, 1fr) 10rem 1.625rem; }

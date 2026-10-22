@@ -11368,6 +11368,11 @@
         ['chats over, tickets within', 'uw:chats'], ['over on both', 'uw:both'], ['within both', 'uw:none'],
         ['FlairsTech at its chats limit', 'uw:limit'], ['IT Helpdesk chats stopped', 'uw:team'], ['your chats stopped', 'uw:mine']
       ]],
+      /* Agents > Usage as a client's own admin (Nour 22 Oct): read only */
+      ['Usage, as Upland’s admin', 'Starts at Upland. FlairsTech’s limits and stops read as statements, with who to contact.', [
+        ['nothing set', 'ua:none'], ['chats limit coming up', 'ua:limit'], ['chats limit reached', 'ua:reached'],
+        ['Copilot stopped', 'ua:stopped'], ['back to FlairsTech’s admin', 'ua:ft']
+      ]],
       ['Non-happy states', '', [
         ['loading', 'url:?state=loading'],
         ['error', 'url:?state=error'],
@@ -11429,6 +11434,13 @@
       const S = window.AIMY_SETTINGS;
       if (S && S.usDay) S.usDay(+arg);
       patch({ m: 'agents', sec: 'usage' });
+      return;
+    }
+    /* Usage as Upland's own admin: from Upland down, read only */
+    if (kind === 'ua') {
+      const S = window.AIMY_SETTINGS;
+      if (S && S.usViewAs) S.usViewAs(arg);
+      patch({ m: 'agents', sec: 'usage', meter: '', pool: arg === 'ft' ? '' : 'upland', at: '' });
       return;
     }
     if (kind === 'peek') {
