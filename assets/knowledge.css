@@ -5620,58 +5620,94 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
 ═══════════════════════════════════════════════ */
 .proto {
   position: fixed; right: 0.875rem; z-index: 960;
-  /* Above the input band, not in it. The input is centred at
-     min(760px, 100vw - 48px), so its right edge reaches vw/2 + 380 and the
-     236px panel's left edge is vw - 250 — they clear each other only above
-     ~1260px. Sitting the whole control just above the input's top edge is one
-     rule that holds at every width, and it does not move when it opens. */
+  /* Above the input band, not in it (see above): sitting the whole control
+     just above the input's top edge holds at every width, and it does not
+     move when it opens. */
   bottom: 5.75rem;
   display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem;
 }
 
+/* ── Redesigned (Nour 22 Oct: "more clean and usable") ──
+   Readable ink, the product's own face, three sections a click apart, a
+   field that finds any state, and the last one opened marked. The toggle
+   no longer fades to 45%: a control you cannot see is not a control. */
 .proto-toggle {
-  width: 2rem; height: 2rem; border-radius: 50%; flex-shrink: 0;
+  width: 2.25rem; height: 2.25rem; border-radius: var(--r-pill); flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
-  background: var(--card-bg-raised);
-  border: 0.0625rem dashed var(--d600);
-  color: var(--ink-muted); cursor: pointer;
-  opacity: 0.45;
-  transition: opacity var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
+  background: var(--card-bg-raised); border: 0.0625rem solid var(--card-border-hover);
+  color: var(--ink-secondary); cursor: pointer;
+  transition: color var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out);
 }
-.proto-toggle svg { width: 0.9375rem; height: 0.9375rem; }
-.proto-toggle:hover { opacity: 1; color: var(--d200); }
-.proto-toggle:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; opacity: 1; }
-.proto.is-open .proto-toggle { opacity: 1; color: var(--d100); border-style: solid; }
+.proto-toggle svg { width: 1rem; height: 1rem; }
+.proto-toggle:hover { color: var(--ink-primary); }
+.proto-toggle:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
+.proto.is-open .proto-toggle { color: var(--ink-primary); border-color: var(--brand); }
 
-/* Grows upward from the icon, so it never reaches down into the input. */
+/* Grows upward from the toggle, so it never reaches down into the input. */
 .proto-panel {
   order: -1;
-  width: 14.75rem; max-height: min(62vh, 28.75rem); overflow-y: auto;
-  display: flex; flex-direction: column; gap: 0.75rem;
-  padding: 0.75rem; border-radius: var(--r-md);
-  background: var(--card-bg-raised);
-  border: 0.0625rem dashed var(--d600);
-  box-shadow: var(--shadow-lg);
-  font-family: var(--font-mono); font-size: var(--ty-meta);
+  width: 22rem; max-width: calc(100vw - 1.75rem); max-height: min(70vh, 36rem);
+  display: flex; flex-direction: column; overflow: hidden;
+  border-radius: var(--r-lg); background: var(--panel-bg);
+  border: 0.0625rem solid var(--card-border-hover); box-shadow: var(--shadow-lg);
+  font-size: var(--ty-meta); color: var(--ink-primary);
 }
 .proto-panel[hidden] { display: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .proto-panel:not([hidden]) { animation: proto-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+}
+@keyframes proto-in { from { opacity: 0; transform: translateY(0.375rem); } to { opacity: 1; transform: none; } }
 
-.proto-group { display: flex; flex-direction: column; gap: 0.25rem; }
-.proto-group-label {
-  font-size: var(--ty-micro); font-weight: var(--fw-medium); color: var(--ink-muted);
-  text-transform: uppercase; letter-spacing: 0.08em;
+.proto-hd { display: flex; align-items: baseline; gap: 0.5rem; padding: 0.875rem 0.75rem 0.5rem 1rem; }
+.proto-hd b { font-size: var(--ty-body); font-weight: var(--fw-semibold); }
+.proto-hd span { flex: 1; font-size: var(--ty-micro); color: var(--ink-secondary); }
+.proto-x {
+  align-self: center; width: 1.75rem; height: 1.75rem; display: grid; place-items: center; padding: 0;
+  border: 0; border-radius: var(--r-pill); background: none; color: var(--ink-primary); cursor: pointer;
 }
-.proto-group-note { font-size: var(--ty-meta); color: var(--ink-muted); line-height: 1.35; }
-.proto-links { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.proto-x svg { width: 0.9375rem; height: 0.9375rem; }
+.proto-x:hover { background: var(--card-bg-raised); }
+.proto-x:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.0625rem; }
+
+.proto-find {
+  display: flex; align-items: center; gap: 0.5rem; margin: 0 1rem 0.625rem; padding: 0 0.75rem;
+  border-radius: var(--r-pill); border: 0.0625rem solid var(--card-border-hover); background: var(--card-bg-raised);
+  color: var(--ink-secondary);
+}
+.proto-find:focus-within { border-color: var(--brand); }
+.proto-find svg { width: 0.875rem; height: 0.875rem; flex: none; }
+.proto-find input {
+  flex: 1; min-width: 0; height: 2.125rem; border: 0; outline: 0; background: none;
+  font: inherit; font-size: var(--ty-meta); color: var(--ink-primary);
+}
+.proto-find input::placeholder { color: var(--ink-secondary); }
+
+.proto-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.25rem; margin: 0 1rem; padding: 0.1875rem; border-radius: var(--r-pill); box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover); }
+.proto-tabs button {
+  height: 1.75rem; border: 0; border-radius: var(--r-pill); background: none; cursor: pointer;
+  font: inherit; font-size: var(--ty-meta); font-weight: var(--fw-semibold); color: var(--ink-secondary);
+  transition: background var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
+}
+.proto-tabs button:hover { color: var(--ink-primary); }
+.proto-tabs button[aria-selected="true"] { color: var(--ink-primary); background: var(--brand-dim); box-shadow: inset 0 0 0 0.0625rem var(--brand); }
+.proto-tabs button:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.0625rem; }
+
+.proto-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 1.125rem; padding: 0.875rem 1rem 1rem; margin-top: 0.625rem; border-top: 0.0625rem solid var(--hairline); }
+.proto-group { display: flex; flex-direction: column; gap: 0.375rem; }
+.proto-group-label { margin: 0; display: flex; align-items: baseline; gap: 0.5rem; font-size: var(--ty-meta); font-weight: var(--fw-semibold); color: var(--ink-primary); }
+.proto-group-sec { font-size: var(--ty-micro); font-weight: var(--fw-medium); color: var(--ink-secondary); }
+.proto-group-note { margin: 0; font-size: var(--ty-micro); line-height: 1.4; color: var(--ink-secondary); }
+.proto-links { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-top: 0.125rem; }
 .proto-link {
-  font-family: var(--font-mono); font-size: var(--ty-meta); line-height: 0.875rem;
-  padding: 0.25rem 0.5rem; border-radius: var(--r-sm);
-  background: rgba(255,255,255,0.05); border: 0; color: var(--ink-muted); cursor: pointer;
+  font: inherit; font-size: var(--ty-meta); line-height: 1.25; text-align: left;
+  padding: 0.3125rem 0.6875rem; border-radius: var(--r-pill);
+  background: transparent; border: 0.0625rem solid var(--card-border-hover); color: var(--ink-primary); cursor: pointer;
+  transition: background var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out);
 }
-.proto-link:hover { background: rgba(255,255,255,0.1); color: var(--d50); }
+.proto-link:hover { background: var(--card-bg-raised); border-color: var(--ink-secondary); }
 .proto-link:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.0625rem; }
-:root[data-theme="light"] .proto-link { background: rgba(16,24,40,0.05); }
-:root[data-theme="light"] .proto-link:hover { background: rgba(16,24,40,0.1); }
+.proto-link.is-last { border-color: var(--brand); background: var(--brand-dim); }
+.proto-none { margin: 0; font-size: var(--ty-meta); color: var(--ink-secondary); }
 
 /* ═══════════════════════════════════════════════
    THE SIDEBAR BRIEFING

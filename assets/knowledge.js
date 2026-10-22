@@ -11386,22 +11386,75 @@
     ];
   }
 
+  /* ── The panel, redesigned (Nour 22 Oct: "more clean and usable") ──
+     It had grown to fifteen groups in one 236px column of small grey
+     monospace, every label in capitals, and it forgot where you were each
+     time it closed. Now: three sections a click apart (the library, the
+     Console's surfaces, the app's own states), a field that finds any state
+     across all of them, the last one you opened marked so you can step to
+     the next, and readable ink throughout. The section and the last state
+     are remembered in this browser. */
+  const PROTO_SECS = [['library', 'Library'], ['console', 'Console'], ['app', 'App']];
+  const PROTO_SEC = {
+    'Data sync, each state': 'console', 'Usage, other days in October': 'console',
+    'Usage widget, each state': 'console', 'Usage, as Upland’s admin': 'console',
+    'Meeting notes, each state': 'console',
+    'Non-happy states': 'app', 'This URL is the whole state': 'app'
+  };
+  const protoStore = (k, v) => {
+    try { if (v === undefined) return localStorage.getItem('aimy.proto.' + k) || ''; localStorage.setItem('aimy.proto.' + k, v); } catch (e) { /* private window */ }
+    return '';
+  };
+  let PROTO_TAB = protoStore('tab') || 'library';
+  let PROTO_Q = '';
+  let PROTO_LAST = protoStore('last');
+  function protoBody() {
+    const q = PROTO_Q.trim().toLowerCase();
+    const groups = protoGroups().map(([label, note, items]) => {
+      /* A row whose target did not resolve is dropped rather than rendered
+         dead — the same rule the product holds itself to. */
+      let live = items.filter(([, go]) => go && !/:$/.test(go));
+      const sec = PROTO_SEC[label] || 'library';
+      if (q) live = label.toLowerCase().indexOf(q) > -1 ? live : live.filter(([text]) => text.toLowerCase().indexOf(q) > -1);
+      else if (sec !== PROTO_TAB) live = [];
+      return live.length ? { label: label, note: note, live: live, sec: sec } : null;
+    }).filter(Boolean);
+    if (!groups.length) return `<p class="proto-none">Nothing matches “${esc(PROTO_Q.trim())}”. Try a surface, like usage or document.</p>`;
+    return groups.map((g) => `
+      <section class="proto-group" aria-label="${esc(g.label)}">
+        <h3 class="proto-group-label">${esc(g.label)}${q ? `<span class="proto-group-sec">${esc(PROTO_SECS.find((s) => s[0] === g.sec)[1])}</span>` : ''}</h3>
+        ${g.note && !q ? `<p class="proto-group-note">${esc(g.note)}</p>` : ''}
+        <div class="proto-links">
+          ${g.live.map(([text, go]) => `<button class="proto-link${go === PROTO_LAST ? ' is-last' : ''}" type="button" data-proto="${esc(go)}"${
+            go === PROTO_LAST ? ' aria-current="true" title="Opened last"' : ''}>${esc(text)}</button>`).join('')}
+        </div>
+      </section>`).join('');
+  }
+  function renderProtoBody() {
+    const body = $('#protoBody');
+    if (body) body.innerHTML = protoBody();
+    $$('[data-proto-tab]').forEach((b) => b.setAttribute('aria-selected', String(!PROTO_Q.trim() && b.dataset.protoTab === PROTO_TAB)));
+  }
   function renderProto() {
     const host = $('#protoPanel');
     if (!host) return;
-    host.innerHTML = protoGroups().map(([label, note, items]) => {
-      /* A row whose target did not resolve is dropped rather than rendered
-         dead — the same rule the product holds itself to. */
-      const live = items.filter(([, go]) => go && !/:$/.test(go));
-      if (!live.length) return '';
-      return `<div class="proto-group">
-        <span class="proto-group-label">${esc(label)}</span>
-        ${note ? `<span class="proto-group-note">${esc(note)}</span>` : ''}
-        <div class="proto-links">
-          ${live.map(([text, go]) => `<button class="proto-link" data-proto="${esc(go)}">${esc(text)}</button>`).join('')}
-        </div>
-      </div>`;
-    }).join('');
+    host.innerHTML = `
+      <div class="proto-hd">
+        <b>Prototype</b>
+        <span>Jump to any state</span>
+        <button class="proto-x" type="button" data-proto-close aria-label="Close the prototype controls">${ICO.x}</button>
+      </div>
+      <label class="proto-find">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="protoFind" type="search" placeholder="Find a state" value="${esc(PROTO_Q)}" autocomplete="off" spellcheck="false" aria-label="Find a state">
+      </label>
+      <div class="proto-tabs" role="tablist" aria-label="Sections">
+        ${PROTO_SECS.map(([id, name]) => `<button type="button" role="tab" data-proto-tab="${id}" aria-selected="${!PROTO_Q.trim() && id === PROTO_TAB}">${esc(name)}</button>`).join('')}
+      </div>
+      <div class="proto-body" id="protoBody">${protoBody()}</div>`;
+    /* the field filters as you type, across every section */
+    const f = $('#protoFind');
+    if (f) f.addEventListener('input', () => { PROTO_Q = f.value; renderProtoBody(); });
   }
 
   function protoRun(go) {
@@ -11550,6 +11603,7 @@
       this.open = next === undefined ? !this.open : next;
       if (this.open) renderProto();
       panel.hidden = !this.open;
+      if (this.open) { const f = $('#protoFind'); if (f) f.focus({ preventScroll: true }); }
       btn.setAttribute('aria-expanded', String(this.open));
       $('#proto').classList.toggle('is-open', this.open);
     }
@@ -12792,7 +12846,16 @@
 
       /* ── prototype panel ── */
       if (t.closest('#protoToggle')) { proto.toggle(); return; }
+      if (t.closest('[data-proto-close]')) { proto.toggle(false); const b = $('#protoToggle'); if (b) b.focus(); return; }
+      if ((el = t.closest('[data-proto-tab]'))) {
+        PROTO_TAB = el.dataset.protoTab; protoStore('tab', PROTO_TAB);
+        PROTO_Q = ''; const f = $('#protoFind'); if (f) f.value = '';
+        renderProtoBody();
+        return;
+      }
       if ((el = t.closest('[data-proto]'))) {
+        /* remembered, so reopening marks where you were */
+        PROTO_LAST = el.getAttribute('data-proto'); protoStore('last', PROTO_LAST);
         protoRun(el.getAttribute('data-proto'));
         /* It closes behind you: it is scaffolding for getting somewhere, not
            somewhere to be. Copy is the one that leaves it open, because you may
