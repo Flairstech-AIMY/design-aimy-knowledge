@@ -92,6 +92,10 @@
     mars: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="m21 3-6.75 6.75"/><circle cx="10" cy="14" r="6"/></svg>',
     play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></svg>',
     stop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>',
+    /* Usage's hard stop. Lucide `settings`, `octagon-x`, `minus`. */
+    gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>',
+    octX: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 9-6 6"/><path d="M2.586 16.726A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2h6.624a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586z"/><path d="m9 9 6 6"/></svg>',
+    minus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>',
     /* Usage. Lucide 1.52 `building-2`, `building`, `package`, `rotate-ccw`. */
     org:  '<svg class="set2-row-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12h4"/><path d="M10 8h4"/><path d="M14 21v-3a2 2 0 0 0-4 0v3"/><path d="M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/><path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/></svg>',
     co:   '<svg class="set2-row-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M12 6h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M16 6h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/><path d="M8 6h.01"/><path d="M9 22v-3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/><rect x="4" y="2" width="16" height="20" rx="2"/></svg>',
@@ -3920,6 +3924,41 @@
   /* slices started past the plan: each is billed as it starts */
   const usExtraN = (m, id, u) => Math.max(0, Math.ceil(u / US_SLICE[m.id]) - usPlanN(m, id));
 
+  /* ── A HARD STOP (Nour 22 Oct, the "Hard stop" variants, B) ──
+     Past the plan nothing stops, unless FlairsTech says so, and only on an
+     organization. Two ways. A hard limit, counted in the unit itself and
+     kept every month: past it that unit stops until the 1st. A stop, now,
+     on the whole organization, one of its products or one unit, until it is
+     resumed. Companies, products and people under the organization share
+     its fate; there is nothing to set below it. The gear at the end of the
+     units swaps the card's facts for these (US_GEAR). Upland's chats carry a
+     limit of 12,000 so the result shows on arrival. */
+  const US_HARD = { copilot: { upland: 12000 }, cptix: {}, qa: {}, voice: {} };   /* org -> units a month */
+  const US_STOP = {};          /* 'org|upland', 'prod|upland|copilot', 'unit|upland|cptix' -> when */
+  let US_GEAR = false;
+  let US_GEAR_IN = false;      /* the next paint opened the gear: bring the column into view */
+  const usOrg = (id) => { for (let x = id; x; x = usAt(x).parent) if (usAt(x).depth === 1) return x; return ''; };
+  const usStopKey = (by, org, m) => by === 'org' ? 'org|' + org : by === 'prod' ? 'prod|' + org + '|' + m.prod : 'unit|' + org + '|' + m.id;
+  /* what stops this unit at this level, the widest first; null when it runs */
+  function usStopped(m, id) {
+    const o = usOrg(id);
+    if (!o) return null;
+    for (const by of ['org', 'prod', 'unit']) {
+      const at = US_STOP[usStopKey(by, o, m)];
+      if (at) return { by: by, at: at, org: o };
+    }
+    const h = US_HARD[m.id][o];
+    return h != null && usUsed(m, o) >= h ? { by: 'limit', org: o, lim: h } : null;
+  }
+  const usStopNow = () => {
+    const d = new Date();
+    return US_PERIOD.day + ' ' + US_PERIOD.short + ', ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  };
+  const usStopWords = (m, s) => s.by === 'limit'
+    ? usAt(s.org).n.name + ' reached its limit of ' + usFmt(s.lim) + ' ' + m.unit + '. They start again ' + US_PERIOD.resets + '.'
+    : 'Stopped by FlairsTech, ' + s.at + (s.by === 'org' ? ', with all of ' + usAt(s.org).n.name
+      : s.by === 'prod' ? ', with all of ' + usAt(s.org).n.name + '’s ' + m.name : '') + '.';
+
   /* ── EVERY STATE ON THE PAGE AT ONCE (Nour 21 Oct) ──
      Today is 22 Oct (US_TODAY, applied by usDay at the end of the file),
      and each organization is set to land in a different place by then, per
@@ -3978,11 +4017,14 @@
      share, a mark sits after the cell where the share ends and cells past
      it turn amber. Past `max` cells, one cell stands for several slices and
      the key says so. */
-  function usCells(m, used, share, max, paid) {
+  function usCells(m, used, share, max, paid, hard) {
     const z = US_SLICE[m.id], n = usSliceN(m, used);
     const fore = Math.max(n, Math.ceil(used / US_PERIOD.day * US_PERIOD.days / z));
     const sh = share ? Math.max(1, Math.ceil(share / z)) : 0;
-    const tot = Math.max(fore, sh);
+    /* a hard limit: a red cap after the slice it ends in; the slices past it
+       that the pace would have reached are hatched, never priced */
+    const hn = hard != null ? Math.max(1, Math.ceil(hard / z)) : 0;
+    const tot = Math.max(fore, sh, hn);
     const q = Math.max(1, Math.ceil(tot / max));
     let out = '';
     for (let i = 1; i <= Math.ceil(tot / q); i++) {
@@ -3999,10 +4041,12 @@
       const f = (n) => n < 1000 ? String(Math.round(n)) : n < 10000 ? (Math.floor(n / 100) / 10).toString().replace(/\.0$/, '') + 'K' : Math.floor(n / 1000) + 'K';
       /* Paid by the slice: every slice past the plan wears its price under
          it, amber once started, plain ink while it is only the forecast. */
-      const price = paid && sh && lo > sh && (full || cur || fc) ? `<em>${usMoney(q * US_PRICE[m.id])}</em>` : '';
+      const cut = hn && lo > hn && !full && !cur;
+      const price = paid && sh && lo > sh && (full || cur || fc) && !cut ? `<em>${usMoney(q * US_PRICE[m.id])}</em>` : '';
       /* every slice past the plan or share wears an amber edge, empty ones too (Nour 21 Oct) */
-      const past = sh && lo > sh;
-      out += `<span class="set2-us-cell${full ? ' is-full' : ''}${fc ? ' is-fore' : ''}${over ? ' is-over' : ''}${end ? ' is-share' : ''}${past ? ' is-past' : ''}"><i style="--p:${p.toFixed(3)}"></i><b>${f(inside)}</b>${price}</span>`;
+      const past = sh && lo > sh && !cut;
+      out += `<span class="set2-us-cell${full ? ' is-full' : ''}${fc && !cut ? ' is-fore' : ''}${over ? ' is-over' : ''}${end ? ' is-share' : ''}${past ? ' is-past' : ''}${cut ? ' is-cut' : ''}"><i style="--p:${p.toFixed(3)}"></i><b>${f(inside)}</b>${price}</span>`;
+      if (hn && lo <= hn && hn <= hi) out += '<span class="set2-us-cap" aria-hidden="true"></span>';
     }
     return { html: out, q: q, n: n, fore: fore, sh: sh };
   }
@@ -4153,18 +4197,23 @@
                       aria-checked="${x.prod === m.prod}" tabindex="${x.prod === m.prod ? 0 : -1}"
                       data-us-meter="${x.id}" data-us-prod="${x.prod}">${esc(x.name)}</button>`).join('')}
           </div>
-          ${usUnits(m.prod).length > 1 ? `
           <!-- The units hang from the chosen product on a stem (Nour 21 Oct,
-               variant D): usSegInd puts the stem under the product's middle. -->
+               variant D): usSegInd puts the stem under the product's middle.
+               A product with one unit hangs it alone (Nour 22 Oct), and the
+               gear at the end opens Limits and stops in the card's facts. -->
           <div class="set2-us-hang">
             <span class="set2-us-stem" aria-hidden="true"></span>
-            <div class="seg set2-us-useg" role="radiogroup" aria-label="Which ${esc(m.name)} unit">
-              ${usUnits(m.prod).map((x) => `
-                <button class="seg-btn${x.id === m.id ? ' active' : ''}" type="button" role="radio"
-                        aria-checked="${x.id === m.id}" tabindex="${x.id === m.id ? 0 : -1}"
-                        data-us-meter="${x.id}">${esc(x.uname)}</button>`).join('')}
+            <div class="set2-us-urow">
+              <div class="seg set2-us-useg" role="radiogroup" aria-label="Which ${esc(m.name)} unit">
+                ${usUnits(m.prod).map((x) => `
+                  <button class="seg-btn${x.id === m.id ? ' active' : ''}" type="button" role="radio"
+                          aria-checked="${x.id === m.id}" tabindex="${x.id === m.id ? 0 : -1}"
+                          data-us-meter="${x.id}">${esc(x.uname)}${usGlyph(x, pl.id)}</button>`).join('')}
+              </div>
+              <button class="set2-us-gear" type="button" data-us-gear aria-expanded="${US_GEAR}"
+                      aria-label="Limits and stops" title="Limits and stops">${I.gear}</button>
             </div>
-          </div>` : ''}
+          </div>
           </div>
         </div>
         ${pl.people ? usHero(m, id) + usAlloc(m, id, st) : usLadder(pl, st)}
@@ -4221,7 +4270,9 @@
       </li>`;
     const L = usLimit(m, id);
     const used = usUsed(m, id);
-    const pace = d === 1 ? usPlanWord(m, id, used) : usPaceWord(m, used, id ? L : 0);
+    const stop = usStopped(m, id);
+    const pace = stop ? ['is-err', stop.by === 'limit' ? 'Limit reached' : 'Stopped']
+      : d === 1 ? usPlanWord(m, id, used) : usPaceWord(m, used, id ? L : 0);
     const lock = US_EDIT ? ' disabled title="Save or cancel the limits you are editing first"' : '';
     return `
       <li class="set2-us-lv${next != null ? ' is-path' : ''}">
@@ -4374,28 +4425,40 @@
       : parent && parent.id ? 'an equal share of ' + where + '’s' : 'an equal share of what everyone is expected to use';
     /* Every slice past a plan or a share carries its price on hover, at
        every level (Nour 21 Oct); only the organization's are billed. */
-    const c = usCells(m, used, id ? (paid ? plan * US_SLICE[m.id] : L) : 0, 60, !!id);
+    /* A hard stop shows here as its result only (Nour 22 Oct): red slices
+       and a pill once something stops, a red cap where a limit ends the
+       strip, a line over the card when more than this unit is stopped. */
+    const stop = usStopped(m, id);
+    const hard = paid ? US_HARD[m.id][id] : null;
+    const left = hard != null && !stop ? hard - used : null;
+    const c = usCells(m, used, id ? (paid ? plan * US_SLICE[m.id] : L) : 0, 60, !!id, hard);
     const z = US_SLICE[m.id];
     const fp = Math.round(usSliceP(m, used) * 100);
+    const state = stop ? pill('is-err', stop.by === 'limit' ? 'Limit reached' : 'Stopped')
+      : left != null && left <= Math.max(z, hard * 0.08) ? pill('is-info', usFmt(left) + ' left before the limit') : '';
+    const facts = (inner) => US_GEAR ? `<div class="set2-us-facts is-gear${US_GEAR_IN ? ' is-in' : ''}" role="region" aria-label="Limits and stops">${usGearPanel(m, id)}</div>`
+      : `<dl class="set2-us-facts">${inner}</dl>`;
+    const pace = stop ? usStopFact(m, stop) : usPaceFact(m, used, L, id);
     if (paid) return `
       <div class="set2-us-hero">
         <div class="set2-us-now">
           <span class="set2-us-k">${AIMY_MK(12, 14)}<span>${esc(x.n.name)} · Used in ${US_PERIOD.name}</span>
-            ${bad ? pill(bad[0], bad[0] === 'is-warn' ? 'Past the plan, nothing stopped' : bad[1]) : ''}</span>
+            ${state || (bad ? pill(bad[0], bad[0] === 'is-warn' ? 'Past the plan, nothing stopped' : bad[1]) : '')}</span>
+          ${usStopLine(m, stop, x)}
           <p class="set2-us-big"><b class="set2-num">${usFmt(used)}</b>
             <span>${esc(m.unit)}, ${xs ? `slice ${c.n}: <span class="set2-us-xs">${xs} extra slice${xs === 1 ? '' : 's'} so far</span>`
               : `slice ${c.n} of the ${plan} in the plan, ${fp}% full`}</span></p>
-          <div class="set2-us-cells is-paid" role="img" aria-label="Slice ${c.n}, ${fp}% full. The plan is ${plan} slices${
-            xs ? ', ' + xs + ' started past it' : ''}">${c.html}</div>
+          <div class="set2-us-cells is-paid${stop ? ' is-stopped' : ''}" role="img" aria-label="Slice ${c.n}, ${fp}% full. The plan is ${plan} slices${
+            xs ? ', ' + xs + ' started past it' : ''}${hard != null ? '. It stops at ' + usFmt(hard) : ''}">${c.html}</div>
           <p class="set2-us-key"><span><i></i>Used</span><span><i class="is-fore"></i>The rest of ${US_PERIOD.name} at today’s pace</span><span><i class="is-share"></i>The plan: ${
-            plan} slices, ${esc(src)}</span><span>${c.q > 1 ? 'A cell is ' + c.q + ' slices of ' + usFmt(z) : 'A cell is one slice, ' + usFmt(z)} ${esc(m.unit)}. Each slice past the plan is billed when it starts.</span></p>
+            plan} slices, ${esc(src)}</span>${hard != null ? `<span><i class="is-cap"></i>Stops at ${usFmt(hard)}</span>` : ''}<span>${c.q > 1 ? 'A cell is ' + c.q + ' slices of ' + usFmt(z) : 'A cell is one slice, ' + usFmt(z)} ${esc(m.unit)}. Each slice past the plan is billed when it starts.</span></p>
         </div>
-        <dl class="set2-us-facts">
+        ${facts(`
           ${usExtraFact(m, id, used)}
-          ${usPaceFact(m, used, L, id)}
+          ${pace}
           ${usWatchFact(m, id)}
           ${usSessFact(m, id)}
-        </dl>
+          ${usHardFact(m, id)}`)}
       </div>`;
     return `
       <div class="set2-us-hero">
@@ -4405,21 +4468,144 @@
                own symbol rather than a word. -->
           <span class="set2-us-k">${AIMY_MK(12, 14)}<span>${id ? esc(x.n.name) : 'Everyone'} · Used in ${
             US_PERIOD.name}</span>
-            ${bad ? pill(bad[0], bad[1]) : ''}</span>
+            ${state || (bad ? pill(bad[0], bad[1]) : '')}</span>
+          ${usStopLine(m, stop, x)}
           <p class="set2-us-big"><b class="set2-num">${usFmt(used)}</b>
             <span>${esc(m.unit)}, ${c.n - 1 === 1 ? '1 slice' : (c.n - 1) + ' slices'} full and slice ${c.n} at ${fp}%</span></p>
-          <div class="set2-us-cells${id ? ' is-paid' : ''}" role="img" aria-label="${c.n - 1} slices full, slice ${c.n} ${fp}% full${
+          <div class="set2-us-cells${id ? ' is-paid' : ''}${stop ? ' is-stopped' : ''}" role="img" aria-label="${c.n - 1} slices full, slice ${c.n} ${fp}% full${
             id ? ', its share ends after slice ' + c.sh : ''}">${c.html}</div>
           <p class="set2-us-key"><span><i></i>Used</span><span><i class="is-fore"></i>The rest of ${US_PERIOD.name} at today’s pace</span>${
             id ? `<span><i class="is-share"></i>Share: ${usFmt(L)}, ${esc(src)}</span>` : ''}<span>${
             c.q > 1 ? 'A cell is ' + c.q + ' slices of ' + usFmt(z) : 'A cell is one slice, ' + usFmt(z)} ${esc(m.unit)}</span></p>
         </div>
-        <dl class="set2-us-facts">
-          ${usPaceFact(m, used, L, id)}
+        ${facts(`
+          ${pace}
           ${usWatchFact(m, id)}
           ${x.depth === 1 ? usSessFact(m, id) : usTopFact(m, id, used)}
           ${x.depth === 0 ? usTotFact(m) + usSliceFact(m) : ''}
-        </dl>
+          ${usHardFact(m, id)}`)}
+      </div>`;
+  }
+
+  /* ── THE HARD STOP ON THE PAGE (Nour 22 Oct) ──
+     The switch says it first: a lock on a unit with a limit, a stop mark on
+     one that is stopped. The card says the rest in words. */
+  function usGlyph(x, id) {
+    const o = usOrg(id);
+    if (!o) return '';
+    const s = usStopped(x, id);
+    if (s && s.by !== 'limit') return `<span class="set2-us-glyph is-stop" title="Stopped">${I.octX}</span>`;
+    return US_HARD[x.id][o] != null ? `<span class="set2-us-glyph" title="Has a hard limit">${I.lock}</span>` : '';
+  }
+  /* A stop wider than the unit on the card (the organization, or its whole
+     product) gets a line over the card; the way back is the gear. */
+  function usStopLine(m, s, x) {
+    if (!s || (s.by !== 'org' && s.by !== 'prod')) return '';
+    const on = usAt(s.org).n.name;
+    return `<p class="set2-us-stopln" role="status">${I.octX}<span><b>${s.by === 'org' ? 'All of ' + esc(on) + ' is stopped'
+      : esc(on) + '’s ' + esc(m.name) + ' is stopped'}</b> since ${esc(s.at)}${x.depth > 1 ? ', so ' + esc(x.n.name) + ' is too' : ''}. Resume it from Limits and stops.</p>`;
+  }
+  function usStopFact(m, s) {
+    return `
+      <div class="set2-us-fact">
+        <dt>At this pace</dt>
+        <dd><b class="is-err">${s.by === 'limit' ? 'Limit reached' : 'Stopped'}</b><span>${esc(usStopWords(m, s))}</span></dd>
+      </div>`;
+  }
+  /* when a limit is reached at the organization's pace */
+  function usReach(m, o, h) {
+    const used = usUsed(m, o), rate = used / US_PERIOD.day;
+    if (used >= h) return 'Reached. They start again ' + US_PERIOD.resets + '.';
+    const d = rate ? Math.floor(US_PERIOD.day + (h - used) / rate) : Infinity;
+    return d <= US_PERIOD.days ? 'Reached around ' + d + ' ' + US_PERIOD.short + ' at this pace.' : 'Not reached in ' + US_PERIOD.name + ' at this pace.';
+  }
+  /* The limit as a fact: an organization always says it; a company or a
+     product under one says the organization's when there is one; everyone
+     lists who is stopped or limited, when anyone is. */
+  function usHardFact(m, id) {
+    const x = usAt(id), o = usOrg(id);
+    if (!o) {
+      const set = usKids(m, '').filter((k) => usStopped(m, k.id) || US_HARD[m.id][k.id] != null);
+      if (!set.length) return '';
+      return `
+      <div class="set2-us-fact">
+        <dt>Stopped or limited</dt>
+        <dd><b>${esc(set.map((k) => k.name).join(', '))}</b><span>${esc(set.map((k) => {
+          const s = usStopped(m, k.id);
+          return k.name + ': ' + (s ? (s.by === 'limit' ? 'limit reached' : 'stopped') : 'stops at ' + usFmt(US_HARD[m.id][k.id]));
+        }).join('. '))}</span></dd>
+      </div>`;
+    }
+    const h = US_HARD[m.id][o], on = usAt(o).n.name, used = usUsed(m, o);
+    if (x.depth > 1 && h == null) return '';
+    return `
+      <div class="set2-us-fact">
+        <dt>${x.depth > 1 ? esc(on) + '’s hard limit' : 'Hard limit'}</dt>
+        <dd><b class="${h != null && used >= h ? 'is-err' : ''}">${h == null ? 'None' : 'Stops at ' + usFmt(h) + ' ' + esc(m.unit)}</b><span>${
+          h == null ? 'Past the plan it keeps going, billed'
+          : x.depth > 1 ? (used >= h ? 'Reached, for everything in ' + esc(on) : usFmt(h - used) + ' left for all of ' + esc(on))
+          : esc(usReach(m, o, h)) + ' Every month, set by FlairsTech.'}</span></dd>
+      </div>`;
+  }
+
+  /* ── LIMITS AND STOPS, IN THE FACTS COLUMN (Nour 22 Oct, variant B) ──
+     The gear swaps the card's facts for these, in the same place and at the
+     same size, so the strip stays beside every change. They are always the
+     organization's: on a company or a product the list is its organization's
+     and says so; on Everyone it lists the organizations. Each press acts at
+     once and can be undone from the toast. */
+  function usGearPanel(m, id) {
+    const o = usOrg(id);
+    const head = `
+      <div class="set2-us-g-hd"><span class="set2-us-g-t">${I.gear}<b>Limits and stops</b></span>
+        <button class="set2-us-g-x" type="button" data-us-gear aria-label="Close Limits and stops" title="Close">${I.x}</button></div>`;
+    const stopB = (key, what) => `<button class="btn btn-ghost btn-sm set2-us-g-stop" type="button" data-us-stop="${esc(key)}">${I.octX}Stop ${esc(what)}</button>`;
+    const resB = (key) => `<button class="btn btn-ghost btn-sm" type="button" data-us-resume="${esc(key)}">${I.play}Resume</button>`;
+    if (!o) return `${head}
+      <p class="set2-us-g-scope">${esc(m.name)}, by organization. Limits are set inside each one; its name takes you there.</p>
+      <div class="set2-us-g-list">${usKids(m, '').map((k) => {
+        const key = 'prod|' + k.id + '|' + m.prod, all = US_STOP['org|' + k.id], at = all || US_STOP[key], h = US_HARD[m.id][k.id];
+        return `
+        <div class="set2-us-g-org${at ? ' is-off' : ''}">
+          <span><button class="set2-us-who is-strong" type="button" data-us-go="${esc(k.id)}">${esc(k.name)}</button>
+            <span class="${at ? 'is-err' : ''}">${at ? 'Stopped since ' + esc(at) : h != null ? 'Running. Stops at ' + usFmt(h) + ' ' + esc(m.unit) : 'Running. No limit'}</span></span>
+          ${all ? `<span class="set2-us-g-with">All of ${esc(k.name)}</span>` : at ? resB(key) : stopB(key, m.name)}
+        </div>`;
+      }).join('')}</div>`;
+    const on = usAt(o).n.name, units = usUnits(m.prod), x = usAt(id);
+    const unitRow = (u) => {
+      const s = usStopped(u, o), key = usStopKey('unit', o, u), mine = US_STOP[key], h = US_HARD[u.id][o];
+      const wide = s && (s.by === 'org' || s.by === 'prod');
+      const ref = u.id + '|' + o;
+      return `
+        <div class="set2-us-g-u${u.id === m.id && units.length > 1 ? ' is-sel' : ''}${mine ? ' is-off' : ''}">
+          <div class="set2-us-g-r"><span><b>${esc(u.uname)}</b> <span class="${mine || (s && s.by === 'limit') ? 'is-err' : ''}">${
+            mine ? 'stopped since ' + esc(mine) : s && s.by === 'limit' ? 'limit reached' : wide ? '' : 'running'}</span></span>
+            ${wide ? `<span class="set2-us-g-with">With ${esc(s.by === 'org' ? on : u.name)}</span>` : mine ? resB(key) : stopB(key, u.unit)}</div>
+          <div class="set2-us-g-r"><span>Hard limit a month</span>${h != null ? `
+            <span class="set2-us-g-lim"><span class="set2-us-g-step">
+              <button type="button" data-us-hard="${esc(ref)}|-1" aria-label="One slice less">${I.minus}</button>
+              <output class="set2-num">${usFmt(h)} ${esc(u.unit)}</output>
+              <button type="button" data-us-hard="${esc(ref)}|1" aria-label="One slice more">${I.plus}</button></span>
+              <button class="set2-us-g-x" type="button" data-us-hard-off="${esc(ref)}" aria-label="Remove the limit" title="Remove the limit">${I.x}</button></span>`
+            : `<button class="btn btn-ghost btn-sm" type="button" data-us-hard-on="${esc(ref)}">${I.lock}Set a limit</button>`}</div>
+          <p class="set2-us-g-sub">${h != null ? esc(usReach(u, o, h)) : 'None: past the plan it keeps going, billed by the slice.'}</p>
+        </div>`;
+    };
+    const wideRow = (key, title, sub, what) => {
+      const at = US_STOP[key], all = key !== 'org|' + o && US_STOP['org|' + o];
+      return `
+        <div class="set2-us-g-org${at ? ' is-off' : ''}">
+          <span><b>${esc(title)}</b><span class="${at ? 'is-err' : ''}">${at ? 'Stopped since ' + esc(at) : esc(sub)}</span></span>
+          ${all ? `<span class="set2-us-g-with">With ${esc(on)}</span>` : at ? resB(key) : stopB(key, what)}
+        </div>`;
+    };
+    return `${head}
+      <p class="set2-us-g-scope">${esc(on)}’s ${esc(m.name)}${x.depth > 1 ? ', for everything in ' + esc(on) + '. Limits and stops belong to the organization.' : '. Only FlairsTech can change these.'}</p>
+      <div class="set2-us-g-list">
+        ${units.map(unitRow).join('')}
+        ${units.length > 1 ? wideRow('prod|' + o + '|' + m.prod, 'All of ' + m.name, units.map((u) => u.unit).join(' and ') + ' together', m.name) : ''}
+        ${wideRow('org|' + o, 'All of ' + on, 'Every product, for everyone at ' + on, on)}
       </div>`;
   }
 
@@ -4465,7 +4651,7 @@
     const plan = usPlanN(m, id), xs = usExtraN(m, id, used), pr = US_PRICE[m.id];
     return `
       <div class="set2-us-fact">
-        <dt>Extra this month ${tip('usExtraTip', 'extra slices', 'Use never stops. Each slice past the plan is billed to '
+        <dt>Extra this month ${tip('usExtraTip', 'extra slices', 'Past the plan use keeps going, unless FlairsTech set a hard limit. Each slice past the plan is billed to '
           + usAt(id).n.name + ' when it starts, ' + usMoney(pr) + ' a slice of ' + usFmt(US_SLICE[m.id]) + ' ' + m.unit + '. The price is an example.')}</dt>
         <dd><b class="${xs ? 'is-warn' : ''}">${usMoney(xs * pr)}</b><span>${xs
           ? xs + ' slice' + (xs === 1 ? '' : 's') + ' past the plan, ' + usMoney(pr) + ' each'
@@ -4792,6 +4978,7 @@
     /* an organization's row is measured against its plan, in whole slices */
     const org = x.depth === 1;
     const bad = usStanding(used, org ? usPlanN(m, k.id) * US_SLICE[m.id] : lim, org);
+    const stop = usStopped(m, k.id);
     const isSet = US_EDIT ? usParse(US_EDIT.vals[k.id]) != null && !isNaN(usParse(US_EDIT.vals[k.id]))
                           : US_SET[m.id][k.id] != null;
     const sub = (() => {
@@ -4830,8 +5017,9 @@
         ${x.depth === 2 && !US_EDIT ? usAlso(m, k) : ''}
         <span class="set2-us-use">
           <span class="set2-us-use-t"><b class="set2-num">${usFmt(used)}</b>
-            ${bad ? pill(bad[0], bad[1]) : `<span class="set2-us-pc">slice ${usSliceN(m, used)}</span>`}</span>
-          <span class="set2-us-cells is-sm" aria-hidden="true">${usCells(m, used, org ? usPlanN(m, k.id) * US_SLICE[m.id] : lim, 24, true).html}</span>
+            ${stop ? pill('is-err', stop.by === 'limit' ? 'Limit reached' : 'Stopped') : bad ? pill(bad[0], bad[1]) : `<span class="set2-us-pc">slice ${usSliceN(m, used)}</span>`}</span>
+          <span class="set2-us-cells is-sm${stop ? ' is-stopped' : ''}" aria-hidden="true">${usCells(m, used, org ? usPlanN(m, k.id) * US_SLICE[m.id] : lim, 24, true,
+            org ? US_HARD[m.id][k.id] : null).html}</span>
         </span>
         <span class="set2-us-r-lim">
           ${US_EDIT ? `
@@ -5001,13 +5189,15 @@
        (they never start left of the switch). */
     const hang = seg.parentElement.querySelector('.set2-us-hang');
     const stem = hang && hang.querySelector('.set2-us-stem'), useg = hang && hang.querySelector('.set2-us-useg');
+    const urow = hang && hang.querySelector('.set2-us-urow');
     const seat = () => {
       if (!hang) return;
       /* measured against the column it hangs in, not offsetLeft, whose
-         parent changes with what the page is showing */
+         parent changes with what the page is showing; the units centre on
+         the stem and the gear trails them */
       const a = on.getBoundingClientRect(), cx = a.left + a.width / 2 - seg.parentElement.getBoundingClientRect().left;
       stem.style.marginLeft = (cx - stem.offsetWidth / 2) + 'px';
-      useg.style.marginLeft = Math.max(0, cx - useg.offsetWidth / 2) + 'px';
+      urow.style.marginLeft = Math.max(0, cx - useg.offsetWidth / 2) + 'px';
     };
     place(); seat();
     seg.classList.add('has-ind');
@@ -5035,6 +5225,23 @@
       if (!h) return;
       const top = h.getBoundingClientRect().top;
       if (top < 64 || top > innerHeight * 0.6) h.scrollIntoView({ block: 'start',
+        behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    };
+    const M = window.AIMY_MOTION;
+    if (M && M.afterPaint) M.afterPaint(go); else setTimeout(go, 0);
+  }
+
+  /* The gear's column is on the card of the level you are on, which sits
+     lower the deeper you are (Nour 22 Oct: "on deeper levels it won't be very
+     visible"). When it opens out of view, the page brings it in. */
+  function usGearReveal() {
+    const go = () => {
+      const f = $('.set2-us-facts.is-gear');
+      if (!f) return;
+      /* the card's top, so the strip comes with it; the card keeps a
+         scroll margin for the top bar */
+      const card = f.closest('.set2-us-hero') || f, r = card.getBoundingClientRect();
+      if (r.top < 64 || r.top > innerHeight * 0.5) card.scrollIntoView({ block: 'start',
         behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
     };
     const M = window.AIMY_MOTION;
@@ -10460,6 +10667,56 @@
       US_SESS_ED = null; US_BACK = null;
       patch({ meter: v === 'copilot' ? '' : v, pool: id, at: '', f: withF(st, 'uq', null) });
       usSeat();
+      return;
+    }
+    /* ── Limits and stops (Nour 22 Oct) ──
+       The gear swaps the card's facts for them and brings that column into
+       view; closing puts the facts back and the focus on the gear. Every
+       change acts at once, with an undo in the toast. */
+    if (e.target.closest('[data-us-gear]')) {
+      US_GEAR = !US_GEAR;
+      US_GEAR_IN = US_GEAR;
+      render(() => {
+        US_GEAR_IN = false;
+        if (US_GEAR) { usGearReveal(); const t = $('.set2-us-facts.is-gear .set2-us-g-x'); if (t) t.focus({ preventScroll: true }); }
+        else { const g = $('.set2-us-gear'); if (g) g.focus(); }
+      });
+      return;
+    }
+    const usSt = e.target.closest('[data-us-stop], [data-us-resume]');
+    if (usSt) {
+      const stopIt = usSt.hasAttribute('data-us-stop');
+      const key = usSt.getAttribute(stopIt ? 'data-us-stop' : 'data-us-resume');
+      const [by, o, what] = key.split('|');
+      const was = US_STOP[key];
+      if (stopIt) US_STOP[key] = usStopNow(); else delete US_STOP[key];
+      const on = usAt(o).n.name;
+      const name = by === 'org' ? 'all of ' + on + '’s AiMY use' : by === 'prod' ? on + '’s ' + usMeter(US_METERS.find((x) => x.prod === what).id).name
+        : on + '’s ' + usMeter(what).name + ' ' + usMeter(what).unit;
+      if (API && API.toast) API.toast((stopIt ? 'Stopped ' : 'Resumed ') + name + '.', () => {
+        if (was) US_STOP[key] = was; else delete US_STOP[key];
+        render();
+      });
+      render(() => { const b = $('[data-us-' + (stopIt ? 'resume' : 'stop') + '="' + key + '"]'); if (b) b.focus({ preventScroll: true }); });
+      return;
+    }
+    const usH = e.target.closest('[data-us-hard], [data-us-hard-on], [data-us-hard-off]');
+    if (usH) {
+      const a = usH.hasAttribute('data-us-hard') ? 'step' : usH.hasAttribute('data-us-hard-on') ? 'on' : 'off';
+      const [mid, o, dir] = usH.getAttribute(a === 'step' ? 'data-us-hard' : a === 'on' ? 'data-us-hard-on' : 'data-us-hard-off').split('|');
+      const m0 = usMeter(mid), z = US_SLICE[mid], was = US_HARD[mid][o];
+      if (a === 'on') US_HARD[mid][o] = Math.max(usPlanN(m0, o) * z, Math.ceil(usUsed(m0, o) / z) * z) + 2 * z;
+      else if (a === 'step') US_HARD[mid][o] = Math.max(z, was + (+dir) * z);
+      else delete US_HARD[mid][o];
+      const on = usAt(o).n.name, what = on + '’s ' + m0.name + ' ' + m0.unit;
+      if (API && API.toast) API.toast(US_HARD[mid][o] == null ? 'No hard limit on ' + what + '. Past the plan they are billed by the slice.'
+        : what.charAt(0).toUpperCase() + what.slice(1) + ' stop at ' + usFmt(US_HARD[mid][o]) + ' a month.', () => {
+        if (was == null) delete US_HARD[mid][o]; else US_HARD[mid][o] = was;
+        render();
+      });
+      const sel = a === 'off' ? '[data-us-hard-on="' + mid + '|' + o + '"]' : a === 'on' ? '[data-us-hard="' + mid + '|' + o + '|1"]'
+        : '[data-us-hard="' + mid + '|' + o + '|' + dir + '"]';
+      render(() => { const b = $(sel); if (b) b.focus({ preventScroll: true }); });
       return;
     }
     /* A level already on the path unfolds and keeps what is under it
