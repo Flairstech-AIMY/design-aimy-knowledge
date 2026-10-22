@@ -92,20 +92,13 @@
 .nt-wd { transition: opacity var(--t-slow) var(--ease-out), filter var(--t-slow) var(--ease-out); }
 .nt-wd.is-pre { opacity: 0; filter: blur(0.0625rem); }
 @keyframes nt-rise { from { opacity: 0; transform: translateY(0.5rem); filter: blur(0.125rem); } to { opacity: 1; transform: none; filter: none; } }
-.nt-cl, .nt-an, .nt-yn, .nt-q, .nt-am, .nt-solo { animation: nt-rise var(--t-base) var(--ease-out) both; }
+.nt-cl, .nt-an, .nt-yn, .nt-q, .nt-am { animation: nt-rise var(--t-base) var(--ease-out) both; }
 /* What you said: one speaker, so a transcript rather than bubbles. The time
    sits in a margin of its own and the words run beside it; consecutive lines
    sit closer than the things around them. */
 .nt-cl { display: grid; grid-template-columns: 2.25rem minmax(0, 1fr); gap: 0.5rem; align-items: baseline; }
 .nt-cl time { font-size: var(--ty-micro); color: var(--ink-secondary); font-variant-numeric: tabular-nums; }
 .nt-cl + .nt-cl { margin-top: -0.25rem; }
-/* Said once, first in the stream: what AiMY can hear, and the way round it. */
-.nt-solo { display: grid; grid-template-columns: 1rem minmax(0, 1fr); gap: 0.25rem 0.5rem; align-items: start; padding: 0.625rem 0.75rem; border-radius: 0.75rem;
-  background: var(--aimy-wash); box-shadow: inset 0 0 0 0.0625rem var(--aimy-wash-edge); }
-.nt-solo > .nt-ic { color: var(--nt-brand-ink); margin-top: 0.125rem; }
-.nt-solo p { margin: 0; font-size: var(--ty-meta); color: var(--ink-primary); line-height: 1.5; }
-.nt-solo .nt-pill { grid-column: 2; justify-self: start; margin-top: 0.25rem; }
-.nt-solo .nt-pill .nt-ic { color: var(--nt-brand-ink); }
 .nt-cl p, .nt-an p, .nt-yn p, .nt-am-b p { margin: 0; font-size: var(--ty-meta); color: var(--ink-primary); line-height: 1.5; }
 .nt-av { width: 1.75rem; height: 1.75rem; border-radius: 50%; object-fit: cover; flex: none; display: grid; place-items: center;
   font-size: 0.6875rem; font-weight: var(--fw-bold); background: var(--card-bg-raised); box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover); color: var(--ink-primary); }
@@ -296,7 +289,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .nt-w, .nt-fold, .nt-card, .nt-badge, .nt-tabs button, .nt-wd, .nt-x { transition: none; }
-  .nt-cl, .nt-an, .nt-yn, .nt-q, .nt-am, .nt-solo, .nt-np li, .nt-cons > *, .nt-step .nt-ic, .nt-step b, .nt-rec { animation: none; }
+  .nt-cl, .nt-an, .nt-yn, .nt-q, .nt-am, .nt-np li, .nt-cons > *, .nt-step .nt-ic, .nt-step b, .nt-rec { animation: none; }
   .nt-wd.is-pre { opacity: 1; filter: none; }
 }
 

@@ -6,8 +6,7 @@
 
    AIMY HEARS ONLY YOU. It is not a guest in the meeting: it listens through
    your microphone, so the transcript is what you said. What others say gets
-   in through your notes, and the summary is written from both. The stream
-   says so once, at the top, with a way to add a note.
+   in through your notes, and the summary is written from both.
 
    ONE CONVERSATION, TWO PLACES. The orb opens into a card; the card opens into
    the AiMY canvas. Both are drawn from the one model below — the stream, the
@@ -52,7 +51,6 @@
     square: '<rect width="18" height="18" x="3" y="3" rx="2"/>',
     max: '<polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/>',
     min: '<polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/>',
-    mic: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>',
     pen: '<path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/>',
     up: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
     send: '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/>',
@@ -331,7 +329,6 @@
   function paintClock() { const t = clock(S.clock); slots('timer').forEach((e) => { e.textContent = t; }); }
 
   function itemHTML(it) {
-    if (it.type === 'solo') return `<div class="nt-solo">${ic('mic', 15)}<p>AiMY hears only you, through your microphone. For what others say, add a note.</p><button class="nt-pill" type="button" data-nt-act="note">${ic('pen', 12)}Add a note</button></div>`;
     /* Every line is yours, so no names and no bubbles: a transcript, with
        the time in the margin. */
     if (it.type === 'line') return `<div class="nt-cl"><time>${clock(it.t)}</time><p>${words(L[it.i].x)}</p></div>`;
@@ -436,7 +433,7 @@
     clearAll();
     mountWidget();
     Object.assign(S, { phase: o.phase || 'live', view: o.view || 'fold', tab: o.tab || 'chat', draft: '', drafts: { chat: '', notes: '' }, how: '', clock: o.clock || 0,
-                       unread: o.unread || 0, items: [{ type: 'solo' }], steps: null, nfs: [], failNext: false, closed: false, speaking: false });
+                       unread: o.unread || 0, items: [], steps: null, nfs: [], failNext: false, closed: false, speaking: false });
     S.n = o.n || 0;
     for (let i = 0; i < S.n; i++) {
       S.items.push({ type: 'line', i, t: L[i].t });
@@ -724,7 +721,6 @@
     else if (act === 'close') closeWidget();
     else if (act === 'retry') retry();
     else if (act === 'open-notes') { S.tab = 'notes'; if (S.view === 'fold') setView('card'); else paint(); }
-    else if (act === 'note') { setTab('notes'); const i = S.view === 'canvas' ? cvParts && cvParts.input : $('.nt-in', root); if (i) i.focus({ preventScroll: true }); }
     else if (act === 'send') toast('Sent to Dana, Priya and Ahmed', 'Undo', 'The summary, decisions and to-dos. Your notes and the transcript stay with you.');
     else if (act === 'tasks') toast('4 tasks made', 'Undo', 'Each with its owner and date');
     else if (act === 'doc') toast('Saved as a Meeting notes document', null, 'Linked to Upland, with the full transcript');
