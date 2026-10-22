@@ -4625,7 +4625,8 @@
     return h != null ? `
       <span class="set2-us-g-step">
         <button type="button" data-us-hard="${esc(ref)}|-1" aria-label="${step} less">${I.minus}</button>
-        <output class="set2-num">${usFmt(h)} ${esc(u.unit)}</output>
+        <label class="set2-us-g-num"><input class="set2-us-g-in set2-num" data-us-hard-in="${esc(ref)}" value="${usFmt(h)}"
+          inputmode="numeric" autocomplete="off" spellcheck="false" aria-label="${esc(u.uname)} limit a month, in ${esc(u.unit)}"><span>${esc(u.unit)}</span></label>
         <button type="button" data-us-hard="${esc(ref)}|1" aria-label="${step} more">${I.plus}</button></span>`
       : `<button class="set2-us-g-set" type="button" data-us-hard-on="${esc(ref)}">Set a limit</button>`;
   }
@@ -4640,6 +4641,27 @@
     if (!usCan(key, !on)) return '';
     return `<button class="set2-us-sw" type="button" role="switch" aria-checked="${on}" aria-label="${esc(label)}" ${
       on ? 'data-us-stop' : 'data-us-resume'}="${esc(key)}"><i></i></button>`;
+  }
+  /* A typed limit (Nour 22 Oct: "an option to set any number on this not
+     just steps"): digits, or 12k. Saved on Enter or on leaving the field,
+     with the toast's undo; nothing that is not a whole number above zero is
+     saved, and the field says why and goes back. */
+  function usHardType(inp) {
+    const [mid, o] = inp.getAttribute('data-us-hard-in').split('|');
+    const m0 = usMeter(mid), was = US_HARD[mid][o], hk = usHardKey(m0, o);
+    const v = usParse(inp.value);
+    if (v === was) { inp.value = usFmt(was); return; }
+    if (v == null || isNaN(v) || v < 1 || !usCan(hk, true)) {
+      inp.value = usFmt(was);
+      if (API && API.toast) API.toast('Type a whole number of ' + m0.unit + ', like 12000 or 12k.');
+      return;
+    }
+    US_HARD[mid][o] = v;
+    const what = (o ? usName(o) + '’s ' : 'everyone’s ') + m0.name + ' ' + m0.unit;
+    if (API && API.toast) API.toast(usCap(what) + ' stop at ' + usFmt(v) + ' a month.', () => { US_HARD[mid][o] = was; render(); });
+    /* Enter keeps you in the field to type again; leaving it stays left */
+    const sel = '[data-us-hard-in="' + mid + '|' + o + '"]', had = document.activeElement === inp;
+    render(() => { const f = $(sel); if (f && had) { f.focus({ preventScroll: true }); f.select(); } });
   }
   /* the small line under a limit: who set it, then what happens next */
   function usGLimitSay(u, id, x) {
@@ -12676,6 +12698,8 @@
   });
 
   document.addEventListener('change', (e) => {
+    const hi = e.target.closest('[data-us-hard-in]');
+    if (hi) { usHardType(hi); return; }
     const fs = e.target.closest('[data-f]');
     if (fs) { const st = readURL();
       patch({ f: withF(st, fs.getAttribute('data-f'), fs.value) }); return; }
@@ -12775,6 +12799,15 @@
   document.addEventListener('keydown', (e) => {
     /* Usage: Enter saves and Escape cancels, in the split and in the session
        field alike; the meter switch is a radiogroup like the two below. */
+    const usHI = e.target.closest && e.target.closest('[data-us-hard-in]');
+    if (usHI && (e.key === 'Enter' || e.key === 'Escape')) {
+      e.preventDefault();
+      if (e.key === 'Enter') { usHardType(usHI); return; }
+      const [mid, o] = usHI.getAttribute('data-us-hard-in').split('|');
+      usHI.value = usFmt(US_HARD[mid][o]);
+      usHI.blur();
+      return;
+    }
     const usT = e.target.closest && e.target.closest('[data-us-tot-in]');
     if (usT && (e.key === 'Enter' || e.key === 'Escape')) {
       e.preventDefault();
