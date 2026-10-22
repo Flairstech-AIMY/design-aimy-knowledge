@@ -9237,6 +9237,9 @@
        dead — Sync now, Reconnect, schedule, retention and grounding all wrote
        correctly and left the conversation showing the old numbers. */
     ask(text, basis, answer, opt) {
+      /* Chats stopped (Nour 22 Oct): nothing is asked or counted; the toast
+         says why and what happens next. */
+      if (useRefuse()) return;
       /* ══ EVERY QUESTION BELONGS TO A CONVERSATION ════════════════════
          Asked outside one, a question starts one, titled with itself — the
          same rule every thread list uses and the only one that does not ask
@@ -11362,7 +11365,8 @@
       ]],
       /* Your usage widget (the AiMY mark's popover) in each state. */
       ['Usage widget, each state', 'Opens your usage on the AiMY mark in that state.', [
-        ['chats over, tickets within', 'uw:chats'], ['over on both', 'uw:both'], ['within both', 'uw:none']
+        ['chats over, tickets within', 'uw:chats'], ['over on both', 'uw:both'], ['within both', 'uw:none'],
+        ['FlairsTech at its chats limit', 'uw:limit'], ['IT Helpdesk chats stopped', 'uw:team'], ['your chats stopped', 'uw:mine']
       ]],
       ['Non-happy states', '', [
         ['loading', 'url:?state=loading'],
@@ -15728,6 +15732,33 @@
       + (within.length ? esc(cap(within.join(' and '))) + ' are within your share. ' : '');
   };
   const useMeter = (p, lv) => `<span class="use-pop-m ${lv}" aria-hidden="true"><i style="--p:${Math.min(1, Math.max(0, p)).toFixed(4)}"></i></span>`;
+  /* ── Stopped, or at a limit (Nour 22 Oct, the hard stop) ──
+     An admin can now stop a unit, or give a level a limit it stops at. The
+     widget says which, where it was set (you, your team, your
+     organization) and what happens next: a limit lifts on the 1st, a stop
+     waits for an admin. Two sentences: what happened, in red, then the way
+     forward in plain ink. */
+  function useStopSay(x) {
+    const s = x.stop;
+    if (s.limit) return s.mine
+      ? [`You have used your ${useFmt(s.lim)} ${x.unit} for ${USE_MONTH()}.`, `They start again ${s.resets}.`]
+      : [`${s.where} has used all the ${x.unit} it can in ${USE_MONTH()}.`, `They start again ${s.resets}.`];
+    return s.mine ? [`An admin has stopped your ${x.unit}.`, 'Ask your admin to turn them back on.']
+      : [`An admin has stopped ${s.what} for ${s.where}.`, 'Your admin can turn them back on.'];
+  }
+  const USE_MONTH = () => useNow().month || 'this month';
+  /* the chats unit, which is what a question spends; its stop refuses one */
+  function useBlocked() {
+    const u = useNow(), units = u.units || [];
+    const c = units.find((x) => x.id === 'copilot') || units[0];
+    return c && c.stop ? { unit: c, say: useStopSay(c) } : null;
+  }
+  function useRefuse() {
+    const b = useBlocked();
+    if (!b) return false;
+    toast(b.say[0], null, b.say[1]);
+    return true;
+  }
   function usePopBody(u) {
     /* ── Distilled (21 Oct, /impeccable distill) ──
        The widget answers one question: how am I doing against my share, and
@@ -15739,13 +15770,23 @@
        and bar turn amber and one line says so in words. */
     const units = u.units && u.units.length ? u.units : [Object.assign({ name: 'Chats' }, u)];
     const line = (x) => {
+      if (x.stop) {
+        const say = useStopSay(x);
+        return `
+        <div class="use-pop-u"><span>${esc(x.name)}</span>
+          <b class="is-err">${x.stop.limit ? 'Limit reached' : 'Stopped'}</b></div>
+        ${useMeter(1, 'is-err')}
+        <p class="use-pop-s"><span class="is-err">${esc(say[0])}</span> ${esc(say[1])}</p>`;
+      }
       const past = useLevel(x.used, x.limit);
+      const n = x.near;
       return `
         <div class="use-pop-u"><span>${esc(x.name)}</span>
           <b class="${past}">${useFmt(x.used)} <small>of ${useFmt(x.limit)}</small></b></div>
         ${useMeter(x.limit ? x.used / x.limit : 0, past)}
-        ${past ? `<p class="use-pop-s"><span class="is-warn">${useFmt(x.used - x.limit)} ${esc(x.unit)} past your share, ${
-          useMoney((x.used - x.limit) * useUnitPrice(x))} extra this month.</span> You can keep going.</p>` : ''}`;
+        ${past && !n ? `<p class="use-pop-s"><span class="is-warn">${useFmt(x.used - x.limit)} ${esc(x.unit)} past your share, ${
+          useMoney((x.used - x.limit) * useUnitPrice(x))} extra this month.</span> You can keep going.</p>` : ''}
+        ${n ? `<p class="use-pop-s"><span class="is-warn">${n.mine ? 'You can' : esc(n.where) + ' can'} use ${useFmt(n.left)} more ${esc(x.unit)} this month.</span> Then they stop until ${esc(u.resets || '1 Nov')}.</p>` : ''}`;
     };
     const month = () => `
       <div class="use-pop-g">
@@ -15765,7 +15806,9 @@
   }
 
   /* ── The widget in each state (prototype panel) ──
-     Past your chats share only (the default), past both, or within both.
+     Past your chats share only (the default), past both, or within both;
+     and stopped three ways: FlairsTech at its chats limit, IT Helpdesk's
+     chats stopped, your own chats stopped.
      In the Console the figures are the Usage page's own (usMeState); on the
      gate they are the fixture. The popover opens pinned so it can be read. */
   const USE_AT = { chats: [1.12, 0.6], both: [1.12, 1.15], none: [0.62, 0.6] };
@@ -15774,8 +15817,15 @@
     if (S && S.usMeState) S.usMeState(name);
     else {
       const at = USE_AT[name] || USE_AT.chats;
-      USE_FALLBACK.units.forEach((x, i) => { x.used = Math.round(at[i] * x.limit); });
+      USE_FALLBACK.units.forEach((x, i) => { x.used = Math.round(at[i] * x.limit); x.stop = null; });
       USE_FALLBACK.used = USE_FALLBACK.units[0].used;
+      /* the stopped states, as the Console would report them for chats */
+      const STOP = {
+        limit: { limit: true, mine: false, where: 'FlairsTech', what: 'Copilot chats', lim: 3000, at: '', resets: '1 Nov' },
+        team: { limit: false, mine: false, where: 'IT Helpdesk', what: 'Copilot chats', lim: null, at: '22 Oct, 10:15', resets: '1 Nov' },
+        mine: { limit: false, mine: true, where: 'Nour Wael', what: 'Copilot chats', lim: null, at: '22 Oct, 10:15', resets: '1 Nov' }
+      };
+      USE_FALLBACK.units[0].stop = STOP[name] || null;
     }
     paintUseMark();
     const mark = $$(USE_MARK).filter((el) => el.offsetParent)[0];
@@ -15786,16 +15836,29 @@
      one that stops you: a session can run out long before the month does. */
   function paintUseMark() {
     const u = useNow();
-    const p = useSliceP(u);
+    /* stopped chats: the ring closes red, and the composer says so in its
+       own field, so the reason is in view before anything is typed */
+    const blk = useBlocked();
+    const p = blk ? 1 : useSliceP(u);
     const lv = [useLevel(u.used, u.limit), useLevel(USE_SESSION, u.sessLimit)];
-    const worst = lv.indexOf('is-warn') > -1 ? 'is-warn' : '';
-    const pct = 'slice ' + useSliceN(u) + ', ' + Math.round(p * 100) + '% full'
-      + (worst ? ', past your share' : '');
+    const worst = blk ? 'is-err' : lv.indexOf('is-warn') > -1 ? 'is-warn' : '';
+    const pct = blk ? (blk.unit.stop.limit ? 'chats limit reached' : 'chats are stopped')
+      : 'slice ' + useSliceN(u) + ', ' + Math.round(p * 100) + '% full' + (worst ? ', past your share' : '');
     $$(USE_MARK).forEach((el) => {
       el.classList.add('has-use');
       el.classList.toggle('is-warn', worst === 'is-warn');
-      el.classList.remove('is-err');
+      el.classList.toggle('is-err', worst === 'is-err');
       el.style.setProperty('--use', p.toFixed(4));
+      const bar = el.parentElement, inp = bar && bar.querySelector('input, textarea');
+      if (bar) bar.classList.toggle('is-use-stop', !!blk);
+      /* only a placeholder this put there is put back */
+      if (inp && !inp.disabled && blk) {
+        if (inp.dataset.usePh === undefined) inp.dataset.usePh = inp.placeholder;
+        inp.placeholder = bar.classList.contains('aimy-float-bar') ? 'Chats are stopped. Filters still work.' : 'Chats are stopped';
+      } else if (inp && inp.dataset.usePh !== undefined) {
+        inp.placeholder = inp.dataset.usePh;
+        delete inp.dataset.usePh;
+      }
       /* The workbench's mark keeps saying what pressing it does; the usage
          is added after, so a screen reader hears both. */
       if (el.dataset.useLabel === undefined) el.dataset.useLabel = el.getAttribute('aria-label') || '';

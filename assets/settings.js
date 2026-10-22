@@ -12893,7 +12893,8 @@
                const ou = usUsed(x, US_ME.org);
                return { id: x.id, name: x.uname, unit: x.unit, used: usUsed(x, US_ME.id), limit: usLimit(x, US_ME.id),
                         slice: US_SLICE[x.id], price: US_PRICE[x.id], orgExtra: usExtraN(x, US_ME.org, ou),
-                        sessLimit: x.sess ? US_SESS[x.id][US_ME.org] : null };
+                        sessLimit: x.sess ? US_SESS[x.id][US_ME.org] : null,
+                        stop: usMineStop(x), near: usMineNear(x) };
              }),
              sessLimit: m.sess ? US_SESS[m.id][US_ME.org] : null, sessPer: m.sess ? m.sess.per : '',
              resets: US_PERIOD.resets,
@@ -12902,6 +12903,28 @@
                 link is usually looking for the whole picture, and the
                 breadcrumb gets them to IT Helpdesk in two presses. */
              link: 'console.html?m=agents&sec=usage' };
+  }
+  /* ── A HARD STOP, SEEN BY THE PERSON (Nour 22 Oct) ──
+     What stops one of your units, said for the popover and the composer:
+     where it was set (you, IT Helpdesk, FlairsTech), and whether it lifts on
+     its own (a limit, on the 1st) or waits for an admin (a stop). `near` is
+     the closest limit on your path that is about to be reached. */
+  function usMineStop(x) {
+    const s = usStopped(x, US_ME.id);
+    if (!s) return null;
+    return { limit: s.by === 'limit', mine: s.node === US_ME.id, where: usName(s.node),
+             what: s.by === 'all' ? 'all of AiMY' : s.by === 'prod' ? x.name : x.name + ' ' + x.unit,
+             lim: s.lim || null, at: s.at || '', resets: US_PERIOD.resets };
+  }
+  function usMineNear(x) {
+    const path = [''].concat(usPath(US_ME.id));
+    for (const n of path) {
+      const h = US_HARD[x.id][n];
+      if (h == null) continue;
+      const left = h - usUsed(x, n), step = n && usAt(n).depth > 2 ? usHardStep(x, n) : US_SLICE[x.id];
+      if (left > 0 && left <= Math.max(step, h * 0.08)) return { where: usName(n), mine: n === US_ME.id, left: left, lim: h };
+    }
+    return null;
   }
   function usageSpend(n) {
     const u = US_USED[US_ME.meter];
@@ -13285,8 +13308,18 @@
 
   /* The usage widget in each state, for the prototype panel: the signed-in
      person's chats and tickets set against their shares on today's date. */
+  /* Three stopped states join them (Nour 22 Oct): FlairsTech has reached
+     its chats limit; IT Helpdesk's chats are stopped; your own chats are
+     stopped. Each sets only its own stop and clears the others. */
   function usMeState(name) {
     const at = US_ME_AT[name] || US_ME_AT.chats;
+    delete US_HARD.copilot[US_ME.org];
+    delete US_STOP['unit|helpdesk|copilot'];
+    delete US_STOP['unit|' + US_ME.id + '|copilot'];
+    const cm = usMeter('copilot');
+    if (name === 'limit') US_HARD.copilot[US_ME.org] = Math.floor(usUsed(cm, US_ME.org) / US_SLICE.copilot) * US_SLICE.copilot;
+    if (name === 'team') US_STOP['unit|helpdesk|copilot'] = usStopNow();
+    if (name === 'mine') US_STOP['unit|' + US_ME.id + '|copilot'] = usStopNow();
     usForget();
     ['copilot', 'cptix'].forEach((id, i) => {
       US_USED[id]['helpdesk.nour'] = Math.round(at[i] * usLimit(usMeter(id), 'helpdesk.nour'));
