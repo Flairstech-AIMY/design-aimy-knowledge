@@ -1,28 +1,20 @@
 /* ══ NOTETAKER — the Silk companion (AIMY-2684) ══════════════════════════════
    The orb, the card it opens into, and the meeting's view inside the AiMY
    canvas. Shape rule: windows 1rem, bubbles and buttons full pill.
-   Colours are the Console's own tokens; the two this file adds are the brand
-   as TEXT (the fill is too dark to read on the dark card) and the speakers. */
+   Colours are the Console's own tokens; the one this file adds is the brand
+   as TEXT (the fill is too dark to read on the dark card). */
 :root {
   --nt-brand-ink: #8fb0ff;
-  --nt-sp-dana: var(--cyan);
-  --nt-sp-priya: var(--warn);
-  --nt-sp-ahmed: var(--ok);
   --nt-rec: var(--ink-err);
   --nt-shadow: 0 0.0625rem 0 rgba(255,255,255,0.04) inset, 0 1rem 2.75rem rgba(0,0,0,0.55), 0 0.125rem 0.5rem rgba(0,0,0,0.35);
 }
 :root[data-theme="light"] {
   --nt-brand-ink: #1d4ed8;
-  --nt-sp-dana: #0b7f86;
-  --nt-sp-priya: #a85a04;
-  --nt-sp-ahmed: #0e8a52;
   --nt-shadow: 0 0.5rem 0.75rem -0.375rem rgba(15,23,42,0.08), 0 1.5rem 3rem -0.75rem rgba(15,23,42,0.28), 0 0 0 0.0625rem rgba(15,23,42,0.05);
 }
 
 .nt-ic, .nt-mk { display: block; flex: none; }
 .nt-mk { color: var(--brand); }
-.nt-sp-dana { color: var(--nt-sp-dana); } .nt-sp-priya { color: var(--nt-sp-priya); }
-.nt-sp-ahmed { color: var(--nt-sp-ahmed); } .nt-sp-you { color: var(--nt-brand-ink); }
 
 /* ── The widget ──────────────────────────────────────────────────────────
    Above the canvas (600) so it can come back over it when you go to another
@@ -100,13 +92,20 @@
 .nt-wd { transition: opacity var(--t-slow) var(--ease-out), filter var(--t-slow) var(--ease-out); }
 .nt-wd.is-pre { opacity: 0; filter: blur(0.0625rem); }
 @keyframes nt-rise { from { opacity: 0; transform: translateY(0.5rem); filter: blur(0.125rem); } to { opacity: 1; transform: none; filter: none; } }
-.nt-cl, .nt-an, .nt-yn, .nt-q, .nt-am { animation: nt-rise var(--t-base) var(--ease-out) both; }
-.nt-cl { display: grid; grid-template-columns: 1.75rem minmax(0, 1fr); gap: 0.5rem; align-items: end; }
-.nt-cl.is-you { grid-template-columns: minmax(0, 1fr); }
-.nt-cl-b { justify-self: start; padding: 0.5rem 0.6875rem; border-radius: 0.875rem 0.875rem 0.875rem 0.25rem; background: var(--surface-sunken); box-shadow: inset 0 0 0 0.0625rem var(--card-border); }
-.nt-cl.is-you .nt-cl-b { justify-self: end; border-radius: 0.875rem 0.875rem 0.25rem 0.875rem; background: var(--brand-dim); box-shadow: inset 0 0 0 0.0625rem rgba(var(--brand-rgb), 0.45); }
-.nt-cl-n { display: flex; gap: 0.5rem; align-items: baseline; font-size: var(--ty-micro); font-weight: var(--fw-bold); }
-.nt-cl-n time { font-weight: var(--fw-regular); color: var(--ink-secondary); font-variant-numeric: tabular-nums; }
+.nt-cl, .nt-an, .nt-yn, .nt-q, .nt-am, .nt-solo { animation: nt-rise var(--t-base) var(--ease-out) both; }
+/* What you said: one speaker, so a transcript rather than bubbles. The time
+   sits in a margin of its own and the words run beside it; consecutive lines
+   sit closer than the things around them. */
+.nt-cl { display: grid; grid-template-columns: 2.25rem minmax(0, 1fr); gap: 0.5rem; align-items: baseline; }
+.nt-cl time { font-size: var(--ty-micro); color: var(--ink-secondary); font-variant-numeric: tabular-nums; }
+.nt-cl + .nt-cl { margin-top: -0.25rem; }
+/* Said once, first in the stream: what AiMY can hear, and the way round it. */
+.nt-solo { display: grid; grid-template-columns: 1rem minmax(0, 1fr); gap: 0.25rem 0.5rem; align-items: start; padding: 0.625rem 0.75rem; border-radius: 0.75rem;
+  background: var(--aimy-wash); box-shadow: inset 0 0 0 0.0625rem var(--aimy-wash-edge); }
+.nt-solo > .nt-ic { color: var(--nt-brand-ink); margin-top: 0.125rem; }
+.nt-solo p { margin: 0; font-size: var(--ty-meta); color: var(--ink-primary); line-height: 1.5; }
+.nt-solo .nt-pill { grid-column: 2; justify-self: start; margin-top: 0.25rem; }
+.nt-solo .nt-pill .nt-ic { color: var(--nt-brand-ink); }
 .nt-cl p, .nt-an p, .nt-yn p, .nt-am-b p { margin: 0; font-size: var(--ty-meta); color: var(--ink-primary); line-height: 1.5; }
 .nt-av { width: 1.75rem; height: 1.75rem; border-radius: 50%; object-fit: cover; flex: none; display: grid; place-items: center;
   font-size: 0.6875rem; font-weight: var(--fw-bold); background: var(--card-bg-raised); box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover); color: var(--ink-primary); }
@@ -281,15 +280,6 @@
 .nt-cons p { margin: 0; }
 .nt-cons .nt-cons-h { margin-top: 0.25rem; font-size: var(--ty-title); font-weight: var(--fw-semibold); color: var(--ink-primary); line-height: 1.3; text-wrap: balance; }
 .nt-cons .nt-cons-p { max-width: 25rem; font-size: var(--ty-meta); color: var(--ink-secondary); line-height: 1.55; text-wrap: balance; }
-.nt-cons-tell { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.375rem 0.625rem; border: 0; border-radius: 999px; background: transparent;
-  font: inherit; font-size: var(--ty-meta); font-weight: var(--fw-medium); color: var(--ink-primary); cursor: pointer;
-  transition: background-color var(--t-fast) var(--ease-out); }
-.nt-cons-tell:hover { background: var(--brand-dim); }
-.nt-cons-tell:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.0625rem; }
-.nt-box { width: 1.125rem; height: 1.125rem; border-radius: 0.3125rem; display: grid; place-items: center; flex: none;
-  box-shadow: inset 0 0 0 0.09375rem var(--card-border-hover); color: transparent;
-  transition: background-color var(--t-fast) var(--ease-out), box-shadow var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out); }
-.nt-cons-tell[aria-checked="true"] .nt-box { background: var(--brand); box-shadow: none; color: #fff; }
 .nt-cons-go { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 0.25rem; }
 .nt-cons-go .btn { display: inline-flex; align-items: center; gap: 0.5rem; height: 2.5rem; padding: 0 1.25rem; border-radius: 999px; font-size: var(--ty-meta); }
 .nt-cons-start { box-shadow: 0 0.5rem 1.5rem rgba(var(--brand-rgb), 0.35); }
@@ -306,13 +296,12 @@
 
 @media (prefers-reduced-motion: reduce) {
   .nt-w, .nt-fold, .nt-card, .nt-badge, .nt-tabs button, .nt-wd, .nt-x { transition: none; }
-  .nt-cl, .nt-an, .nt-yn, .nt-q, .nt-am, .nt-np li, .nt-cons > *, .nt-step .nt-ic, .nt-step b, .nt-rec { animation: none; }
-  .nt-box { transition: none; }
+  .nt-cl, .nt-an, .nt-yn, .nt-q, .nt-am, .nt-solo, .nt-np li, .nt-cons > *, .nt-step .nt-ic, .nt-step b, .nt-rec { animation: none; }
   .nt-wd.is-pre { opacity: 1; filter: none; }
 }
 
 
-/* ── Stop, in words ─────────────────────────────────────────── */
+/* ── End notes, in words ─────────────────────────────────────── */
 .nt-tabs { align-items: center; }
 .nt-ctl { display: inline-flex; gap: 0.375rem; margin-left: auto; }
 .nt-pill { display: inline-flex; align-items: center; gap: 0.375rem; height: 1.75rem; padding: 0 0.6875rem; border: 0; border-radius: 999px;

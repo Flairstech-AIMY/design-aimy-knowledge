@@ -1,18 +1,23 @@
 /* ══ NOTETAKER — the Silk companion (AIMY-2684) ══════════════════════════════
    AiMY takes notes in a meeting. It is started from the live voice session
-   (the "Notes" pill voice.js shows when this file is on the page), asks once
-   for consent on the stage, and then the orb itself leaves the stage and
-   floats in the corner, still listening.
+   (the "Take meeting notes" pill voice.js shows when this file is on the
+   page), asks once for consent on the stage, and then the orb itself leaves
+   the stage and floats in the corner, still listening.
+
+   AIMY HEARS ONLY YOU. It is not a guest in the meeting: it listens through
+   your microphone, so the transcript is what you said. What others say gets
+   in through your notes, and the summary is written from both. The stream
+   says so once, at the top, with a way to add a note.
 
    ONE CONVERSATION, TWO PLACES. The orb opens into a card; the card opens into
    the AiMY canvas. Both are drawn from the one model below — the stream, the
    notes, the open tab, Note or Ask, and the draft being typed — so nothing is
    ever "sent" from one to the other: it is already in both.
 
-     collapsed   the Silk orb, who is speaking, a count of AiMY's new notes
-     card        Chat (one stream: lines, AiMY's notes, your notes and
-                 questions) | Notes (summary so far, decided, to do, waiting
-                 on, yours); one bar that adds a Note or asks AiMY
+     collapsed   the Silk orb, whether you are speaking, a count of new notes
+     card        Transcription (one stream: what you said, your notes, your
+                 questions and AiMY's answers) | Notes (yours, then the
+                 summary); one bar that asks AiMY or adds a note
      canvas      the Console's own canvas: the meeting is a row under "Now" in
                  the conversations column, the same chat replaces the thread,
                  the same notes sit in a column on the right, the canvas bar
@@ -23,8 +28,8 @@
    notification (a banner that stacks, and a row in the topnav bell). The
    final notes are then posted in the chat and in Notes.
 
-   THE MEETING IS A FIXTURE. There is no meeting app here and the browser
-   cannot hear one, so a recorded Upland check-in plays at the pace of speech.
+   THE MEETING IS A FIXTURE. Your side of a recorded Upland check-in plays at
+   the pace of speech, and the meeting's calendar slot ends it.
    Everything else — collapse, the canvas, notes, questions, the steps, the
    notifications — is real and works on whatever the fixture says.
 
@@ -47,6 +52,7 @@
     square: '<rect width="18" height="18" x="3" y="3" rx="2"/>',
     max: '<polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/>',
     min: '<polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/>',
+    mic: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>',
     pen: '<path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/>',
     up: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
     send: '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/>',
@@ -76,30 +82,34 @@
     ahmed: { name: 'Ahmed Mahfouz',  short: 'Ahmed', ini: 'AM', photo: PHOTO + 'men/46.jpg' },
     you:   { name: 'Nour Ali',       short: 'You',   ini: 'NA', photo: null }
   };
+  /* Your side of the meeting: all AiMY can hear. */
   const L = [
-    { p: 'dana',  t: 40,  x: 'Thanks for joining. I want to start with the Freshdesk sync, because half of last week’s tickets never showed up.' },
-    { p: 'ahmed', t: 82,  x: 'That was the merge tag rule. Merged tickets were skipped, which is right, but the rule also caught the parent ticket.' },
-    { p: 'dana',  t: 125, x: 'So the parent tickets are missing too. That’s the part our agents noticed.' },
-    { p: 'you',   t: 151, x: 'We can split it: skip the merged ticket, keep the parent. I can have that ready by Thursday.' },
-    { p: 'priya', t: 190, x: 'If it’s Thursday, can we re-sync the last two weeks after that? Our team lead wants the March numbers clean.' },
-    { p: 'ahmed', t: 228, x: 'Yes. Fourteen days is about two thousand tickets, and it runs in under an hour.' },
-    { p: 'dana',  t: 302, x: 'Good. Second thing is the focus fields. Agents want Product and Plan on every answer.' },
-    { p: 'you',   t: 340, x: 'Product is mapped already. Plan isn’t, because Freshdesk sends it as a code. I need the labels for those codes.' },
-    { p: 'priya', t: 391, x: 'I’ll send you the list today. There are six plans, and two of them are retired.' },
-    { p: 'dana',  t: 495, x: 'Last one. Renewal is in November, and I’d like a short note on what AiMY saved us this quarter.' },
-    { p: 'ahmed', t: 537, x: 'I’ll pull that from the Usage page: chats answered, tickets solved without an agent, and time saved.' },
-    { p: 'dana',  t: 580, x: 'Perfect. Let’s meet again next Tuesday, same time.' }
+    { t: 48,  x: 'Got it. So about half of last week’s tickets never came into AiMY.' },
+    { t: 96,  x: 'Right, the merge tag rule. It skips merged tickets, which is correct, but it catches the parent ticket too.' },
+    { t: 151, x: 'We can split it: skip the merged ticket, keep the parent. I can have that ready by Thursday.' },
+    { t: 205, x: 'Yes, once the rule is split I’ll re-sync the last two weeks. That’s about two thousand tickets, under an hour.' },
+    { t: 318, x: 'On the focus fields, Product is mapped already. Plan isn’t, because Freshdesk sends it as a code.' },
+    { t: 352, x: 'I need the labels for those codes. Priya, could you send me the list?' },
+    { t: 401, x: 'Six plans and two retired. Thanks, I’ll map the four live ones.' },
+    { t: 512, x: 'For the renewal note, Ahmed can pull it from the Usage page: chats answered, tickets solved without an agent, and time saved.' },
+    { t: 586, x: 'Tuesday works. Same time.' }
+  ];
+  /* The notes you typed while the others spoke, for the states that start
+     mid-meeting. `after` is the line they follow. */
+  const MINE = [
+    { after: 1, t: 128, x: 'Dana: agents noticed the parent tickets were missing' },
+    { after: 6, t: 405, x: 'Priya sends the Plan labels today' },
+    { after: 6, t: 498, x: 'Dana wants a value note before the November renewal' }
   ];
   /* What was decided and promised, keyed to the line it was said in. Not
      shown while the meeting runs: the analysis after it finds them. Kept for
      answering "What did I promise?" and "Decided so far" mid-meeting. */
   const N = {
-    3:  { k: 'act',  h: 'To do',      x: 'You split the merge tag rule by Thursday 22 Oct.' },
-    5:  { k: 'dec',  h: 'Decided',    x: 'Re-sync the last 14 days once the rule is split.' },
-    7:  { k: 'wait', h: 'Waiting on', x: 'Labels for the six Plan codes, from Priya.' },
-    8:  { k: 'act',  h: 'To do',      x: 'Priya sends the Plan labels today.' },
-    10: { k: 'act',  h: 'To do',      x: 'Ahmed writes the renewal note from the Usage page.' },
-    11: { k: 'dec',  h: 'Decided',    x: 'Next meeting Tuesday 27 Oct, same time.' }
+    2: { k: 'act',  h: 'To do',      x: 'You split the merge tag rule by Thursday 22 Oct.' },
+    3: { k: 'dec',  h: 'Decided',    x: 'Re-sync the last 14 days once the rule is split.' },
+    5: { k: 'wait', h: 'Waiting on', x: 'Labels for the Plan codes, from Priya.' },
+    7: { k: 'act',  h: 'To do',      x: 'Ahmed writes the renewal note from the Usage page.' },
+    8: { k: 'dec',  h: 'Decided',    x: 'Next meeting Tuesday 27 Oct, same time.' }
   };
   const SUMMARY = 'The Freshdesk sync dropped parent tickets because the merge tag rule matched them too. The rule gets split by Thursday, then 14 days are re-synced. Plan needs labels before it can be a focus field, and Upland wants a value note before the November renewal.';
   /* The summary's one line for a message that has room for one. */
@@ -108,26 +118,36 @@
   const TODO = [
     { who: 'you',   x: 'Split the merge tag rule',               m: 'Nour Ali, Thu 22 Oct' },
     { who: 'priya', x: 'Send the labels for the six Plan codes', m: 'Priya Raman, today' },
-    { who: 'ahmed', x: 'Re-sync the last 14 days',               m: 'Ahmed Mahfouz, Fri 23 Oct' },
+    { who: 'you',   x: 'Re-sync the last 14 days',               m: 'Nour Ali, Fri 23 Oct' },
     { who: 'ahmed', x: 'Renewal note from the Usage page',       m: 'Ahmed Mahfouz, Fri 30 Oct' }
   ];
+  /* What each step found depends on what there was: your lines, and how
+     many notes you added. */
+  const said = () => S.items.filter((i) => i.type === 'line').length;
+  const noted = () => S.items.filter((i) => i.type === 'mine').length;
+  const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
   const STEPS = [
-    { run: 'Processing the recording', done: 'Recording processed', sub: '9 min 40 s, 4 speakers, 12 turns',               nf: 'Transcript ready: 12 turns from 4 speakers.' },
-    { run: 'Analyzing what was said',  done: 'Analysis done',       sub: '3 decisions, 4 to-dos, 1 thing you’re waiting on', nf: 'Found 3 decisions and 4 to-dos.' },
-    { run: 'Summarizing',              done: 'Summary written',     sub: 'Posted below and in Notes',                     nf: 'Your meeting notes are ready.' }
+    { run: 'Processing the recording', done: 'Recording processed',
+      sub: () => Math.floor(S.clock / 60) + ' min ' + (S.clock % 60) + ' s, ' + plural(said(), 'thing', 'things') + ' you said',
+      nf: () => 'Transcript ready: ' + plural(said(), 'thing', 'things') + ' you said.' },
+    { run: 'Analyzing what was said',  done: 'Analysis done',
+      sub: () => (noted() ? 'With your ' + plural(noted(), 'note', 'notes') + ': ' : '') + '3 decisions, 4 to-dos, 1 thing you’re waiting on',
+      nf: () => 'Found 3 decisions and 4 to-dos.' },
+    { run: 'Summarizing',              done: 'Summary written', sub: () => 'Posted below and in Notes', nf: () => 'Your meeting notes are ready.' }
   ];
   /* Speech pace, a breath between speakers, and how long each step takes. */
   const WORD_MS = 150, LINE_GAP = 1300, STEP_MS = 2600, SHORT_S = 30;
   const STATUS = { live: 'Taking notes', ended: 'Meeting ended', writing: 'Writing the notes', ready: 'Notes ready', short: 'Too short to summarise', failed: 'Notes not written' };
   /* One composer, and the tab says what it does. */
   const ASK = 'Ask AiMY about this meeting';
-  const NOTE = 'Add a private note';
+  const NOTE = 'Note what others say or decide';
   const hint = () => (S.tab === 'notes' ? NOTE : ASK);
-  /* How long after the last word the call is treated as over. */
+  /* AiMY cannot hear the meeting end. The calendar slot ends it; here that
+     comes this long after the fixture's last word. */
   const HANGUP_MS = 3500;
 
   /* ── The model ───────────────────────────────────────────────────────── */
-  const S = { phase: 'off', view: 'fold', tab: 'chat', kind: 'note', draft: '', n: 0, clock: 0, unread: 0,
+  const S = { phase: 'off', view: 'fold', tab: 'chat', kind: 'note', draft: '', n: 0, clock: 0, unread: 0, speaking: false,
               items: [], steps: null, nfs: [], failNext: false, cvDraft: '' };
   let timers = [], tick = 0, nextT = 0, root = null, cvParts = null;
   const later = (fn, ms) => { const id = setTimeout(fn, ms); timers.push(id); return id; };
@@ -144,18 +164,18 @@
   const only = `<span class="nt-only">${ic('lock', 11)}Only you</span>`;
   const status = `<span class="nt-st" data-nt="status">${STATUS.live}</span>`;
   const timer = '<span class="nt-tm nt-live-only" data-nt="timer">0:00</span>';
-  /* Notes end when the meeting does, like Gemini's in Meet. Stop is for
-     ending early, when someone asks not to be recorded, so it is said in
-     words and kept within reach. */
+  /* AiMY is not in the meeting, so it cannot hear it end. You end notes
+     here; if you forget, they end when the meeting's time on your calendar
+     is up. */
   const ctl = () => '<span class="nt-ctl nt-live-only">' +
-    `<button class="nt-pill nt-end" type="button" data-nt-act="stop" title="Stop taking notes now">${ic('square', 11)}Stop</button></span>`;
+    `<button class="nt-pill nt-end" type="button" data-nt-act="stop" title="End notes now. Otherwise they end when the meeting’s time on your calendar is up.">${ic('square', 11)}End notes</button></span>`;
   const chips = () => '<div class="nt-chips">' +
-    '<button type="button" class="nt-chip" data-nt-ask="catch">Catch me up</button>' +
+    '<button type="button" class="nt-chip" data-nt-ask="catch">Recap so far</button>' +
     '<button type="button" class="nt-chip" data-nt-ask="mine">What did I promise?</button>' +
     '<button type="button" class="nt-chip" data-nt-ask="dec">Decided so far</button></div>';
   const notesPanel = () => `<div class="nt-np" data-nt-np data-done="false">
     <p class="nt-np-state" data-nt="np-state" hidden></p>
-    <div class="nt-np-live"><p class="nt-np-wait">${MARK(14)}<span>AiMY writes the summary, decisions and to-dos when the meeting ends. Until then, this is where your own notes go.</span></p></div>
+    <div class="nt-np-live"><p class="nt-np-wait">${MARK(14)}<span>AiMY hears only you, so your notes are how the rest of the meeting gets in. Write down what others say or decide, and AiMY uses it in the summary when the meeting ends.</span></p></div>
     <div class="nt-np-final" data-nt="final"></div>
     <section><h5>${ic('pen', 14)}Your notes${only}</h5><ul data-nt="mine"><li class="is-none">Write one in the bar below. Only you see them.</li></ul></section>
   </div>`;
@@ -175,7 +195,7 @@
       <div class="nt-w" id="ntWidget" data-view="fold" data-phase="live" data-tab="chat" hidden>
         <button class="nt-fold" type="button" data-nt-act="open" aria-label="Open the meeting notes" aria-expanded="false">
           <span class="nt-orb" data-nt-orb="fold"><canvas></canvas></span><span class="nt-badge" data-nt="count"></span>
-          <span class="nt-who-pill">${rec}<span data-nt="who">Listening</span></span>
+          <span class="nt-who-pill">${rec}<span data-nt="who">Listening to you</span></span>
         </button>
         <button class="nt-x nt-after-only" type="button" data-nt-act="close" aria-label="Close the meeting notes" title="Close">${ic('x', 12)}</button>
         <div class="nt-card" role="dialog" aria-label="Meeting notes">
@@ -282,7 +302,8 @@
     slots('status').forEach((e) => { e.textContent = STATUS[S.phase] || ''; });
     if (cvParts) { const b = $('.nt-back span', cvParts.ov); if (b) b.textContent = live ? 'Back to the meeting' : 'Close'; }
     slots('chat-sub').forEach((e) => { e.textContent = 'Meeting, ' + (STATUS[S.phase] || '').toLowerCase(); });
-    if (!live) slots('who').forEach((e) => { e.textContent = 'The meeting has ended'; });
+    const who = live ? (S.speaking ? 'You’re speaking' : 'Listening to you') : S.how === 'stopped' ? 'You ended notes' : 'The meeting has ended';
+    slots('who').forEach((e) => { e.textContent = who; });
     slots('count').forEach((e) => {
       const show = S.view === 'fold' && (S.unread > 0 || S.phase === 'ready');
       e.classList.toggle('is-on', show); e.classList.toggle('is-ok', S.phase === 'ready' && !S.unread);
@@ -290,7 +311,7 @@
     });
     all('[data-nt-np]').forEach((np) => { np.dataset.done = String(S.phase === 'ready'); });
     slots('final').forEach((f) => { if (S.phase === 'ready' && !f.innerHTML) f.innerHTML = finalHTML(); });
-    const msg = { short: 'The meeting ran under 30 seconds, so there is nothing to summarise. What was said is kept.',
+    const msg = { short: 'The meeting ran under 30 seconds, so there is nothing to summarise. What you said is kept.',
                   failed: 'AiMY couldn’t write the summary. The recording and the transcript are safe. Try again from the chat.',
                   writing: 'Writing the notes. They show here when the summary is done.' }[S.phase];
     slots('np-state').forEach((e) => { e.hidden = !msg; e.textContent = msg || ''; });
@@ -310,25 +331,25 @@
   function paintClock() { const t = clock(S.clock); slots('timer').forEach((e) => { e.textContent = t; }); }
 
   function itemHTML(it) {
-    if (it.type === 'line') {
-      const l = L[it.i], you = l.p === 'you';
-      return `<div class="nt-cl${you ? ' is-you' : ''}">${you ? '' : av(l.p)}<div class="nt-cl-b"><div class="nt-cl-n"><span class="nt-sp-${l.p}">${you ? 'You' : P[l.p].short}</span><time>${clock(it.t)}</time></div><p>${words(l.x)}</p></div></div>`;
-    }
+    if (it.type === 'solo') return `<div class="nt-solo">${ic('mic', 15)}<p>AiMY hears only you, through your microphone. For what others say, add a note.</p><button class="nt-pill" type="button" data-nt-act="note">${ic('pen', 12)}Add a note</button></div>`;
+    /* Every line is yours, so no names and no bubbles: a transcript, with
+       the time in the margin. */
+    if (it.type === 'line') return `<div class="nt-cl"><time>${clock(it.t)}</time><p>${words(L[it.i].x)}</p></div>`;
     if (it.type === 'note') return `<div class="nt-an">${MARK(15)}<div><div class="nt-an-k">AiMY noted: ${it.n.h.toLowerCase()}</div><p>${it.n.x}</p></div></div>`;
     if (it.type === 'mine') return `<div class="nt-yn">${ic('pen', 14)}<div><div class="nt-yn-h">Your note, ${clock(it.t)} ${only}</div><p>${esc(it.x)}</p></div></div>`;
     if (it.type === 'ask') return `<div class="nt-q"><span>${esc(it.q)}</span>${only}</div><div class="nt-am">${MARK(15)}<div class="nt-am-b"><p>${words(it.a)}</p></div></div>`;
     if (it.type === 'steps') return stepsHTML();
     if (it.type === 'result') return `<div class="nt-am">${MARK(15)}<div class="nt-am-b"><p><b>Your notes for ${MEET}</b></p>${finalHTML()}</div></div>`;
     if (it.type === 'fail') return `<div class="nt-am">${MARK(15)}<div class="nt-am-b"><p class="nt-err">The summary didn’t finish.</p><p>The recording and the transcript are safe. Nothing was sent to anyone.</p><div class="nt-btns"><button class="btn btn-brand btn-sm" type="button" data-nt-act="retry">${ic('retry', 14)}Try again</button></div></div></div>`;
-    if (it.type === 'short') return `<div class="nt-am">${MARK(15)}<div class="nt-am-b"><p>The meeting ran under 30 seconds, so there is nothing to summarise. What was said is kept above.</p></div></div>`;
+    if (it.type === 'short') return `<div class="nt-am">${MARK(15)}<div class="nt-am-b"><p>The meeting ran under 30 seconds, so there is nothing to summarise. What you said is kept above.</p></div></div>`;
     return '';
   }
   function stepsHTML() {
-    return `<div class="nt-am" data-nt-steps>${MARK(15)}<div class="nt-am-b"><p>${S.how === 'stopped' ? 'You stopped notes' : 'The meeting ended'} at ${clock(S.clock)}. Writing your notes now; I’ll tell you when each part is done.</p><div class="nt-steps">` +
+    return `<div class="nt-am" data-nt-steps>${MARK(15)}<div class="nt-am-b"><p>${S.how === 'stopped' ? 'You ended notes' : 'The meeting’s time on your calendar is up, so notes ended'} at ${clock(S.clock)}. Writing them up now from what you said${noted() ? ' and your notes' : ''}. I’ll tell you when each part is done.</p><div class="nt-steps">` +
       STEPS.map((s, i) => {
         const st = S.steps[i];
         return `<div class="nt-step" data-s="${st}"><span class="nt-step-i">${ic('spin', 15, 'nt-i-run')}${ic('check', 15, 'nt-i-done')}${ic('alert', 15, 'nt-i-fail')}</span>` +
-          `<span><b>${st === 'done' ? s.done : st === 'fail' ? 'Summary didn’t finish' : s.run}</b>${st === 'done' ? `<small>${s.sub}</small>` : ''}</span></div>`;
+          `<span><b>${st === 'done' ? s.done : st === 'fail' ? 'Summary didn’t finish' : s.run}</b>${st === 'done' ? `<small>${s.sub()}</small>` : ''}</span></div>`;
       }).join('') + '</div></div></div>';
   }
 
@@ -343,10 +364,6 @@
       if (near || !animate) box.scrollTop = box.scrollHeight;
     });
     const sl = (n) => $$(`[data-nt="${n}"]`, scope);
-    if (it.type === 'line') {
-      const l = L[it.i];
-      sl('who').forEach((e) => { e.textContent = l.p === 'you' ? 'You are speaking' : P[l.p].short + ' is speaking'; });
-    }
     if (it.type === 'note') sl(it.n.k).forEach((ul) => { ul.querySelector('.is-none')?.remove(); ul.insertAdjacentHTML('beforeend', `<li>${it.n.x}</li>`); });
     if (it.type === 'mine') sl('mine').forEach((ul) => { ul.querySelector('.is-none')?.remove(); ul.insertAdjacentHTML('beforeend', `<li>${esc(it.x)}<small>${clock(it.t)}</small></li>`); });
   }
@@ -372,20 +389,27 @@
     all('[data-nt-stream]').forEach((b) => { if (force || b.scrollHeight - b.scrollTop - b.clientHeight < 120) b.scrollTop = b.scrollHeight; });
   }
   function line(i, animate) {
+    if (animate) {
+      S.speaking = true;
+      later(() => { S.speaking = false; paint(); }, (reduced() ? 1 : L[i].x.split(' ').length) * WORD_MS + 300);
+    }
     add({ type: 'line', i, t: animate ? S.clock : L[i].t }, animate);
   }
+  /* Answers come from what you said and your notes, and say so: AiMY did
+     not hear anyone else. */
   function answer(k, q) {
     const dec = Object.keys(N).filter((x) => x < S.n && N[x].k === 'dec').map((x) => N[x].x);
     const t = (q || '').toLowerCase();
     if (!k) k = /promis|i said|\bmy\b/.test(t) ? 'mine' : /decid|agree/.test(t) ? 'dec' : /renew/.test(t) ? 'renew' : 'catch';
+    const from = 'From what you said' + (noted() ? ' and your notes' : '') + ': ';
     const a = {
-      catch: S.n < 3 ? 'Dana opened with the Freshdesk sync: last week’s tickets didn’t all arrive.'
-        : 'The sync dropped parent tickets because of the merge tag rule. ' + (S.n > 4 ? 'You split the rule by Thursday, then 14 days get re-synced. ' : '') + (S.n > 8 ? 'Priya sends the Plan labels today.' : ''),
-      mine: S.n > 3 ? 'You said you’d split the merge tag rule by Thursday 22 Oct, at 2:31.' + (S.n > 7 ? ' You also need the labels for the Plan codes, which Priya is sending.' : '') : 'Nothing yet.',
-      dec: dec.length ? 'So far: ' + dec.join(' ') : 'Nothing has been decided yet.',
-      renew: S.n > 9 ? 'Dana wants a short note before the November renewal. Ahmed writes it from the Usage page.' : 'Renewal hasn’t come up yet.'
+      catch: S.n < 2 ? 'You haven’t said much yet. So far it’s about tickets missing from the Freshdesk sync.'
+        : from + 'the merge tag rule drops parent tickets. ' + (S.n > 2 ? 'You’ll split it by Thursday' + (S.n > 3 ? ', then re-sync the last 14 days. ' : '. ') : '') + (S.n > 5 ? 'Plan needs labels for its codes, and Priya is sending them.' : ''),
+      mine: S.n > 2 ? 'You said you’d split the merge tag rule by Thursday 22 Oct' + (S.n > 3 ? ' and re-sync the last 14 days after.' : '.') + (S.n > 6 ? ' You also said you’d map the four live Plan codes.' : '') : 'Nothing yet.',
+      dec: dec.length ? from + dec.join(' ') : 'Nothing decided yet, from what you’ve said.',
+      renew: S.n > 7 ? 'You said Ahmed can write the renewal note from the Usage page.' : 'Renewal hasn’t come up in what you’ve said.'
     }[k];
-    return { type: 'ask', q: q || { catch: 'Catch me up', mine: 'What did I promise?', dec: 'Decided so far' }[k], a: a.trim() };
+    return { type: 'ask', q: q || { catch: 'Recap so far', mine: 'What did I promise?', dec: 'Decided so far' }[k], a: a.trim() };
   }
 
   /* ── The meeting runs ────────────────────────────────────────────────── */
@@ -412,12 +436,12 @@
     clearAll();
     mountWidget();
     Object.assign(S, { phase: o.phase || 'live', view: o.view || 'fold', tab: o.tab || 'chat', draft: '', drafts: { chat: '', notes: '' }, how: '', clock: o.clock || 0,
-                       unread: o.unread || 0, items: [], steps: null, nfs: [], failNext: false, closed: false });
+                       unread: o.unread || 0, items: [{ type: 'solo' }], steps: null, nfs: [], failNext: false, closed: false, speaking: false });
     S.n = o.n || 0;
     for (let i = 0; i < S.n; i++) {
       S.items.push({ type: 'line', i, t: L[i].t });
-      if (o.mine && i === 4) S.items.push({ type: 'mine', x: 'Ask about the March numbers', t: 205 });
-      if (o.mine && i === 6) { const keep = S.n; S.n = 7; S.items.push(answer('catch')); S.n = keep; }
+      if (o.mine) MINE.filter((m) => m.after === i).forEach((m) => S.items.push({ type: 'mine', x: m.x, t: m.t }));
+      if (o.mine && i === 4) { const keep = S.n; S.n = 5; S.items.push(answer('mine')); S.n = keep; }
     }
     if (o.after) o.after();
     all('[data-nt-draft]').forEach((i) => { i.value = ''; });
@@ -576,7 +600,7 @@
         return;
       }
       S.steps[i] = 'done'; drawSteps();
-      notify({ k: 'ok', t: STEPS[i].done, x: STEPS[i].nf, act: i === 2 ? 'Open the notes' : '', go: 'open-notes' });
+      notify({ k: 'ok', t: STEPS[i].done, x: STEPS[i].nf(), act: i === 2 ? 'Open the notes' : '', go: 'open-notes' });
       if (i < 2) { S.steps[i + 1] = 'run'; drawSteps(); runSteps(i + 1); return; }
       S.phase = 'ready'; add({ type: 'result' }, true);
       say('ready');
@@ -602,7 +626,7 @@
       return;
     }
     const yours = TODO.filter((t) => t.who === 'you').length;
-    k.say(`Your notes for <b>${MEET}</b> are ready. ${GIST} <b>${DECIDED.length} decisions, ${TODO.length} to-dos</b>, ${yours === 1 ? 'one' : yours} of them yours.`, open('notes'));
+    k.say(`Your notes for <b>${MEET}</b> are ready. ${GIST} <b>${DECIDED.length} decisions, ${TODO.length} to-dos</b>, ${yours === 1 ? 'one' : yours === 2 ? 'two' : yours} of them yours.`, open('notes'));
   }
   function drawSteps() {
     all('[data-nt-steps]').forEach((el) => {
@@ -700,7 +724,8 @@
     else if (act === 'close') closeWidget();
     else if (act === 'retry') retry();
     else if (act === 'open-notes') { S.tab = 'notes'; if (S.view === 'fold') setView('card'); else paint(); }
-    else if (act === 'send') toast('Sent to Dana, Priya and Ahmed', 'Undo', 'AiMY’s notes only. Your own notes stay with you.');
+    else if (act === 'note') { setTab('notes'); const i = S.view === 'canvas' ? cvParts && cvParts.input : $('.nt-in', root); if (i) i.focus({ preventScroll: true }); }
+    else if (act === 'send') toast('Sent to Dana, Priya and Ahmed', 'Undo', 'The summary, decisions and to-dos. Your notes and the transcript stay with you.');
     else if (act === 'tasks') toast('4 tasks made', 'Undo', 'Each with its owner and date');
     else if (act === 'doc') toast('Saved as a Meeting notes document', null, 'Linked to Upland, with the full transcript');
   }
@@ -714,33 +739,29 @@
     if (!center || $('.nt-cons', stage)) return;
     stage.classList.add('nt-asking');
     /* Part of the stage, not a box on it: the line under the orb becomes the
-       question. Which meeting first, so you know what you are agreeing to;
-       telling the others is one checkbox, on by default, rather than a
-       second button that reads like a second way to start. */
+       question. Which meeting first (from your calendar), so you know what
+       you are agreeing to, and then what AiMY will and won't hear. Nothing
+       is posted in the meeting: AiMY is not in it. */
     center.insertAdjacentHTML('beforeend', `<div class="nt-cons" role="group" aria-labelledby="ntConsH">
-      <span class="nt-cons-meet">${ic('cal', 14)}${MEET}<span>Now, 4 people</span></span>
+      <span class="nt-cons-meet">${ic('cal', 14)}${MEET}<span>Now, on your calendar</span></span>
       <p class="nt-cons-h" id="ntConsH">Take notes in this meeting?</p>
-      <p class="nt-cons-p">AiMY writes down what is said and sums it up when the meeting ends. Only people in the meeting can open the notes.</p>
-      <button class="nt-cons-tell" type="button" role="checkbox" aria-checked="true" data-nt-tell><span class="nt-box">${ic('check', 12)}</span>Tell everyone in the meeting chat</button>
+      <p class="nt-cons-p">AiMY hears only you, through your microphone. Add notes for what others say, and AiMY sums it all up when the meeting ends. Only you see the notes.</p>
       <div class="nt-cons-go"><button class="btn btn-brand nt-cons-start" type="button" data-nt-go="start">${ic('pen', 15)}Start taking notes</button>` +
       `<button class="btn btn-ghost" type="button" data-nt-go="no">Not now</button></div></div>`);
     const cons = $('.nt-cons', stage);
     cons.querySelector('[data-nt-go="start"]').focus();
     cons.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); cons.querySelector('[data-nt-go="no"]').click(); } });
     cons.addEventListener('click', (e) => {
-      const t = e.target.closest('[data-nt-tell]');
-      if (t) { t.setAttribute('aria-checked', String(t.getAttribute('aria-checked') !== 'true')); return; }
       const b = e.target.closest('[data-nt-go]'); if (!b) return;
       const drop = () => { cons.remove(); stage.classList.remove('nt-asking'); };
       if (b.dataset.ntGo === 'no') { drop(); return; }
-      const tell = cons.querySelector('[data-nt-tell]').getAttribute('aria-checked') === 'true';
       const orbBox = (o.orb || center).getBoundingClientRect();
       drop();
       begin({ n: 0, clock: 0, view: 'fold' });
       root.classList.add('is-arriving');
       o.done();
       fly(orbBox, $('.nt-orb', root).getBoundingClientRect(), () => root.classList.remove('is-arriving'));
-      toast('AiMY is taking notes', null, tell ? 'A message was posted in the meeting chat' : 'Nobody was told. Let them know it is on.');
+      toast('AiMY is taking notes', null, 'It hears only you. Let the others know it is on.');
     });
   }
   function fly(from, to, done) {
@@ -774,15 +795,15 @@
   }
   /* The prototype panel's "Meeting notes, each state". */
   const JUMPS = {
-    collapsed: () => begin({ n: 8, clock: 412, view: 'fold', unread: 2, mine: true }),
-    card:      () => begin({ n: 8, clock: 412, view: 'card', mine: true }),
-    canvas:    () => { begin({ n: 8, clock: 412, view: 'card', mine: true }); later(toCanvas, 60); },
-    after:     () => { begin({ n: L.length, clock: 581, view: 'card', still: true, mine: true }); stop('ended'); },
-    ready:     () => begin({ n: L.length, clock: 581, view: 'card', phase: 'ready', mine: true, after: () => {
-                   S.steps = ['done', 'done', 'done']; S.items.push({ type: 'steps' }, { type: 'result' });
-                   STEPS.forEach((s, i) => S.nfs.unshift({ id: 'nt-' + (++nfSeq), k: 'ok', t: s.done, x: s.nf, at: '9:41', go: 'open-notes', act: i === 2 ? 'Open the notes' : '' })); } }),
+    collapsed: () => begin({ n: 7, clock: 412, view: 'fold', unread: 2, mine: true }),
+    card:      () => begin({ n: 7, clock: 412, view: 'card', mine: true }),
+    canvas:    () => { begin({ n: 7, clock: 412, view: 'card', mine: true }); later(toCanvas, 60); },
+    after:     () => { begin({ n: L.length, clock: 592, view: 'card', still: true, mine: true }); stop('ended'); },
+    ready:     () => begin({ n: L.length, clock: 592, view: 'card', phase: 'ready', mine: true, after: () => {
+                   S.how = 'ended'; S.steps = ['done', 'done', 'done']; S.items.push({ type: 'steps' }, { type: 'result' });
+                   STEPS.forEach((s, i) => S.nfs.unshift({ id: 'nt-' + (++nfSeq), k: 'ok', t: s.done, x: s.nf(), at: '9:41', go: 'open-notes', act: i === 2 ? 'Open the notes' : '' })); } }),
     short:     () => { begin({ n: 1, clock: 22, view: 'card', still: true }); stop('stopped'); },
-    failed:    () => { begin({ n: L.length, clock: 581, view: 'card', still: true, mine: true }); S.failNext = true; stop('ended'); },
+    failed:    () => { begin({ n: L.length, clock: 592, view: 'card', still: true, mine: true }); S.failNext = true; stop('ended'); },
     off:       () => { clearAll(); if (cvParts && cvParts.ov.classList.contains('is-meeting')) backToCard(); S.phase = 'off'; S.nfs = []; paint(); }
   };
   function jump(k) {
