@@ -4634,7 +4634,8 @@
         <label class="set2-us-g-num"><input class="set2-us-g-in set2-num" data-us-hard-new="${esc(ref)}" value=""
           inputmode="numeric" autocomplete="off" spellcheck="false"
           aria-label="${esc(u.uname)} limit a month, in ${esc(u.unit)}. Enter to set, Escape to cancel"><span>${esc(u.unit)}</span></label>
-        <button class="set2-us-g-set is-brand" type="button" data-us-hard-ok="${esc(ref)}">Set</button></span>`
+        <button class="set2-us-g-set is-brand" type="button" data-us-hard-ok="${esc(ref)}">Set</button>
+        <button class="set2-us-g-x" type="button" data-us-hard-cancel="${esc(ref)}" aria-label="Cancel" title="Cancel">${I.x}</button></span>`
       : `<button class="set2-us-g-set" type="button" data-us-hard-on="${esc(ref)}">Set a limit</button>`;
   }
   const usGRemove = (u, id) => US_HARD[u.id][id] != null && usCan(usHardKey(u, id), true)
@@ -10910,6 +10911,9 @@
       render(() => { const f = $('[data-us-hard-new="' + ref + '"]'); if (f) f.focus({ preventScroll: true }); });
       return;
     }
+    /* the x beside Set: close the field with nothing set (Nour 22 Oct) */
+    const usHC = e.target.closest('[data-us-hard-cancel]');
+    if (usHC) { usHardNewCancel(usHC.getAttribute('data-us-hard-cancel')); return; }
     const usHK = e.target.closest('[data-us-hard-ok]');
     if (usHK) {
       const f = $('[data-us-hard-new="' + usHK.getAttribute('data-us-hard-ok') + '"]');
@@ -12746,7 +12750,7 @@
      own Set button does not count as leaving */
   document.addEventListener('focusout', (e) => {
     const f = e.target.closest && e.target.closest('[data-us-hard-new]');
-    if (!f || f.value.trim() || (e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('[data-us-hard-ok]'))) return;
+    if (!f || f.value.trim() || (e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('[data-us-hard-ok], [data-us-hard-cancel]'))) return;
     const ref = f.getAttribute('data-us-hard-new');
     setTimeout(() => { if (US_HARD_NEW === ref) { US_HARD_NEW = ''; render(); } }, 0);
   });
