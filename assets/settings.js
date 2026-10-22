@@ -4555,7 +4555,7 @@
      limit. The card says the rest in words. */
   const usCap = (w) => w.charAt(0).toUpperCase() + w.slice(1);
   function usGlyph(x, id) {
-    if (usStopped(x, id)) return `<span class="set2-us-glyph is-stop" title="Stopped">${I.octX}</span>`;
+    if (usStopped(x, id)) return `<span class="set2-us-glyph is-stop" title="Stopped">${I.warn}</span>`;
     return US_HARD[x.id][id] != null ? `<span class="set2-us-glyph" title="Has a hard limit">${I.lock}</span>` : '';
   }
   /* A line over the card when the stop is wider than its unit, or comes from
@@ -4564,12 +4564,12 @@
   function usStopLine(m, s, x, id) {
     if (!s || (s.own && (s.by === 'unit' || s.by === 'limit'))) return '';
     const here = esc(usName(id));
-    if (s.own) return `<p class="set2-us-stopln" role="status">${I.octX}<span><b>${s.by === 'all' ? 'All of ' + here + ' is stopped'
+    if (s.own) return `<p class="set2-us-stopln" role="status">${I.warn}<span><b>${s.by === 'all' ? 'All of ' + here + ' is stopped'
       : here + '’s ' + esc(m.name) + ' is stopped'}</b> since ${esc(s.at)}. ${usCan(usStopKey(s.by, s.node, m), true) ? 'Resume it from Limits and stops.'
         : 'FlairsTech stopped it. ' + US_ASK}</span></p>`;
     const what = s.by === 'limit' ? esc(usName(s.node)) + ' reached its limit of ' + usFmt(s.lim) + ' ' + esc(m.unit)
       : esc(usCap(usScopeName(m, s))) + ' is stopped since ' + esc(s.at);
-    return `<p class="set2-us-stopln" role="status">${I.octX}<span><b>${what}</b>, so ${here} ${
+    return `<p class="set2-us-stopln" role="status">${I.warn}<span><b>${what}</b>, so ${here} ${
       s.by === 'limit' ? 'stops too until ' + US_PERIOD.resets : 'is too'}.
       ${usSeen(s.node) ? `<button class="set2-us-who is-strong" type="button" data-us-go="${esc(s.node)}">Open ${esc(usName(s.node))}</button>`
         : 'FlairsTech set it. ' + US_ASK}</span></p>`;
@@ -4610,22 +4610,43 @@
      What reaches this level from above is said at the top and links up,
      and a scope already stopped above shows "With Upland" instead of a
      button. Each press acts at once and can be undone from the toast. */
-  const usGBy = (key) => `<span class="set2-us-g-by">${I.lock}Set by ${esc(usWho(key))}</span>`;
-  const usGStop = (key, what, label) => !usCan(key, false) ? '' : `<button class="btn btn-ghost btn-sm set2-us-g-stop" type="button" data-us-stop="${esc(key)}"${
-    label ? ` aria-label="${esc(label)}"` : ''}>${I.octX}Stop ${esc(what)}</button>`;
-  const usGResume = (key, label) => !usCan(key, true) ? usGBy(key) : `<button class="btn btn-ghost btn-sm" type="button" data-us-resume="${esc(key)}"${
-    label ? ` aria-label="${esc(label)}"` : ''}>${I.play}Resume</button>`;
+  /* ── The panel's hierarchy (Nour 22 Oct: "revisit the text hierarchy and
+     the visual hierarchy overall") ──
+     One list, no box per row. Four tiers, each with one rule: the unit's
+     name (and its one action) leads; then two plain label / value pairs,
+     Status and Hard limit, values always on the right in primary ink; then
+     one small line under them saying who set it and what happens next.
+     Red is for a stop alone. The only box left is what reaches this level
+     from above, because that is the one thing to act on elsewhere. */
+  /* the limit's value, or its control when this viewer may change it */
   function usGLimit(u, id) {
     const h = US_HARD[u.id][id], ref = u.id + '|' + id, step = usFmt(usHardStep(u, id));
-    if (!usCan(usHardKey(u, id), h != null)) return `<span class="set2-us-g-lim"><b class="set2-us-g-ro">${h != null ? usFmt(h) + ' ' + esc(u.unit) : 'None'}</b>${
-      h != null ? usGBy(usHardKey(u, id)) : ''}</span>`;
+    if (!usCan(usHardKey(u, id), h != null)) return `<b class="set2-us-g-v">${h != null ? usFmt(h) + ' ' + esc(u.unit) : 'None'}</b>`;
     return h != null ? `
-      <span class="set2-us-g-lim"><span class="set2-us-g-step">
+      <span class="set2-us-g-step">
         <button type="button" data-us-hard="${esc(ref)}|-1" aria-label="${step} less">${I.minus}</button>
         <output class="set2-num">${usFmt(h)} ${esc(u.unit)}</output>
-        <button type="button" data-us-hard="${esc(ref)}|1" aria-label="${step} more">${I.plus}</button></span>
-        <button class="set2-us-g-x" type="button" data-us-hard-off="${esc(ref)}" aria-label="Remove the limit" title="Remove the limit">${I.x}</button></span>`
-      : `<button class="btn btn-ghost btn-sm" type="button" data-us-hard-on="${esc(ref)}">${I.lock}Set a limit</button>`;
+        <button type="button" data-us-hard="${esc(ref)}|1" aria-label="${step} more">${I.plus}</button></span>`
+      : `<button class="set2-us-g-set" type="button" data-us-hard-on="${esc(ref)}">Set a limit</button>`;
+  }
+  const usGRemove = (u, id) => US_HARD[u.id][id] != null && usCan(usHardKey(u, id), true)
+    ? ` <button class="set2-us-g-link" type="button" data-us-hard-off="${esc(u.id + '|' + id)}">Remove limit</button>` : '';
+  /* Running or stopped is a switch (on is running): one press stops, one
+     resumes, both with the toast's undo. Stopped by a wider scope, it shows
+     off and cannot be pressed; set by someone this viewer may not change,
+     there is no switch, only the word. */
+  function usGSwitch(key, label, on, locked) {
+    if (locked) return `<span class="set2-us-sw is-locked" role="switch" aria-checked="false" aria-disabled="true" aria-label="${esc(label)}"><i></i></span>`;
+    if (!usCan(key, !on)) return '';
+    return `<button class="set2-us-sw" type="button" role="switch" aria-checked="${on}" aria-label="${esc(label)}" ${
+      on ? 'data-us-stop' : 'data-us-resume'}="${esc(key)}"><i></i></button>`;
+  }
+  /* the small line under a limit: who set it, then what happens next */
+  function usGLimitSay(u, id, x) {
+    const h = US_HARD[u.id][id], hk = usHardKey(u, id);
+    if (h == null) return !id ? 'Nothing stops everyone at once.'
+      : x.depth === 1 ? 'Past the plan it keeps going, billed by the slice.' : 'Past its share it keeps going, flagged.';
+    return (usCan(hk, true) ? '' : 'Set by ' + usWho(hk) + '. ') + usReach(u, id, h);
   }
   function usGearPanel(m, id) {
     const x = usAt(id), nm = usName(id), units = usUnits(m.prod);
@@ -4633,51 +4654,54 @@
       <div class="set2-us-g-hd"><span class="set2-us-g-t">${I.gear}<b>Limits and stops</b></span>
         <button class="set2-us-g-x" type="button" data-us-gear aria-label="Close Limits and stops" title="Close">${I.x}</button></div>`;
     const kind = id ? US_LEVEL[x.depth].toLowerCase() : '';
-    const scope = id ? `${nm}, ${/^[aeiou]/i.test(kind) ? 'an' : 'a'} ${kind}${x.parent ? ' in ' + usName(x.parent) : ''}. ${usRO() ? 'Its' : 'Its own'} limits and stops in ${m.name}.`
-      : `Everyone in the workspace. Limits and stops for all of ${m.name} at once.`;
-    /* a client's admin reads them; FlairsTech sets them */
+    const scope = id ? `${esc(nm)} · ${esc(m.name)}<span>${esc(usCap(kind))}${x.parent ? ' in ' + esc(usName(x.parent)) : ''}</span>`
+      : `Everyone · ${esc(m.name)}<span>The whole workspace at once</span>`;
+    /* a client's admin: what they may change, and who to ask for the rest */
     const ro = !usRO() ? '' : id === US_VIEW
       ? `<p class="set2-us-g-ro-note">${I.lock}<span>Set by FlairsTech. ${US_ASK.replace('it.', 'any of these.')}</span></p>`
-      : `<p class="set2-us-g-ro-note">${I.lock}<span>You can set limits and stops for ${esc(nm)}. Anything FlairsTech set is marked and stays as it is; ${
+      : `<p class="set2-us-g-ro-note">${I.lock}<span>You can set these for ${esc(nm)}. What FlairsTech set stays as it is; ${
         US_ASK.charAt(0).toLowerCase() + US_ASK.slice(1)}</span></p>`;
-    /* from above: a stop or a reached limit, or a limit still running */
+    /* from above: a stop or a reached limit (the one box), or a limit still running */
     const s = usStopped(m, id);
     const up = id ? [''].concat(usPath(x.parent || '')) : [];
     const lim = up.filter((n) => US_HARD[m.id][n] != null).pop();
     const above = s && !s.own ? `
-      <p class="set2-us-g-inh">${I.octX}<span>${s.by === 'limit' ? esc(usName(s.node)) + ' reached its limit of ' + usFmt(s.lim) + ' ' + esc(m.unit)
+      <p class="set2-us-g-inh">${I.warn}<span>${s.by === 'limit' ? esc(usName(s.node)) + ' reached its limit of ' + usFmt(s.lim) + ' ' + esc(m.unit)
         : esc(usCap(usScopeName(m, s))) + ' is stopped'}, so this is too.
         ${usSeen(s.node) ? `<button class="set2-us-who is-strong" type="button" data-us-go="${esc(s.node)}">Open ${esc(usName(s.node))}</button>` : ''}</span></p>`
-      : lim != null ? `<p class="set2-us-g-note">${esc(usName(lim))}’s limit of ${usFmt(US_HARD[m.id][lim])} ${esc(m.unit)} also applies here: ${
+      : lim != null ? `<p class="set2-us-g-note">${esc(usName(lim))}’s limit of ${usFmt(US_HARD[m.id][lim])} ${esc(m.unit)} also applies: ${
         usFmt(Math.max(0, US_HARD[m.id][lim] - usUsed(m, lim)))} left for all of ${esc(usName(lim))}.</p>` : '';
     const unitRow = (u) => {
-      const st = usStopped(u, id), key = usStopKey('unit', id, u), mine = US_STOP[key], h = US_HARD[u.id][id];
+      const st = usStopped(u, id), key = usStopKey('unit', id, u), mine = US_STOP[key];
       const cover = mine ? '' : usCover(u, id, 'unit');
-      const word = mine ? 'stopped since ' + esc(mine) : cover ? '' : st && st.by === 'limit'
-        ? (st.own ? 'limit reached' : esc(usName(st.node)) + '’s limit reached') : 'running';
+      /* the state is one word; where a stop comes from goes in the small line */
+      const state = st ? (st.by === 'limit' ? 'Limit reached' : 'Stopped') : 'Running';
+      const from = mine ? 'Stopped by ' + usWho(key) + ' since ' + mine + '. ' : cover ? 'Stopped with ' + cover + '. '
+        : st && st.by === 'limit' && !st.own ? usName(st.node) + '’s limit was reached. ' : '';
       return `
-        <div class="set2-us-g-u${u.id === m.id && units.length > 1 ? ' is-sel' : ''}${mine ? ' is-off' : ''}">
-          <div class="set2-us-g-r"><span><b>${esc(u.uname)}</b> <span class="${mine || (st && st.by === 'limit') ? 'is-err' : ''}">${word}</span></span>
-            ${cover ? `<span class="set2-us-g-with">With ${esc(cover)}</span>` : mine ? usGResume(key) : usGStop(key, u.unit)}</div>
-          <div class="set2-us-g-r"><span>Hard limit a month</span>${usGLimit(u, id)}</div>
-          <p class="set2-us-g-sub">${h != null ? esc(usReach(u, id, h)) : !id ? 'None: nothing stops everyone at once.'
-            : x.depth === 1 ? 'None: past the plan it keeps going, billed by the slice.' : 'None: past its share it keeps going, flagged.'}</p>
-        </div>`;
+        <section class="set2-us-g-u${u.id === m.id && units.length > 1 ? ' is-sel' : ''}" aria-label="${esc(u.uname)}">
+          <div class="set2-us-g-row"><b class="set2-us-g-name">${esc(u.uname)}</b>
+            <span class="set2-us-g-state${st ? ' is-err' : ''}">${state}</span>${usGSwitch(key, u.uname + ' running', !mine && !cover, !!cover)}</div>
+          <div class="set2-us-g-row"><span class="set2-us-g-lbl">Hard limit</span>${usGLimit(u, id)}</div>
+          <p class="set2-us-g-sub">${esc(from + usGLimitSay(u, id, x))}${usGRemove(u, id)}</p>
+        </section>`;
     };
     const wideRow = (key, scopeBy, title, sub, what) => {
       const at = US_STOP[key], cover = at ? '' : usCover(m, id, scopeBy);
       return `
-        <div class="set2-us-g-org${at ? ' is-off' : ''}">
-          <span><b>${esc(title)}</b><span class="${at ? 'is-err' : ''}">${at ? 'Stopped since ' + esc(at) : esc(sub)}</span></span>
-          ${cover ? `<span class="set2-us-g-with">With ${esc(cover)}</span>` : at ? usGResume(key) : usGStop(key, what)}
-        </div>`;
+        <section class="set2-us-g-u" aria-label="${esc(title)}">
+          <div class="set2-us-g-row"><b class="set2-us-g-name">${esc(title)}</b>
+            <span class="set2-us-g-state${at || cover ? ' is-err' : ''}">${at || cover ? 'Stopped' : 'Running'}</span>${usGSwitch(key, title + ' running', !at && !cover, !!cover)}</div>
+          <p class="set2-us-g-sub">${esc(at ? 'Stopped by ' + usWho(key) + ' since ' + at + '. ' + usCap(sub) + '.' : cover ? 'Stopped with ' + cover + '. ' + usCap(sub) + '.' : usCap(sub) + '.')}</p>
+        </section>`;
     };
     return `${head}
-      <p class="set2-us-g-scope">${esc(scope)}</p>
+      <p class="set2-us-g-scope">${scope}</p>
       ${ro}
       ${above}
-      <div class="set2-us-g-list">
-        ${units.map(unitRow).join('')}
+      <div class="set2-us-g-list">${units.map(unitRow).join('')}</div>
+      <div class="set2-us-g-wide">
+        <p class="set2-us-g-wh">Stop more at once</p>
         ${units.length > 1 ? wideRow(usStopKey('prod', id, m), 'prod', 'All of ' + m.name, units.map((u) => u.unit).join(' and ') + ' together', m.name) : ''}
         ${wideRow(usStopKey('all', id, m), 'all', id ? 'All of ' + nm : 'All of AiMY', id ? 'Every product, for everyone in ' + nm : 'Every product, for everyone', id ? nm : 'everything')}
       </div>`;
@@ -4695,9 +4719,9 @@
       : st ? 'Stopped with ' + esc(usScopeName(m, st)) : 'Running';
     return `
       <span class="set2-us-r-ctl" role="group" aria-label="${esc(first)}’s limits and stops">
-        <span class="set2-us-r-cst${st ? ' is-err' : ''}">${word}${h != null && !(st && st.by === 'limit') ? '. ' + esc(usReach(m, id, h)) : ''}</span>
-        <span class="set2-us-r-cact">${usGLimit(m, id)}${cover || (st && !mine && st.by !== 'limit') ? ''
-          : mine ? usGResume(key, 'Resume ' + first + '’s ' + m.unit) : usGStop(key, m.unit, 'Stop ' + first + '’s ' + m.unit)}</span>
+        <span class="set2-us-r-cst${st ? ' is-err' : ''}">${word}${h != null && !(st && st.by === 'limit') ? '. ' + esc(usGLimitSay(m, id, usAt(id))) : ''}</span>
+        <span class="set2-us-r-cact">${usGLimit(m, id)}${usGRemove(m, id)}${cover || (st && !mine && st.by !== 'limit') ? ''
+          : usGSwitch(key, first + '’s ' + m.unit + ' running', !mine, false)}</span>
       </span>`;
   }
 
