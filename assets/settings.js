@@ -8423,7 +8423,7 @@
           const opts = cat.filter((c) => c === sk || used.indexOf(c) < 0);
           if (opts.indexOf(sk) < 0) opts.unshift(sk);
           return `<div class="set2-dc-sr is-sw is-ed"><span class="set2-dc-se"><input class="set2-dc-u" data-dc-subn="${id}:${k}" value="${esc(nm)}" aria-label="Name AiMY uses for ${esc(sk)}">${dcDD('sub:' + id + ':' + k, d.crm + ' key for ' + nm, sk, opts.map((c) => [c, c]))}</span>${dcTog(on, (on ? 'Stop reading ' : 'Read ') + f.a + ' ' + nm, 'data-dc-sub="' + id + ':' + k + '"')}</div>`; }).join('')}</div>
-        ${free.length ? `<span class="set2-dc-vr"><input class="set2-dc-u" id="dcsubn" placeholder="Name" aria-label="New subfield name">${dcDD('subnew', d.crm + ' key for the new subfield', DCU.subNew, free.map((c) => [c, c]))}<button class="agv-btn is-ghost set2-dc-sm" type="button" data-dc="subNew" data-id="${id}">Add</button></span>` : ''}</div>` + b;
+        ${free.length ? `<div class="set2-dc-sr is-ed is-new"><span class="set2-dc-se"><input class="set2-dc-u" id="dcsubn" placeholder="New subfield name" aria-label="New subfield name">${dcDD('subnew', d.crm + ' key for the new subfield', DCU.subNew, free.map((c) => [c, c]))}</span><button class="agv-btn is-ghost set2-dc-sm" type="button" data-dc="subNew" data-id="${id}">Add</button></div>` : ''}</div>` + b;
     }
     return dcPanHead(esc(f.a) + (DC_SUB[id] || !dcHasValues(f) ? '' : ' values')) + `<div class="set2-dc-pan-b">${head}${b}</div><div class="set2-dc-pan-f" data-dc-panf>${dcPanFoot(d)}</div>`;
   }
