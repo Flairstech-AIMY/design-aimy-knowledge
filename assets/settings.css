@@ -5575,18 +5575,12 @@ button.set2-us-sl:disabled { cursor: not-allowed; }
 .set2-dc-ai { background: var(--aimy-wash); box-shadow: inset 0 0 0 0.0625rem var(--aimy-wash-edge); }
 .set2-dc-ai > svg.agv-mk { width: 1.125rem; height: 1.25rem; }
 
-/* By name / By ID: two option cards in an outlined track, each showing what
-   you would see; a ring slides to the chosen one (Tone & Voice's switcher). */
-.set2-dc-pick { position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 0.25rem; border-radius: 1rem; box-shadow: inset 0 0 0 0.0625rem var(--card-border-hover); }
-.set2-dc-pick-th { position: absolute; top: 0.25rem; bottom: 0.25rem; left: 0.25rem; width: calc(50% - 0.25rem); border-radius: 0.75rem; background: rgba(var(--accent-rgb), 0.16); box-shadow: inset 0 0 0 0.0625rem var(--brand); transform: translateX(calc(var(--i, 0) * 100%)); transition: transform 250ms cubic-bezier(0.22, 1, 0.36, 1); pointer-events: none; }
-.set2-dc-pick button { position: relative; z-index: 1; display: grid; gap: 0.125rem; justify-items: start; min-width: 0; border: 0; background: none; padding: 0.625rem 0.875rem; border-radius: 0.75rem; text-align: left; cursor: pointer; color: var(--ink-secondary); }
-.set2-dc-pick button b { font-size: 0.875rem; font-weight: var(--fw-semibold); color: var(--ink-primary); }
-.set2-dc-pick button i { font-style: normal; font-size: 0.75rem; color: var(--ink-secondary); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color 150ms ease-out; }
-.set2-dc-pick button i.is-mono { font-family: var(--font-mono); }
-.set2-dc-pick button[aria-checked="true"] i { color: var(--ink-primary); }
-.set2-dc-pick button:not([aria-checked="true"]):hover { background: var(--card-bg-raised); }
-.set2-dc-pick button:active { transform: scale(0.98); }
-@media (prefers-reduced-motion: reduce) { .set2-dc-pick-th { transition: none; } }
+/* A mapped row opens its field anywhere along it; the name is the button. */
+.set2-dc-r[data-dc-open] { cursor: pointer; }
+.set2-dc-nb { border: 0; background: none; padding: 0; margin: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; border-radius: 0.25rem; }
+/* a subfield edited in place: its name over its key, the switch beside */
+.set2-dc-se { display: grid; gap: 0.25rem; min-width: 0; }
+.set2-dc-se > .set2-dc-u { font-weight: var(--fw-semibold); }
 
 /* the column's save state */
 .set2-dc-pan-f { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 0.75rem 0.75rem 1.25rem; box-shadow: 0 -0.0625rem 0 var(--card-border); background: var(--card-bg-raised); }

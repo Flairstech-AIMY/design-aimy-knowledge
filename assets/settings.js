@@ -8061,16 +8061,34 @@
     company: [['name', 'Name'], ['domains', 'Domain'], ['industry', 'Industry']]
   };
   const DC_SUB_BASE = { req: ['requester', 'Contact'], agent: ['responder', 'User'], company: ['company', 'Customer'] };
-  const dcSubKey = (d, id, k) => (d.ts ? DC_SUB_BASE[id][1] : DC_SUB_BASE[id][0]) + '.' + k;
-  const dcSubName = (id, k) => (DC_SUB[id].filter((x) => x[0] === k)[0] || [k, k])[1];
+  /* what else the CRM's record carries, for pointing a subfield elsewhere */
+  const DC_SUB_CAT = {
+    req: ['name', 'email', 'phone', 'mobile', 'company', 'job_title', 'time_zone', 'language'],
+    agent: ['name', 'email', 'phone', 'job_title', 'time_zone'],
+    company: ['name', 'domains', 'industry', 'health_score', 'account_tier', 'renewal_date']
+  };
+  const dcSubBase = (d, id) => d.ts ? DC_SUB_BASE[id][1] : DC_SUB_BASE[id][0];
+  const dcSubCat = (d, id) => DC_SUB_CAT[id].map((k) => dcSubBase(d, id) + '.' + k);
+  /* A subfield is [id, name, key]. Until one is edited the connector reads
+     the catalogue; the first edit gives it its own copy. A null key is the
+     default, the record's base plus the id. */
+  const dcSubDefs = (d, id) => (d.subDefs && d.subDefs[id]) || DC_SUB[id].map(([k, nm]) => [k, nm, null]);
+  const dcSubDef = (d, id, k) => dcSubDefs(d, id).filter((x) => x[0] === k)[0];
+  const dcSubKey = (d, id, k) => { const x = dcSubDef(d, id, k); return (x && x[2]) || dcSubBase(d, id) + '.' + k; };
+  const dcSubName = (d, id, k) => { const x = dcSubDef(d, id, k); return x ? x[1] : k; };
+  function dcSubEdit(d, id) {
+    d.subDefs = d.subDefs || {};
+    if (!d.subDefs[id]) d.subDefs[id] = dcSubDefs(d, id).map((x) => x.slice());
+    return d.subDefs[id];
+  }
   function dcSubRows(d, f) {
     const list = (d.subs || {})[f.id] || [];
     return list.map((k) => {
-      const nm = (f.a + ' ' + dcSubName(f.id, k) + ' ' + dcSubKey(d, f.id, k)).toLowerCase(), cf = dcCf('rmSub', f.id + ':' + k);
-      return `<div class="set2-dc-r is-map is-sub${cf ? ' is-cf' : ''}" data-name="${esc(nm)}"${dcMiss(DCU.q, nm) ? ' hidden' : ''}>
-        <span class="set2-dc-n">${DCI.sub}${esc(dcSubName(f.id, k))}</span><span class="set2-dc-key">${esc(dcSubKey(d, f.id, k))}</span><span class="set2-dc-v"></span>
-        <span class="set2-dc-e">${dcIb('ask', 'Remove ' + f.a + ' ' + dcSubName(f.id, k), I.trash, 'data-what="rmSub" data-id="' + f.id + '" data-sub="' + k + '"')}</span>
-        ${cf ? dcCfLine(`Remove <b>${esc(f.a)} \u203a ${esc(dcSubName(f.id, k))}</b>?`, 'Remove', 'rmSub', 'data-id="' + f.id + '" data-sub="' + k + '"') : ''}</div>`;
+      const nm = (f.a + ' ' + dcSubName(d, f.id, k) + ' ' + dcSubKey(d, f.id, k)).toLowerCase(), cf = dcCf('rmSub', f.id + ':' + k);
+      return `<div class="set2-dc-r is-map is-sub${cf ? ' is-cf' : ''}" data-dc-open="${f.id}" data-name="${esc(nm)}"${dcMiss(DCU.q, nm) ? ' hidden' : ''}>
+        <span class="set2-dc-n">${DCI.sub}${esc(dcSubName(d, f.id, k))}</span><span class="set2-dc-key">${esc(dcSubKey(d, f.id, k))}</span><span class="set2-dc-v"></span>
+        <span class="set2-dc-e">${dcIb('ask', 'Remove ' + f.a + ' ' + dcSubName(d, f.id, k), I.trash, 'data-what="rmSub" data-id="' + f.id + '" data-sub="' + k + '"')}</span>
+        ${cf ? dcCfLine(`Remove <b>${esc(f.a)} \u203a ${esc(dcSubName(d, f.id, k))}</b>?`, 'Remove', 'rmSub', 'data-id="' + f.id + '" data-sub="' + k + '"') : ''}</div>`;
     }).join('');
   }
   function dcMap(d, keep) {
@@ -8080,9 +8098,9 @@
     const rows = d.fields.filter((id) => !keep || keep(id)).map((id) => DCF[id]).map((f) => {
       const sel = DCU.pan && (DCU.pan.type === 'field' || DCU.pan.type === 'search') && DCU.pan.id === f.id, ub = dcUsedBy(d, f.id), key = dcKeyOf(d, f.id);
       /* a parent stays in view when one of its subfields matches the search */
-      const nm = (f.a + ' ' + key + ' ' + ((d.subs || {})[f.id] || []).map((k) => dcSubName(f.id, k) + ' ' + dcSubKey(d, f.id, k)).join(' ')).toLowerCase();
-      return `<div class="set2-dc-r is-map${sel ? ' is-sel' : ''}${dcCf('rmField', f.id) ? ' is-cf' : ''}" data-name="${esc(nm)}"${dcMiss(DCU.q, nm) ? ' hidden' : ''}>
-        <span class="set2-dc-n">${esc(f.a)}${ub ? `<span class="set2-dc-at">${ub}</span>` : ''}${DC_SUB[f.id] ? `<button class="agv-lnk set2-dc-sm set2-dc-addsub" type="button" data-dc="addSub" data-id="${f.id}">${I.plus}Subfield</button>` : ''}</span>
+      const nm = (f.a + ' ' + key + ' ' + ((d.subs || {})[f.id] || []).map((k) => dcSubName(d, f.id, k) + ' ' + dcSubKey(d, f.id, k)).join(' ')).toLowerCase();
+      return `<div class="set2-dc-r is-map${sel ? ' is-sel' : ''}${dcCf('rmField', f.id) ? ' is-cf' : ''}" data-dc-open="${f.id}" data-name="${esc(nm)}"${dcMiss(DCU.q, nm) ? ' hidden' : ''}>
+        <span class="set2-dc-n"><button class="set2-dc-nb" type="button" data-dc="vals" data-id="${f.id}" aria-expanded="${!!(sel && DCU.pan.type === 'field')}">${esc(f.a)}</button>${ub ? `<span class="set2-dc-at">${ub}</span>` : ''}${DC_SUB[f.id] ? `<button class="agv-lnk set2-dc-sm set2-dc-addsub" type="button" data-dc="addSub" data-id="${f.id}">${I.plus}Subfield</button>` : ''}</span>
         <span class="set2-dc-key">${esc(key)}</span>
         <span class="set2-dc-v">${dcValCell(d, f)}</span>
         <span class="set2-dc-cs">${dcCanSay(d, f)}</span>
@@ -8373,8 +8391,13 @@
     const f = DCF[id], key = dcKeyOf(d, id), names = dcNamesFirst(f) && !d.vals[id];
     const v = d.vals[id] || [];
     const keys = [key].concat(DC_FIELDS.filter((x) => x.t === f.t).map((x) => d.ts ? x.ts : x.k).filter((k) => k !== key));
-    let b = `<div class="set2-dc-ps"><span class="agv-k">${esc(d.crm)} field</span>${dcDD('rep', d.crm + ' field', key, keys.map((k) => [k, k]))}</div>`;
-    if (!names) {
+    /* which AiMY field the key fills, then which key fills it; both change */
+    const same = DC_FIELDS.filter((x) => x.t === f.t).map((x) => [x.id, x.a]);
+    const head = `<div class="set2-dc-ps"><span class="agv-k">AiMY field</span>${dcDD('aimy', 'AiMY field', id, same)}</div>
+      <div class="set2-dc-ps"><span class="agv-k">${esc(d.crm)} field</span>${dcDD('rep', d.crm + ' field', key, keys.map((k) => [k, k]))}</div>`;
+    let b = '';
+    if (!dcHasValues(f)) { /* free text, dates, numbers and tags have nothing to label */ }
+    else if (!names) {
       const miss = (DC_UNL[id] || []).filter((c) => !v.some((x) => x[0] === c)), seen = dcSeen(d, id);
       b += `${miss.length ? `<div class="set2-dc-ps is-warn"><span class="agv-k">Not labelled yet</span>${miss.map((c) => `<span class="set2-dc-vr"><i>${c}</i><input class="set2-dc-u" data-dc-unl="${c}" data-id="${id}" placeholder="Label" aria-label="Label for ${c}"><button class="agv-btn is-ghost set2-dc-sm" type="button" data-dc="labelCode" data-id="${id}" data-raw="${c}">Add</button></span>`).join('')}</div>` : ''}
         <div class="set2-dc-ps"><span class="agv-k">${v.length ? v.length + (v.length === 1 ? ' value' : ' values') : 'Value mapping'}</span>
@@ -8384,25 +8407,25 @@
         <span class="set2-dc-vr"><input class="set2-dc-u" id="dcmvr" placeholder="${f.t === 'lookup' || f.t === 'choice' ? 'Code' : 'Value'}" aria-label="Value ${esc(d.crm)} sends"><input class="set2-dc-u" id="dcmvl" placeholder="Label" aria-label="Label"><button class="agv-btn is-ghost set2-dc-sm" type="button" data-dc="addMapVal" data-id="${id}">Add</button></span>
         ${dcNamesFirst(f) && (f.n || 0) > 20 ? `<button class="agv-lnk set2-dc-sm" type="button" data-dc="useNames" data-id="${id}">Use names from ${esc(d.crm)} instead</button>` : ''}</div>`;
     } else {
-      const on = d.resolve[id] !== false, list = DC_NAMED[id] || [];
-      /* Freshdesk sends these as IDs. The choice is whether AiMY looks each
-         one up and uses the name, said with an example of each, not a switch
-         called "names". */
-      b += `<div class="set2-dc-ps"><span class="agv-k">How ${esc(f.a)} shows</span>
-        <div class="set2-dc-pick" role="radiogroup" aria-label="How ${esc(f.a)} shows" style="--i:${on ? 0 : 1}"><span class="set2-dc-pick-th" aria-hidden="true"></span>
-          <button type="button" role="radio" aria-checked="${on}" data-dc="setRes" data-id="${id}" data-v="1"><b>By name</b><i>${esc(list[0] || 'Rania Fathy')}</i></button>
-          <button type="button" role="radio" aria-checked="${!on}" data-dc="setRes" data-id="${id}" data-v="0"><b>By ID</b><i class="is-mono">48000123456</i></button></div>
-        <span class="set2-dc-meta">${esc(d.crm)} sends an ID. ${on ? 'AiMY looks up the name, so rules and answers use it.' : 'Rules and answers use the ID as it is.'}</span>
+      const on = d.resolve[id] !== false;
+      b += `<div class="set2-dc-ps"><span class="set2-dc-meta">${esc(d.crm)} sends an ID. ${on ? 'AiMY looks up the name, so rules and answers use it.' : 'Rules and answers use the ID as it is.'}</span>
         <button class="agv-lnk set2-dc-sm" type="button" data-dc="startMap" data-id="${id}">Label values by hand instead</button></div>`;
     }
     if (DC_SUB[id]) {
-      /* One list, one switch per part of the record: on, AiMY reads it. */
-      const have = (d.subs || {})[id] || [];
+      /* One list, one switch per part of the record: on, AiMY reads it. Each
+         part's name and key are edited where they are, and a new part is
+         one line under the list. */
+      const have = (d.subs || {})[id] || [], cat = dcSubCat(d, id), defs = dcSubDefs(d, id);
+      const used = defs.map((x) => dcSubKey(d, id, x[0])), free = cat.filter((k) => used.indexOf(k) < 0);
+      if (free.indexOf(DCU.subNew) < 0) DCU.subNew = free[0] || null;
       b = `<div class="set2-dc-ps"><span class="agv-k">Also read from each ${esc(f.a.toLowerCase())}</span>
-        <div class="set2-dc-vl">${DC_SUB[id].map(([k, nm]) => { const on = have.indexOf(k) > -1;
-          return `<div class="set2-dc-sr is-sw"><span><b>${esc(nm)}</b><i>${esc(dcSubKey(d, id, k))}</i></span>${dcTog(on, (on ? 'Stop reading ' : 'Read ') + f.a + ' ' + nm, 'data-dc-sub="' + id + ':' + k + '"')}</div>`; }).join('')}</div></div>` + b;
+        <div class="set2-dc-vl">${defs.map(([k, nm]) => { const on = have.indexOf(k) > -1, sk = dcSubKey(d, id, k);
+          const opts = cat.filter((c) => c === sk || used.indexOf(c) < 0);
+          if (opts.indexOf(sk) < 0) opts.unshift(sk);
+          return `<div class="set2-dc-sr is-sw is-ed"><span class="set2-dc-se"><input class="set2-dc-u" data-dc-subn="${id}:${k}" value="${esc(nm)}" aria-label="Name AiMY uses for ${esc(sk)}">${dcDD('sub:' + id + ':' + k, d.crm + ' key for ' + nm, sk, opts.map((c) => [c, c]))}</span>${dcTog(on, (on ? 'Stop reading ' : 'Read ') + f.a + ' ' + nm, 'data-dc-sub="' + id + ':' + k + '"')}</div>`; }).join('')}</div>
+        ${free.length ? `<span class="set2-dc-vr"><input class="set2-dc-u" id="dcsubn" placeholder="Name" aria-label="New subfield name">${dcDD('subnew', d.crm + ' key for the new subfield', DCU.subNew, free.map((c) => [c, c]))}<button class="agv-btn is-ghost set2-dc-sm" type="button" data-dc="subNew" data-id="${id}">Add</button></span>` : ''}</div>` + b;
     }
-    return dcPanHead(esc(f.a) + (DC_SUB[id] ? '' : ' values')) + `<div class="set2-dc-pan-b">${b}</div><div class="set2-dc-pan-f" data-dc-panf>${dcPanFoot(d)}</div>`;
+    return dcPanHead(esc(f.a) + (DC_SUB[id] || !dcHasValues(f) ? '' : ' values')) + `<div class="set2-dc-pan-b">${head}${b}</div><div class="set2-dc-pan-f" data-dc-panf>${dcPanFoot(d)}</div>`;
   }
   function dcPanRun(d, i) {
     const h = d.hist[i];
@@ -13243,29 +13266,28 @@
       render(() => { const b = $('[data-cf-ok]'); if (b) b.focus(); });
     },
     cfCancel() { DCU.confirm = null; render(); },
-    /* The ring slides on the live control first (250ms smooth-out), and the
-       model and repaint follow once it has arrived, so the move is seen. */
-    setRes(d, el) {
-      const id = el.dataset.id, v = el.dataset.v === '1';
-      if ((d.resolve[id] !== false) === v) return;
-      const pick = el.closest('.set2-dc-pick');
-      const done = () => { d.resolve[id] = v; dcBump(d, 0); render(); };
-      if (!pick || dcReduced()) { done(); return; }
-      pick.style.setProperty('--i', v ? 0 : 1);
-      pick.querySelectorAll('[role="radio"]').forEach((b) => b.setAttribute('aria-checked', String(b === el)));
-      setTimeout(done, 260);
+    subNew(d, el) {
+      const id = el.dataset.id, key = DCU.subNew;
+      if (!key) return;
+      const u = dcSnap(d), tail = key.slice(key.lastIndexOf('.') + 1);
+      const name = (($('#dcsubn') || {}).value || '').trim() || tail.charAt(0).toUpperCase() + tail.slice(1).replace(/_/g, ' ');
+      const k = 'x_' + dcSlug(tail);
+      dcSubEdit(d, id).push([k, name, key]);
+      d.subs = d.subs || {}; d.subs[id] = (d.subs[id] || []).concat([k]);
+      DCU.subNew = null; dcBump(d, 0); render();
+      dcToast('Added ' + DCF[id].a + ' \u203a ' + name + ', read from ' + key + '.', u);
     },
     addSub(d, el) { if (DCU.pan && DCU.pan.type === 'field' && DCU.pan.id === el.dataset.id) return; dcOpenPan({ type: 'field', id: el.dataset.id }); },
     subAdd(d, el) {
       const u = dcSnap(d), id = el.dataset.id, k = el.dataset.sub;
       d.subs = d.subs || {}; d.subs[id] = (d.subs[id] || []).concat([k]); dcBump(d, 0); render();
-      dcToast('Added ' + DCF[id].a + ' \u203a ' + dcSubName(id, k) + '.', u);
+      dcToast('Added ' + DCF[id].a + ' \u203a ' + dcSubName(d, id, k) + '.', u);
     },
     rmSub(d, el) {
       DCU.confirm = null;
       const u = dcSnap(d), id = el.dataset.id, k = el.dataset.sub;
       d.subs[id] = (d.subs[id] || []).filter((x) => x !== k); dcBump(d, 0); render();
-      dcToast('Removed ' + DCF[id].a + ' \u203a ' + dcSubName(id, k) + '.', u);
+      dcToast('Removed ' + DCF[id].a + ' \u203a ' + dcSubName(d, id, k) + '.', u);
     },
     testTk(d, el) {
       if (el.dataset.i != null && el.dataset.i !== '') { DCU.tt = +el.dataset.i; }
@@ -13322,6 +13344,9 @@
     if (pk && !pk.disabled) { DCU.pick = pk.getAttribute('data-dc-pick'); DCU.addq = ($('#dcaddq') || {}).value || ''; render(); return; }
     const a = e.target.closest('[data-dc]');
     if (a && !a.disabled && DCA[a.dataset.dc]) { e.preventDefault(); DCA[a.dataset.dc](d, a); return; }
+    /* the rest of a mapped row opens its field, as its name does */
+    const or = e.target.closest('[data-dc-open]');
+    if (or && !e.target.closest('button, input, label, a, .v2-dropdown, .set2-dc-cf')) { DCA.vals(d, { dataset: { id: or.getAttribute('data-dc-open') } }); return; }
     const mvb = e.target.closest('[data-dc-mv]');
     if (mvb) { DCU.mv = mvb.getAttribute('data-dc-mv'); DCU.step = 0; DCU.add = null; render(); return; }
     const s = e.target.closest('[data-dc-step]');
@@ -13354,12 +13379,36 @@
     const t = e.target;
     if (t.closest && t.closest('[data-dc-root]') && t.hasAttribute && t.hasAttribute('data-dc-f')) dcSuggest(t);
   });
+  /* Pointing a key at another AiMY field: if that field is free, the mapping
+     moves to it, values and all, and the old field is no longer mapped; if
+     it is mapped, the two swap keys. The column follows the key. */
+  function dcSetAimy(d, from, to) {
+    const u0 = dcSnap(d), u = () => { if (DCU.pan && DCU.pan.id === to) DCU.pan.id = from; u0(); };
+    const kf = dcKeyOf(d, from), kt = dcKeyOf(d, to), both = dcMapped(d, to);
+    const swap = (o) => { const a = o[from], c = o[to]; delete o[from]; delete o[to]; if (a !== undefined) o[to] = a; if (both && c !== undefined) o[from] = c; };
+    swap(d.vals); swap(d.resolve);
+    d.keys[to] = kf;
+    if (both) d.keys[from] = kt;
+    else { delete d.keys[from]; d.fields = d.fields.map((x) => x === from ? to : x).sort((a, b) => dcOrder(a) - dcOrder(b)); }
+    DCU.pan.id = to; dcBump(d, 0); render();
+    dcToast(both ? DCF[to].a + ' reads ' + kf + ' now, and ' + DCF[from].a + ' reads ' + kt + '.'
+      : DCF[to].a + ' reads ' + kf + ' now. ' + DCF[from].a + ' isn\u2019t mapped.', u);
+  }
   document.addEventListener('dd:change', (e) => {
     const dd = e.target.closest && e.target.closest('[data-dcdd]');
     if (!dd || !dd.closest('[data-dc-root]')) return;
     const d = dcCur(); if (!d) return;
     const v = (e.detail && e.detail.value) || '', k = dd.getAttribute('data-dcdd');
     if (k === 'rep' && DCU.pan && DCU.pan.id) { d.keys[DCU.pan.id] = v; dcBump(d, 0); render(); }
+    if (k === 'aimy' && DCU.pan && DCU.pan.id && v && v !== DCU.pan.id) dcSetAimy(d, DCU.pan.id, v);
+    if (k === 'subnew') DCU.subNew = v;
+    if (k.indexOf('sub:') === 0) {
+      const [, id, sk] = k.split(':'), x = dcSubDef(d, id, sk);
+      if (!x || v === dcSubKey(d, id, sk)) return;
+      const u = dcSnap(d);
+      dcSubEdit(d, id).filter((y) => y[0] === sk)[0][2] = v; dcBump(d, 0); render();
+      dcToast(DCF[id].a + ' \u203a ' + x[1] + ' reads ' + v + ' now.', u);
+    }
     if (k === 'nrf') { DCU.nr.f = v; DCU.nr.op = null; render(); }
     if (k === 'nrop') DCU.nr.op = v;
   });
@@ -13402,14 +13451,21 @@
     if (t.hasAttribute('data-dc-sub')) {
       const [id, k] = t.getAttribute('data-dc-sub').split(':'), u = dcSnap(d);
       d.subs = d.subs || {}; const cur = d.subs[id] || [];
-      d.subs[id] = t.checked ? DC_SUB[id].map((x) => x[0]).filter((x) => x === k || cur.indexOf(x) > -1) : cur.filter((x) => x !== k);
+      d.subs[id] = t.checked ? dcSubDefs(d, id).map((x) => x[0]).filter((x) => x === k || cur.indexOf(x) > -1) : cur.filter((x) => x !== k);
       dcBump(d, 0); afterSwitch(t, render);
-      if (!t.checked) dcToast('Stopped reading ' + DCF[id].a + ' \u203a ' + dcSubName(id, k) + '.', u);
+      if (!t.checked) dcToast('Stopped reading ' + DCF[id].a + ' \u203a ' + dcSubName(d, id, k) + '.', u);
       return;
     }
     if (t.hasAttribute('data-dc-res')) { const id = t.getAttribute('data-dc-res'); d.resolve[id] = t.checked; dcBump(d, 0); afterSwitch(t, render); return; }
     if (t.hasAttribute('data-dc-fname')) { const id = t.getAttribute('data-dc-fname'); d.focus[id] = t.value.trim() || DCF[id].a; dcBump(d, 2); render(); return; }
     if (t.hasAttribute('data-dc-vlab')) { render(); return; }
+    if (t.hasAttribute('data-dc-subn')) {
+      const [id, k] = t.getAttribute('data-dc-subn').split(':'), x = dcSubDef(d, id, k), v = t.value.trim();
+      if (!x || !v || v === x[1]) { if (x) t.value = x[1]; return; }
+      const u = dcSnap(d), was = x[1];
+      dcSubEdit(d, id).filter((y) => y[0] === k)[0][1] = v; dcBump(d, 0); render();
+      dcToast('Renamed ' + DCF[id].a + ' \u203a ' + was + ' to ' + v + '.', u); return;
+    }
     if (t.id === 'dcrep') { d.keys[t.dataset.id] = t.value; dcBump(d, 0); render(); return; }
   });
   document.addEventListener('keydown', (e) => {
