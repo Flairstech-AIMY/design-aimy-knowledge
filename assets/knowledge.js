@@ -451,7 +451,7 @@
      Same origin as the top bar's Sales tab. Hard-coded in one place rather than
      read from that <a>, because a link's href is markup and this is a fact
      about where the product lives. */
-  const SALES_ORIGIN = 'https://aimy-sales.nour-ali.workers.dev/';
+  const SALES_ORIGIN = 'https://design-aimy-sales.aimy.flairstech.com/';
   const salesHref = (o) => o.camp ? SALES_ORIGIN + '?camp=' + encodeURIComponent(o.camp) : '';
 
   /* An entry-mode affordance for the fifth thing a control can do: none of the
