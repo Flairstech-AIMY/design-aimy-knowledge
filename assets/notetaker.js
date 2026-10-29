@@ -4,9 +4,11 @@
    page), asks once for consent on the stage, and then the orb itself leaves
    the stage and floats in the corner, still listening.
 
-   AIMY HEARS ONLY YOU. It is not a guest in the meeting: it listens through
-   your microphone, so the transcript is what you said. What others say gets
-   in through your notes, and the summary is written from both.
+   AIMY HEARS THE ROOM, NOT WHO IS IN IT. It is not a guest in the meeting:
+   it listens through your microphone, so it hears everyone as one
+   conversation and cannot tell voices apart. The transcript is every line
+   with its time and no names. Who said what gets in through your notes, and
+   the summary is written from both.
 
    ONE CONVERSATION, TWO PLACES. The orb opens into a card; the card opens into
    the AiMY canvas. Both are drawn from the one model below — the stream, the
@@ -14,7 +16,7 @@
    ever "sent" from one to the other: it is already in both.
 
      collapsed   the Silk orb, whether you are speaking, a count of new notes
-     card        Transcription (one stream: what you said, your notes, your
+     card        Transcription (one stream: what was said, your notes, your
                  questions and AiMY's answers) | Notes (yours, then the
                  summary); one bar that asks AiMY or adds a note
      canvas      the Console's own canvas: the meeting is a row under "Now" in
@@ -27,7 +29,7 @@
    notification (a banner that stacks, and a row in the topnav bell). The
    final notes are then posted in the chat and in Notes.
 
-   THE MEETING IS A FIXTURE. Your side of a recorded Upland check-in plays at
+   THE MEETING IS A FIXTURE. A recorded Upland check-in plays at
    the pace of speech, and the meeting's calendar slot ends it.
    Everything else — collapse, the canvas, notes, questions, the steps, the
    notifications — is real and works on whatever the fixture says.
@@ -72,34 +74,49 @@
 
   /* ── The meeting (fixture) ───────────────────────────────────────────── */
   const MEET = 'Upland weekly check-in';
-  /* Your side of the meeting: all AiMY can hear. */
+  /* The whole meeting as AiMY hears it: one conversation, no speakers. `k`
+     names the lines the answers below wait for. */
   const L = [
+    { t: 12,  x: 'Morning, everyone. Let’s start with the sync, it’s what the agents keep asking about.' },
+    { t: 29,  x: 'We counted last week’s Freshdesk tickets, and about half of them aren’t in AiMY.' },
     { t: 48,  x: 'Got it. So about half of last week’s tickets never came into AiMY.' },
-    { t: 96,  x: 'Right, the merge tag rule. It skips merged tickets, which is correct, but it catches the parent ticket too.' },
-    { t: 151, x: 'We can split it: skip the merged ticket, keep the parent. I can have that ready by Thursday.' },
-    { t: 205, x: 'Yes, once the rule is split I’ll re-sync the last two weeks. That’s about two thousand tickets, under an hour.' },
+    { t: 66,  x: 'It’s mostly parent tickets. The agents noticed when they searched for them and found nothing.' },
+    { t: 96,  x: 'Right, the merge tag rule. It skips merged tickets, which is correct, but it catches the parent ticket too.', k: 'rule' },
+    { t: 128, x: 'Can you fix it without bringing the merged ones back? Those are duplicates.' },
+    { t: 151, x: 'We can split it: skip the merged ticket, keep the parent. I can have that ready by Thursday.', k: 'split' },
+    { t: 178, x: 'And the tickets we already lost, do they come back on their own?' },
+    { t: 205, x: 'Yes, once the rule is split I’ll re-sync the last two weeks. That’s about two thousand tickets, under an hour.', k: 'resync' },
+    { t: 262, x: 'Next, the focus fields. We’d like Product and Plan on every answer.' },
     { t: 318, x: 'On the focus fields, Product is mapped already. Plan isn’t, because Freshdesk sends it as a code.' },
     { t: 352, x: 'I need the labels for those codes. Priya, could you send me the list?' },
-    { t: 401, x: 'Six plans and two retired. Thanks, I’ll map the four live ones.' },
-    { t: 512, x: 'For the renewal note, Ahmed can pull it from the Usage page: chats answered, tickets solved without an agent, and time saved.' },
-    { t: 586, x: 'Tuesday works. Same time.' }
+    { t: 371, x: 'I can send it today. There are six plans, and two of them are retired.', k: 'labels' },
+    { t: 401, x: 'Six plans and two retired. Thanks, I’ll map the four live ones.', k: 'map' },
+    { t: 447, x: 'Last thing from us. The renewal is in November, and we need something that shows the value.' },
+    { t: 478, x: 'Chats answered and tickets solved without an agent are the numbers that matter here.' },
+    { t: 512, x: 'For the renewal note, Ahmed can pull it from the Usage page: chats answered, tickets solved without an agent, and time saved.', k: 'renew' },
+    { t: 548, x: 'That works. Can we meet again next week to check on the re-sync?' },
+    { t: 568, x: 'How about Tuesday?' },
+    { t: 586, x: 'Tuesday works. Same time.', k: 'next' }
   ];
-  /* The notes you typed while the others spoke, for the states that start
-     mid-meeting. `after` is the line they follow. */
+  /* Whether a line has been heard yet. */
+  const heard = (k) => L.findIndex((l) => l.k === k) < S.n;
+  /* The notes you typed as it went, for the states that start mid-meeting.
+     AiMY can't tell voices apart, so this is where names come in. `after` is
+     the line they follow. */
   const MINE = [
-    { after: 1, t: 128, x: 'Dana: agents noticed the parent tickets were missing' },
-    { after: 6, t: 405, x: 'Priya sends the Plan labels today' },
-    { after: 6, t: 498, x: 'Dana wants a value note before the November renewal' }
+    { after: 4,  t: 110, x: 'Dana: agents noticed the parent tickets were missing' },
+    { after: 13, t: 405, x: 'Priya sends the Plan labels today' },
+    { after: 15, t: 498, x: 'Dana wants a value note before the November renewal' }
   ];
   /* What was decided and promised, keyed to the line it was said in. Not
      shown while the meeting runs: the analysis after it finds them. Kept for
-     answering "What did I promise?" and "Decided so far" mid-meeting. */
+     answering "Decided so far" mid-meeting. */
   const N = {
-    2: { k: 'act',  h: 'To do',      x: 'You split the merge tag rule by Thursday 22 Oct.' },
-    3: { k: 'dec',  h: 'Decided',    x: 'Re-sync the last 14 days once the rule is split.' },
-    5: { k: 'wait', h: 'Waiting on', x: 'Labels for the Plan codes, from Priya.' },
-    7: { k: 'act',  h: 'To do',      x: 'Ahmed writes the renewal note from the Usage page.' },
-    8: { k: 'dec',  h: 'Decided',    x: 'Next meeting Tuesday 27 Oct, same time.' }
+    6:  { k: 'act',  h: 'To do',      x: 'Split the merge tag rule by Thursday 22 Oct.' },
+    8:  { k: 'dec',  h: 'Decided',    x: 'Re-sync the last 14 days once the rule is split.' },
+    11: { k: 'wait', h: 'Waiting on', x: 'Labels for the Plan codes, from Priya.' },
+    16: { k: 'act',  h: 'To do',      x: 'Ahmed writes the renewal note from the Usage page.' },
+    19: { k: 'dec',  h: 'Decided',    x: 'Next meeting Tuesday 27 Oct, same time.' }
   };
   const SUMMARY = 'The Freshdesk sync dropped parent tickets because the merge tag rule matched them too. The rule gets split by Thursday, then 14 days are re-synced. Plan needs labels before it can be a focus field, and Upland wants a value note before the November renewal.';
   /* The summary's one line for a message that has room for one. */
@@ -111,15 +128,15 @@
     { x: 'Re-sync the last 14 days',      m: 'Friday 23 Oct, after the split' },
     { x: 'Map the four live Plan codes',  m: 'When the Plan labels arrive' }
   ];
-  /* What each step found depends on what there was: your lines, and how
-     many notes you added. */
+  /* What each step found depends on what there was: the lines heard, and
+     how many notes you added. */
   const said = () => S.items.filter((i) => i.type === 'line').length;
   const noted = () => S.items.filter((i) => i.type === 'mine').length;
   const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
   const STEPS = [
     { run: 'Processing the recording', done: 'Recording processed',
-      sub: () => Math.floor(S.clock / 60) + ' min ' + (S.clock % 60) + ' s, ' + plural(said(), 'thing', 'things') + ' you said',
-      nf: () => 'Transcript ready: ' + plural(said(), 'thing', 'things') + ' you said.' },
+      sub: () => Math.floor(S.clock / 60) + ' min ' + (S.clock % 60) + ' s, ' + plural(said(), 'line', 'lines') + ' heard',
+      nf: () => 'Transcript ready: ' + plural(said(), 'line', 'lines') + ' heard.' },
     { run: 'Analyzing what was said',  done: 'Analysis done',
       sub: () => (noted() ? 'With your ' + plural(noted(), 'note', 'notes') + ': ' : '') + '3 decisions, ' + TODO.length + ' to-dos for you, 1 thing you’re waiting on',
       nf: () => 'Found 3 decisions and ' + TODO.length + ' to-dos for you.' },
@@ -130,7 +147,7 @@
   const STATUS = { live: 'Taking notes', ended: 'Meeting ended', writing: 'Writing the notes', ready: 'Notes ready', short: 'Too short to summarise', failed: 'Notes not written' };
   /* One composer, and the tab says what it does. */
   const ASK = 'Ask AiMY about this meeting';
-  const NOTE = 'Note what others say or decide';
+  const NOTE = 'Note who said or decided what';
   const hint = () => (S.tab === 'notes' ? NOTE : ASK);
   /* AiMY cannot hear the meeting end. The calendar slot ends it; here that
      comes this long after the fixture's last word. */
@@ -162,7 +179,7 @@
     '<button type="button" class="nt-chip" data-nt-ask="dec">Decided so far</button></div>';
   const notesPanel = () => `<div class="nt-np" data-nt-np data-done="false">
     <p class="nt-np-state" data-nt="np-state" hidden></p>
-    <div class="nt-np-live"><p class="nt-np-wait">${MARK(14)}<span>AiMY hears only you, so your notes are how the rest of the meeting gets in. Write down what others say or decide, and AiMY uses it in the summary when the meeting ends.</span></p></div>
+    <div class="nt-np-live"><p class="nt-np-wait">${MARK(14)}<span>AiMY hears the whole meeting but can’t tell who is speaking, so your notes are how names get in. Write down who said or decided what, and AiMY uses it in the summary when the meeting ends.</span></p></div>
     <div class="nt-np-final" data-nt="final"></div>
     <section><h5>${ic('pen', 14)}Your notes${only}</h5><ul data-nt="mine"><li class="is-none">Write one in the bar below. Only you see them.</li></ul></section>
   </div>`;
@@ -181,7 +198,7 @@
       <div class="nt-w" id="ntWidget" data-view="fold" data-phase="live" data-tab="chat" hidden>
         <button class="nt-fold" type="button" data-nt-act="open" aria-label="Open the meeting notes" aria-expanded="false">
           <span class="nt-orb" data-nt-orb="fold"><canvas></canvas></span><span class="nt-badge" data-nt="count"></span>
-          <span class="nt-who-pill">${rec}<span data-nt="who">Listening to you</span></span>
+          <span class="nt-who-pill">${rec}<span data-nt="who">Listening</span></span>
         </button>
         <button class="nt-x nt-after-only" type="button" data-nt-act="close" aria-label="Close the meeting notes" title="Close">${ic('x', 12)}</button>
         <div class="nt-card" role="dialog" aria-label="Meeting notes">
@@ -288,7 +305,7 @@
     slots('status').forEach((e) => { e.textContent = STATUS[S.phase] || ''; });
     if (cvParts) { const b = $('.nt-back span', cvParts.ov); if (b) b.textContent = live ? 'Back to the meeting' : 'Close'; }
     slots('chat-sub').forEach((e) => { e.textContent = 'Meeting, ' + (STATUS[S.phase] || '').toLowerCase(); });
-    const who = live ? (S.speaking ? 'You’re speaking' : 'Listening to you') : S.how === 'stopped' ? 'You ended notes' : 'The meeting has ended';
+    const who = live ? (S.speaking ? 'Someone is speaking' : 'Listening') : S.how === 'stopped' ? 'You ended notes' : 'The meeting has ended';
     slots('who').forEach((e) => { e.textContent = who; });
     slots('count').forEach((e) => {
       const show = S.view === 'fold' && (S.unread > 0 || S.phase === 'ready');
@@ -297,7 +314,7 @@
     });
     all('[data-nt-np]').forEach((np) => { np.dataset.done = String(S.phase === 'ready'); });
     slots('final').forEach((f) => { if (S.phase === 'ready' && !f.innerHTML) f.innerHTML = finalHTML(); });
-    const msg = { short: 'The meeting ran under 30 seconds, so there is nothing to summarise. What you said is kept.',
+    const msg = { short: 'The meeting ran under 30 seconds, so there is nothing to summarise. The transcript is kept.',
                   failed: 'AiMY couldn’t write the summary. The recording and the transcript are safe. Try again from the chat.',
                   writing: 'Writing the notes. They show here when the summary is done.' }[S.phase];
     slots('np-state').forEach((e) => { e.hidden = !msg; e.textContent = msg || ''; });
@@ -317,8 +334,8 @@
   function paintClock() { const t = clock(S.clock); slots('timer').forEach((e) => { e.textContent = t; }); }
 
   function itemHTML(it) {
-    /* Every line is yours, so no names and no bubbles: a transcript, with
-       the time in the margin. */
+    /* AiMY can't tell voices apart, so no names and no bubbles: a
+       transcript, with the time in the margin. */
     if (it.type === 'line') return `<div class="nt-cl"><time>${clock(it.t)}</time><p>${words(L[it.i].x)}</p></div>`;
     if (it.type === 'note') return `<div class="nt-an">${MARK(15)}<div><div class="nt-an-k">AiMY noted: ${it.n.h.toLowerCase()}</div><p>${it.n.x}</p></div></div>`;
     if (it.type === 'mine') return `<div class="nt-yn">${ic('pen', 14)}<div><div class="nt-yn-h">Your note, ${clock(it.t)} ${only}</div><p>${esc(it.x)}</p></div></div>`;
@@ -326,11 +343,11 @@
     if (it.type === 'steps') return stepsHTML();
     if (it.type === 'result') return `<div class="nt-am">${MARK(15)}<div class="nt-am-b"><p><b>Your notes for ${MEET}</b></p>${finalHTML()}</div></div>`;
     if (it.type === 'fail') return `<div class="nt-am">${MARK(15)}<div class="nt-am-b"><p class="nt-err">The summary didn’t finish.</p><p>The recording and the transcript are safe. Nothing was sent to anyone.</p><div class="nt-btns"><button class="btn btn-brand btn-sm" type="button" data-nt-act="retry">${ic('retry', 14)}Try again</button></div></div></div>`;
-    if (it.type === 'short') return `<div class="nt-am">${MARK(15)}<div class="nt-am-b"><p>The meeting ran under 30 seconds, so there is nothing to summarise. What you said is kept above.</p></div></div>`;
+    if (it.type === 'short') return `<div class="nt-am">${MARK(15)}<div class="nt-am-b"><p>The meeting ran under 30 seconds, so there is nothing to summarise. The transcript is kept above.</p></div></div>`;
     return '';
   }
   function stepsHTML() {
-    return `<div class="nt-am" data-nt-steps>${MARK(15)}<div class="nt-am-b"><p>${S.how === 'stopped' ? 'You ended notes' : 'The meeting’s time on your calendar is up, so notes ended'} at ${clock(S.clock)}. Writing them up now from what you said${noted() ? ' and your notes' : ''}. I’ll tell you when each part is done.</p><div class="nt-steps">` +
+    return `<div class="nt-am" data-nt-steps>${MARK(15)}<div class="nt-am-b"><p>${S.how === 'stopped' ? 'You ended notes' : 'The meeting’s time on your calendar is up, so notes ended'} at ${clock(S.clock)}. Writing them up now from what was said${noted() ? ' and your notes' : ''}. I’ll tell you when each part is done.</p><div class="nt-steps">` +
       STEPS.map((s, i) => {
         const st = S.steps[i];
         return `<div class="nt-step" data-s="${st}"><span class="nt-step-i">${ic('spin', 15, 'nt-i-run')}${ic('check', 15, 'nt-i-done')}${ic('alert', 15, 'nt-i-fail')}</span>` +
@@ -380,19 +397,19 @@
     }
     add({ type: 'line', i, t: animate ? S.clock : L[i].t }, animate);
   }
-  /* Answers come from what you said and your notes, and say so: AiMY did
-     not hear anyone else. */
+  /* Answers come from what was said and your notes, and say so. AiMY can't
+     tell who said a thing, so a promise is said as made, not as yours. */
   function answer(k, q) {
     const dec = Object.keys(N).filter((x) => x < S.n && N[x].k === 'dec').map((x) => N[x].x);
     const t = (q || '').toLowerCase();
     if (!k) k = /promis|i said|\bmy\b/.test(t) ? 'mine' : /decid|agree/.test(t) ? 'dec' : /renew/.test(t) ? 'renew' : 'catch';
-    const from = 'From what you said' + (noted() ? ' and your notes' : '') + ': ';
+    const from = 'From what was said' + (noted() ? ' and your notes' : '') + ': ';
     const a = {
-      catch: S.n < 2 ? 'You haven’t said much yet. So far it’s about tickets missing from the Freshdesk sync.'
-        : from + 'the merge tag rule drops parent tickets. ' + (S.n > 2 ? 'You’ll split it by Thursday' + (S.n > 3 ? ', then re-sync the last 14 days. ' : '. ') : '') + (S.n > 5 ? 'Plan needs labels for its codes, and Priya is sending them.' : ''),
-      mine: S.n > 2 ? 'You said you’d split the merge tag rule by Thursday 22 Oct' + (S.n > 3 ? ' and re-sync the last 14 days after.' : '.') + (S.n > 6 ? ' You also said you’d map the four live Plan codes.' : '') : 'Nothing yet.',
-      dec: dec.length ? from + dec.join(' ') : 'Nothing decided yet, from what you’ve said.',
-      renew: S.n > 7 ? 'You said Ahmed can write the renewal note from the Usage page.' : 'Renewal hasn’t come up in what you’ve said.'
+      catch: !heard('rule') ? 'Not much yet. So far it’s about tickets missing from the Freshdesk sync.'
+        : from + 'the merge tag rule drops parent tickets. ' + (heard('split') ? 'It gets split by Thursday' + (heard('resync') ? ', then the last 14 days are re-synced. ' : '. ') : '') + (heard('labels') ? 'Plan needs labels for its codes, and Priya is sending them.' : ''),
+      mine: heard('split') ? 'I can’t tell voices apart, so this is everything promised so far: the merge tag rule split by Thursday 22 Oct' + (heard('resync') ? ', the last 14 days re-synced after it' : '') + (heard('map') ? ', and the four live Plan codes mapped' : '') + '. Add a note to mark which are yours.' : 'Nothing promised yet.',
+      dec: dec.length ? from + dec.join(' ') : 'Nothing decided yet.',
+      renew: heard('renew') ? 'Ahmed can write the renewal note from the Usage page: chats answered, tickets solved without an agent, and time saved.' : 'Renewal hasn’t come up yet.'
     }[k];
     return { type: 'ask', q: q || { catch: 'Recap so far', mine: 'What did I promise?', dec: 'Decided so far' }[k], a: a.trim() };
   }
@@ -426,7 +443,7 @@
     for (let i = 0; i < S.n; i++) {
       S.items.push({ type: 'line', i, t: L[i].t });
       if (o.mine) MINE.filter((m) => m.after === i).forEach((m) => S.items.push({ type: 'mine', x: m.x, t: m.t }));
-      if (o.mine && i === 4) { const keep = S.n; S.n = 5; S.items.push(answer('mine')); S.n = keep; }
+      if (o.mine && i === 10) { const keep = S.n; S.n = 11; S.items.push(answer('catch')); S.n = keep; }
     }
     if (o.after) o.after();
     all('[data-nt-draft]').forEach((i) => { i.value = ''; });
@@ -722,12 +739,12 @@
     stage.classList.add('nt-asking');
     /* Part of the stage, not a box on it: the line under the orb becomes the
        question. Which meeting first (from your calendar), so you know what
-       you are agreeing to, and then what AiMY will and won't hear. Nothing
+       you are agreeing to, and then what AiMY hears and can't tell apart. Nothing
        is posted in the meeting: AiMY is not in it. */
     center.insertAdjacentHTML('beforeend', `<div class="nt-cons" role="group" aria-labelledby="ntConsH">
       <span class="nt-cons-meet">${ic('cal', 14)}${MEET}<span>Now, on your calendar</span></span>
       <p class="nt-cons-h" id="ntConsH">Take notes in this meeting?</p>
-      <p class="nt-cons-p">AiMY hears only you, through your microphone. Add notes for what others say, and AiMY sums it all up when the meeting ends. Only you see the notes.</p>
+      <p class="nt-cons-p">AiMY hears the meeting through your microphone, but can’t tell who is speaking. Add notes for who said what, and AiMY sums it all up when the meeting ends. Only you see the notes.</p>
       <div class="nt-cons-go"><button class="btn btn-brand nt-cons-start" type="button" data-nt-go="start">${ic('pen', 15)}Start taking notes</button>` +
       `<button class="btn btn-ghost" type="button" data-nt-go="no">Not now</button></div></div>`);
     const cons = $('.nt-cons', stage);
@@ -743,7 +760,7 @@
       root.classList.add('is-arriving');
       o.done();
       fly(orbBox, $('.nt-orb', root).getBoundingClientRect(), () => root.classList.remove('is-arriving'));
-      toast('AiMY is taking notes', null, 'It hears only you. Let the others know it is on.');
+      toast('AiMY is taking notes', null, 'It hears everyone through your microphone. Let the others know it is on.');
     });
   }
   function fly(from, to, done) {
@@ -777,9 +794,9 @@
   }
   /* The prototype panel's "Meeting notes, each state". */
   const JUMPS = {
-    collapsed: () => begin({ n: 7, clock: 412, view: 'fold', unread: 2, mine: true }),
-    card:      () => begin({ n: 7, clock: 412, view: 'card', mine: true }),
-    canvas:    () => { begin({ n: 7, clock: 412, view: 'card', mine: true }); later(toCanvas, 60); },
+    collapsed: () => begin({ n: 14, clock: 412, view: 'fold', unread: 2, mine: true }),
+    card:      () => begin({ n: 14, clock: 412, view: 'card', mine: true }),
+    canvas:    () => { begin({ n: 14, clock: 412, view: 'card', mine: true }); later(toCanvas, 60); },
     after:     () => { begin({ n: L.length, clock: 592, view: 'card', still: true, mine: true }); stop('ended'); },
     ready:     () => begin({ n: L.length, clock: 592, view: 'card', phase: 'ready', mine: true, after: () => {
                    S.how = 'ended'; S.steps = ['done', 'done', 'done']; S.items.push({ type: 'steps' }, { type: 'result' });
