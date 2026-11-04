@@ -282,3 +282,10 @@
 .b-kind.is-warn { color: var(--ink-warn); }
 /* In the week a name sits under the date, so today's mark goes above it. */
 .b-diary .b-cal.is-week .b-cal-day.is-today .b-cal-num::after { bottom: auto; top: -0.4375rem; }
+/* Seven names need about 36rem across at 14px. Where the month's own column
+   is narrower than that (the panel beside it, a narrow window, the Console's
+   rail taking its share) the names step down to twelve and stay whole. */
+.b-cal-mo { container-type: inline-size; }
+@container (max-width: 36rem) {
+  .b-cal.is-week .b-cal-who { font-size: var(--t-micro); padding: 0 0.125rem; }
+}
