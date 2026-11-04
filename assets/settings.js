@@ -2593,7 +2593,7 @@
      nights a rotate or a fill just set, which light for a moment. */
   let AH_EDIT = false, AH_FIND = false, AH_Q = '', AH_FRESH = [];
   /* Which time in the hours line is a field right now ('from', 'to' or ''). */
-  let AH_TIMEEDIT = '', AH_KNOBFOCUS = '';
+  let AH_KNOBFOCUS = '';
 
   const ahD = (s) => new Date(s + 'T12:00:00');
   const ahIso = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -2611,16 +2611,6 @@
   const ahClock = (m) => {
     const h = Math.floor(m / 60), mm = m % 60, h12 = h % 12 || 12;
     return h12 + (mm ? ':' + String(mm).padStart(2, '0') : '') + (h < 12 ? ' am' : ' pm');
-  };
-  /* "6 pm", "6pm", "18:00", "18", "6:30 p" all read; anything else is null. */
-  const ahParseClock = (t) => {
-    const m = String(t).trim().toLowerCase().match(/^(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm|a|p)?$/);
-    if (!m) return null;
-    let h = +m[1]; const mm = m[2] ? +m[2] : 0;
-    if (mm > 59) return null;
-    if (m[3]) { if (h < 1 || h > 12) return null; h = (h % 12) + (m[3][0] === 'p' ? 12 : 0); }
-    else if (h > 23) return null;
-    return h * 60 + mm;
   };
 
   /* ── Scope: a client, or a product under it ── */
@@ -3001,12 +2991,10 @@
       const [x1, y1] = ahPt(m, 37), [x2, y2] = ahPt(m, 41);
       return `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}"/>`;
     }).join('');
-    /* Fields, not words (Nour): each time is a box you type into, carrying
-       the icon of the knob it moves. Enter or leaving it keeps the time,
-       Escape puts it back, and a time it cannot read is put back too. */
-    const tok = (k) => '<label class="ah-field"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-      (k === 'from' ? AH_MOON : AH_SUN) + '</svg>' +
-      `<input type="text" data-ah-time="${k}" value="${esc(ahClock(h[k]))}" aria-label="${k === 'from' ? 'Nights start at' : 'Nights end at'}" autocomplete="off" spellcheck="false"></label>`;
+    /* Adjusting is never typing (Nour). A time is a button: press it for
+       the list of times in half hours, or use its arrow keys for quarter
+       hours, or drag its knob on the dial. */
+    const tok = (k) => `<button class="ah-tok" type="button" data-ah-tok="${k}" aria-haspopup="listbox" aria-label="${k === 'from' ? 'Nights start at ' : 'Nights end at '}${esc(ahClock(h[k]))}, change">${esc(ahClock(h[k]))}</button>`;
     return '<div class="ah-clock">' +
       `<svg class="ah-dial" viewBox="0 0 128 128" data-ah-dial role="group" aria-label="${esc('Nights run from ' + ahClock(h.from) + ' to ' + ahClock(h.to) + ', ' + h.tz + ' time')}">` +
         `<circle class="ah-track" cx="${AH_CX}" cy="${AH_CX}" r="${AH_R}"/>` +
@@ -3059,7 +3047,7 @@
     const [px, py] = ahPt(v, AH_R);
     AH_DRAG.g.setAttribute('transform', 'translate(' + px.toFixed(2) + ' ' + py.toFixed(2) + ')');
     AH_DRAG.svg.querySelector('.ah-arc').setAttribute('d', ahArc(AH_DRAG.h.from, AH_DRAG.h.to));
-    const t = document.querySelector('[data-ah-time="' + AH_DRAG.k + '"]'); if (t) t.value = ahClock(v);
+    const t = document.querySelector('[data-ah-tok="' + AH_DRAG.k + '"]'); if (t) t.textContent = ahClock(v);
   });
   document.addEventListener('pointerup', () => {
     if (!AH_DRAG) return;
@@ -3068,16 +3056,27 @@
     ahSetHour(d.k, d.v);
   });
   document.addEventListener('keydown', (e) => {
-    const g = e.target.closest && e.target.closest('[data-ah-knob]');
+    const g = e.target.closest && e.target.closest('[data-ah-knob],[data-ah-tok]');
     if (!g) return;
     const step = { ArrowUp: 15, ArrowRight: 15, ArrowDown: -15, ArrowLeft: -15, PageUp: 60, PageDown: -60 }[e.key];
     if (!step) return;
     e.preventDefault();
-    const k = g.getAttribute('data-ah-knob'), h = ahBook(ahScopeOf(readURL()).key).hours;
-    AH_KNOBFOCUS = k;
+    const k = g.getAttribute('data-ah-knob') || g.getAttribute('data-ah-tok'), h = ahBook(ahScopeOf(readURL()).key).hours;
+    AH_KNOBFOCUS = (g.hasAttribute('data-ah-tok') ? 'tok:' : '') + k;
     ahSetHour(k, ((h[k] + step) % 1440 + 1440) % 1440);
   });
 
+  function ahTimeMenu(anchor, k) {
+    const h = ahBook(ahScopeOf(readURL()).key).hours || AH_HOURS0;
+    const list = Array.from({ length: 48 }, (_, i) => i * 30);
+    if (list.indexOf(h[k]) < 0) { list.push(h[k]); list.sort((a, c) => a - c); }
+    const p = popover(anchor, list.map((m) =>
+      `<button class="set2-pop-i is-scope${m === h[k] ? ' is-on' : ''}" type="button" role="option" aria-selected="${m === h[k]}" data-ah-timego="${k}|${m}">` +
+        '<span class="set2-pop-tx"><span class="set2-pop-n">' + esc(ahClock(m)) + '</span></span><span class="set2-pop-k">' + I.tick + '</span></button>').join(''), 'is-times');
+    /* Open on the time it is set to, not at midnight. */
+    const on = (p || document.getElementById('setPop') || document).querySelector('.is-on');
+    if (on && on.parentElement) on.parentElement.scrollTop = on.offsetTop - on.parentElement.clientHeight / 2 + on.offsetHeight / 2;
+  }
   function ahTzMenu(anchor) {
     const h = ahBook(ahScopeOf(readURL()).key).hours || AH_HOURS0;
     popover(anchor, AH_TZ.map((z) =>
@@ -3085,18 +3084,7 @@
         '<span class="set2-pop-tx"><span class="set2-pop-n">' + esc(z[0]) + '</span><span class="set2-pop-p">' + esc(z[1]) + '</span></span>' +
         '<span class="set2-pop-k">' + I.tick + '</span></button>').join(''));
   }
-  function ahCommitTime(input) {
-    const k = input.getAttribute('data-ah-time');
-    const sc = ahScopeOf(readURL()), b = ahBook(sc.key);
-    const v = ahParseClock(input.value);
-    if (v == null) { if (API && API.toast) API.toast('Type a time like 6 pm or 18:30.'); input.focus(); input.select(); return; }
-    AH_TIMEEDIT = '';
-    if (v === b.hours[k]) { render(); return; }
-    const was = ahSnap();
-    b.hours = Object.assign({}, b.hours, { [k]: v });
-    ahSay2('Nights for ' + (sc.prod && sc.own ? sc.prod.name : sc.client.name) + ' now ' + (k === 'from' ? 'start at ' : 'end at ') + ahClock(v) + ', ' + b.hours.tz + ' time.', was);
-    render();
-  }
+
 
   function ahPickMenu(anchor, which) {
     const sc = ahScopeOf(readURL());
@@ -3151,7 +3139,10 @@
     $$('.b-cal-day.is-fresh').forEach((el) => el.addEventListener('animationend', () => { AH_FRESH = []; }, { once: true }));
     if (AH_FOCUS) { AH_FOCUS = false; const i = document.querySelector('[data-ah-find]'); if (i) i.focus(); }
 
-    if (AH_KNOBFOCUS) { const g = document.querySelector('[data-ah-knob="' + AH_KNOBFOCUS + '"]'); AH_KNOBFOCUS = ''; if (g) g.focus(); }
+    if (AH_KNOBFOCUS) {
+      const f = AH_KNOBFOCUS.indexOf('tok:') === 0 ? '[data-ah-tok="' + AH_KNOBFOCUS.slice(4) + '"]' : '[data-ah-knob="' + AH_KNOBFOCUS + '"]';
+      AH_KNOBFOCUS = ''; const g = document.querySelector(f); if (g) g.focus();
+    }
   }
 
   const ahSnap = () => JSON.stringify(AH);
@@ -3160,7 +3151,7 @@
 
   document.addEventListener('click', (e) => {
     const t = e.target.closest('[data-ah-day],[data-ah-oncall],[data-ah-fill],[data-ah-rotate],[data-ah-view],[data-ah-own],[data-ah-pick],[data-ah-go],' +
-      '[data-ah-editteam],[data-ah-findopen],[data-ah-findclose],[data-ah-rm],[data-ah-addp],[data-ah-tz],[data-ah-tzgo],[data-ah-weekends]');
+      '[data-ah-editteam],[data-ah-findopen],[data-ah-findclose],[data-ah-rm],[data-ah-addp],[data-ah-tok],[data-ah-timego],[data-ah-tz],[data-ah-tzgo],[data-ah-weekends]');
     if (!t) return;
     const st = readURL();
     const sc = ahScopeOf(st);
@@ -3168,6 +3159,8 @@
     if (t.hasAttribute('data-ah-go')) { closePop(); AH_EDIT = false; AH_FIND = false; AH_Q = ''; patch({ node: t.getAttribute('data-ah-go') }); return; }
     if (t.hasAttribute('data-ah-day')) { AH_SEL = t.getAttribute('data-ah-day'); AH_FRESH = []; render(); return; }
     if (t.hasAttribute('data-ah-view')) { AH_VIEW = t.getAttribute('data-ah-view'); AH_FRESH = []; render(); return; }
+    if (t.hasAttribute('data-ah-tok')) { ahTimeMenu(t, t.getAttribute('data-ah-tok')); return; }
+    if (t.hasAttribute('data-ah-timego')) { const [k, m] = t.getAttribute('data-ah-timego').split('|'); closePop(); ahSetHour(k, +m); return; }
     if (t.hasAttribute('data-ah-tz')) { ahTzMenu(t); return; }
     if (t.hasAttribute('data-ah-tzgo')) {
       closePop();
@@ -3260,23 +3253,9 @@
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && e.target.closest && e.target.closest('[data-ah-find]')) { AH_FIND = false; AH_Q = ''; render(); }
-    const ti = e.target.closest && e.target.closest('[data-ah-time]');
-    if (ti && e.key === 'Enter') { e.preventDefault(); ahCommitTime(ti); }
-    if (ti && e.key === 'Escape') { ti.value = ahClock(ahBook(ahScopeOf(readURL()).key).hours[ti.getAttribute('data-ah-time')]); ti.blur(); }
   });
   /* Leaving the field keeps what was typed, the way the other inline fields
      in this console commit. */
-  document.addEventListener('focusin', (e) => {
-    const ti = e.target.closest && e.target.closest('[data-ah-time]');
-    if (ti) setTimeout(() => { if (document.activeElement === ti) ti.select(); }, 0);
-  });
-  document.addEventListener('focusout', (e) => {
-    const ti = e.target.closest && e.target.closest('[data-ah-time]');
-    if (!ti || !ti.isConnected) return;
-    const h0 = ahBook(ahScopeOf(readURL()).key).hours, k0 = ti.getAttribute('data-ah-time');
-    if (ahParseClock(ti.value) == null) { ti.value = ahClock(h0[k0]); return; }
-    if (ahParseClock(ti.value) !== h0[k0]) ahCommitTime(ti); else ti.value = ahClock(h0[k0]);
-  });
   document.addEventListener('change', (e) => {
     const i = e.target.closest('[data-ah-wait]');
     if (!i) return;
