@@ -3206,7 +3206,7 @@
       const i = +t.getAttribute('data-ah-waitmenu'), w = ahBook(sc.key).ladder[i].wait;
       const ws = AH_WAITS.indexOf(w) < 0 ? AH_WAITS.concat(w).sort((a, c) => a - c) : AH_WAITS;
       popover(t, ws.map((m) => `<button class="set2-pop-i is-scope${m === w ? ' is-on' : ''}" type="button" role="option" data-ah-waitgo="${i}|${m}">` +
-        '<span class="set2-pop-tx"><span class="set2-pop-n">' + m + ' minutes</span></span><span class="set2-pop-k">' + I.tick + '</span></button>').join(''), 'is-times');
+        '<span class="set2-pop-tx"><span class="set2-pop-n">' + m + ' min</span></span><span class="set2-pop-k">' + I.tick + '</span></button>').join(''), 'is-times');
       return;
     }
     if (t.hasAttribute('data-ah-rungmenu')) { AH_RUNG = +t.getAttribute('data-ah-rungmenu'); ahLeadMenu(t, 'ah-runggo', ahBook(sc.key).ladder[AH_RUNG].name); return; }
