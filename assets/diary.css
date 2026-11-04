@@ -374,6 +374,20 @@
 .ah-opt-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .0625rem; padding: .4375rem 0; }
 .ah-opt-t .ah-opt-n { flex: none; }
 .ah-opt-c { font-size: .8125rem; color: var(--d200); font-variant-numeric: tabular-nums; }
+/* A night's queue: a person's row is the name, a button that puts them on
+   the end of the queue or takes them off, and, from second place down, an
+   arrow that calls them one place earlier. The number is the order. */
+div.ah-opt { cursor: default; }
+.ah-opt-b { flex: 1; min-width: 0; align-self: stretch; display: flex; align-items: center; gap: .75rem; border: 0; background: none; padding: 0; font: inherit; text-align: left; color: inherit; cursor: pointer; }
+.ah-opt-b:focus-visible { outline: none; }
+.ah-opt:has(> .ah-opt-b:focus-visible) { outline: 2px solid var(--brand); outline-offset: -2px; }
+.ah-pos { width: 1.125rem; height: 1.125rem; flex: none; border-radius: 999px; background: var(--brand); color: #fff; display: grid; place-items: center; font-size: .6875rem; font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; line-height: 1; }
+.ah-up { margin-right: -.25rem; }
+/* The week: the first name, and how many more are queued behind them. */
+.b-cal-who.is-q { display: inline-flex; gap: .1875rem; }
+.b-cal-wn { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.b-cal-more { flex: none; color: var(--ink-action); }
+.ah-tl-n { font-weight: var(--fw-semibold); color: var(--d50); }
 .ah-rot { text-align: left; }
 /* Side by side, the column sets the diary's height: a past night or an empty
    team would shrink it, so every state of the column holds the height the

@@ -2566,25 +2566,27 @@
       hours: Object.assign({}, AH_HOURS0),
       team: ['mo', 'sa', 'al', 'ta', 'ka'],
       ladder: AH_LADDER0.map((r) => Object.assign({}, r)),
+      qwait: 10,
       rota: {
-        '2026-10-19': 'ta', '2026-10-20': 'ka', '2026-10-21': 'sa', '2026-10-22': 'al', '2026-10-23': 'mo', '2026-10-24': 'ta', '2026-10-25': 'ka',
-        '2026-10-26': 'mo', '2026-10-27': 'ta', '2026-10-28': 'ka', '2026-10-29': 'mo', '2026-10-30': 'al', '2026-10-31': 'mo', '2026-11-01': 'sa',
-        '2026-11-02': 'mo', '2026-11-03': 'sa', '2026-11-04': 'mo', '2026-11-05': 'mo', '2026-11-06': 'al', '2026-11-08': 'al',
-        '2026-11-09': 'ka', '2026-11-12': 'ta' },
+        '2026-10-19': ['ta'], '2026-10-20': ['ka'], '2026-10-21': ['sa'], '2026-10-22': ['al'], '2026-10-23': ['mo'], '2026-10-24': ['ta'], '2026-10-25': ['ka'],
+        '2026-10-26': ['mo'], '2026-10-27': ['ta'], '2026-10-28': ['ka'], '2026-10-29': ['mo'], '2026-10-30': ['al'], '2026-10-31': ['mo', 'sa'], '2026-11-01': ['sa'],
+        '2026-11-02': ['mo', 'ka'], '2026-11-03': ['sa'], '2026-11-04': ['mo', 'sa'], '2026-11-05': ['mo'], '2026-11-06': ['al', 'ta'], '2026-11-08': ['al'],
+        '2026-11-09': ['ka'], '2026-11-12': ['ta'] },
       out: {
         '2026-10-19': { n: 1, top: 0, min: 5 }, '2026-10-20': { n: 0 }, '2026-10-21': { n: 2, top: 0, min: 8 },
         '2026-10-22': { n: 1, top: 0, min: 3 }, '2026-10-23': { n: 3, top: 0, min: 6 }, '2026-10-24': { n: 2, top: 1 },
         '2026-10-25': { n: 0 }, '2026-10-26': { n: 1, top: 0, min: 7 }, '2026-10-27': { n: 1, top: 0, min: 9 },
         '2026-10-28': { n: 0 }, '2026-10-29': { n: 2, top: 0, min: 5 }, '2026-10-30': { n: 1, top: 0, min: 4 },
-        '2026-10-31': { n: 4, top: 2 }, '2026-11-01': { n: 1, top: 0, min: 6 }, '2026-11-02': { n: 2, top: 1 },
+        '2026-10-31': { n: 4, top: 3 }, '2026-11-01': { n: 1, top: 0, min: 6 }, '2026-11-02': { n: 2, top: 1, min: 11 },
         '2026-11-03': { n: 1, top: 0, min: 4 } }
     },
     upland: {
       hours: Object.assign({}, AH_HOURS0, { tz: 'New York' }),
       team: ['ta', 'ka', 'mo', 'al'],
       ladder: AH_LADDER0.map((r) => Object.assign({}, r)),
-      rota: { '2026-10-31': 'mo', '2026-11-02': 'ka', '2026-11-03': 'ta', '2026-11-04': 'ka', '2026-11-05': 'ta',
-              '2026-11-06': 'ka', '2026-11-07': 'mo', '2026-11-08': 'ta', '2026-11-12': 'al' },
+      qwait: 10,
+      rota: { '2026-10-31': ['mo'], '2026-11-02': ['ka'], '2026-11-03': ['ta'], '2026-11-04': ['ka', 'ta'], '2026-11-05': ['ta'],
+              '2026-11-06': ['ka'], '2026-11-07': ['mo'], '2026-11-08': ['ta'], '2026-11-12': ['al'] },
       out: { '2026-10-31': { n: 1, top: 0, min: 12 }, '2026-11-02': { n: 0 }, '2026-11-03': { n: 1, top: 0, min: 5 } }
     }
   };
@@ -2616,6 +2618,18 @@
   /* A gap in the coming week is a problem; one further out is not planned yet. */
   const ahSoon = (s) => s < ahAdd(AH_TODAY, 7);
   const ahPl = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+  /* A night is a queue (Nour, 4 Nov): up to five people, called in order.
+     AiMY hands off to the first; with no answer, the next one after the
+     book's queue wait; after the last, the escalation path takes over. */
+  const AH_QMAX = 5;
+  const AH_NTH = ['first', 'second', 'third', 'fourth', 'fifth'];
+  const ahQ = (b, s) => b.rota[s] || [];
+  const ahOn = (b, s, pid) => ahQ(b, s).indexOf(pid) > -1;
+  const ahSetQ = (b, s, q) => { if (q.length) b.rota[s] = q.slice(0, AH_QMAX); else delete b.rota[s]; };
+  /* How many steps the queue takes on the path: a night with nobody on it
+     still counts as one, the step that was empty. */
+  const ahQSteps = (b, s) => Math.max(1, ahQ(b, s).length);
+  const AH_ARROW_UP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>';
   const ahClock = (m) => {
     const h = Math.floor(m / 60), mm = m % 60, h12 = h % 12 || 12;
     return h12 + (mm ? ':' + String(mm).padStart(2, '0') : '') + (h < 12 ? ' am' : ' pm');
@@ -2640,18 +2654,20 @@
     const key = prod && AH[prod.id] ? prod.id : client.id;
     return { client, prod, key, own: !!(prod && AH[prod.id]) };
   }
-  const ahBook = (key) => AH[key] || (AH[key] = { hours: Object.assign({}, AH_HOURS0), ladder: AH_LADDER0.map((r) => Object.assign({}, r)), team: [], rota: {}, out: {} });
+  const ahBook = (key) => AH[key] || (AH[key] = { hours: Object.assign({}, AH_HOURS0), ladder: AH_LADDER0.map((r) => Object.assign({}, r)), qwait: 10, team: [], rota: {}, out: {} });
+  /* "Mohamed, then Sara": the order a night's queue is called in. */
+  const ahThen = (q, wrap) => q.map((id) => (wrap || esc)(ahFirst(id))).join(', then ');
   const ahName = (key) => (NODE_AT[key] ? NODE_AT[key].node.name : key);
   /* The same person on another rota that night — another client, or the
      client a product split away from. Load is counted across all of them. */
   function ahElsewhere(key, pid, s) {
-    return Object.keys(AH).filter((k) => k !== key && AH[k].rota[s] === pid);
+    return Object.keys(AH).filter((k) => k !== key && ahOn(AH[k], s, pid));
   }
 
   function ahLoad(key, pid, days) {
     const b = ahBook(key);
     let here = 0, there = 0;
-    days.forEach((s) => { if (b.rota[s] === pid) here++; there += ahElsewhere(key, pid, s).length; });
+    days.forEach((s) => { if (ahOn(b, s, pid)) here++; there += ahElsewhere(key, pid, s).length; });
     return { here, there };
   }
   function ahHandling(key, pid) {
@@ -2660,7 +2676,8 @@
     const mins = [];
     Object.keys(b.out).forEach((s) => {
       const o = b.out[s];
-      if (b.rota[s] !== pid || !o.n) return;
+      /* A night's handoffs are the first person's to answer. */
+      if (ahQ(b, s)[0] !== pid || !o.n) return;
       total += o.n; ans += o.top === 0 ? o.n : o.n - 1;
       if (o.top === 0 && o.min) mins.push(o.min);
     });
@@ -2672,7 +2689,7 @@
     const b = ahBook(key);
     const w = ahLoad(key, pid, wk), f = ahLoad(key, pid, four);
     return (w.here + w.there) * 10 + f.here + f.there +
-      (b.rota[ahAdd(s, -1)] === pid ? 6 : 0) + (b.rota[ahAdd(s, 1)] === pid ? 6 : 0) +
+      (ahOn(b, ahAdd(s, -1), pid) ? 6 : 0) + (ahOn(b, ahAdd(s, 1), pid) ? 6 : 0) +
       (ahElsewhere(key, pid, s).length ? 100 : 0);
   }
   const ahRanked = (key, s) => ahBook(key).team.slice().sort((a, c) => ahCost(key, a, s) - ahCost(key, c, s));
@@ -2682,7 +2699,12 @@
     if (!o) return null;
     if (!o.n) return { k: 'k-quiet', what: 'Quiet night', kind: 'quiet' };
     if (o.top === 0) return { k: 'k-ok', what: ahPl(o.n, 'handoff') + ', answered' + (o.min ? ' in ' + o.min + ' min on average' : ''), kind: 'answered' };
-    const r = b.ladder[o.top - 1] || { name: 'the next person up', role: 'rung ' + (o.top + 1) };
+    const q = ahQ(b, s), n = ahQSteps(b, s);
+    if (o.top < q.length) {
+      return { k: 'k-ok', kind: 'answered', what: ahPl(o.n, 'handoff') + '. ' + ahThen(q.slice(0, o.top), (x) => x) + ' didn’t answer, so ' +
+        ahFirst(q[o.top]) + ', ' + AH_NTH[o.top] + ' in line, took ' + (o.n === 1 ? 'it' : 'them') + (o.min ? ' in ' + o.min + ' min' : '') + '.' };
+    }
+    const r = b.ladder[o.top - n] || { name: 'the next person up', role: 'rung ' + (o.top + 1) };
     return { k: 'k-up', what: ahPl(o.n, 'handoff') + '. Nobody answered in time, so it went up to ' + r.name + ', ' + r.role + '.', kind: 'went up' };
   }
 
@@ -2700,7 +2722,7 @@
     const load = b.team.map((id) => Object.assign({ id }, ahLoad(key, id, days)))
       .sort((a, c) => (c.here + c.there) - (a.here + a.there));
     const hi = load[0], lo = load[load.length - 1];
-    const covered = days.filter((s) => b.rota[s]).length;
+    const covered = days.filter((s) => ahQ(b, s).length).length;
     if (!b.team.length) {
       bits.push(ahHw('Nobody is on the ' + esc(sc.prod && sc.own ? sc.prod.name : sc.client.name) + ' team yet') + '. Add people with Edit team, and AiMY can fill the nights.');
     } else if (!covered) {
@@ -2710,14 +2732,15 @@
         (hi.there ? ', plus ' + hi.there + ' on ' + esc(days.reduce((acc, s) => acc.concat(ahElsewhere(key, hi.id, s)), [])
           .filter((k, i, all) => all.indexOf(k) === i).map(ahName).join(' and ')) : '') + '. ' + ahHl(esc(ahFirst(lo.id)) + ' has ' + (lo.here + lo.there ? lo.here + lo.there : 'none')) + '.');
     }
-    const clash = days.filter((s) => !ahPast(s) && b.rota[s] && ahElsewhere(key, b.rota[s], s).length)[0];
-    if (clash) bits.push('On ' + esc(ahLong(clash)) + ' ' + ahHw(esc(ahFirst(b.rota[clash])) + ' is on call for ' + esc(ahName(ahElsewhere(key, b.rota[clash], clash)[0])) + ' too') + '.');
-    const up = days.filter((s) => b.out[s] && b.out[s].top > 0);
+    const clashOf = (s) => ahQ(b, s).filter((id) => ahElsewhere(key, id, s).length)[0];
+    const clash = days.filter((s) => !ahPast(s) && clashOf(s))[0];
+    if (clash) bits.push('On ' + esc(ahLong(clash)) + ' ' + ahHw(esc(ahFirst(clashOf(clash))) + ' is on call for ' + esc(ahName(ahElsewhere(key, clashOf(clash), clash)[0])) + ' too') + '.');
+    const up = days.filter((s) => b.out[s] && b.out[s].top >= ahQSteps(b, s));
     if (up.length) {
-      const s = up[up.length - 1], r = b.ladder[b.out[s].top - 1] || { name: 'the next person up' };
+      const s = up[up.length - 1], r = b.ladder[b.out[s].top - ahQSteps(b, s)] || { name: 'the next person up' };
       bits.push('On ' + esc(ahLong(s)) + ' the handoffs ' + ahHw('went up to ' + esc(r.name)) + ' because nobody below answered in time.');
     }
-    const gaps = days.filter((s) => !ahPast(s) && !b.rota[s]);
+    const gaps = days.filter((s) => !ahPast(s) && !ahQ(b, s).length);
     const urgent = gaps.filter(ahSoon);
     if (!covered || !b.team.length) { /* said above */ }
     else if (urgent.length === 1) bits.push(ahHw(esc(ahLong(urgent[0])) + ' has nobody on call') + '.');
@@ -2728,22 +2751,29 @@
     const sel = AH_SEL, acts = [];
     let adv = '';
     if (!ahPast(sel) && b.team.length) {
-      const cur = b.rota[sel];
-      const pick = ahRanked(key, sel).filter((x) => x !== cur)[0];
-      const curFlag = !cur ? '' : ahElsewhere(key, cur, sel).length ? ' is on call for ' + ahName(ahElsewhere(key, cur, sel)[0]) + ' that night'
-        : b.rota[ahAdd(sel, -1)] === cur ? ' has the night before too'
-        : b.rota[ahAdd(sel, 1)] === cur ? ' has the night after too' : '';
+      const q = ahQ(b, sel);
+      const flagOf = (id) => ahElsewhere(key, id, sel).length ? ' is on call for ' + ahName(ahElsewhere(key, id, sel)[0]) + ' that night'
+        : ahOn(b, ahAdd(sel, -1), id) ? ' has the night before too'
+        : ahOn(b, ahAdd(sel, 1), id) ? ' has the night after too' : '';
+      const flagged = q.filter(flagOf)[0];
+      const pick = ahRanked(key, sel).filter((x) => q.indexOf(x) < 0)[0];
+      const set = (nq, label, brand) => `<button class="agv-btn${brand ? ' is-brand' : ''}" type="button" data-ah-qset="${esc(sel + '|' + nq.join(','))}">${esc(label)}</button>`;
       if (pick) {
         const h = ahHandling(key, pick), wkN = ahLoad(key, pick, ahRange(ahWeek(sel), 7));
         const why = ahPl(wkN.here + wkN.there, 'night') + ' that week' + (h.total ? ', answered ' + h.ans + ' of ' + h.total : '');
-        const avoid = b.team.filter((x) => x !== cur && ahElsewhere(key, x, sel).length)[0];
-        if (!cur) {
+        const avoid = b.team.filter((x) => q.indexOf(x) < 0 && ahElsewhere(key, x, sel).length)[0];
+        if (!q.length) {
           adv = ('For ' + esc(ahLong(sel)) + ', ' + ahHl(esc(ahFirst(pick)) + ' fits best') + ': ' + esc(why) + '.' +
             (avoid ? ' ' + ahHw(esc(ahFirst(avoid)) + ' is on ' + esc(ahName(ahElsewhere(key, avoid, sel)[0])) + ' that night') + '.' : ''));
-          acts.push('<button class="agv-btn is-brand" type="button" data-ah-oncall="' + esc(sel + '|' + pick) + '">Put ' + esc(ahFirst(pick)) + ' on ' + AH_DAY[ahD(sel).getDay()].slice(0, 3) + '</button>');
-        } else if (curFlag) {
-          adv = ('On ' + esc(ahLong(sel)) + ' ' + ahHw(esc(ahFirst(cur)) + esc(curFlag)) + '. ' + ahHl(esc(ahFirst(pick)) + ' fits better') + ': ' + esc(why) + '.');
-          acts.push('<button class="agv-btn is-brand" type="button" data-ah-oncall="' + esc(sel + '|' + pick) + '">Put ' + esc(ahFirst(pick)) + ' on instead</button>');
+          acts.push(set([pick], 'Put ' + ahFirst(pick) + ' on ' + AH_DAY[ahD(sel).getDay()].slice(0, 3), true));
+        } else if (flagged) {
+          adv = ('On ' + esc(ahLong(sel)) + ' ' + ahHw(esc(ahFirst(flagged)) + esc(flagOf(flagged))) + '. ' + ahHl(esc(ahFirst(pick)) + ' fits better') + ': ' + esc(why) + '.');
+          acts.push(set(q.map((x) => (x === flagged ? pick : x)), 'Put ' + ahFirst(pick) + ' in ' + ahFirst(flagged) + '’s place', true));
+        } else if (q.length === 1 && b.ladder.length) {
+          /* One person alone: a missed handoff skips straight up the path. */
+          adv = ('On ' + esc(ahLong(sel)) + ' ' + ahHw('only ' + esc(ahFirst(q[0])) + ' is on call') + ', so a missed handoff goes up to ' + esc(b.ladder[0].name) + '. ' +
+            ahHl(esc(ahFirst(pick)) + ' fits second') + ': ' + esc(why) + '.');
+          acts.push(set(q.concat(pick), 'Add ' + ahFirst(pick) + ' second', true));
         }
       }
     }
@@ -2780,11 +2810,12 @@
     const b = ahBook(key);
     let n = 0;
     const rows = ahRange(ahAdd(week, 7), 7).map((s) => {
-      if (b.rota[s]) return { s, id: b.rota[s] };
-      const was = b.rota[ahAdd(s, -7)];
-      if (!was || b.team.indexOf(was) < 0) return { s, id: null };
+      if (ahQ(b, s).length) return { s, q: ahQ(b, s) };
+      const was = ahQ(b, ahAdd(s, -7)).filter((id) => b.team.indexOf(id) > -1);
+      if (!was.length) return { s, q: [] };
       n++;
-      return { s, id: b.team[(b.team.indexOf(was) + 1) % b.team.length], fresh: true };
+      const q = was.map((id) => b.team[(b.team.indexOf(id) + 1) % b.team.length]).filter((x, i, all) => all.indexOf(x) === i);
+      return { s, q, fresh: true };
     });
     return { rows, n };
   }
@@ -2796,7 +2827,7 @@
      height four people take, and search swaps in for the question line, so
      the diary keeps its height whatever the column is doing. */
   function ahSide(sc) {
-    const key = sc.key, b = ahBook(key), sel = AH_SEL, cur = b.rota[sel];
+    const key = sc.key, b = ahBook(key), sel = AH_SEL, q = ahQ(b, sel);
     const wkDays = ahRange(ahWeek(sel), 7);
     const k = AH_Q.trim().toLowerCase();
     const hit = (id) => !k || AH_P[id].name.toLowerCase().indexOf(k) > -1;
@@ -2827,8 +2858,8 @@
 
     if (ahPast(sel)) {
       const o = ahOutcome(key, sel);
-      return html + '<div class="ah-q"><span>' + (cur ? esc(AH_P[cur].name) + ' was on call' : 'Nobody was on call') + '</span></div>' +
-        (cur && o ? '<div class="b-cal-ev is-plain"><span class="b-cal-evtop">' + `<span class="b-cal-dot ${o.k}"></span>` +
+      return html + '<div class="ah-q"><span>' + (q.length === 1 ? esc(AH_P[q[0]].name) + ' was on call' : q.length ? 'On call: ' + ahThen(q) : 'Nobody was on call') + '</span></div>' +
+        (q.length && o ? '<div class="b-cal-ev is-plain"><span class="b-cal-evtop">' + `<span class="b-cal-dot ${o.k}"></span>` +
           '<span class="b-cal-etime">' + esc(o.kind === 'quiet' ? 'No handoffs' : ahPl(b.out[sel].n, 'handoff')) + '</span>' +
           (o.kind !== 'quiet' ? `<span class="b-kind${o.kind === 'went up' ? ' is-warn' : ''}">` + esc(o.kind) + '</span>' : '') +
           '</span><span class="b-cal-ewhat">' + esc(o.what) + '</span></div>'
@@ -2839,18 +2870,28 @@
     if (!b.team.length) {
       return html + '<p class="ah-sub">Nobody is on the team yet. <button class="ah-link" type="button" data-ah-editteam="1">Add people</button></p>';
     }
-    html += '<div class="ah-roster" role="radiogroup" aria-label="Who’s on call?"><div class="ah-scroll" data-ah-scroll="pick">' + none +
-      b.team.map((id) => {
-        const on = cur === id;
-        const here = wkDays.filter((s) => b.rota[s] === id).length;
+    /* The queue reads top to bottom: the people on it first, numbered in the
+       order they get the call, then the rest of the team. Pressing a name
+       puts it at the end of the queue, or takes it off; the arrow moves a
+       person one place earlier. Five at most. */
+    const order = q.filter((id) => AH_P[id]).concat(b.team.filter((id) => q.indexOf(id) < 0));
+    html += '<div class="ah-roster" role="group" aria-label="Who’s on call, in order"><div class="ah-scroll" data-ah-scroll="pick">' + none +
+      order.map((id) => {
+        const at = q.indexOf(id), on = at > -1;
+        const here = wkDays.filter((s) => ahOn(b, s, id)).length;
         const elsKeys = wkDays.reduce((a, s) => a.concat(ahElsewhere(key, id, s)), []);
         const elsWhere = elsKeys.filter((x, i, all) => all.indexOf(x) === i).map(ahName).join(' and ');
         const els = elsKeys.length;
-        return `<button class="ah-opt${on ? ' is-on' : ''}" type="button" role="radio" aria-checked="${on}" data-ah-oncall="${esc(sel + '|' + id)}" data-ah-name="${id}"${hide(id)}>` +
-          '<span class="ah-ring"></span><span class="ah-opt-t"><span class="ah-opt-n">' + esc(AH_P[id].name) + '</span>' +
-          '<span class="ah-opt-c">' + ahPl(here, 'night') + ' this week' + (els ? ', ' + els + ' more on ' + esc(elsWhere) : '') + '</span></span></button>';
+        return `<div class="ah-opt${on ? ' is-on' : ''}" data-ah-name="${id}"${hide(id)}>` +
+          `<button class="ah-opt-b" type="button" role="checkbox" aria-checked="${on}" data-ah-q="${esc(sel + '|' + id)}"` +
+            (on ? ` aria-label="${esc(AH_P[id].name + ', ' + AH_NTH[at] + ' to get the call')}"` : '') + '>' +
+            (on ? `<span class="ah-pos" aria-hidden="true">${at + 1}</span>` : '<span class="ah-ring"></span>') +
+            '<span class="ah-opt-t"><span class="ah-opt-n">' + esc(AH_P[id].name) + '</span>' +
+            '<span class="ah-opt-c">' + ahPl(here, 'night') + ' this week' + (els ? ', ' + els + ' more on ' + esc(elsWhere) : '') + '</span></span></button>' +
+          (at > 0 ? `<button class="ah-ib ah-up" type="button" data-ah-qup="${esc(sel + '|' + id)}" aria-label="${esc('Call ' + ahFirst(id) + ' before ' + ahFirst(q[at - 1]))}">${AH_ARROW_UP}</button>` : '') +
+        '</div>';
       }).join('') + '</div>' +
-      `<button class="ah-opt is-nobody${!cur ? ' is-on' : ''}" type="button" role="radio" aria-checked="${!cur}" data-ah-oncall="${esc(sel)}|none">` +
+      `<button class="ah-opt is-nobody${!q.length ? ' is-on' : ''}" type="button" aria-pressed="${!q.length}" data-ah-qset="${esc(sel)}|">` +
         '<span class="ah-ring"></span><span class="ah-opt-n is-off">Nobody</span></button></div>';
 
     /* Rotating says what it will do before it does it, and says so plainly
@@ -2860,7 +2901,10 @@
     html += plan.n
       ? '<button class="b-cal-add ah-rot" type="button" data-ah-rotate="' + esc(wk) + '"><span class="b-cal-plus">' + I.repeat + '</span>' +
         '<span class="ah-rot-t"><span>Rotate into next week</span><span class="ah-rot-p">' +
-        plan.rows.map((x) => AH_DAY[ahD(x.s).getDay()].slice(0, 3) + ' ' + (x.id ? (x.fresh ? '<b>' + esc(ahFirst(x.id)) + '</b>' : esc(ahFirst(x.id))) : 'nobody')).join(', ') +
+        plan.rows.map((x) => {
+          const who = x.q.length ? esc(ahFirst(x.q[0])) + (x.q.length > 1 ? ' +' + (x.q.length - 1) : '') : 'nobody';
+          return AH_DAY[ahD(x.s).getDay()].slice(0, 3) + ' ' + (x.fresh ? '<b>' + who + '</b>' : who);
+        }).join(', ') +
         '</span></span></button>'
       : '<div class="ah-rotdone"><span class="b-cal-plus">' + I.repeat + '</span><span>Next week is already set. ' +
         '<button class="ah-link" type="button" data-ah-day="' + esc(ahAdd(sel, 7)) + '">See ' + esc(nxLabel) + '</button></span></div>';
@@ -2887,19 +2931,20 @@
     const sel = AH_SEL, d = ahD(sel);
     const wk = AH_VIEW === 'week';
     const sh = ahShown();
-    const covered = sh.days.filter((s) => b.rota[s]).length;
+    const covered = sh.days.filter((s) => ahQ(b, s).length).length;
 
     const grid = sh.cells.map((s, i) => {
       const dd = ahD(s), out = !wk && dd.getMonth() !== sh.mo, end = dd.getDay() === 0 || dd.getDay() === 6;
-      const pid = b.rota[s], o = ahPast(s) ? ahOutcome(key, s) : null;
+      const q = ahQ(b, s), pid = q[0], o = ahPast(s) ? ahOutcome(key, s) : null;
       const dots = [];
       if (o) dots.push(o.k);
       else if (pid) dots.push('k-on');
       else if (!ahPast(s) && ahSoon(s)) dots.push('k-gap');
-      const said = pid ? AH_P[pid].name + ' on call' : ahPast(s) ? 'nobody was on call' : 'nobody on call yet';
+      const said = pid ? q.map((x) => AH_P[x].name).join(', then ') + ' on call' : ahPast(s) ? 'nobody was on call' : 'nobody on call yet';
       /* In the week there is room to say who, so the day says it, and an
          open night says what to do with it. */
-      const who = !wk ? '' : pid ? '<span class="b-cal-who">' + esc(ahFirst(pid)) + '</span>'
+      const more = q.length > 1 ? '<span class="b-cal-more">+' + (q.length - 1) + '</span>' : '';
+      const who = !wk ? '' : pid ? `<span class="b-cal-who${more ? ' is-q' : ''}"><span class="b-cal-wn">${esc(ahFirst(pid))}</span>${more}</span>`
         : ahPast(s) ? '<span class="b-cal-who is-none">Nobody</span>'
         : `<span class="b-cal-who ${ahSoon(s) ? 'is-gap' : 'is-ask'}">+ Assign</span>`;
       const fresh = AH_FRESH.indexOf(s) > -1;
@@ -2945,18 +2990,34 @@
      list of minutes, and "Add someone" puts a step at the end. Any number
      of steps reads the same, on a phone too. Only the first step rotates. */
   function ahLadder(sc) {
-    const b = ahBook(sc.key), tn = b.rota[AH_TODAY], l = b.ladder;
+    const b = ahBook(sc.key), l = b.ladder, qw = b.qwait || 10;
+    /* The night the diary is on, or tonight when that night is over. */
+    const night = ahPast(AH_SEL) ? AH_TODAY : AH_SEL, q = ahQ(b, night);
+    const when = night === AH_TODAY ? 'tonight' : 'on ' + ahLong(night);
+    const time = (m) => `<div class="ah-tl-t" style="padding-top:.9375rem">${m} min</div>`;
+    const rail = (first, last, rota) => `<div class="ah-tl-rail${first ? ' is-first' : ''}${last ? ' is-last' : ''}"><span class="ah-tl-dot${rota ? ' is-rota' : ''}"></span></div>`;
+    const gap = (chip) => '<div></div><div class="ah-tl-rail"></div><div class="ah-tl-gap">' + chip + 'with no answer</div>';
     let at = 0;
-    let h = '<div class="ah-tl">' +
-      '<div class="ah-tl-t" style="padding-top:.9375rem">0 min</div>' +
-      `<div class="ah-tl-rail is-first${l.length ? '' : ' is-last'}"><span class="ah-tl-dot is-rota"></span></div>` +
-      '<div class="ah-tl-row"><div class="ah-tl-card"><span class="ah-tl-rot">' + I.repeat + '</span>' +
-        '<span><b style="font-weight:600;color:var(--d50)">The person on call</b> <span class="ah-role">· tonight ' + (tn ? esc(AH_P[tn].name) : 'nobody') + '</span></span></div></div>';
+    let h = '<div class="ah-tl">';
+    if (!q.length) {
+      h += time(0) + rail(true, !l.length, true) +
+        '<div class="ah-tl-row"><div class="ah-tl-card"><span class="ah-tl-rot">' + I.repeat + '</span>' +
+        '<span><b class="ah-tl-n">Nobody on call</b> <span class="ah-role">· ' + esc(when) + '</span></span></div></div>';
+    }
+    q.forEach((id, i) => {
+      if (i) {
+        at += qw;
+        h += gap(`<button class="ah-wchip" type="button" data-ah-qwaitmenu aria-haspopup="listbox" aria-label="${esc('Wait ' + qw + ' minutes between the people on call, change')}">${qw} min${I.down}</button>`);
+      }
+      h += time(at) + rail(i === 0, i === q.length - 1 && !l.length, true) +
+        '<div class="ah-tl-row"><div class="ah-tl-card"><span class="ah-tl-rot">' + I.repeat + '</span>' +
+        '<span><b class="ah-tl-n">' + esc(AH_P[id].name) + '</b> <span class="ah-role">· ' +
+        esc(q.length === 1 ? 'on call ' + when : AH_NTH[i] + ' on call' + (i ? '' : ' ' + when)) + '</span></span></div></div>';
+    });
     l.forEach((r, i) => {
       at += r.wait;
-      h += '<div></div><div class="ah-tl-rail"></div><div class="ah-tl-gap">' +
-        `<button class="ah-wchip" type="button" data-ah-waitmenu="${i}" aria-haspopup="listbox" aria-label="${esc('Wait ' + r.wait + ' minutes before ' + r.name + ', change')}">${r.wait} min${I.down}</button>with no answer</div>`;
-      h += `<div class="ah-tl-t" style="padding-top:.9375rem">${at} min</div><div class="ah-tl-rail${i === l.length - 1 ? ' is-last' : ''}"><span class="ah-tl-dot"></span></div>` +
+      h += gap(`<button class="ah-wchip" type="button" data-ah-waitmenu="${i}" aria-haspopup="listbox" aria-label="${esc('Wait ' + r.wait + ' minutes before ' + r.name + ', change')}">${r.wait} min${I.down}</button>`);
+      h += time(at) + rail(false, i === l.length - 1, false) +
         '<div class="ah-tl-row"><div class="ah-tl-card">' +
           `<button class="ah-nm" type="button" data-ah-rungmenu="${i}" aria-haspopup="listbox" aria-label="${esc(r.name + ', ' + r.role + ', change who')}">${esc(r.name)}${I.down}</button>` +
           `<span class="ah-role">${esc(r.role)}</span></div></div>`;
@@ -2964,11 +3025,15 @@
     h += '</div>';
     const left = AH_LEADS.filter((x) => !l.some((r) => r.name === x.name));
     const add = left.length ? '<div class="ah-tl-addrow"><button class="ah-tl-add" type="button" data-ah-rungadd aria-haspopup="listbox"><span class="b-cal-plus">' + I.plus + '</span>Add someone</button></div>' : '';
+    const bold = (t) => '<b>' + esc(t) + '</b>';
+    const first = !q.length ? 'Nobody is on call ' + esc(when) + ' yet.'
+      : q.length === 1 ? 'A handoff ' + esc(when) + ' goes to ' + bold(ahFirst(q[0])) + '.'
+      : 'A handoff ' + esc(when) + ' goes to ' + ahThen(q, bold) + ', ' + qw + ' minutes apart.';
+    const rest = !l.length ? ' Add someone to go to when nobody answers.'
+      : (q.length ? ' If nobody answers, it' : ' A handoff') + ' goes up one step at a time and reaches ' + bold(l[l.length - 1].name) + ' after ' + at + ' minutes.';
     return '<section class="set2-sec ah-ladder">' +
       '<div class="set2-sec-h"><h2 class="set2-sec-t">If nobody answers</h2></div>' +
-      '<p class="ah-ladder-l">' + (l.length
-        ? 'A handoff nobody answers goes up one step at a time, and reaches <b>' + esc(l[l.length - 1].name) + '</b> after ' + at + ' minutes.'
-        : 'Only the person on call gets the handoff. Add someone to go to when they don’t answer.') + '</p>' +
+      '<p class="ah-ladder-l">' + first + rest + '</p>' +
       h + add + '</section>';
   }
   function ahLeadMenu(anchor, attr, exceptName) {
@@ -3134,8 +3199,8 @@
     const html = which === 'client'
       ? CLIENTS().map((c) => {
           const r = AH[c.id] ? AH[c.id].rota : null;
-          const tn = r && r[AH_TODAY];
-          return item(c.id, c.name, !r ? 'no rota yet' : tn ? 'tonight: ' + AH_P[tn].name : 'nobody on call tonight', c.id === sc.client.id);
+          const tq = r && r[AH_TODAY] ? r[AH_TODAY] : [];
+          return item(c.id, c.name, !r ? 'no rota yet' : tq.length ? 'tonight: ' + AH_P[tq[0]].name + (tq.length > 1 ? ' and ' + (tq.length - 1) + ' more' : '') : 'nobody on call tonight', c.id === sc.client.id);
         }).join('')
       : item(sc.client.id, 'All products', sc.client.name + '’s rota', !sc.prod) +
         ahProducts(sc.client).map((p) => item(p.id, p.name, AH[p.id] ? 'its own rota' : 'uses ' + sc.client.name + '’s rota', sc.prod && sc.prod.id === p.id)).join('');
@@ -3145,9 +3210,10 @@
   /* The rail row says who is on tonight, or that a night this week is open. */
   function ahState(st) {
     const sc = ahScopeOf(st || readURL()), b = ahBook(sc.key);
-    const gap = ahRange(AH_TODAY, 7).filter((s) => !b.rota[s])[0];
+    const gap = ahRange(AH_TODAY, 7).filter((s) => !ahQ(b, s).length)[0];
     if (gap) return { note: gap === AH_TODAY ? 'Nobody on call tonight' : AH_DAY[ahD(gap).getDay()].slice(0, 3) + ' ' + ahD(gap).getDate() + ' has nobody', s: 'warn' };
-    return { note: 'Tonight: ' + AH_P[b.rota[AH_TODAY]].name, s: '' };
+    const tq = ahQ(b, AH_TODAY);
+    return { note: 'Tonight: ' + AH_P[tq[0]].name + (tq.length > 1 ? ' +' + (tq.length - 1) : ''), s: '' };
   }
 
   /* ── After a paint: the roster's scroll, its held height, and its fades ──
@@ -3189,7 +3255,7 @@
   const ahSay2 = (m, was) => { if (API && API.toast) API.toast(m, was ? () => { ahRestore(was); render(); } : undefined); };
 
   document.addEventListener('click', (e) => {
-    const t = e.target.closest('[data-ah-day],[data-ah-oncall],[data-ah-fill],[data-ah-rotate],[data-ah-view],[data-ah-own],[data-ah-pick],[data-ah-go],' +
+    const t = e.target.closest('[data-ah-day],[data-ah-q],[data-ah-qup],[data-ah-qset],[data-ah-qwaitmenu],[data-ah-qwaitgo],[data-ah-fill],[data-ah-rotate],[data-ah-view],[data-ah-own],[data-ah-pick],[data-ah-go],' +
       '[data-ah-editteam],[data-ah-findopen],[data-ah-findclose],[data-ah-rm],[data-ah-addp],[data-ah-tok],[data-ah-timego],[data-ah-tz],' +
       '[data-ah-waitmenu],[data-ah-waitgo],[data-ah-rungmenu],[data-ah-runggo],[data-ah-rungrm],[data-ah-rungadd],[data-ah-rungaddgo],[data-ah-tzgo],[data-ah-weekends]');
     if (!t) return;
@@ -3206,6 +3272,13 @@
       const i = +t.getAttribute('data-ah-waitmenu'), w = ahBook(sc.key).ladder[i].wait;
       const ws = AH_WAITS.indexOf(w) < 0 ? AH_WAITS.concat(w).sort((a, c) => a - c) : AH_WAITS;
       popover(t, ws.map((m) => `<button class="set2-pop-i is-scope${m === w ? ' is-on' : ''}" type="button" role="option" data-ah-waitgo="${i}|${m}">` +
+        '<span class="set2-pop-tx"><span class="set2-pop-n">' + m + ' min</span></span><span class="set2-pop-k">' + I.tick + '</span></button>').join(''), 'is-times');
+      return;
+    }
+    if (t.hasAttribute('data-ah-qwaitmenu')) {
+      const w = ahBook(sc.key).qwait || 10;
+      const ws = AH_WAITS.indexOf(w) < 0 ? AH_WAITS.concat(w).sort((a, c) => a - c) : AH_WAITS;
+      popover(t, ws.map((m) => `<button class="set2-pop-i is-scope${m === w ? ' is-on' : ''}" type="button" role="option" data-ah-qwaitgo="${m}">` +
         '<span class="set2-pop-tx"><span class="set2-pop-n">' + m + ' min</span></span><span class="set2-pop-k">' + I.tick + '</span></button>').join(''), 'is-times');
       return;
     }
@@ -3231,20 +3304,53 @@
     if (t.hasAttribute('data-ah-findclose')) { AH_FIND = false; AH_Q = ''; render(); return; }
     const was = ahSnap();
     const b = ahBook(sc.key);
-    if (t.hasAttribute('data-ah-oncall')) {
-      const [s, pid] = t.getAttribute('data-ah-oncall').split('|');
-      const prev = b.rota[s];
-      if (ahPast(s) || (pid === 'none' ? !prev : prev === pid)) return;
+    if (t.hasAttribute('data-ah-q')) {
+      /* A name joins the end of the night's queue, or leaves it. */
+      const [s, pid] = t.getAttribute('data-ah-q').split('|');
+      if (ahPast(s)) return;
+      const q = ahQ(b, s).slice(), at = q.indexOf(pid);
       AH_FRESH = [];
-      if (pid === 'none') { delete b.rota[s]; ahSay2('Nobody is on call ' + ahLong(s) + '.', was); }
-      else { b.rota[s] = pid; ahSay2(AH_P[pid].name + ' is on call ' + ahLong(s) + (prev ? ', instead of ' + ahFirst(prev) : '') + '.', was); }
+      if (at > -1) {
+        q.splice(at, 1); ahSetQ(b, s, q);
+        ahSay2(AH_P[pid].name + ' is off ' + ahLong(s) + (q.length ? '. ' + ahFirst(q[0]) + ' gets the call first.' : ', so nobody is on call.'), was);
+      } else {
+        if (q.length >= AH_QMAX) { ahSay2('A night takes five people at most. Take someone off ' + ahLong(s) + ' first.'); return; }
+        q.push(pid); ahSetQ(b, s, q);
+        ahSay2(AH_P[pid].name + ' is on call ' + ahLong(s) + (q.length > 1 ? ', ' + AH_NTH[q.length - 1] + ' in line.' : '.'), was);
+      }
+      render(); return;
+    }
+    if (t.hasAttribute('data-ah-qup')) {
+      const [s, pid] = t.getAttribute('data-ah-qup').split('|');
+      const q = ahQ(b, s).slice(), at = q.indexOf(pid);
+      if (ahPast(s) || at < 1) return;
+      q.splice(at, 1); q.splice(at - 1, 0, pid); ahSetQ(b, s, q);
+      ahSay2(ahFirst(pid) + ' now gets the call before ' + ahFirst(q[at]) + '.', was);
+      render(); return;
+    }
+    if (t.hasAttribute('data-ah-qset')) {
+      /* The whole queue at once: Nobody, and AiMY's suggestions. */
+      const [s, ids] = t.getAttribute('data-ah-qset').split('|');
+      const nq = ids ? ids.split(',') : [];
+      if (ahPast(s) || nq.join(',') === ahQ(b, s).join(',')) return;
+      AH_FRESH = [];
+      ahSetQ(b, s, nq);
+      ahSay2(nq.length ? ahLong(s) + ': ' + ahThen(nq, (x) => x) + '.' : 'Nobody is on call ' + ahLong(s) + '.', was);
+      render(); return;
+    }
+    if (t.hasAttribute('data-ah-qwaitgo')) {
+      closePop();
+      const m = +t.getAttribute('data-ah-qwaitgo');
+      if ((b.qwait || 10) === m) return;
+      b.qwait = m;
+      ahSay2('The people on call now get a handoff ' + m + ' minutes apart.', was);
       render(); return;
     }
     if (t.hasAttribute('data-ah-fill')) {
       const [f, n] = t.getAttribute('data-ah-fill').split('|');
-      const days = ahRange(f, +n).filter((s) => !ahPast(s) && !b.rota[s]);
-      days.forEach((s) => { const p = ahRanked(sc.key, s)[0]; if (p) b.rota[s] = p; });
-      AH_FRESH = days.filter((s) => b.rota[s]);
+      const days = ahRange(f, +n).filter((s) => !ahPast(s) && !ahQ(b, s).length);
+      days.forEach((s) => { const p = ahRanked(sc.key, s)[0]; if (p) b.rota[s] = [p]; });
+      AH_FRESH = days.filter((s) => ahQ(b, s).length);
       ahSay2('AiMY filled ' + ahPl(AH_FRESH.length, 'night') + ', spread so nobody carries more than their share.', was);
       render(); return;
     }
@@ -3254,7 +3360,7 @@
          lights the nights it set, so the change is seen. */
       const wk = t.getAttribute('data-ah-rotate');
       const plan = ahRotatePlan(sc.key, wk);
-      plan.rows.forEach((x) => { if (x.fresh) b.rota[x.s] = x.id; });
+      plan.rows.forEach((x) => { if (x.fresh) b.rota[x.s] = x.q; });
       AH_FRESH = plan.rows.filter((x) => x.fresh).map((x) => x.s);
       AH_SEL = ahAdd(AH_SEL, 7);
       const nx = ahAdd(wk, 7);
@@ -3296,8 +3402,8 @@
     if (t.hasAttribute('data-ah-rm')) {
       const pid = t.getAttribute('data-ah-rm');
       b.team = b.team.filter((x) => x !== pid);
-      Object.keys(b.rota).forEach((s) => { if (!ahPast(s) && b.rota[s] === pid) delete b.rota[s]; });
-      ahSay2(AH_P[pid].name + ' is off the team, and their nights to come are open.', was);
+      Object.keys(b.rota).forEach((s) => { if (!ahPast(s) && ahOn(b, s, pid)) ahSetQ(b, s, ahQ(b, s).filter((x) => x !== pid)); });
+      ahSay2(AH_P[pid].name + ' is off the team, and off every night to come.', was);
       render(); return;
     }
     if (t.hasAttribute('data-ah-addp')) {
@@ -3311,7 +3417,7 @@
       const src = ahBook(sc.client.id);
       /* Empty, not a copy: a copy would put every person on two rotas the
          same night. The team and the ladder carry across. */
-      AH[pid] = { hours: Object.assign({}, src.hours || AH_HOURS0), ladder: src.ladder.map((r) => Object.assign({}, r)), team: src.team.slice(), rota: {}, out: {} };
+      AH[pid] = { hours: Object.assign({}, src.hours || AH_HOURS0), ladder: src.ladder.map((r) => Object.assign({}, r)), qwait: src.qwait || 10, team: src.team.slice(), rota: {}, out: {} };
       ahSay2(ahName(pid) + ' has its own rota now. Nobody is on it yet.', was);
       render(); return;
     }
