@@ -2662,37 +2662,42 @@
   }
 
   /* ── AiMY's reading of the month, above it ── */
+  /* The reading's highlights, the design system's passage mark: an accent
+     for who and what fits, the warning tint for what is wrong. The words
+     carry the state; the tint says which kind at a glance. */
+  const ahHl = (t) => '<mark class="ah-hl">' + t + '</mark>';
+  const ahHw = (t) => '<mark class="ah-hl is-warn">' + t + '</mark>';
   function ahNote(sc, days) {
     const key = sc.key, b = ahBook(key), bits = [];
     const span = days.length > 7 ? 'this month' : 'this week';
     if (sc.prod && !sc.own) {
-      bits.push('<b>' + esc(sc.prod.name) + '</b> uses ' + esc(sc.client.name) + '’s rota, so a change here changes it for every ' + esc(sc.client.name) + ' product.');
+      bits.push(ahHl(esc(sc.prod.name)) + ' uses ' + esc(sc.client.name) + '’s rota, so a change here changes it for every ' + esc(sc.client.name) + ' product.');
     }
     const load = b.team.map((id) => Object.assign({ id }, ahLoad(key, id, days)))
       .sort((a, c) => (c.here + c.there) - (a.here + a.there));
     const hi = load[0], lo = load[load.length - 1];
     const covered = days.filter((s) => b.rota[s]).length;
     if (!b.team.length) {
-      bits.push('Nobody is on the <b>' + esc(sc.prod && sc.own ? sc.prod.name : sc.client.name) + '</b> team yet. Add people with Edit team, and AiMY can fill the nights.');
+      bits.push(ahHw('Nobody is on the ' + esc(sc.prod && sc.own ? sc.prod.name : sc.client.name) + ' team yet') + '. Add people with Edit team, and AiMY can fill the nights.');
     } else if (!covered) {
-      bits.push('Nobody is on call for <b>' + esc(sc.prod && sc.own ? sc.prod.name : sc.client.name) + '</b> ' + span + ' yet. AiMY can fill it, counting the nights each person already has on other clients.');
+      bits.push(ahHw('Nobody is on call for ' + esc(sc.prod && sc.own ? sc.prod.name : sc.client.name) + ' ' + span + ' yet') + '. AiMY can fill it, counting the nights each person already has on other clients.');
     } else if (load.length > 1 && hi.here + hi.there - (lo.here + lo.there) >= 2) {
-      bits.push('<b>' + esc(ahFirst(hi.id)) + '</b> has ' + ahPl(hi.here, 'night') + ' ' + span +
+      bits.push(ahHl(esc(ahFirst(hi.id)) + ' has ' + ahPl(hi.here, 'night')) + ' ' + span +
         (hi.there ? ', plus ' + hi.there + ' on ' + esc(days.reduce((acc, s) => acc.concat(ahElsewhere(key, hi.id, s)), [])
-          .filter((k, i, all) => all.indexOf(k) === i).map(ahName).join(' and ')) : '') + '. <b>' + esc(ahFirst(lo.id)) + '</b> has ' + (lo.here + lo.there ? lo.here + lo.there : 'none') + '.');
+          .filter((k, i, all) => all.indexOf(k) === i).map(ahName).join(' and ')) : '') + '. ' + ahHl(esc(ahFirst(lo.id)) + ' has ' + (lo.here + lo.there ? lo.here + lo.there : 'none')) + '.');
     }
     const clash = days.filter((s) => !ahPast(s) && b.rota[s] && ahElsewhere(key, b.rota[s], s).length)[0];
-    if (clash) bits.push('On ' + esc(ahLong(clash)) + ' ' + esc(ahFirst(b.rota[clash])) + ' is on call for ' + esc(ahName(ahElsewhere(key, b.rota[clash], clash)[0])) + ' too.');
+    if (clash) bits.push('On ' + esc(ahLong(clash)) + ' ' + ahHw(esc(ahFirst(b.rota[clash])) + ' is on call for ' + esc(ahName(ahElsewhere(key, b.rota[clash], clash)[0])) + ' too') + '.');
     const up = days.filter((s) => b.out[s] && b.out[s].top > 0);
     if (up.length) {
       const s = up[up.length - 1], r = b.ladder[b.out[s].top - 1];
-      bits.push('On ' + esc(ahLong(s)) + ' the handoffs went up to <b>' + esc(r.name) + '</b> because nobody below answered in time.');
+      bits.push('On ' + esc(ahLong(s)) + ' the handoffs ' + ahHw('went up to ' + esc(r.name)) + ' because nobody below answered in time.');
     }
     const gaps = days.filter((s) => !ahPast(s) && !b.rota[s]);
     const urgent = gaps.filter(ahSoon);
     if (!covered || !b.team.length) { /* said above */ }
-    else if (urgent.length === 1) bits.push('<b>' + esc(ahLong(urgent[0])) + '</b> has nobody on call.');
-    else if (urgent.length) bits.push('<b>' + urgent.length + ' nights in the next seven days</b> have nobody on call.');
+    else if (urgent.length === 1) bits.push(ahHw(esc(ahLong(urgent[0])) + ' has nobody on call') + '.');
+    else if (urgent.length) bits.push(ahHw(urgent.length + ' nights in the next seven days have nobody on call') + '.');
     if (!bits.length) bits.push(gaps.length ? ahPl(gaps.length, 'later night') + ' ' + span + ' ' + (gaps.length === 1 ? 'is' : 'are') + ' still open.'
       : 'Every night ' + span + ' has somebody on call, and nobody carries more than their share.');
     /* Before you assign: the night you are on, and who fits it. */
@@ -2709,11 +2714,11 @@
         const why = ahPl(wkN.here + wkN.there, 'night') + ' that week' + (h.total ? ', answered ' + h.ans + ' of ' + h.total : '');
         const avoid = b.team.filter((x) => x !== cur && ahElsewhere(key, x, sel).length)[0];
         if (!cur) {
-          adv = ('For <b>' + esc(ahLong(sel)) + '</b>, <b>' + esc(ahFirst(pick)) + '</b> fits best: ' + esc(why) + '.' +
-            (avoid ? ' ' + esc(ahFirst(avoid)) + ' is on ' + esc(ahName(ahElsewhere(key, avoid, sel)[0])) + ' that night.' : ''));
+          adv = ('For ' + esc(ahLong(sel)) + ', ' + ahHl(esc(ahFirst(pick)) + ' fits best') + ': ' + esc(why) + '.' +
+            (avoid ? ' ' + ahHw(esc(ahFirst(avoid)) + ' is on ' + esc(ahName(ahElsewhere(key, avoid, sel)[0])) + ' that night') + '.' : ''));
           acts.push('<button class="agv-btn is-brand" type="button" data-ah-oncall="' + esc(sel + '|' + pick) + '">Put ' + esc(ahFirst(pick)) + ' on ' + AH_DAY[ahD(sel).getDay()].slice(0, 3) + '</button>');
         } else if (curFlag) {
-          adv = ('On <b>' + esc(ahLong(sel)) + '</b> ' + esc(ahFirst(cur)) + esc(curFlag) + '. <b>' + esc(ahFirst(pick)) + '</b> fits better: ' + esc(why) + '.');
+          adv = ('On ' + esc(ahLong(sel)) + ' ' + ahHw(esc(ahFirst(cur)) + esc(curFlag)) + '. ' + ahHl(esc(ahFirst(pick)) + ' fits better') + ': ' + esc(why) + '.');
           acts.push('<button class="agv-btn is-brand" type="button" data-ah-oncall="' + esc(sel + '|' + pick) + '">Put ' + esc(ahFirst(pick)) + ' on instead</button>');
         }
       }
@@ -2741,7 +2746,7 @@
   function ahRank(t) {
     return /has nobody on call|have nobody on call|Nobody is on/.test(t) ? 0
       : / has \d+ night| has 1 night| has none/.test(t) ? 1
-      : / too\.$/.test(t) ? 2 : /went up/.test(t) ? 3 : 4;
+      : / too(<\/mark>)?\.$/.test(t) ? 2 : /went up/.test(t) ? 3 : 4;
   }
 
   /* ── Rotating: next week as it would be, worked out before the press ──

@@ -379,3 +379,11 @@
    team would shrink it, so every state of the column holds the height the
    question takes with four people in it. */
 @media (min-width: 1024px) { .b-diary .b-cal-side { min-height: 28.75rem; } }
+
+/* AiMY's highlights in the footer: the design system's cited-passage mark
+   (aimy-ds .cp-passage mark), value for value, and its warning-tinted twin
+   for what is wrong. */
+.ah-foot-t .ah-hl { background: rgba(51,105,255,0.16); color: var(--d50); border-radius: 3px; padding: 0 0.125rem; font-weight: 600; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.ah-foot-t .ah-hl.is-warn { background: var(--warn-bg); color: var(--ink-warn); }
+:root[data-theme="light"] .ah-foot-t .ah-hl { background: rgba(51,105,255,0.14); }
+:root[data-theme="light"] .ah-foot-t .ah-hl.is-warn { background: var(--warn-bg); }
