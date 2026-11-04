@@ -2937,40 +2937,39 @@
       '</div></div>';
   }
 
-  /* ── If nobody answers: the escalation path, under the diary ──
-     A path, not a list (GitLab, incident.io, Churnkey on Mobbin): the person
-     on call, then each rung, with the wait between them on the line that
-     joins them and the time each is reached over its card. Everything on it
-     is a press, never a typed number: the name opens the people who can
-     stand there, the wait opens a list of minutes, × takes a rung off, and
-     "Add someone" puts a rung at the end. Only the first step rotates. */
+  /* ── If nobody answers: the escalation timeline, under the diary ──
+     Variant B (Nour, 4 Nov): a rail down the page, the minute each step is
+     reached on its left (0, 10, 25, 40), and the wait on the rail between
+     two steps. Every change is a press, never typing: a name opens the
+     people who can stand there (and "Take off the path"), a wait opens a
+     list of minutes, and "Add someone" puts a step at the end. Any number
+     of steps reads the same, on a phone too. Only the first step rotates. */
   function ahLadder(sc) {
-    const b = ahBook(sc.key), tn = b.rota[AH_TODAY];
+    const b = ahBook(sc.key), tn = b.rota[AH_TODAY], l = b.ladder;
     let at = 0;
-    const steps = ['<li class="ah-step is-first"><span class="ah-step-when">At once</span>' +
-      '<div class="ah-step-c"><span class="ah-rot-i" aria-hidden="true">' + I.repeat + '</span>' +
-      '<span class="ah-step-t"><span class="ah-step-n">The person on call</span>' +
-      '<span class="ah-step-r">' + (tn ? 'Tonight: ' + esc(AH_P[tn].name) : 'Nobody tonight') + '</span></span></div></li>'];
-    b.ladder.forEach((r, i) => {
+    let h = '<div class="ah-tl">' +
+      '<div class="ah-tl-t" style="padding-top:.9375rem">0 min</div>' +
+      `<div class="ah-tl-rail is-first${l.length ? '' : ' is-last'}"><span class="ah-tl-dot is-rota"></span></div>` +
+      '<div class="ah-tl-row"><div class="ah-tl-card"><span class="ah-tl-rot">' + I.repeat + '</span>' +
+        '<span><b style="font-weight:600;color:var(--d50)">The person on call</b> <span class="ah-role">· tonight ' + (tn ? esc(AH_P[tn].name) : 'nobody') + '</span></span></div></div>';
+    l.forEach((r, i) => {
       at += r.wait;
-      steps.push('<li class="ah-step">' +
-        `<button class="ah-wait" type="button" data-ah-waitmenu="${i}" aria-haspopup="listbox" aria-label="${esc('Wait ' + r.wait + ' minutes before ' + r.name + ', change')}">` +
-          '<span class="ah-wait-l" aria-hidden="true"></span><span class="ah-wait-v">' + r.wait + ' min' + I.down + '</span></button>' +
-        '<span class="ah-step-when">After ' + at + ' min</span>' +
-        '<div class="ah-step-c">' +
-          `<span class="ah-step-t"><button class="ah-step-n is-btn" type="button" data-ah-rungmenu="${i}" aria-haspopup="listbox" aria-label="${esc(r.name + ', ' + r.role + ', change who')}">` + esc(r.name) + I.down + '</button>' +
-          '<span class="ah-step-r">' + esc(r.role) + '</span></span>' +
-        '</div></li>');
+      h += '<div></div><div class="ah-tl-rail"></div><div class="ah-tl-gap">' +
+        `<button class="ah-wchip" type="button" data-ah-waitmenu="${i}" aria-haspopup="listbox" aria-label="${esc('Wait ' + r.wait + ' minutes before ' + r.name + ', change')}">${r.wait} min${I.down}</button>with no answer</div>`;
+      h += `<div class="ah-tl-t" style="padding-top:.9375rem">${at} min</div><div class="ah-tl-rail${i === l.length - 1 ? ' is-last' : ''}"><span class="ah-tl-dot"></span></div>` +
+        '<div class="ah-tl-row"><div class="ah-tl-card">' +
+          `<button class="ah-nm" type="button" data-ah-rungmenu="${i}" aria-haspopup="listbox" aria-label="${esc(r.name + ', ' + r.role + ', change who')}">${esc(r.name)}${I.down}</button>` +
+          `<span class="ah-role">${esc(r.role)}</span></div></div>`;
     });
-    const left = AH_LEADS.filter((l) => !b.ladder.some((r) => r.name === l.name));
-    if (left.length) steps.push('<li class="ah-step is-add"><span class="ah-step-when">&nbsp;</span>' +
-      '<button class="ah-add" type="button" data-ah-rungadd aria-haspopup="listbox"><span class="b-cal-plus">' + I.plus + '</span>Add someone</button></li>');
+    h += '</div>';
+    const left = AH_LEADS.filter((x) => !l.some((r) => r.name === x.name));
+    const add = left.length ? '<div class="ah-tl-addrow"><button class="ah-tl-add" type="button" data-ah-rungadd aria-haspopup="listbox"><span class="b-cal-plus">' + I.plus + '</span>Add someone</button></div>' : '';
     return '<section class="set2-sec ah-ladder">' +
       '<div class="set2-sec-h"><h2 class="set2-sec-t">If nobody answers</h2></div>' +
-      '<p class="ah-ladder-l">' + (b.ladder.length
-        ? 'A handoff nobody answers goes up one step at a time, and reaches <b>' + esc(b.ladder[b.ladder.length - 1].name) + '</b> after ' + at + ' minutes.'
+      '<p class="ah-ladder-l">' + (l.length
+        ? 'A handoff nobody answers goes up one step at a time, and reaches <b>' + esc(l[l.length - 1].name) + '</b> after ' + at + ' minutes.'
         : 'Only the person on call gets the handoff. Add someone to go to when they don’t answer.') + '</p>' +
-      `<ol class="ah-path${b.ladder.length > 3 ? ' is-col' : ''}">` + steps.join('') + '</ol></section>';
+      h + add + '</section>';
   }
   function ahLeadMenu(anchor, attr, exceptName) {
     const b = ahBook(ahScopeOf(readURL()).key);
