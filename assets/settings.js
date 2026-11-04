@@ -2662,11 +2662,10 @@
   }
 
   /* ── AiMY's reading of the month, above it ── */
-  /* The reading's highlights, the design system's passage mark: an accent
-     for who and what fits, the warning tint for what is wrong. The words
-     carry the state; the tint says which kind at a glance. */
-  const ahHl = (t) => '<mark class="ah-hl">' + t + '</mark>';
-  const ahHw = (t) => '<mark class="ah-hl is-warn">' + t + '</mark>';
+  /* The reading's emphasis: bold on who fits and on what is wrong, nothing
+     more (Nour: tinted highlights were too much). */
+  const ahHl = (t) => '<b>' + t + '</b>';
+  const ahHw = ahHl;
   function ahNote(sc, days) {
     const key = sc.key, b = ahBook(key), bits = [];
     const span = days.length > 7 ? 'this month' : 'this week';
@@ -2746,7 +2745,7 @@
   function ahRank(t) {
     return /has nobody on call|have nobody on call|Nobody is on/.test(t) ? 0
       : / has \d+ night| has 1 night| has none/.test(t) ? 1
-      : / too(<\/mark>)?\.$/.test(t) ? 2 : /went up/.test(t) ? 3 : 4;
+      : / too(<\/b>)?\.$/.test(t) ? 2 : /went up/.test(t) ? 3 : 4;
   }
 
   /* ── Rotating: next week as it would be, worked out before the press ──
