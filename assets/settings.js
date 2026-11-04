@@ -2549,14 +2549,14 @@
   ];
   const AH_LEADS = [
     { name: 'Yara Sameh', role: 'team lead' }, { name: 'Nour Wael', role: 'product owner' },
-    { name: 'Hadya Mansour', role: 'head of operations' }, { name: 'Hana Mostafa', role: 'support lead' },
+    { name: 'Mona Adel', role: 'head of operations' }, { name: 'Hana Mostafa', role: 'support lead' },
     { name: 'Omar Khaled', role: 'account manager' }, { name: 'Sherif Nabil', role: 'operations manager' },
   ];
   const AH_WAITS = [5, 10, 15, 20, 30, 45, 60];
   const AH_LADDER0 = [
     { name: 'Yara Sameh', role: 'team lead', wait: 10 },
     { name: 'Nour Wael', role: 'product owner', wait: 15 },
-    { name: 'Hadya Mansour', role: 'head of operations', wait: 15 },
+    { name: 'Mona Adel', role: 'head of operations', wait: 15 },
   ];
   /* Rotas by scope id: a client, or a product that has its own. `out` is what
      happened on a past night — n handoffs, and `top` the rung that answered
