@@ -34,12 +34,17 @@ const dsCss = read('aimy-ds.css');
 const gateJs = read('chat.js');
 const gateCss = read('chat.css');
 const setCss = read('settings.css');
+/* The Sales diary, shared: After hours draws it. */
+const diaryCss = read('diary.css');
 
-const css = css0 + dsCss + gateCss + setCss;
+const css = css0 + dsCss + gateCss + setCss + diaryCss;
 
 /* Scanned for spacing, type, ink and token resolution. Carried as pairs so a
    reported line number belongs to a named file -- a bare `knowledge.css:412`
    pointing into chat.css would be worse than no report at all. */
+/* diary.css resolves classes but is not scanned: it is the Sales diary on
+   Sales' own type scale, kept value for value so the two products draw one
+   component. Knowledge's --ty-* run a step larger inside the Console. */
 const PRODUCT = [['knowledge.css', css0], ['chat.css', gateCss], ['settings.css', setCss]]
   .filter((p) => p[1]);
 
