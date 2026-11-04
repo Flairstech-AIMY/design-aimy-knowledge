@@ -2548,13 +2548,13 @@
     ['Denver', 'GMT−7', 'America/Denver'], ['Los Angeles', 'GMT−8', 'America/Los_Angeles'], ['UTC', 'UTC', 'UTC'],
   ];
   const AH_LEADS = [
-    { name: 'Ahmed Mahfouz', role: 'team lead' }, { name: 'Nour Wael', role: 'product owner' },
+    { name: 'Yara Sameh', role: 'team lead' }, { name: 'Nour Wael', role: 'product owner' },
     { name: 'Hadya Mansour', role: 'head of operations' }, { name: 'Hana Mostafa', role: 'support lead' },
     { name: 'Omar Khaled', role: 'account manager' }, { name: 'Sherif Nabil', role: 'operations manager' },
   ];
   const AH_WAITS = [5, 10, 15, 20, 30, 45, 60];
   const AH_LADDER0 = [
-    { name: 'Ahmed Mahfouz', role: 'team lead', wait: 10 },
+    { name: 'Yara Sameh', role: 'team lead', wait: 10 },
     { name: 'Nour Wael', role: 'product owner', wait: 15 },
     { name: 'Hadya Mansour', role: 'head of operations', wait: 15 },
   ];
