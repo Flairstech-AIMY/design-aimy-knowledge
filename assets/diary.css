@@ -280,3 +280,5 @@
 }
 /* A night whose handoffs went up says so in colour as well as in words. */
 .b-kind.is-warn { color: var(--ink-warn); }
+/* In the week a name sits under the date, so today's mark goes above it. */
+.b-diary .b-cal.is-week .b-cal-day.is-today .b-cal-num::after { bottom: auto; top: -0.4375rem; }
