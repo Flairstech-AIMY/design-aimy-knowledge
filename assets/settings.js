@@ -2538,6 +2538,14 @@
   const AH_P = {};
   AH_PEOPLE.forEach((p) => { AH_P[p.id] = p; });
   const ahFirst = (id) => AH_P[id].name.split(' ')[0];
+  const AH_HOURS0 = { from: 18 * 60, to: 9 * 60, tz: 'Cairo', weekends: true };
+  /* Zones with the offset they keep in November, said the way an admin says
+     them. A real build reads these from the platform; the prototype names
+     the ones FlairsTech's clients sit in. */
+  const AH_TZ = [
+    ['Cairo', 'GMT+2'], ['London', 'GMT'], ['Berlin', 'GMT+1'], ['Dubai', 'GMT+4'],
+    ['New York', 'GMT−5'], ['Chicago', 'GMT−6'], ['Denver', 'GMT−7'], ['Los Angeles', 'GMT−8'], ['UTC', 'UTC'],
+  ];
   const AH_LADDER0 = [
     { name: 'A. Mahfouz', role: 'team lead', wait: 10 },
     { name: 'Nour Wael', role: 'product owner', wait: 15 },
@@ -2548,6 +2556,7 @@
      the last of them (0 the person on call, 1 the first rung above). */
   const AH = {
     cxs: {
+      hours: Object.assign({}, AH_HOURS0),
       team: ['mo', 'sa', 'al', 'ta', 'ka'],
       ladder: AH_LADDER0.map((r) => Object.assign({}, r)),
       rota: {
@@ -2564,6 +2573,7 @@
         '2026-11-03': { n: 1, top: 0, min: 4 } }
     },
     upland: {
+      hours: Object.assign({}, AH_HOURS0, { tz: 'New York' }),
       team: ['ta', 'ka', 'mo', 'al'],
       ladder: AH_LADDER0.map((r) => Object.assign({}, r)),
       rota: { '2026-10-31': 'mo', '2026-11-02': 'ka', '2026-11-03': 'ta', '2026-11-04': 'ka', '2026-11-05': 'ta',
@@ -2581,6 +2591,8 @@
   /* The day column's own state: editing the team, searching it, and the
      nights a rotate or a fill just set, which light for a moment. */
   let AH_EDIT = false, AH_FIND = false, AH_Q = '', AH_FRESH = [];
+  /* Which time in the hours line is a field right now ('from', 'to' or ''). */
+  let AH_TIMEEDIT = '';
 
   const ahD = (s) => new Date(s + 'T12:00:00');
   const ahIso = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -2595,6 +2607,20 @@
   /* A gap in the coming week is a problem; one further out is not planned yet. */
   const ahSoon = (s) => s < ahAdd(AH_TODAY, 7);
   const ahPl = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+  const ahClock = (m) => {
+    const h = Math.floor(m / 60), mm = m % 60, h12 = h % 12 || 12;
+    return h12 + (mm ? ':' + String(mm).padStart(2, '0') : '') + (h < 12 ? ' am' : ' pm');
+  };
+  /* "6 pm", "6pm", "18:00", "18", "6:30 p" all read; anything else is null. */
+  const ahParseClock = (t) => {
+    const m = String(t).trim().toLowerCase().match(/^(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm|a|p)?$/);
+    if (!m) return null;
+    let h = +m[1]; const mm = m[2] ? +m[2] : 0;
+    if (mm > 59) return null;
+    if (m[3]) { if (h < 1 || h > 12) return null; h = (h % 12) + (m[3][0] === 'p' ? 12 : 0); }
+    else if (h > 23) return null;
+    return h * 60 + mm;
+  };
 
   /* ── Scope: a client, or a product under it ── */
   function ahClientOf(id) {
@@ -2615,7 +2641,7 @@
     const key = prod && AH[prod.id] ? prod.id : client.id;
     return { client, prod, key, own: !!(prod && AH[prod.id]) };
   }
-  const ahBook = (key) => AH[key] || (AH[key] = { ladder: AH_LADDER0.map((r) => Object.assign({}, r)), team: [], rota: {}, out: {} });
+  const ahBook = (key) => AH[key] || (AH[key] = { hours: Object.assign({}, AH_HOURS0), ladder: AH_LADDER0.map((r) => Object.assign({}, r)), team: [], rota: {}, out: {} });
   const ahName = (key) => (NODE_AT[key] ? NODE_AT[key].node.name : key);
   /* The same person on another rota that night — another client, or the
      client a product split away from. Load is counted across all of them. */
@@ -2933,14 +2959,52 @@
   function ahScope(st) {
     const sc = ahScopeOf(st);
     const sep = '<span class="set2-scope-s">&rsaquo;</span>';
-    return '<div class="set2-scope">' +
+    return '<div class="ah-scopewrap"><div class="set2-scope">' +
       '<button class="set2-scope-pick" type="button" data-ah-pick="client" aria-haspopup="menu" aria-label="Choose a client">' +
         '<span class="set2-scope-k">Client</span><b>' + esc(sc.client.name) + '</b>' + I.down + '</button>' + sep +
       '<button class="set2-scope-pick" type="button" data-ah-pick="prod" aria-haspopup="menu" aria-label="Choose a product">' +
         '<span class="set2-scope-k">Product</span><b>' + esc(sc.prod ? sc.prod.name : 'All products') + '</b>' + I.down + '</button>' +
-      '<span class="set2-scope-i">' + (sc.prod && !sc.own ? 'uses ' + esc(sc.client.name) + '’s rota' : sc.prod ? 'its own rota' : 'nights run 6 pm to 9 am, Cairo time') + '</span>' +
+      (sc.prod ? '<span class="set2-scope-i">' + (sc.own ? 'its own rota' : 'uses ' + esc(sc.client.name) + '’s rota') + '</span>' : '') +
+    '</div>' + ahHoursLine(sc) + '</div>';
+  }
+  /* ── When the night runs ──
+     A sentence whose values are controls: press a time and it becomes a
+     field (Enter keeps it, Escape puts it back), press the zone for the list
+     of zones, press the weekend switch to flip it. Each change has an undo.
+     A product on its client's rota shows, and changes, the client's hours. */
+  function ahHoursLine(sc) {
+    const h = ahBook(sc.key).hours || AH_HOURS0;
+    const tok = (k) => AH_TIMEEDIT === k
+      ? `<input class="ah-tok-in" type="text" inputmode="text" data-ah-time="${k}" value="${esc(ahClock(h[k]))}" aria-label="${k === 'from' ? 'Nights start at' : 'Nights end at'}" autocomplete="off">`
+      : `<button class="ah-tok" type="button" data-ah-tok="${k}" aria-label="${k === 'from' ? 'Nights start at ' : 'Nights end at '}${esc(ahClock(h[k]))}, change">${esc(ahClock(h[k]))}</button>`;
+    const off = (AH_TZ.filter((z) => z[0] === h.tz)[0] || [h.tz, ''])[1];
+    return '<div class="ah-hours">Nights run from ' + tok('from') + ' to ' + tok('to') +
+      `<button class="ah-tok" type="button" data-ah-tz aria-haspopup="menu" aria-label="Time zone ${esc(h.tz)}, change">${esc(h.tz)} time` + I.down + '</button>' +
+      (off && off !== 'UTC' ? '<span class="ah-hours-off">' + esc(off) + '</span>' : '') +
+      `<span class="ah-hours-sep" aria-hidden="true">·</span><button class="ah-sw${h.weekends ? ' is-on' : ''}" type="button" role="switch" aria-checked="${!!h.weekends}" data-ah-weekends>` +
+        '<span class="ah-sw-t" aria-hidden="true"><span class="ah-sw-k"></span></span>Weekends all day</button>' +
     '</div>';
   }
+  function ahTzMenu(anchor) {
+    const h = ahBook(ahScopeOf(readURL()).key).hours || AH_HOURS0;
+    popover(anchor, AH_TZ.map((z) =>
+      `<button class="set2-pop-i is-scope${z[0] === h.tz ? ' is-on' : ''}" type="button" data-ah-tzgo="${esc(z[0])}" aria-current="${z[0] === h.tz}">` +
+        '<span class="set2-pop-tx"><span class="set2-pop-n">' + esc(z[0]) + '</span><span class="set2-pop-p">' + esc(z[1]) + '</span></span>' +
+        '<span class="set2-pop-k">' + I.tick + '</span></button>').join(''));
+  }
+  function ahCommitTime(input) {
+    const k = input.getAttribute('data-ah-time');
+    const sc = ahScopeOf(readURL()), b = ahBook(sc.key);
+    const v = ahParseClock(input.value);
+    if (v == null) { if (API && API.toast) API.toast('Type a time like 6 pm or 18:30.'); input.focus(); input.select(); return; }
+    AH_TIMEEDIT = '';
+    if (v === b.hours[k]) { render(); return; }
+    const was = ahSnap();
+    b.hours = Object.assign({}, b.hours, { [k]: v });
+    ahSay2('Nights for ' + (sc.prod && sc.own ? sc.prod.name : sc.client.name) + ' now ' + (k === 'from' ? 'start at ' : 'end at ') + ahClock(v) + ', ' + b.hours.tz + ' time.', was);
+    render();
+  }
+
   function ahPickMenu(anchor, which) {
     const sc = ahScopeOf(readURL());
     const item = (id, name, line, on) =>
@@ -2993,6 +3057,8 @@
     });
     $$('.b-cal-day.is-fresh').forEach((el) => el.addEventListener('animationend', () => { AH_FRESH = []; }, { once: true }));
     if (AH_FOCUS) { AH_FOCUS = false; const i = document.querySelector('[data-ah-find]'); if (i) i.focus(); }
+    const ti = document.querySelector('[data-ah-time]');
+    if (ti && document.activeElement !== ti) { ti.focus(); ti.select(); }
   }
 
   const ahSnap = () => JSON.stringify(AH);
@@ -3001,7 +3067,7 @@
 
   document.addEventListener('click', (e) => {
     const t = e.target.closest('[data-ah-day],[data-ah-oncall],[data-ah-fill],[data-ah-rotate],[data-ah-view],[data-ah-own],[data-ah-pick],[data-ah-go],' +
-      '[data-ah-editteam],[data-ah-findopen],[data-ah-findclose],[data-ah-rm],[data-ah-addp]');
+      '[data-ah-editteam],[data-ah-findopen],[data-ah-findclose],[data-ah-rm],[data-ah-addp],[data-ah-tok],[data-ah-tz],[data-ah-tzgo],[data-ah-weekends]');
     if (!t) return;
     const st = readURL();
     const sc = ahScopeOf(st);
@@ -3009,6 +3075,23 @@
     if (t.hasAttribute('data-ah-go')) { closePop(); AH_EDIT = false; AH_FIND = false; AH_Q = ''; patch({ node: t.getAttribute('data-ah-go') }); return; }
     if (t.hasAttribute('data-ah-day')) { AH_SEL = t.getAttribute('data-ah-day'); AH_FRESH = []; render(); return; }
     if (t.hasAttribute('data-ah-view')) { AH_VIEW = t.getAttribute('data-ah-view'); AH_FRESH = []; render(); return; }
+    if (t.hasAttribute('data-ah-tok')) { AH_TIMEEDIT = t.getAttribute('data-ah-tok'); render(); return; }
+    if (t.hasAttribute('data-ah-tz')) { ahTzMenu(t); return; }
+    if (t.hasAttribute('data-ah-tzgo')) {
+      closePop();
+      const b0 = ahBook(sc.key), z = t.getAttribute('data-ah-tzgo');
+      if (b0.hours.tz === z) return;
+      const was0 = ahSnap();
+      b0.hours = Object.assign({}, b0.hours, { tz: z });
+      ahSay2('Nights for ' + (sc.prod && sc.own ? sc.prod.name : sc.client.name) + ' now run on ' + z + ' time.', was0);
+      render(); return;
+    }
+    if (t.hasAttribute('data-ah-weekends')) {
+      const b0 = ahBook(sc.key), was0 = ahSnap();
+      b0.hours = Object.assign({}, b0.hours, { weekends: !b0.hours.weekends });
+      ahSay2(b0.hours.weekends ? 'Weekends are covered all day, Saturday and Sunday.' : 'Weekends keep the same night hours as weekdays.', was0);
+      render(); return;
+    }
     if (t.hasAttribute('data-ah-editteam')) { AH_EDIT = t.getAttribute('data-ah-editteam') === '1'; render(); return; }
     if (t.hasAttribute('data-ah-findopen')) { AH_FIND = true; AH_Q = ''; AH_FOCUS = true; render(); return; }
     if (t.hasAttribute('data-ah-findclose')) { AH_FIND = false; AH_Q = ''; render(); return; }
@@ -3063,7 +3146,7 @@
       const src = ahBook(sc.client.id);
       /* Empty, not a copy: a copy would put every person on two rotas the
          same night. The team and the ladder carry across. */
-      AH[pid] = { ladder: src.ladder.map((r) => Object.assign({}, r)), team: src.team.slice(), rota: {}, out: {} };
+      AH[pid] = { hours: Object.assign({}, src.hours || AH_HOURS0), ladder: src.ladder.map((r) => Object.assign({}, r)), team: src.team.slice(), rota: {}, out: {} };
       ahSay2(ahName(pid) + ' has its own rota now. Nobody is on it yet.', was);
       render(); return;
     }
@@ -3085,6 +3168,17 @@
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && e.target.closest && e.target.closest('[data-ah-find]')) { AH_FIND = false; AH_Q = ''; render(); }
+    const ti = e.target.closest && e.target.closest('[data-ah-time]');
+    if (ti && e.key === 'Enter') { e.preventDefault(); ahCommitTime(ti); }
+    if (ti && e.key === 'Escape') { AH_TIMEEDIT = ''; render(); }
+  });
+  /* Leaving the field keeps what was typed, the way the other inline fields
+     in this console commit. */
+  document.addEventListener('focusout', (e) => {
+    const ti = e.target.closest && e.target.closest('[data-ah-time]');
+    if (!ti || !AH_TIMEEDIT || !ti.isConnected) return;
+    if (ahParseClock(ti.value) == null) { AH_TIMEEDIT = ''; render(); return; }
+    ahCommitTime(ti);
   });
   document.addEventListener('change', (e) => {
     const i = e.target.closest('[data-ah-wait]');
