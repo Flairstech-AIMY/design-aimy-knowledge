@@ -3001,9 +3001,12 @@
       const [x1, y1] = ahPt(m, 37), [x2, y2] = ahPt(m, 41);
       return `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}"/>`;
     }).join('');
-    const tok = (k) => AH_TIMEEDIT === k
-      ? `<input class="ah-tok-in" type="text" data-ah-time="${k}" value="${esc(ahClock(h[k]))}" aria-label="${k === 'from' ? 'Nights start at' : 'Nights end at'}" autocomplete="off">`
-      : `<button class="ah-tok" type="button" data-ah-tok="${k}" aria-label="${k === 'from' ? 'Nights start at ' : 'Nights end at '}${esc(ahClock(h[k]))}, change">${esc(ahClock(h[k]))}</button>`;
+    /* Fields, not words (Nour): each time is a box you type into, carrying
+       the icon of the knob it moves. Enter or leaving it keeps the time,
+       Escape puts it back, and a time it cannot read is put back too. */
+    const tok = (k) => '<label class="ah-field"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      (k === 'from' ? AH_MOON : AH_SUN) + '</svg>' +
+      `<input type="text" data-ah-time="${k}" value="${esc(ahClock(h[k]))}" aria-label="${k === 'from' ? 'Nights start at' : 'Nights end at'}" autocomplete="off" spellcheck="false"></label>`;
     return '<div class="ah-clock">' +
       `<svg class="ah-dial" viewBox="0 0 128 128" data-ah-dial role="group" aria-label="${esc('Nights run from ' + ahClock(h.from) + ' to ' + ahClock(h.to) + ', ' + h.tz + ' time')}">` +
         `<circle class="ah-track" cx="${AH_CX}" cy="${AH_CX}" r="${AH_R}"/>` +
@@ -3056,7 +3059,7 @@
     const [px, py] = ahPt(v, AH_R);
     AH_DRAG.g.setAttribute('transform', 'translate(' + px.toFixed(2) + ' ' + py.toFixed(2) + ')');
     AH_DRAG.svg.querySelector('.ah-arc').setAttribute('d', ahArc(AH_DRAG.h.from, AH_DRAG.h.to));
-    const t = document.querySelector('[data-ah-tok="' + AH_DRAG.k + '"]'); if (t) t.textContent = ahClock(v);
+    const t = document.querySelector('[data-ah-time="' + AH_DRAG.k + '"]'); if (t) t.value = ahClock(v);
   });
   document.addEventListener('pointerup', () => {
     if (!AH_DRAG) return;
@@ -3147,8 +3150,7 @@
     });
     $$('.b-cal-day.is-fresh').forEach((el) => el.addEventListener('animationend', () => { AH_FRESH = []; }, { once: true }));
     if (AH_FOCUS) { AH_FOCUS = false; const i = document.querySelector('[data-ah-find]'); if (i) i.focus(); }
-    const ti = document.querySelector('[data-ah-time]');
-    if (ti && document.activeElement !== ti) { ti.focus(); ti.select(); }
+
     if (AH_KNOBFOCUS) { const g = document.querySelector('[data-ah-knob="' + AH_KNOBFOCUS + '"]'); AH_KNOBFOCUS = ''; if (g) g.focus(); }
   }
 
@@ -3158,7 +3160,7 @@
 
   document.addEventListener('click', (e) => {
     const t = e.target.closest('[data-ah-day],[data-ah-oncall],[data-ah-fill],[data-ah-rotate],[data-ah-view],[data-ah-own],[data-ah-pick],[data-ah-go],' +
-      '[data-ah-editteam],[data-ah-findopen],[data-ah-findclose],[data-ah-rm],[data-ah-addp],[data-ah-tok],[data-ah-tz],[data-ah-tzgo],[data-ah-weekends]');
+      '[data-ah-editteam],[data-ah-findopen],[data-ah-findclose],[data-ah-rm],[data-ah-addp],[data-ah-tz],[data-ah-tzgo],[data-ah-weekends]');
     if (!t) return;
     const st = readURL();
     const sc = ahScopeOf(st);
@@ -3166,7 +3168,6 @@
     if (t.hasAttribute('data-ah-go')) { closePop(); AH_EDIT = false; AH_FIND = false; AH_Q = ''; patch({ node: t.getAttribute('data-ah-go') }); return; }
     if (t.hasAttribute('data-ah-day')) { AH_SEL = t.getAttribute('data-ah-day'); AH_FRESH = []; render(); return; }
     if (t.hasAttribute('data-ah-view')) { AH_VIEW = t.getAttribute('data-ah-view'); AH_FRESH = []; render(); return; }
-    if (t.hasAttribute('data-ah-tok')) { AH_TIMEEDIT = t.getAttribute('data-ah-tok'); render(); return; }
     if (t.hasAttribute('data-ah-tz')) { ahTzMenu(t); return; }
     if (t.hasAttribute('data-ah-tzgo')) {
       closePop();
@@ -3261,15 +3262,20 @@
     if (e.key === 'Escape' && e.target.closest && e.target.closest('[data-ah-find]')) { AH_FIND = false; AH_Q = ''; render(); }
     const ti = e.target.closest && e.target.closest('[data-ah-time]');
     if (ti && e.key === 'Enter') { e.preventDefault(); ahCommitTime(ti); }
-    if (ti && e.key === 'Escape') { AH_TIMEEDIT = ''; render(); }
+    if (ti && e.key === 'Escape') { ti.value = ahClock(ahBook(ahScopeOf(readURL()).key).hours[ti.getAttribute('data-ah-time')]); ti.blur(); }
   });
   /* Leaving the field keeps what was typed, the way the other inline fields
      in this console commit. */
+  document.addEventListener('focusin', (e) => {
+    const ti = e.target.closest && e.target.closest('[data-ah-time]');
+    if (ti) setTimeout(() => { if (document.activeElement === ti) ti.select(); }, 0);
+  });
   document.addEventListener('focusout', (e) => {
     const ti = e.target.closest && e.target.closest('[data-ah-time]');
-    if (!ti || !AH_TIMEEDIT || !ti.isConnected) return;
-    if (ahParseClock(ti.value) == null) { AH_TIMEEDIT = ''; render(); return; }
-    ahCommitTime(ti);
+    if (!ti || !ti.isConnected) return;
+    const h0 = ahBook(ahScopeOf(readURL()).key).hours, k0 = ti.getAttribute('data-ah-time');
+    if (ahParseClock(ti.value) == null) { ti.value = ahClock(h0[k0]); return; }
+    if (ahParseClock(ti.value) !== h0[k0]) ahCommitTime(ti); else ti.value = ahClock(h0[k0]);
   });
   document.addEventListener('change', (e) => {
     const i = e.target.closest('[data-ah-wait]');
