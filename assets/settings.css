@@ -6228,12 +6228,6 @@ body.is-settings .set2-pop .set2-pop-f:focus, body.is-settings .set2-pop .set2-p
 
 /* ══ AFTER HOURS ══ the diary is diary.css; this is the note over it and the
    ladder under it. */
-.ah-note { margin: 1.5rem 0 1rem; }
-/* The actions take their own line under the reading, aligned to its text
-   rather than squeezing it into a column beside them. */
-.ah-note { align-items: flex-start; }
-.ah-note > svg.agv-mk { margin-top: 0.1875rem; }
-.set2-dc-ai > .ah-note-acts { display: flex; gap: 0.5rem; flex-wrap: wrap; flex: 0 0 100%; padding-left: 1.875rem; }
 .ah-ladder { margin-top: 2rem; }
 .ah-ladder-l { margin: 0.25rem 0 0.75rem; color: var(--ink-secondary); font-size: var(--ty-meta); }
 .ah-rungs { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; font-size: var(--ty-body); color: var(--ink-primary); }

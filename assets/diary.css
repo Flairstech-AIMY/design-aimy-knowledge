@@ -289,3 +289,93 @@
 @container (max-width: 36rem) {
   .b-cal.is-week .b-cal-who { font-size: var(--t-micro); padding: 0 0.125rem; }
 }
+/* After hours: an open night asks to be assigned, and the nights a rotate
+   or a fill just set light for a moment, then hand back to the day. */
+.b-cal-who.is-ask { color: var(--ink-action); }
+.b-cal-day.is-fresh .b-cal-bg { animation: ah-fresh 1600ms var(--ease-out); } /* no end frame: the light hands back to whatever the day was */
+@keyframes ah-fresh { 0%, 35% { opacity: 1; transform: none; background: rgba(var(--accent-rgb), .38); } }
+@media (prefers-reduced-motion: reduce) { .b-cal-day.is-fresh .b-cal-bg { animation: none; background: rgba(var(--accent-rgb), .18); } }
+
+/* ── After hours' day column (variant D, ported value for value from the
+   variants page, and kept here because it is part of the diary, on the
+   diary's type scale): one question about one night, a roster that scrolls at the height
+   four people take, search in place of the question line, the rotate
+   preview, and AiMY's reading as the diary's footer. ── */
+.ah-q { min-height: 2.25rem; box-sizing: content-box; display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: 0 .5rem .625rem; font-size: 1rem; font-weight: var(--fw-semibold); color: var(--d50); }
+.ah-sub { margin: .75rem .5rem .375rem; font-size: .875rem; color: var(--d200); }
+.ah-link { border: 0; background: none; padding: .125rem 0; font: inherit; font-size: .875rem; font-weight: var(--fw-semibold); color: var(--ink-action); cursor: pointer; text-underline-offset: .2em; }
+.ah-link:hover { text-decoration: underline; }
+.ah-link.is-quiet { color: var(--d200); font-weight: var(--fw-medium); }
+.ah-link.is-quiet:hover { color: var(--ink-err); }
+.ah-link:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: .25rem; }
+.ah-roster { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .125rem; }
+.ah-opt { display: flex; align-items: center; gap: .75rem; width: 100%; min-height: 2.75rem; padding: 0 .625rem; border: 0; border-radius: var(--r-md); background: none; font: inherit; text-align: left; color: inherit; cursor: pointer; transition: background-color var(--t-fast); }
+.ah-opt:hover { background: rgba(var(--accent-rgb), .08); }
+.ah-opt:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.ah-opt.is-on { background: rgba(var(--accent-rgb), .16); }
+.ah-opt.is-static { cursor: default; justify-content: space-between; }
+.ah-opt.is-static:hover { background: none; }
+.ah-ring { width: 1.125rem; height: 1.125rem; flex: none; border-radius: 999px; border: 1.5px solid var(--d200); display: grid; place-items: center; transition: border-color var(--t-fast); }
+.ah-ring::after { content: ""; width: .5rem; height: .5rem; border-radius: 999px; background: var(--brand); transform: scale(0); transition: transform 180ms var(--ease-out); }
+.ah-opt.is-on .ah-ring { border-color: var(--brand); }
+.ah-opt.is-on .ah-ring::after { transform: scale(1); }
+.ah-opt-n { flex: 1; min-width: 0; font-size: .9375rem; font-weight: var(--fw-semibold); color: var(--d50); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ah-opt-n.is-off { color: var(--d200); font-weight: var(--fw-medium); }
+.ah-rot { align-items: flex-start; }
+.ah-rot .b-cal-plus { margin-top: .0625rem; }
+.ah-rot-t { display: flex; flex-direction: column; gap: .125rem; min-width: 0; text-align: left; }
+.ah-rot-p { font-size: .8125rem; font-weight: var(--fw-regular); color: var(--d200); line-height: 1.5; min-height: 4.5em; } /* three lines held, whatever the names */
+.ah-rot-p b { font-weight: var(--fw-semibold); color: var(--d50); }
+.ah-rotdone { display: flex; align-items: center; gap: .6875rem; margin-top: .25rem; padding: .5625rem .5rem; font-size: .875rem; color: var(--d200); }
+/* The roster keeps the height four people take and scrolls past that. The
+   fade says there is more and which way; it is a mask, so nothing sits on top
+   of a row you might be about to press. */
+.ah-scroll {
+  --roster-h: 14.625rem;
+  max-height: var(--roster-h); overflow-y: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; gap: .125rem;
+  scrollbar-width: thin; scrollbar-color: var(--card-border-hover) transparent;
+  --fade: 1.5rem;
+}
+.ah-scroll::-webkit-scrollbar { width: .375rem; }
+.ah-scroll::-webkit-scrollbar-thumb { background: var(--card-border-hover); border-radius: 999px; }
+.ah-scroll.is-below { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - var(--fade)), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - var(--fade)), transparent); }
+.ah-scroll.is-above { -webkit-mask-image: linear-gradient(to top, #000 calc(100% - var(--fade)), transparent); mask-image: linear-gradient(to top, #000 calc(100% - var(--fade)), transparent); }
+.ah-scroll.is-above.is-below { -webkit-mask-image: linear-gradient(to bottom, transparent, #000 var(--fade), #000 calc(100% - var(--fade)), transparent); mask-image: linear-gradient(to bottom, transparent, #000 var(--fade), #000 calc(100% - var(--fade)), transparent); }
+/* A row keeps its height; the box scrolls instead of squeezing them. */
+.ah-scroll > * { flex-shrink: 0; }
+.ah-scroll[data-ah-scroll="edit"] { max-height: calc(var(--roster-h) + 8.375rem); }
+.ah-opt.is-nobody { margin-top: .25rem; }
+.ah-qa { display: inline-flex; align-items: center; gap: .75rem; }
+.ah-ib { width: 1.75rem; height: 1.75rem; border-radius: 999px; border: 0; background: none; color: var(--d200); display: grid; place-items: center; cursor: pointer; padding: 0; flex: none; }
+.ah-ib:hover { background: rgba(var(--accent-rgb), .12); color: var(--d50); }
+.ah-ib:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+.ah-ib svg { width: 1rem; height: 1rem; }
+.ah-q.is-find { align-items: center; gap: .5rem; }
+.ah-find { flex: 1; min-width: 0; display: flex; align-items: center; gap: .5rem; height: 2.25rem; padding: 0 .75rem; border-radius: 999px; background: var(--card-bg-raised); border: 1px solid var(--card-border); color: var(--d200); }
+.ah-find:focus-within { border-color: var(--brand); }
+.ah-find svg { width: 1rem; height: 1rem; flex: none; }
+.ah-find input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font: inherit; font-size: .9375rem; font-weight: var(--fw-regular); color: var(--d50); }
+.ah-find input::placeholder { color: var(--d200); }
+.ah-find input::-webkit-search-cancel-button { display: none; }
+.ah-none { margin: .5rem .625rem; }
+.ah-roster [hidden], .ah-scroll [hidden], .ah-none[hidden] { display: none !important; }
+/* AiMY's reading as the diary's own footer: across both columns, under a
+   rule, the way the panel separates its other parts. */
+.b-diary .ah-foot {
+  grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: flex-start; gap: .625rem .75rem;
+  margin-top: .875rem; padding: .875rem .5rem .25rem; border-top: 1px solid var(--card-border);
+  font-size: .9375rem; line-height: 1.6; color: var(--d50);
+}
+.ah-foot > svg.agv-mk { width: 1.125rem; height: 1.25rem; flex: none; margin-top: .1875rem; }
+.ah-foot-t { flex: 1 1 14rem; min-width: 0; min-height: 4.8em; } /* three lines held: the longest two-sentence reading fits, so no click moves the diary */ /* two lines held, so a shorter reading does not shrink the diary */
+.ah-foot-t b { font-weight: var(--fw-semibold); }
+.ah-foot-a { display: flex; gap: .5rem; flex-wrap: wrap; flex: none; align-self: center; }
+.ah-opt-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .0625rem; padding: .4375rem 0; }
+.ah-opt-t .ah-opt-n { flex: none; }
+.ah-opt-c { font-size: .8125rem; color: var(--d200); font-variant-numeric: tabular-nums; }
+.ah-rot { text-align: left; }
+/* Side by side, the column sets the diary's height: a past night or an empty
+   team would shrink it, so every state of the column holds the height the
+   question takes with four people in it. */
+@media (min-width: 1024px) { .b-diary .b-cal-side { min-height: 28.75rem; } }
