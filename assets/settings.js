@@ -2543,8 +2543,9 @@
      them. A real build reads these from the platform; the prototype names
      the ones FlairsTech's clients sit in. */
   const AH_TZ = [
-    ['Cairo', 'GMT+2'], ['London', 'GMT'], ['Berlin', 'GMT+1'], ['Dubai', 'GMT+4'],
-    ['New York', 'GMT−5'], ['Chicago', 'GMT−6'], ['Denver', 'GMT−7'], ['Los Angeles', 'GMT−8'], ['UTC', 'UTC'],
+    ['Cairo', 'GMT+2', 'Africa/Cairo'], ['London', 'GMT', 'Europe/London'], ['Berlin', 'GMT+1', 'Europe/Berlin'],
+    ['Dubai', 'GMT+4', 'Asia/Dubai'], ['New York', 'GMT−5', 'America/New_York'], ['Chicago', 'GMT−6', 'America/Chicago'],
+    ['Denver', 'GMT−7', 'America/Denver'], ['Los Angeles', 'GMT−8', 'America/Los_Angeles'], ['UTC', 'UTC', 'UTC'],
   ];
   const AH_LADDER0 = [
     { name: 'A. Mahfouz', role: 'team lead', wait: 10 },
@@ -2592,7 +2593,7 @@
      nights a rotate or a fill just set, which light for a moment. */
   let AH_EDIT = false, AH_FIND = false, AH_Q = '', AH_FRESH = [];
   /* Which time in the hours line is a field right now ('from', 'to' or ''). */
-  let AH_TIMEEDIT = '';
+  let AH_TIMEEDIT = '', AH_KNOBFOCUS = '';
 
   const ahD = (s) => new Date(s + 'T12:00:00');
   const ahIso = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -2959,32 +2960,142 @@
   function ahScope(st) {
     const sc = ahScopeOf(st);
     const sep = '<span class="set2-scope-s">&rsaquo;</span>';
-    return '<div class="ah-scopewrap"><div class="set2-scope">' +
+    return '<div class="set2-scope">' +
       '<button class="set2-scope-pick" type="button" data-ah-pick="client" aria-haspopup="menu" aria-label="Choose a client">' +
         '<span class="set2-scope-k">Client</span><b>' + esc(sc.client.name) + '</b>' + I.down + '</button>' + sep +
       '<button class="set2-scope-pick" type="button" data-ah-pick="prod" aria-haspopup="menu" aria-label="Choose a product">' +
         '<span class="set2-scope-k">Product</span><b>' + esc(sc.prod ? sc.prod.name : 'All products') + '</b>' + I.down + '</button>' +
       (sc.prod ? '<span class="set2-scope-i">' + (sc.own ? 'its own rota' : 'uses ' + esc(sc.client.name) + '’s rota') + '</span>' : '') +
-    '</div>' + ahHoursLine(sc) + '</div>';
-  }
-  /* ── When the night runs ──
-     A sentence whose values are controls: press a time and it becomes a
-     field (Enter keeps it, Escape puts it back), press the zone for the list
-     of zones, press the weekend switch to flip it. Each change has an undo.
-     A product on its client's rota shows, and changes, the client's hours. */
-  function ahHoursLine(sc) {
-    const h = ahBook(sc.key).hours || AH_HOURS0;
-    const tok = (k) => AH_TIMEEDIT === k
-      ? `<input class="ah-tok-in" type="text" inputmode="text" data-ah-time="${k}" value="${esc(ahClock(h[k]))}" aria-label="${k === 'from' ? 'Nights start at' : 'Nights end at'}" autocomplete="off">`
-      : `<button class="ah-tok" type="button" data-ah-tok="${k}" aria-label="${k === 'from' ? 'Nights start at ' : 'Nights end at '}${esc(ahClock(h[k]))}, change">${esc(ahClock(h[k]))}</button>`;
-    const off = (AH_TZ.filter((z) => z[0] === h.tz)[0] || [h.tz, ''])[1];
-    return '<div class="ah-hours">Nights run from ' + tok('from') + ' to ' + tok('to') +
-      `<button class="ah-tok" type="button" data-ah-tz aria-haspopup="menu" aria-label="Time zone ${esc(h.tz)}, change">${esc(h.tz)} time` + I.down + '</button>' +
-      (off && off !== 'UTC' ? '<span class="ah-hours-off">' + esc(off) + '</span>' : '') +
-      `<span class="ah-hours-sep" aria-hidden="true">·</span><button class="ah-sw${h.weekends ? ' is-on' : ''}" type="button" role="switch" aria-checked="${!!h.weekends}" data-ah-weekends>` +
-        '<span class="ah-sw-t" aria-hidden="true"><span class="ah-sw-k"></span></span>Weekends all day</button>' +
     '</div>';
   }
+  /* ── When the night runs: a clock in the page's top right ──
+     The sleep-schedule dial (Apple Health, Calm, Bevel on Mobbin): a 24-hour
+     face, midnight at the top and noon at the bottom, with the night drawn as
+     an arc from a moon knob (nights start) to a sun knob (nights end). Drag a
+     knob, or focus it and use the arrow keys, in quarter hours. The same two
+     times sit beside the dial in words and open as fields, so the dial is
+     never the only way in. A dot marks the hour it is there now. */
+  const AH_CX = 64, AH_R = 50;
+  const ahPt = (m, r) => {
+    const a = m / 1440 * 2 * Math.PI;
+    return [AH_CX + r * Math.sin(a), AH_CX - r * Math.cos(a)];
+  };
+  const ahArc = (from, to) => {
+    const span = ((to - from) % 1440 + 1440) % 1440 || 1440;
+    const [x1, y1] = ahPt(from, AH_R), [x2, y2] = ahPt(from + span - (span === 1440 ? 0.01 : 0), AH_R);
+    return 'M' + x1.toFixed(2) + ' ' + y1.toFixed(2) + ' A' + AH_R + ' ' + AH_R + ' 0 ' + (span > 720 ? 1 : 0) + ' 1 ' + x2.toFixed(2) + ' ' + y2.toFixed(2);
+  };
+  const ahSpan = (h) => ((h.to - h.from) % 1440 + 1440) % 1440 || 1440;
+  const ahSpanSay = (h) => { const m = ahSpan(h), hh = Math.floor(m / 60), mm = m % 60; return !mm ? hh + ' h' : mm === 30 ? hh + '½ h' : hh + 'h ' + mm + 'm'; };
+  const AH_MOON = '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>';
+  const AH_SUN = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>';
+  function ahNowIn(tz) {
+    const iana = (AH_TZ.filter((z) => z[0] === tz)[0] || [])[2] || 'UTC';
+    try {
+      const parts = new Intl.DateTimeFormat('en-GB', { timeZone: iana, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date());
+      return (+parts.filter((x) => x.type === 'hour')[0].value) * 60 + (+parts.filter((x) => x.type === 'minute')[0].value);
+    } catch (e) { return null; }
+  }
+  function ahKnob(k, m) {
+    const [x, y] = ahPt(m, AH_R);
+    return `<g class="ah-knob" data-ah-knob="${k}" transform="translate(${x.toFixed(2)} ${y.toFixed(2)})" tabindex="0" role="slider" aria-valuemin="0" aria-valuemax="1439"` +
+      ` aria-valuenow="${m}" aria-valuetext="${esc(ahClock(m))}" aria-label="${k === 'from' ? 'Nights start' : 'Nights end'}">` +
+      '<circle r="9.5"/><g transform="translate(-5.5 -5.5) scale(0.4583)" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' +
+      (k === 'from' ? AH_MOON : AH_SUN) + '</g></g>';
+  }
+  function ahClockCard(sc) {
+    const h = ahBook(sc.key).hours || AH_HOURS0;
+    const now = ahNowIn(h.tz);
+    const inNight = now != null && ((now - h.from + 1440) % 1440) < ahSpan(h);
+    const ticks = Array.from({ length: 24 }, (_, i) => {
+      const [x1, y1] = ahPt(i * 60, 41), [x2, y2] = ahPt(i * 60, i % 6 ? 43 : 44.5);
+      return `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}"${i % 6 ? '' : ' class="is-major"'}/>`;
+    }).join('');
+    const labels = [[0, '12a'], [360, '6a'], [720, '12p'], [1080, '6p']].map(([m, t]) => {
+      const [x, y] = ahPt(m, 33);
+      return `<text x="${x.toFixed(2)}" y="${(y + 3).toFixed(2)}">${t}</text>`;
+    }).join('');
+    const nowDot = now == null ? '' : (() => { const [x, y] = ahPt(now, AH_R); return `<circle class="ah-now" cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="3"/>`; })();
+    const tok = (k) => AH_TIMEEDIT === k
+      ? `<input class="ah-tok-in" type="text" data-ah-time="${k}" value="${esc(ahClock(h[k]))}" aria-label="${k === 'from' ? 'Nights start at' : 'Nights end at'}" autocomplete="off">`
+      : `<button class="ah-tok" type="button" data-ah-tok="${k}" aria-label="${k === 'from' ? 'Nights start at ' : 'Nights end at '}${esc(ahClock(h[k]))}, change">${esc(ahClock(h[k]))}</button>`;
+    const off = (AH_TZ.filter((z) => z[0] === h.tz)[0] || [h.tz, ''])[1];
+    return '<div class="ah-clock">' +
+      `<svg class="ah-dial" viewBox="0 0 128 128" data-ah-dial aria-hidden="false" role="group" aria-label="${esc('Nights run from ' + ahClock(h.from) + ' to ' + ahClock(h.to) + ', ' + h.tz + ' time')}">` +
+        `<circle class="ah-track" cx="${AH_CX}" cy="${AH_CX}" r="${AH_R}"/>` +
+        '<g class="ah-ticks">' + ticks + '</g><g class="ah-hours-l">' + labels + '</g>' +
+        `<path class="ah-arc" d="${ahArc(h.from, h.to)}"/>` + nowDot +
+        `<text class="ah-dial-c" x="${AH_CX}" y="${AH_CX + 2}">${ahSpanSay(h)}</text>` +
+        `<text class="ah-dial-s" x="${AH_CX}" y="${AH_CX + 13}">${inNight ? 'night now' : 'a night'}</text>` +
+        ahKnob('to', h.to) + ahKnob('from', h.from) +
+      '</svg>' +
+      '<div class="ah-clock-d">' +
+        '<div class="ah-clock-r"><span class="ah-clock-k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + AH_MOON + '</svg>Starts</span>' + tok('from') + '</div>' +
+        '<div class="ah-clock-r"><span class="ah-clock-k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + AH_SUN + '</svg>Ends</span>' + tok('to') + '</div>' +
+        `<button class="ah-tz" type="button" data-ah-tz aria-haspopup="menu" aria-label="Time zone ${esc(h.tz)}, change">${esc(h.tz)} time` +
+          (off && off !== 'UTC' ? ' <span class="ah-tz-o">' + esc(off) + '</span>' : '') + I.down + '</button>' +
+        `<button class="ah-sw${h.weekends ? ' is-on' : ''}" type="button" role="switch" aria-checked="${!!h.weekends}" data-ah-weekends>` +
+          '<span class="ah-sw-t" aria-hidden="true"><span class="ah-sw-k"></span></span>Weekends all day</button>' +
+      '</div>' +
+    '</div>';
+  }
+  /* The page's head with the clock beside it: the title, its line and the
+     scope on the left, the clock on the right. */
+  function ahHead(st, headHtml) {
+    return '<div class="ah-head"><div class="ah-head-l">' + headHtml + '</div>' + ahClockCard(ahScopeOf(st)) + '</div>';
+  }
+  /* Dragging a knob redraws the arc and the knob in place, then commits once
+     on release with one undo. */
+  function ahSetHour(k, v, quiet) {
+    const sc = ahScopeOf(readURL()), b = ahBook(sc.key);
+    if (v === b.hours[k]) return;
+    const was = ahSnap();
+    b.hours = Object.assign({}, b.hours, { [k]: v });
+    ahSay2('Nights for ' + (sc.prod && sc.own ? sc.prod.name : sc.client.name) + ' now ' + (k === 'from' ? 'start at ' : 'end at ') + ahClock(v) + ', ' + b.hours.tz + ' time.', was);
+    render();
+  }
+  let AH_DRAG = null;
+  document.addEventListener('pointerdown', (e) => {
+    const g = e.target.closest && e.target.closest('[data-ah-knob]');
+    if (!g) return;
+    const svg = g.ownerSVGElement;
+    const h = ahBook(ahScopeOf(readURL()).key).hours;
+    AH_DRAG = { k: g.getAttribute('data-ah-knob'), svg, g, h: Object.assign({}, h), v: h[g.getAttribute('data-ah-knob')] };
+    svg.classList.add('is-drag');
+    try { g.setPointerCapture(e.pointerId); } catch (err) { /* older engines */ }
+    e.preventDefault();
+  });
+  document.addEventListener('pointermove', (e) => {
+    if (!AH_DRAG) return;
+    const r = AH_DRAG.svg.getBoundingClientRect();
+    const x = e.clientX - (r.left + r.width / 2), y = e.clientY - (r.top + r.height / 2);
+    let a = Math.atan2(x, -y); if (a < 0) a += 2 * Math.PI;
+    const v = Math.round(a / (2 * Math.PI) * 1440 / 15) * 15 % 1440;
+    if (v === AH_DRAG.v) return;
+    AH_DRAG.v = v; AH_DRAG.h[AH_DRAG.k] = v;
+    const [px, py] = ahPt(v, AH_R);
+    AH_DRAG.g.setAttribute('transform', 'translate(' + px.toFixed(2) + ' ' + py.toFixed(2) + ')');
+    AH_DRAG.svg.querySelector('.ah-arc').setAttribute('d', ahArc(AH_DRAG.h.from, AH_DRAG.h.to));
+    AH_DRAG.svg.querySelector('.ah-dial-c').textContent = ahSpanSay(AH_DRAG.h);
+    const t = document.querySelector('[data-ah-tok="' + AH_DRAG.k + '"]'); if (t) t.textContent = ahClock(v);
+  });
+  document.addEventListener('pointerup', () => {
+    if (!AH_DRAG) return;
+    const d = AH_DRAG; AH_DRAG = null;
+    d.svg.classList.remove('is-drag');
+    ahSetHour(d.k, d.v);
+  });
+  document.addEventListener('keydown', (e) => {
+    const g = e.target.closest && e.target.closest('[data-ah-knob]');
+    if (!g) return;
+    const step = { ArrowUp: 15, ArrowRight: 15, ArrowDown: -15, ArrowLeft: -15, PageUp: 60, PageDown: -60 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    const k = g.getAttribute('data-ah-knob'), h = ahBook(ahScopeOf(readURL()).key).hours;
+    AH_KNOBFOCUS = k;
+    ahSetHour(k, ((h[k] + step) % 1440 + 1440) % 1440);
+  });
+
   function ahTzMenu(anchor) {
     const h = ahBook(ahScopeOf(readURL()).key).hours || AH_HOURS0;
     popover(anchor, AH_TZ.map((z) =>
@@ -3059,6 +3170,7 @@
     if (AH_FOCUS) { AH_FOCUS = false; const i = document.querySelector('[data-ah-find]'); if (i) i.focus(); }
     const ti = document.querySelector('[data-ah-time]');
     if (ti && document.activeElement !== ti) { ti.focus(); ti.select(); }
+    if (AH_KNOBFOCUS) { const g = document.querySelector('[data-ah-knob="' + AH_KNOBFOCUS + '"]'); AH_KNOBFOCUS = ''; if (g) g.focus(); }
   }
 
   const ahSnap = () => JSON.stringify(AH);
@@ -11166,7 +11278,7 @@
     /* Usage keeps its own page and containers; only its controls take the look (Nour). */
     const aimyCtl = pw && pw.id === 'usage';
     return `<div class="set2-col${m.wide || (pw && pw.wide) ? ' is-wide' : ''}${aimyLook ? ' is-aimy' : ''}${aimyFlat ? ' is-flat' : ''}${aimyCtl ? ' is-aimy-ctl' : ''}">`
-      + head(st)
+      + (m.id === 'afterhours' ? ahHead(st, head(st)) : head(st))
       + inner + `</div>`;
   }
 
