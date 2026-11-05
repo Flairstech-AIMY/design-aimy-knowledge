@@ -3372,10 +3372,7 @@
         '<section class="ahc-card"><h3 class="ahc-h3">Urgent when the ticket says</h3>' + ahChips(u.keywords.map(ahQuote)) +
           (u.impact && u.impact.length ? '<h4 class="ahc-h4">Or when it affects</h4>' + ahChips(u.impact) : '') + '</section>' +
         '<section class="ahc-card"><h3 class="ahc-h3">Not urgent when it says</h3>' + ahChips(d.non_urgent_criteria.keywords.map(ahQuote), true) + '</section>' +
-        '<section class="ahc-card ahc-who"><h3 class="ahc-h3">Covered after hours</h3><p class="ahc-who-t">' +
-          (u.customer_tiers && u.customer_tiers.length
-            ? '<b>' + esc(ahList(u.customer_tiers)) + ' customers only.</b> Everyone else is told the team replies in working hours, and nobody is called.'
-            : '<b>Every customer.</b>') + '</p></section>' +
+
       '</div><section class="ahc-card ahc-vercard"><h3 class="ahc-h3">Versions</h3><ol class="ahc-line">' + f.versions.map((x, i) =>
         `<li class="ahc-step${i === f.live ? ' is-live' : ''}"><span class="ahc-dot" aria-hidden="true"></span><b>Version ${i + 1}</b>` +
         '<span class="ahc-step-t">' + esc(x.note) + ', ' + esc(ahDate(x.when)) + '</span>' +

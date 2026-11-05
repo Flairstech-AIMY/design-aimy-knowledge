@@ -579,11 +579,6 @@ div.ah-opt { flex-wrap: wrap; }
 .ahc-chip { display: inline-flex; align-items: center; height: 1.75rem; padding: 0 .625rem; border-radius: var(--r-pill); background: rgba(var(--accent-rgb), .12); color: var(--d50); font-size: .8125rem; font-weight: var(--fw-medium); white-space: nowrap; }
 .ahc-chip.is-no { background: rgba(var(--accent-rgb), .05); border: 1px solid var(--card-border); }
 .ahc-h4 { margin: 1rem 0 .5rem; font-size: .8125rem; font-weight: var(--fw-semibold); color: var(--ink-secondary); }
-/* Who is covered is one rule, so it is a sentence across both columns. */
-.ahc-who { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; padding-top: 1rem; padding-bottom: 1rem; }
-.ahc-who .ahc-h3 { margin: 0; flex: none; }
-.ahc-who-t { margin: 0; flex: 1 1 20rem; font-size: .875rem; line-height: 1.55; color: var(--ink-secondary); }
-.ahc-who-t b { color: var(--d50); font-weight: var(--fw-semibold); }
 /* Versions as a line, the live one filled. */
 .ahc-vercard { margin-top: .75rem; }
 .ahc-line { list-style: none; margin: .25rem 0 0; padding: 0; display: flex; align-items: flex-start; }
