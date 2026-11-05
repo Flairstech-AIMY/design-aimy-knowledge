@@ -3351,6 +3351,7 @@
       (w.all_day ? `<circle class="ah-arc" cx="${AH_CX}" cy="${AH_CX}" r="${AH_R}"/>` : `<path class="ah-arc" d="${ahArc(from, to)}"/>` + ahKnob('to', to) + ahKnob('from', from)) +
       '</svg>';
   }
+  const ahQuote = (w) => '“' + w + '”';
   const ahChips = (a, quiet) => '<span class="ahc-chips">' + a.map((x) => `<span class="ahc-chip${quiet ? ' is-no' : ''}">${esc(x)}</span>`).join('') + '</span>';
   const ahTile = (ic, k, val, sub) => '<div class="ahc-tile"><span class="ahc-k">' + ic + esc(k) + '</span><span class="ahc-v">' + val + '</span><span class="ahc-s">' + sub + '</span></div>';
 
@@ -3368,8 +3369,13 @@
           : ahTile(AH_IC.clock, 'Stands back', 'Never', 'it covers the whole day')) +
         ahTile(AH_IC.eye, 'Watches', d.confirmation_wait_minutes + ' min', 'after someone answers') +
       '</div><div class="ahc-cols">' +
-        '<section class="ahc-card"><h3 class="ahc-h3">Urgent when</h3>' + ahChips(u.keywords.concat((u.customer_tiers || []).map((t) => t + ' customer'))) + '</section>' +
-        '<section class="ahc-card"><h3 class="ahc-h3">Not urgent when</h3>' + ahChips(d.non_urgent_criteria.keywords, true) + '</section>' +
+        '<section class="ahc-card"><h3 class="ahc-h3">Urgent when the ticket says</h3>' + ahChips(u.keywords.map(ahQuote)) +
+          (u.impact && u.impact.length ? '<h4 class="ahc-h4">Or when it affects</h4>' + ahChips(u.impact) : '') + '</section>' +
+        '<section class="ahc-card"><h3 class="ahc-h3">Not urgent when it says</h3>' + ahChips(d.non_urgent_criteria.keywords.map(ahQuote), true) + '</section>' +
+        '<section class="ahc-card ahc-who"><h3 class="ahc-h3">Covered after hours</h3><p class="ahc-who-t">' +
+          (u.customer_tiers && u.customer_tiers.length
+            ? '<b>' + esc(ahList(u.customer_tiers)) + ' customers only.</b> Everyone else is told the team replies in working hours, and nobody is called.'
+            : '<b>Every customer.</b>') + '</p></section>' +
       '</div><section class="ahc-card ahc-vercard"><h3 class="ahc-h3">Versions</h3><ol class="ahc-line">' + f.versions.map((x, i) =>
         `<li class="ahc-step${i === f.live ? ' is-live' : ''}"><span class="ahc-dot" aria-hidden="true"></span><b>Version ${i + 1}</b>` +
         '<span class="ahc-step-t">' + esc(x.note) + ', ' + esc(ahDate(x.when)) + '</span>' +

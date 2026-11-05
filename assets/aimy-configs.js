@@ -274,7 +274,7 @@
     { id: 'tiered', name: 'Tiered customers only',
       when: 'Use when only Gold and Platinum customers are covered after hours. Everyone else hears back in working hours.',
       data: base({ urgency_criteria: { keywords: ['outage', 'down', 'data loss'], customer_tiers: ['Gold', 'Platinum'] },
-                   non_urgent_criteria: { keywords: ['how to', 'feature request', 'billing', 'Bronze', 'Silver'] } }) },
+                   non_urgent_criteria: { keywords: ['how to', 'feature request', 'billing'] } }) },
     { id: 'outages', name: 'Outages only',
       when: 'Use when only a full outage should wake someone up. Everything else waits for the morning.',
       data: base({ urgency_criteria: { keywords: ['outage', 'service down', 'all users affected'], impact: ['all users'] },
@@ -314,7 +314,7 @@
     interfax: [
       { doc: 'cfg-interfax-key-accounts', file: 'interfax-key-accounts.xml', from: null, versions: [
         { by: 'Mona Adel', when: '2026-11-03', note: 'First version', data: ifx({ name: 'Key accounts', coverage_windows: allDay, pre_window_minutes: 0, confirmation_wait_minutes: 10,
-          urgency_criteria: { keywords: ['any ticket'], customer_tiers: ['Platinum'] }, non_urgent_criteria: { keywords: ['feature request'] },
+          urgency_criteria: { keywords: ['outage', 'down', 'data loss', 'cannot send', 'slow'], customer_tiers: ['Platinum'] }, non_urgent_criteria: { keywords: ['feature request'] },
           oncall_manager: { name: 'Mona Adel', phone: '+20 100 555 0142' }, applies_when: { customer_tiers: ['Platinum'] } }) } ] },
       { doc: 'cfg-interfax-holidays', file: 'interfax-holidays.json', from: null, versions: [
         { by: 'Habeba Mourad', when: '2026-10-30', note: 'First version', data: ifx({ name: 'Holidays', coverage_windows: allDay, pre_window_minutes: 0,
