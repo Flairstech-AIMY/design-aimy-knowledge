@@ -3250,7 +3250,6 @@
 
      Templates the GitHub Actions way: each card says when to use it first,
      and downloads in YAML, JSON or XML with the product already filled in. */
-  const AH_FILE_I = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m10 13-2 2 2 2"/><path d="m14 17 2-2-2-2"/></svg>';
   const AH_DL_I = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>';
   const ahDate = (s) => ahD(s).getDate() + ' ' + AH_MON[ahD(s).getMonth()].slice(0, 3);
   const ahList = (a) => (a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]);
@@ -3277,23 +3276,30 @@
     });
   }
 
-  /* The file read as sentences: what AiMY does with each field. */
+  /* The file read as sentences, in three groups: when AiMY acts, what it
+     treats as urgent, and who it calls. A hairline under every field read
+     as a spec sheet (Copilot's Customization page groups instead). */
   function ahWords(c) {
     const w = c.coverage_windows, u = c.urgency_criteria;
+    const quote = (a) => ahList(a.map((x) => '“' + esc(x) + '”'));
     const row = (k, v) => '<div class="ahc-row"><dt>' + esc(k) + '</dt><dd>' + v + '</dd></div>';
-    const urgent = [ahList(u.keywords.map((x) => '“' + esc(x) + '”'))]
-      .concat(u.customer_tiers && u.customer_tiers.length ? [esc(ahList(u.customer_tiers)) + ' customers'] : [])
-      .concat(u.impact && u.impact.length ? ['impact on ' + esc(ahList(u.impact))] : []);
-    return '<dl class="ahc-words">' +
-      row('Tickets from', esc(c.crm_source)) +
-      row('Covers', 'Weeknights ' + esc(ahClock(ahMin(w.weeknights.from)) + ' to ' + ahClock(ahMin(w.weeknights.to))) + ', ' +
-        esc(AH_WKND[w.weekends].toLowerCase()) + ', ' + esc(w.timezone)) +
-      row('Stands back', c.pre_window_minutes + ' minutes before working hours start, leaving the ticket for the day team') +
-      row('Urgent when', urgent.join('; ')) +
-      row('Not urgent when', ahList(c.non_urgent_criteria.keywords.map((x) => '“' + esc(x) + '”'))) +
-      row('Calls last', '<b>' + esc(c.oncall_manager.name) + '</b>, the on-call manager, on ' + esc(c.oncall_manager.phone) + ', when nobody on call answers') +
-      row('After an answer', 'Watches the ticket for ' + c.confirmation_wait_minutes + ' minutes, and calls the people on call again if nothing happens') +
-      '</dl>';
+    const grp = (t, rows) => '<section class="ahc-grp"><h3 class="ahc-grp-t">' + esc(t) + '</h3><dl class="ahc-words">' + rows + '</dl></section>';
+    const urgent = quote(u.keywords) +
+      (u.customer_tiers && u.customer_tiers.length ? ', from ' + esc(ahList(u.customer_tiers)) + ' customers' : '') +
+      (u.impact && u.impact.length ? ', or when it affects ' + esc(ahList(u.impact)) : '');
+    return '<div class="ahc-groups">' +
+      grp('When AiMY acts',
+        row('Tickets from', esc(c.crm_source)) +
+        row('Covers', 'Weeknights ' + esc(ahClock(ahMin(w.weeknights.from)) + ' to ' + ahClock(ahMin(w.weeknights.to))) + ', ' +
+          esc(AH_WKND[w.weekends].toLowerCase()) + ', ' + esc(w.timezone)) +
+        row('Stands back', c.pre_window_minutes + ' minutes before working hours start')) +
+      grp('What counts as urgent',
+        row('Urgent', urgent) +
+        row('Not urgent', quote(c.non_urgent_criteria.keywords))) +
+      grp('Who it calls',
+        row('Last of all', '<b>' + esc(c.oncall_manager.name) + '</b>, the on-call manager, on ' + esc(c.oncall_manager.phone)) +
+        row('After an answer', 'Watches the ticket for ' + c.confirmation_wait_minutes + ' minutes, and calls again if nothing happens')) +
+      '</div>';
   }
   function ahCode(text, bad, from, to) {
     const lines = text.replace(/\r/g, '').replace(/\n$/, '').split('\n');
@@ -3302,22 +3308,24 @@
       `<span class="ahc-ln${a + i === bad ? ' is-bad' : ''}"><span class="ahc-n" aria-hidden="true">${a + i}</span>${esc(l) || ' '}</span>`).join('') + '</code></pre>';
   }
 
+  /* Templates as a list (Snowflake's and Slack's template rows): the name,
+     when to use it, and the three formats to download it in. */
   function ahTemplates(sc) {
     const f = sc.prod ? AH_CFG[sc.prod.id] : null;
     const pid = sc.prod ? sc.prod.id : '';
-    return '<section class="set2-sec"><div class="set2-sec-h"><h2 class="set2-sec-t">Start from a template</h2></div>' +
-      '<p class="ah-ladder-l">Download one with the product filled in, change its ticket queue, criteria and manager, then upload it' + (sc.prod ? ' here or in Knowledge.' : ' on its product’s page or in Knowledge.') + '</p>' +
-      '<div class="ahc-grid">' + CFG.TEMPLATES.map((t) => {
-        const tag = f && f.from === t.id ? esc(sc.prod.name) + ' started from this'
-          : sc.prod && !f && t.id === 'every-night' ? 'Suggested for ' + esc(sc.prod.name) : '';
-        return '<article class="ahc-tpl">' +
-          (tag ? '<span class="ahc-tag">' + tag + '</span>' : '') +
-          '<h3 class="ahc-tpl-t">' + esc(t.name) + '</h3>' +
-          '<p class="ahc-tpl-w">' + esc(t.when) + '</p>' +
-          '<div class="ahc-tpl-a"><span class="ahc-tpl-k">Download</span>' + ['yaml', 'json', 'xml'].map((x) =>
+    return '<p class="ahc-lede">' + (sc.prod
+        ? 'Each downloads with ' + esc(sc.prod.name) + ' filled in. Change its ticket queue, criteria and manager, then upload it.'
+        : 'These download with a placeholder product id. Open a product to get one with it filled in.') + '</p>' +
+      '<ul class="ahc-tpls">' + CFG.TEMPLATES.map((t) => {
+        const tag = f && f.from === t.id ? 'Started from this'
+          : sc.prod && !f && t.id === 'every-night' ? 'Suggested' : '';
+        return '<li class="ahc-tpl"><div class="ahc-tpl-tx">' +
+            '<span class="ahc-tpl-t">' + esc(t.name) + (tag ? '<span class="ahc-tag">' + tag + '</span>' : '') + '</span>' +
+            '<span class="ahc-tpl-w">' + esc(t.when) + '</span></div>' +
+          `<span class="ahc-tpl-a" role="group" aria-label="${esc('Download ' + t.name)}">` + ['yaml', 'json', 'xml'].map((x) =>
             `<button class="ahc-fmt" type="button" data-ah-tpl="${esc(t.id + '|' + x + '|' + pid)}" aria-label="${esc('Download ' + t.name + ' as ' + CFG.FMT_LABEL[x])}">${CFG.FMT_LABEL[x]}</button>`).join('') +
-          '</div></article>';
-      }).join('') + '</div></section>';
+          '</span></li>';
+      }).join('') + '</ul>';
   }
 
   /* A file that was refused: what is wrong, on which line, and that the
@@ -3327,7 +3335,7 @@
     if (!x) return '';
     return '<div class="ahc-err" role="alert"><p><b>' + esc(x.file) + ' wasn’t used.</b> ' + (x.line ? 'Line ' + x.line + ': ' : '') + esc(x.msg) + '. ' +
       (f.versions.length ? 'AiMY still reads version ' + (f.live + 1) + '.' : '') + '</p>' +
-      (x.text && x.line ? ahCode(x.text, x.line, Math.max(1, x.line - 2), x.line + 2) : '') +
+      (x.text && x.line ? ahCode(x.text, x.line, Math.max(1, x.line - 1), x.line + 1) : '') +
       '<div class="ahc-acts"><button class="agv-btn is-brand" type="button" data-ah-upload>Upload a fixed file</button>' +
       '<button class="agv-btn" type="button" data-ah-errclose>Dismiss</button></div></div>';
   }
@@ -3335,51 +3343,54 @@
   function ahCfgProduct(sc) {
     const key = sc.key, f = AH_CFG[key];
     if (!f || !f.versions.length) {
-      return ahFailed(key) + '<div class="ah-empty"><p><b>' + esc(sc.prod.name) + ' has no config file yet</b>, so AiMY doesn’t cover it after hours. ' +
-        'Start from a template below, or upload a file you already have: .yaml, .yml, .json or .xml.</p>' +
-        '<button class="agv-btn is-brand" type="button" data-ah-upload>Upload a config file</button></div>' + ahTemplates(sc);
+      return ahFailed(key) +
+        '<div class="ahc-top"><div class="ahc-top-t"><p class="ahc-none"><b>No config file yet.</b> AiMY doesn’t cover ' + esc(sc.prod.name) + ' after hours until it has one.</p></div>' +
+        '<div class="ahc-acts"><button class="agv-btn is-brand" type="button" data-ah-upload>Upload a config file</button></div></div>' +
+        '<h2 class="ahc-h2">Start from a template</h2>' + ahTemplates(sc);
     }
-    const v = f.versions[f.live], words = AH_CFGVIEW === 'words';
+    const v = f.versions[f.live];
+    const view = AH_CFGVIEW;
+    const tab = (id, label, n) => `<button class="set2-tab${view === id ? ' is-on' : ''}" type="button" role="tab" aria-selected="${view === id}" data-ah-cfgview="${id}">` +
+      esc(label) + (n ? '<span class="set2-tab-n">' + n + '</span>' : '') + '</button>';
+    const body = view === 'file' ? ahCode(v.text)
+      : view === 'versions' ? '<ol class="ahc-vers" reversed>' + f.versions.map((x, i) => [x, i]).reverse().map(([x, i]) =>
+          `<li class="ahc-ver${i === f.live ? ' is-live' : ''}"><span class="ahc-ver-n">Version ${i + 1}</span>` +
+          '<span class="ahc-ver-t">' + esc(x.note) + '<span class="ahc-ver-m">' + esc(x.by + ', ' + ahDate(x.when) + ', ' + x.file) + '</span></span>' +
+          (i === f.live ? '<span class="ahc-ok">AiMY reads this</span>'
+            : `<button class="ah-link" type="button" data-ah-cfglive="${i}">Go back to this</button>`) + '</li>').join('') + '</ol>'
+      : view === 'templates' ? ahTemplates(sc)
+      : ahWords(v.data);
+    /* One header row (Wellfound's resume row): the file, its version and
+       who put it there, and the two things you do to a file. */
     return ahFailed(key) +
-      '<section class="ahc-file">' +
-        '<span class="ahc-file-i" aria-hidden="true">' + AH_FILE_I + '</span>' +
-        '<div class="ahc-file-t"><span class="ahc-file-n">' + esc(v.file) + '<span class="ahc-fmt is-static">' + CFG.FMT_LABEL[v.fmt] + '</span></span>' +
-          '<span class="ahc-file-m">Version ' + (f.live + 1) + ' of ' + f.versions.length + ', ' + esc(v.by) + ', ' + esc(ahDate(v.when)) + '. ' +
-          '<span class="ahc-ok">AiMY reads this version.</span></span></div>' +
+      '<div class="ahc-top"><div class="ahc-top-t">' +
+        '<span class="ahc-file-n">' + esc(v.file) + '<span class="ahc-fmt is-static">' + CFG.FMT_LABEL[v.fmt] + '</span></span>' +
+        '<span class="ahc-file-m">Version ' + (f.live + 1) + ', uploaded by ' + esc(v.by) + ' on ' + esc(ahDate(v.when)) + '. ' +
+          '<span class="ahc-ok">AiMY reads it.</span> ' +
+          `<button class="ah-link" type="button" data-card-open="${esc(f.doc)}">Open in Knowledge</button></span></div>` +
         '<div class="ahc-acts">' +
           '<button class="agv-btn is-brand" type="button" data-ah-upload>Upload a new version</button>' +
           `<button class="agv-btn" type="button" data-ah-download="${f.live}">${AH_DL_I}Download</button>` +
-          `<a class="agv-btn" href="index.html?doc=${esc(f.doc)}">Open in Knowledge</a>` +
-        '</div>' +
-      '</section>' +
-      '<section class="set2-sec"><div class="set2-sec-h ahc-h"><h2 class="set2-sec-t">What AiMY reads</h2>' +
-        '<span class="b-cal-seg" role="group" aria-label="Show">' +
-          `<button class="b-cal-btn is-word${words ? ' is-on' : ''}" type="button" data-ah-cfgview="words" aria-pressed="${words}">In words</button>` +
-          `<button class="b-cal-btn is-word${!words ? ' is-on' : ''}" type="button" data-ah-cfgview="file" aria-pressed="${!words}">The file</button>` +
-        '</span></div>' +
-        (words ? ahWords(v.data) : ahCode(v.text)) +
-      '</section>' +
-      '<section class="set2-sec"><div class="set2-sec-h"><h2 class="set2-sec-t">Versions</h2></div><ol class="ahc-vers" reversed>' +
-        f.versions.map((x, i) => [x, i]).reverse().map(([x, i]) =>
-          `<li class="ahc-ver${i === f.live ? ' is-live' : ''}"><span class="ahc-ver-n">Version ${i + 1}</span>` +
-          '<span class="ahc-ver-t">' + esc(x.note) + '<span class="ahc-ver-m">' + esc(x.by + ', ' + ahDate(x.when)) + '</span></span>' +
-          (i === f.live ? '<span class="ahc-ok">AiMY reads this</span>'
-            : `<button class="ah-link" type="button" data-ah-cfglive="${i}">Go back to this</button>`) + '</li>').join('') +
-      '</ol></section>' + ahTemplates(sc);
+        '</div></div>' +
+      '<div class="set2-tabs" role="tablist" aria-label="Show">' +
+        tab('words', 'In words') + tab('file', 'The file') + tab('versions', 'Versions', f.versions.length) + tab('templates', 'Templates') +
+      '</div>' +
+      '<div class="ahc-body" role="tabpanel">' + body + '</div>';
   }
 
   function ahCfgClient(sc) {
-    if (!sc.prods.length) return '<div class="ah-empty"><p><b>' + esc(sc.client.name) + ' has no products yet.</b> A config file belongs to a product.</p></div>';
-    return '<section class="set2-sec"><div class="set2-sec-h"><h2 class="set2-sec-t">Products</h2></div><ul class="ahc-prods">' +
+    if (!sc.prods.length) return '<p class="ahc-none"><b>' + esc(sc.client.name) + ' has no products yet.</b> A config file belongs to a product.</p>';
+    return '<ul class="ahc-prods">' +
       sc.prods.map((p) => {
         const f = AH_CFG[p.id];
         const v = f && f.versions.length ? f.versions[f.live] : null;
         const st = f && f.failed ? '<span class="ahc-bad">Upload failed</span>' : v ? '<span class="ahc-ok">AiMY reads it</span>' : '<span class="ahc-warn">No file yet</span>';
         return `<li><button class="ahc-prod" type="button" data-ah-go="${esc(p.id)}">` +
           '<span class="ahc-prod-n">' + esc(p.name) + '</span>' +
-          '<span class="ahc-prod-f">' + (v ? esc(v.file) + ' · version ' + (f.live + 1) + ', ' + esc(ahDate(v.when)) : 'AiMY doesn’t cover it after hours') + '</span>' +
+          '<span class="ahc-prod-f">' + (v ? esc(v.file) + ', version ' + (f.live + 1) : 'Not covered after hours') + '</span>' +
           st + I.chev + '</button></li>';
-      }).join('') + '</ul></section>' + ahTemplates(sc);
+      }).join('') + '</ul>' +
+      '<h2 class="ahc-h2">Templates</h2>' + ahTemplates(sc);
   }
 
   M.ahconfig = function (st) {

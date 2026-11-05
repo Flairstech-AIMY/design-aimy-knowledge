@@ -95,6 +95,7 @@
     /* A screen on a stand. Distinct from `image` at 11px, which is the size the
        card's meta line draws a type glyph at — a deck and a marketing asset are
        neighbours in the taxonomy and must not be neighbours in silhouette. */
+    config:   svg('<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m10 13-2 2 2 2"/><path d="m14 17 2-2-2-2"/>'),
     deck:     svg('<path d="M2 3h20"/><path d="M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3"/><path d="m7 21 5-5 5 5"/>'),
     flag:     svg('<path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528"/>'),
     quote:    svg('<path d="M16 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/><path d="M5 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/>'),
@@ -334,6 +335,13 @@
     story:    { label: 'Success Story',   ico: ICO.trophy },
     blog:     { label: 'Blog',            ico: ICO.book },
     webpage:  { label: 'Web Page',        ico: ICO.globe },
+    /* ── A FILE AiMY READS, NOT A DOCUMENT IT CITES ──
+       How AiMY handles one product's tickets after hours (the after-hours
+       brief, Feature 0; AIMY-2974): YAML, JSON or XML, checked on upload,
+       and read by the Console's 24/7 pages as soon as it exists. Its
+       content is the file, so it is stored as text, never chunked into
+       prose. assets/aimy-configs.js holds the rules and the templates. */
+    config:   { label: 'Configuration File', ico: ICO.config },
     /* ── THE TWO THAT LEAVE THE LIBRARY ──
        Every type above describes something the company HAS. These two describe
        something it SELLS, and that is not a shade of the same thing: a Product
@@ -522,13 +530,13 @@
       ingenius: 'InGenius Support', roinnovation: 'RO Innovation Support',
       ultriva: 'Ultriva Support', eclipse: 'Eclipse Support',
       rightanswers: 'RightAnswers Support', panviva: 'Panviva Support',
-      qvidian: 'Qvidian Support'
+      qvidian: 'Qvidian Support', accuroute: 'AccuRoute Support'
     },
     /* ── placeholders below this line ── */
     asteris:   { asterisImaging: 'Imaging Support', asterisVet: 'Vet Cloud Support' },
     valsoft:   { aspire: 'Aspire Support', hark: 'Hark Support' },
     connect:   { connectDesk: 'Connect Desk Support', connectVoice: 'Connect Voice Support' },
-    cxs:       { cxsQa: 'QA Support', cxsAnalytics: 'Analytics Support' },
+    cxs:       { cxsQa: 'QA Support', cxsAnalytics: 'Analytics Support', 'cxs-copilot': 'Support Copilot' },
     flighthub: { fhBooking: 'Booking Support', fhCare: 'Care Support' }
   };
 
@@ -1266,6 +1274,21 @@
     if (o.uses === undefined) o.uses = Math.max(0, 40 - Math.round(o.used / 3));
   });
 
+  /* The after-hours configuration files, one per product that has one,
+     built from the same fixtures the Console reads so the two agree. Added
+     before anything counts or derives from the corpus. */
+  const CFG = window.AIMY_CFG || null;
+  if (CFG) Object.keys(CFG.FILES).forEach((pid) => {
+    const f = CFG.FILES[pid], v = f.versions[f.versions.length - 1];
+    if (CORPUS.some((o) => o.id === f.doc)) return;
+    /* Habeba Mourad owns the after-hours brief and writes these files. */
+    CORPUS.push({ id: f.doc, t: 'config', work: 'verified', owner: 'H. Mourad',
+      title: (PRODUCTS[pid] || pid) + ': after-hours configuration', col: 'support', src: 'upload', prod: pid, client: CLIENT_OF_PRODUCT[pid] || '',
+      tags: ['after-hours', 'configuration'], upd: 2, ing: 2, xc: 15, xu: 2,
+      sum: 'How AiMY handles ' + (PRODUCTS[pid] || pid) + ' tickets after hours: when it covers, what counts as urgent, and who it calls last.',
+      props: { 'source-file': f.file, size: Math.max(1, Math.round(v.text.length / 1024)) + ' KB' },
+      x: { text: v.text } });
+  });
   const byId = (id) => CORPUS.find((o) => o.id === id);
   const TOTAL = CORPUS.length;
 
@@ -2188,6 +2211,7 @@
     /* Every word anybody uses for one, including the format itself — "the pptx"
        is what somebody types when they are looking for the deck. */
     [/\bpresentations?\b|\bdecks?\b|\bpptx?\b|\bpower ?points?\b|\bslides?\b/i, { type: 'pptx' }],
+    [/\bconfig(?:uration)?(?: files?)?s?\b|\bya?ml\b|\bjson\b|\bxml\b/i, { type: 'config' }],
     [/\bsuccess stor(?:y|ies)\b|\bcase stud(?:y|ies)\b/i, { type: 'story' }],
     [/\bblogs?(?: posts?)?\b/i,           { type: 'blog' }],
     [/\bweb ?pages?\b|\bpages?\b/i,       { type: 'webpage' }],
@@ -3989,6 +4013,16 @@
 
     /* The URL is the whole of what makes a web page a web page, and monospace
        is the only run of that texture anywhere on the grid. */
+    /* The file name, and whether AiMY can read it: the one question anyone
+       asks a configuration file before trusting it. */
+    config:   (o) => {
+      const r = cfgCheck(o);
+      return `<p class="tc-mono">${esc(subjectFile(o) || 'No file yet')}</p>` +
+        `<div class="tc-tags">${!r ? '<span class="tag tag-warn">No file yet</span>'
+          : r.ok ? '<span class="tag tag-ok">AiMY reads it</span>'
+          : '<span class="tag tag-warn">' + esc('Line ' + r.line + ' needs fixing') + '</span>'}</div>`;
+    },
+
     webpage:  (o) => (o.x.url && o.x.url !== '—'
         ? `<p class="tc-mono">${urlLink(o.x.url)}</p>` : '') +
       tcSum(o.sum)
@@ -4033,7 +4067,7 @@
        not store. An exit has to lead somewhere. */
     campaign: 'Open campaign',  asset:   'Open asset',   story: 'Open story',
     blog:     'Open post',      webpage: 'Open page',    pptx:  'Open deck',
-    product:  'Open product',   service: 'Open service'
+    product:  'Open product',   service: 'Open service', config: 'Open file'
   };
 
   /* One action per card, and it is the status's exit — so the card offers the
@@ -4315,6 +4349,7 @@
     story:    'A customer, a number, and their words for it.',
     blog:     'A public post, drafted here before it ships.',
     webpage:  'A page we already publish, pulled in to be checked.',
+    config:   'How AiMY handles a product’s tickets after hours. YAML, JSON or XML.',
     product:  'Something you sell. It appears in AiMY Sales settings.',
     service:  'Something you run for a client. Appears in AiMY Sales settings.'
   };
@@ -5524,7 +5559,7 @@
      cover the rows they belong to. */
   let openMulti = null;
 
-  const OWNERS = ['N. Wael', 'A. Mahfouz', 'O. Said', 'Sales Ops', 'Marketing', 'Brand', 'Legal', 'Unassigned'];
+  const OWNERS = ['N. Wael', 'A. Mahfouz', 'O. Said', 'H. Mourad', 'Sales Ops', 'Marketing', 'Brand', 'Legal', 'Unassigned'];
 
   /* Every property is a control that writes straight through to the object.
      Status is shown and not set: it is derived, and a field you could type into
@@ -6889,6 +6924,11 @@
      publish gate and the replace label cannot disagree about whether there is
      a file. */
   const subjectFile = (o) => o.props['source-file'] || o.pendingText || '';
+  /* Can AiMY read this configuration file? Null when there is no text yet. */
+  const cfgCheck = (o) => {
+    const text = o && o.x && o.x.text;
+    return CFG && text ? CFG.check(text, CFG.fmtOf(subjectFile(o) || o.title), '') : null;
+  };
 
   function docSubject(o) {
     if (o.t === 'webpage') {
@@ -6914,6 +6954,32 @@
       </section>`;
     }
     const file = subjectFile(o);
+
+    /* A configuration file's content is its text, and AiMY reads it rather
+       than quoting it. So the subject is the file with its line numbers,
+       whether it is valid (and if not, the line that is wrong), and three
+       ways on: replace it, download it, or see what the Console makes of it.
+       A file not written yet offers the templates instead. */
+    if (o.t === 'config') {
+      const r = cfgCheck(o), text = (o.x && o.x.text) || '';
+      const pid = r && r.ok ? r.data.product_id : ((text.match(/product_id\W+([\w-]+)/) || [])[1] || '');
+      const lines = text.replace(/\r/g, '').replace(/\n$/, '').split('\n');
+      return `<section class="dv-subject is-wide" data-type="config" aria-label="The file">
+        <p class="tc-mono">${esc(file || 'No file yet')}</p>
+        <p class="dv-subject-state">${!r ? 'Not written yet. Start from a template, fill it in, then upload it here.'
+          : r.ok ? 'AiMY can read it. It covers ' + esc(PRODUCTS[pid] || pid) + ', and the Console’s 24/7 pages use it from now on.'
+          : '<b class="cfg-bad">Line ' + r.line + ': ' + esc(r.msg) + '.</b> AiMY keeps reading the last version that worked.'}</p>
+        <div class="rail-act">${entryAction('direct', file ? 'Replace the file' : 'Upload the file',
+          `data-pick-files="${esc(CFG.EXT.join(','))}"`, ICO.upload)}${
+          text ? `<button class="btn btn-ghost btn-sm" type="button" data-cfg-dl="${esc(o.id)}">Download</button>` : ''}${
+          pid ? `<button class="btn btn-ghost btn-sm" type="button" data-cfg-console="${esc(pid)}">See it in the Console</button>` : ''}</div>
+        ${text ? '<pre class="cfg-code"><code>' + lines.map((l, i) =>
+            `<span class="cfg-ln${r && !r.ok && r.line === i + 1 ? ' is-bad' : ''}"><span class="cfg-n" aria-hidden="true">${i + 1}</span>${esc(l) || ' '}</span>`).join('') + '</code></pre>'
+          : '<div class="cfg-tpls">' + CFG.TEMPLATES.map((tp) => `<div class="cfg-tpl"><b>${esc(tp.name)}</b><span>${esc(tp.when)}</span>` +
+              '<span class="cfg-fmts">' + ['yaml', 'json', 'xml'].map((x) =>
+                `<button class="btn btn-ghost btn-sm" type="button" data-cfg-tpl="${esc(tp.id + '|' + x)}">${CFG.FMT_LABEL[x]}</button>`).join('') + '</span></div>').join('') + '</div>'}
+      </section>`;
+    }
 
     /* A deck is the one type whose content is a file nobody can read here and
        nobody should have to: you present it. So the subject is the deck, the
@@ -7019,6 +7085,21 @@
          same defect wearing a new name.
   ═══════════════════════════════════════════════ */
   const TYPE_VIEW = {
+
+    /* The file is the whole of it: no prose, no record rows (every fact is
+       a line of the file), and it may only be published once AiMY can read
+       it. */
+    config: {
+      regions: ['subject'],
+      prose:   'absent',
+      ownsFile: true,
+      rail:    ['what', 'came', 'connects'],
+      fields:  () => [],
+      start:   ['file'],
+      ai:      { blank: [], filled: [] },
+      ready:   (o) => { const r = cfgCheck(o); return !r ? 'Upload the file first' : r.ok ? '' : 'Fix line ' + r.line + ' first'; },
+      copy:    {}
+    },
 
     /* An article IS its prose. Its one row qualifies what you just read rather
        than being the thing you came for, so it follows the body. */
@@ -13497,6 +13578,25 @@
          `data-pick-files` reads as '' and keeps the old behaviour exactly:
          everything, many at a time. A narrowed one takes a single file,
          because "Replace the deck" is not a bulk action. */
+      /* In place, not a page load: the Console reads this document's text
+         from memory, and a reload would start it from the fixtures again. */
+      if ((el = t.closest('[data-cfg-console]'))) {
+        patch({ doc: '', m: 'ahconfig', node: el.getAttribute('data-cfg-console') });
+        return;
+      }
+      if ((el = t.closest('[data-cfg-dl],[data-cfg-tpl]')) && CFG) {
+        const o = byId(readURL().doc);
+        const save = (name, text) => {
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+          a.download = name; document.body.appendChild(a); a.click();
+          setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+        };
+        if (el.hasAttribute('data-cfg-dl')) { if (o) save(subjectFile(o) || o.title, o.x.text); return; }
+        const [id, fmt] = el.getAttribute('data-cfg-tpl').split('|');
+        save('your-product-after-hours.' + fmt, CFG.write(CFG.fill(CFG.template(id), ''), fmt));
+        return;
+      }
       if ((el = t.closest('[data-pick-files]'))) {
         const only = el.getAttribute('data-pick-files');
         pickFiles(only || FILE_ACCEPT, !only, ingestFiles);
@@ -14449,18 +14549,19 @@
   const EXT_TYPE = { md: 'article', txt: 'article', doc: 'article', docx: 'article', pdf: 'asset',
                      ppt: 'pptx', pptx: 'pptx', key: 'pptx', odp: 'pptx',
                      png: 'asset', jpg: 'asset', jpeg: 'asset',
-                     csv: 'icp', xlsx: 'icp', html: 'webpage', htm: 'webpage' };
+                     csv: 'icp', xlsx: 'icp', html: 'webpage', htm: 'webpage',
+                     yaml: 'config', yml: 'config', json: 'config', xml: 'config' };
   /* What the deck's own upload control will take. Narrower than FILE_ACCEPT on
      purpose: that control says "the deck", so it should not open a picker
      offering to make one out of a spreadsheet. */
   const DECK_ACCEPT = '.ppt,.pptx,.key,.odp';
-  const TEXTY = /\.(md|txt|csv|html?|json)$/i;
+  const TEXTY = /\.(md|txt|csv|html?|json|ya?ml|xml)$/i;
   /* Ingestion has worked since the fifth pass and nothing on the page said so.
      A capability you only discover by already dragging a file at it is a
      capability for people who guessed. This string is what it takes, said in
      the places somebody is looking for a way in. */
-  const FILE_KINDS = 'Word, PDF, PowerPoint, Excel, Markdown, text, CSV, HTML or an image.';
-  const FILE_ACCEPT = '.md,.txt,.doc,.docx,.pdf,.ppt,.pptx,.key,.odp,.csv,.xlsx,.html,.htm,.png,.jpg,.jpeg';
+  const FILE_KINDS = 'Word, PDF, PowerPoint, Excel, Markdown, text, CSV, HTML, an image, or a YAML, JSON or XML config file.';
+  const FILE_ACCEPT = '.md,.txt,.doc,.docx,.pdf,.ppt,.pptx,.key,.odp,.csv,.xlsx,.html,.htm,.png,.jpg,.jpeg,.yaml,.yml,.json,.xml';
 
   /* One input, reused. Dropping is a gesture you have to know about; choosing is
      one every file field has taught. Both end in the same function. */
@@ -14603,6 +14704,15 @@
     const reader = new FileReader();
     reader.onload = () => {
       let text = String(reader.result);
+      /* A configuration file is kept as it is, character for character:
+         AiMY parses it, and turning it into paragraphs would break it. */
+      if (doc.t === 'config') {
+        doc.x = Object.assign({}, doc.x, { text });
+        const r = cfgCheck(doc);
+        if (r && r.ok) doc.prod = r.data.product_id;
+        done();
+        return;
+      }
       if (/\.html?$/i.test(f.name)) text = text.replace(/<[^>]*>/g, ' ');
       const md = /\.(md|markdown)$/i.test(f.name);
       /* A Markdown file's first `# Heading` IS the document's title, and
@@ -14750,7 +14860,8 @@
        and a different reader. Slicing the summary to fit would have been the
        version of this that nobody can edit. */
     product:  { pitch: '—' },
-    service:  { pitch: '—' }
+    service:  { pitch: '—' },
+    config:   { text: '' }
   };
 
   /* The card's one classified action. Each terminates in a completed action, a
@@ -16557,6 +16668,21 @@
            rather than a pair of restore/delete wrappers, because the dialogs,
            the typed confirmation and the audit copy all live behind it and a
            wrapper would be a second place for them to be described. */
+        /* ── THE CONFIG FILES, FOR 24/7 ──
+           The Console's Configuration page lists these as they are made, and
+           tells this file when it took a new version, so the document here
+           always holds the text AiMY reads. */
+        configDocs: () => ENTITLED
+          .filter((o) => o.t === 'config' && !o.arch && o.x && o.x.text)
+          .map((o) => ({ id: o.id, file: subjectFile(o) || o.title, text: o.x.text, by: o.owner })),
+        configSaved: (d) => {
+          let o = byId(d.id);
+          if (!o) o = newDocument('config', { id: d.id, title: d.file, prod: d.product, work: 'verified' }, true);
+          o.title = d.file;
+          o.props = Object.assign({}, o.props, { 'source-file': d.file });
+          o.x = Object.assign({}, o.x, { text: d.text });
+          recompute();
+        },
         archived: () => ENTITLED
           .filter((o) => o.arch)
           .map((o) => ({

@@ -6982,6 +6982,20 @@ body.is-doc .page-inner { max-width: var(--measure-doc-page); margin-inline: aut
 .dv-subject .tc-mono { margin: 0; font-size: var(--ty-body); word-break: break-all; }
 .dv-subject-state { margin: 0; font-size: var(--ty-meta); line-height: 1.5; color: var(--ink-muted); }
 .dv-subject .rail-act { margin-top: 0; }
+/* A configuration file: the text as it is, with line numbers, and the line
+   that is wrong marked in the error colour as well as named above it. */
+.dv-subject.is-wide { max-width: none; }
+.cfg-bad { color: var(--ink-err); font-weight: var(--fw-semibold); }
+.cfg-code { margin: 0.5rem 0 0; padding: 0.75rem 0; border-radius: var(--r-lg); background: var(--card-bg); border: 1px solid var(--card-border); overflow-x: auto; font-family: var(--font-mono); font-size: var(--ty-micro); line-height: 1.7; color: var(--ink-primary); }
+.cfg-code code { font: inherit; }
+.cfg-ln { display: block; padding-right: 1rem; white-space: pre; }
+.cfg-n { display: inline-block; width: 3rem; padding-right: 1rem; text-align: right; color: var(--ink-secondary); user-select: none; }
+.cfg-ln.is-bad { background: var(--err-bg); box-shadow: inset 3px 0 0 var(--ink-err); }
+.cfg-ln.is-bad .cfg-n { color: var(--ink-err); font-weight: var(--fw-bold); }
+.cfg-tpls { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 0.75rem; margin-top: 0.5rem; }
+.cfg-tpl { display: flex; flex-direction: column; gap: 0.375rem; padding: 1rem; border-radius: var(--r-lg); background: var(--card-bg); border: 1px solid var(--card-border); font-size: var(--ty-meta); line-height: 1.5; color: var(--ink-secondary); }
+.cfg-tpl b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
+.cfg-fmts { display: flex; gap: 0.375rem; margin-top: 0.25rem; }
 
 /* `.dv-links` was here — the featured connection phrase rendered as content
    inside `.dv-record`. It read as one more editable property row and was the
