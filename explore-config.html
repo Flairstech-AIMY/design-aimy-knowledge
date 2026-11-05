@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Configuration variants</title>
+  <title>Configuration: overview tiles</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -47,7 +47,8 @@
     .x-pill { display: inline-flex; align-items: center; height: 2rem; padding: 0 .75rem; border-radius: var(--r-md); border: 1px solid var(--card-border); background: var(--card-bg); font-size: .875rem; font-weight: var(--fw-semibold); color: var(--d50); font-variant-numeric: tabular-nums; white-space: nowrap; }
     .x-fmt { display: inline-flex; align-items: center; height: 1.375rem; padding: 0 .5rem; border-radius: var(--r-pill); border: 1px solid var(--card-border); font-size: .6875rem; font-weight: var(--fw-semibold); letter-spacing: .04em; color: var(--d50); }
     .x-av { width: 2rem; height: 2rem; flex: none; border-radius: 999px; display: grid; place-items: center; background: rgba(var(--accent-rgb), .18); color: var(--d50); font-size: .75rem; font-weight: var(--fw-bold); }
-    .x-dl { display: inline-flex; border: 1px solid var(--card-border); border-radius: var(--r-pill); overflow: hidden; }
+    .x-dl { flex: none; display: inline-flex; border: 1px solid var(--card-border); border-radius: var(--r-pill); overflow: hidden; }
+    .vc-row > span:first-child, .c4-list li > span:first-child { flex: 1; min-width: 0; }
     .x-dl button { border: 0; background: none; padding: 0 .625rem; height: 1.75rem; font: inherit; font-size: .75rem; font-weight: var(--fw-semibold); color: var(--d50); cursor: pointer; }
     .x-dl button + button { border-left: 1px solid var(--card-border); }
     .x-dl button:hover { background: rgba(var(--accent-rgb), .12); }
@@ -143,39 +144,107 @@
       .vd-scroll { overflow-x: auto; }
       .vd-tbl { min-width: 34rem; }
     }
+
+    /* ── C2: the week as a strip ── */
+    .c2-top { display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr)); gap: .75rem; margin-top: 1.5rem; }
+    .c2-week { display: grid; grid-template-columns: 2.25rem minmax(0, 1fr); gap: .3125rem .625rem; align-items: center; margin-top: .5rem; }
+    .c2-d { font-size: .75rem; color: var(--ink-secondary); }
+    .c2-bar { position: relative; height: .625rem; border-radius: var(--r-pill); background: rgba(var(--accent-rgb), .08); overflow: hidden; }
+    .c2-seg { position: absolute; top: 0; bottom: 0; background: var(--brand); border-radius: var(--r-pill); }
+    .c2-axis { grid-column: 2; display: flex; justify-content: space-between; font-size: .6875rem; color: var(--ink-secondary); }
+    .c2-rules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; margin-top: .75rem; border-radius: var(--r-lg); border: 1px solid var(--card-border); background: var(--card-bg); }
+    .c2-rules > section { padding: 1.25rem; }
+    .c2-rules > section + section { border-left: 1px solid var(--card-border); }
+    .x-chip.is-hot { background: var(--err-bg); color: var(--ink-err); }
+    .c2-sub { margin: .875rem 0 .5rem; font-size: .8125rem; color: var(--ink-secondary); }
+
+    /* ── C3: the dial and a version line ── */
+    .c3-top { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)); gap: .75rem; margin-top: 1.5rem; }
+    .c3-cover { display: flex; align-items: center; gap: 1rem; }
+    .c3-dial { width: 5.5rem; height: 5.5rem; flex: none; }
+    .c3-dial .t { fill: none; stroke: rgba(var(--accent-rgb), .14); stroke-width: 10; }
+    .c3-dial .a { fill: none; stroke: var(--brand); stroke-width: 10; stroke-linecap: round; }
+    .c3-mgr { display: flex; align-items: center; gap: .625rem; margin-top: .125rem; }
+    .c3-line { display: flex; align-items: flex-start; margin-top: .25rem; }
+    .c3-step { flex: 1; position: relative; padding-top: 1.5rem; min-width: 0; }
+    .c3-step::before { content: ""; position: absolute; top: .4375rem; left: 0; right: 0; height: 2px; background: var(--card-border-hover); }
+    .c3-step:first-child::before { left: .5rem; }
+    .c3-step:last-child::before { right: calc(100% - .5rem); }
+    .c3-dot { position: absolute; top: 0; left: 0; width: 1rem; height: 1rem; border-radius: 999px; background: var(--body-bg); border: 2px solid var(--card-border-hover); }
+    .c3-step.is-live .c3-dot { background: var(--brand); border-color: var(--brand); }
+    .c3-step b { display: block; font-size: .875rem; color: var(--d50); }
+    .c3-step span { display: block; margin-top: .125rem; padding-right: 1rem; font-size: .8125rem; line-height: 1.45; color: var(--ink-secondary); }
+    .c3-step .ah-link, .c3-step .x-ok { margin-top: .375rem; font-size: .8125rem; }
+    .c3-step span.x-ok { display: inline-flex; padding: 0; color: var(--ink-ok); }
+    .vc-tpl .x-dl, .va-tpl .x-dl { align-self: flex-start; }
+    .c3-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .75rem; margin-top: .75rem; }
+
+    /* ── C4: one stat bar, then rows ── */
+    .c4-bar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 1.5rem; border-radius: var(--r-lg); border: 1px solid var(--card-border); background: var(--card-bg); }
+    .c4-bar > div { display: flex; flex-direction: column; gap: .25rem; padding: 1rem 1.25rem; }
+    .c4-bar > div + div { border-left: 1px solid var(--card-border); }
+    .c4-rows { margin: 1.75rem 0 0; display: grid; grid-template-columns: 9rem minmax(0, 1fr); gap: .875rem 1.25rem; align-items: start; }
+    .c4-rows dt { padding-top: .25rem; font-size: .875rem; color: var(--ink-secondary); }
+    .c4-rows dd { margin: 0; }
+    .c4-two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2.5rem; margin-top: 2rem; }
+    .c4-list { list-style: none; margin: 0; padding: 0; }
+    .c4-list li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .75rem 0; }
+    .c4-list li + li { border-top: 1px solid var(--card-border); }
+    .c4-list b { display: block; font-size: .875rem; color: var(--d50); }
+    .c4-list span.vc-s { display: block; }
+    .c4-list .ah-link, .c4-list .x-ok { flex: none; white-space: nowrap; }
+
+    @media (max-width: 899.98px) {
+      .c2-top, .c3-top { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .c2-top > :first-child, .c3-top > :first-child { grid-column: 1 / -1; }
+      .c2-rules, .c3-cols, .c4-two { grid-template-columns: minmax(0, 1fr); }
+      .c2-rules > section + section { border-left: 0; border-top: 1px solid var(--card-border); }
+      .c4-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .c4-bar > div:nth-child(3) { border-left: 0; }
+      .c4-bar > div:nth-child(n+3) { border-top: 1px solid var(--card-border); }
+    }
+    @media (max-width: 559.98px) {
+      .c2-top, .c3-top { grid-template-columns: minmax(0, 1fr); }
+      .c3-line { flex-direction: column; gap: 1rem; }
+      .c3-step { padding: 0 0 0 1.75rem; }
+      .c3-step::before { top: 0; bottom: -1rem; left: .4375rem; right: auto; width: 2px; height: auto; }
+      .c3-step:last-child::before { display: none; }
+      .c4-rows { grid-template-columns: minmax(0, 1fr); gap: .25rem; }
+      .c4-rows dd { margin-bottom: .75rem; }
+    }
   </style>
 </head>
 <body class="xa">
 <div class="xa-wrap">
   <div class="xa-top">
     <div>
-      <h1>Configuration, four ways</h1>
-      <p>The same file each time: InterFAX Support's after-hours config, version 3. None of them reads the file back as sentences. Pick one and it gets ported into 24/7 › Configuration.</p>
+      <h1>Configuration: overview tiles, four ways</h1>
+      <p>You picked C. Here it is as it was, and three takes on it. The same file each time: InterFAX Support's after-hours config, version 3. Pick one and it gets ported into 24/7 › Configuration.</p>
     </div>
     <button class="agv-btn" type="button" id="xaTheme">Switch theme</button>
   </div>
   <nav class="xa-jump" aria-label="Variants">
-    <a href="#va">A · Form</a><a href="#vb">B · File first</a><a href="#vc">C · Overview tiles</a><a href="#vd">D · Products table</a>
+    <a href="#vc">C1 · As it was</a><a href="#c2">C2 · The week</a><a href="#c3">C3 · Dial and timeline</a><a href="#c4">C4 · One stat bar</a>
   </nav>
-  <section class="xa-v" id="va">
-    <div class="xa-vh"><b>A · Form</b><span>Every value as a control you can read at a glance</span></div>
-    <p class="xa-why">Times are pills, weekends are a segmented control showing the choice, keywords are chips, and the manager is a person row. Read only: changes still come by uploading a new version. Like Vercel or Linear project settings, and Copilot's Customization page on Mobbin.</p>
-    <div class="xa-frame" data-v="a"></div>
-  </section>
-  <section class="xa-v" id="vb">
-    <div class="xa-vh"><b>B · File first</b><span>The file is the page; what AiMY reads sits beside it</span></div>
-    <p class="xa-why">The way GitHub shows a workflow file: the file with line numbers on the left, a narrow panel on the right with the parsed values, the status and the versions. Closest to what the file actually is.</p>
-    <div class="xa-frame" data-v="b"></div>
-  </section>
   <section class="xa-v" id="vc">
-    <div class="xa-vh"><b>C · Overview tiles</b><span>Four facts up top, the rules under them</span></div>
-    <p class="xa-why">The four things someone checks first (hours, who is called last, how long AiMY stands back, how long it watches after an answer) as tiles, then urgent and not urgent side by side as chips. Versions and templates below.</p>
+    <div class="xa-vh"><b>C1 · As it was</b><span>Four tiles, then the rules, versions and templates in cards</span></div>
+    <p class="xa-why">The variant you picked, unchanged, to compare the others against.</p>
     <div class="xa-frame" data-v="c"></div>
   </section>
-  <section class="xa-v" id="vd">
-    <div class="xa-vh"><b>D · Products table</b><span>Every product's file in one table, details in a side panel</span></div>
-    <p class="xa-why">The page opens on the client: a row per product with its hours, manager, version and status, so a missing file stands out. Choosing a row fills the panel on the right; no row opens in place. Like Braintrust's and Front's rule tables on Mobbin.</p>
-    <div class="xa-frame" data-v="d"></div>
+  <section class="xa-v" id="c2">
+    <div class="xa-vh"><b>C2 · The week</b><span>The hours tile becomes a week strip</span></div>
+    <p class="xa-why">The widest tile draws the week: a bar per day with the hours AiMY covers filled in, so "weekends all day" is seen rather than read. Urgent and not urgent share one card, split down the middle, and urgent words are in the error colour.</p>
+    <div class="xa-frame" data-v="c2"></div>
+  </section>
+  <section class="xa-v" id="c3">
+    <div class="xa-vh"><b>C3 · Dial and timeline</b><span>The Schedule page's clock, and versions as a line</span></div>
+    <p class="xa-why">The hours tile carries the same dial as the Schedule page's clock, so the two pages say it the same way. The manager tile has the person. Versions run left to right as a timeline with the live one filled.</p>
+    <div class="xa-frame" data-v="c3"></div>
+  </section>
+  <section class="xa-v" id="c4">
+    <div class="xa-vh"><b>C4 · One stat bar</b><span>Lighter: one bar for the four facts, then plain rows</span></div>
+    <p class="xa-why">The four tiles become one bar split in four, the rules are rows of chips without a card around them, and versions and templates are two plain lists side by side. The fewest boxes of the four.</p>
+    <div class="xa-frame" data-v="c4"></div>
   </section>
 </div>
 
@@ -305,7 +374,95 @@
         '<li><span><b>v' + (i + 1) + '</b> <span>' + esc(x.note) + '</span></span>' + (i === vi ? '<span class="x-ok">Live</span>' : '<button class="ah-link" type="button">Go back</button>') + '</li>').join('') + '</ul></div>' +
     '</aside></div>';
 
-  const out = { a: A, b: B, c: Cv, d: D };
+
+  /* C2: the week strip, from the coverage window. Each day is a bar of the
+     24 hours; filled where AiMY covers. */
+  const mins = (t) => +t.slice(0, 2) * 60 + +t.slice(3);
+  const F = mins(w.weeknights.from), T = mins(w.weeknights.to), L = ((T - F) % 1440 + 1440) % 1440 || 1440;
+  const spans = [];
+  for (let d = 0; d < 7; d++) {
+    const wk = d >= 5;
+    if (wk && w.weekends === 'none') continue;
+    if (wk && w.weekends === 'all_day') spans.push([d * 1440 + T, d * 1440 + T + 1440]);
+    else spans.push([d * 1440 + F, d * 1440 + F + L]);
+  }
+  const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const bar = (d) => {
+    const lo = d * 1440, hi = lo + 1440, segs = [];
+    spans.forEach(([a, b]) => {
+      [[a, b], [a - 10080, b - 10080]].forEach(([x, y]) => {
+        const s0 = Math.max(x, lo), s1 = Math.min(y, hi);
+        if (s1 > s0) segs.push([s0 - lo, s1 - lo]);
+      });
+    });
+    segs.sort((p, q) => p[0] - q[0]);
+    const merged = segs.reduce((acc, sg) => { const l = acc[acc.length - 1]; if (l && sg[0] <= l[1]) l[1] = Math.max(l[1], sg[1]); else acc.push(sg.slice()); return acc; }, []);
+    return '<span class="c2-d">' + DAYS[d] + '</span><span class="c2-bar">' + merged.map(([a, b]) =>
+      '<span class="c2-seg" style="left:' + (a / 14.4).toFixed(2) + '%;width:' + ((b - a) / 14.4).toFixed(2) + '%"></span>').join('') + '</span>';
+  };
+  const C2 = scope + head + '<div class="c2-top">' +
+    '<div class="vc-tile"><span class="vc-k">' + IC.moon + 'Covers</span><span class="vc-v">' + clock(w.weeknights.from) + ' – ' + clock(w.weeknights.to) + '</span>' +
+      '<span class="vc-s">' + esc(w.timezone) + ', weekends ' + WK[w.weekends].toLowerCase() + '</span>' +
+      '<div class="c2-week">' + DAYS.map((_, d) => bar(d)).join('') + '<div class="c2-axis"><span>12 am</span><span>6 am</span><span>12 pm</span><span>6 pm</span><span>12 am</span></div></div></div>' +
+    tile(IC.phone, 'Calls last', esc(c.oncall_manager.name), esc(c.oncall_manager.phone)) +
+    tile(IC.clock, 'Stands back', c.pre_window_minutes + ' min', 'before working hours') +
+    tile(IC.eye, 'Watches', c.confirmation_wait_minutes + ' min', 'after someone answers') +
+    '</div><div class="c2-rules">' +
+      '<section><h3 class="x-h3">Urgent when</h3>' + chips(u.keywords).replace(/class="x-chip"/g, 'class="x-chip is-hot"') +
+        (u.customer_tiers ? '<p class="c2-sub">Only for these customers</p>' + chips(u.customer_tiers) : '') + '</section>' +
+      '<section><h3 class="x-h3">Not urgent when</h3>' + chips(c.non_urgent_criteria.keywords, true) +
+        '<p class="c2-sub">Tickets come from</p><span class="x-mono" style="font-size:.8125rem;color:var(--d50)">' + esc(c.crm_source) + '</span></section>' +
+    '</div><div class="vc-two">' +
+      '<section class="x-card"><h3 class="x-h3">Versions</h3>' + f.versions.map((x, i) => [x, i]).reverse().map(([x, i]) =>
+        '<div class="vc-row"><span><b style="color:var(--d50)">Version ' + (i + 1) + '</b><br><span class="vc-s">' + esc(x.note) + ', ' + date(x.when) + '</span></span>' +
+        (i === vi ? '<span class="x-ok">' + IC.check + 'Live</span>' : '<button class="ah-link" type="button">Go back</button>') + '</div>').join('') + '</section>' +
+      '<section class="x-card"><h3 class="x-h3">Templates</h3>' + C.TEMPLATES.map((t) =>
+        '<div class="vc-row"><span><b style="color:var(--d50)">' + esc(t.name) + '</b><br><span class="vc-s">' + esc(t.when) + '</span></span>' + dl(t) + '</div>').join('') + '</section>' +
+    '</div>';
+
+  /* C3: the dial and the version line. */
+  const R = 34, CX = 44;
+  const pt = (m) => { const a = m / 1440 * 2 * Math.PI; return [CX + R * Math.sin(a), CX - R * Math.cos(a)]; };
+  const [x1, y1] = pt(F), [x2, y2] = pt(F + L);
+  const dial = '<svg class="c3-dial" viewBox="0 0 88 88" aria-hidden="true"><circle class="t" cx="44" cy="44" r="34"/>' +
+    '<path class="a" d="M' + x1.toFixed(2) + ' ' + y1.toFixed(2) + ' A34 34 0 ' + (L > 720 ? 1 : 0) + ' 1 ' + x2.toFixed(2) + ' ' + y2.toFixed(2) + '"/></svg>';
+  const C3 = scope + head + '<div class="c3-top">' +
+    '<div class="vc-tile"><span class="vc-k">' + IC.moon + 'Covers</span><div class="c3-cover">' + dial +
+      '<div><span class="vc-v">' + clock(w.weeknights.from) + ' – ' + clock(w.weeknights.to) + '</span><br><span class="vc-s">' + esc(w.timezone) + ', weekends ' + WK[w.weekends].toLowerCase() + '</span></div></div></div>' +
+    '<div class="vc-tile"><span class="vc-k">' + IC.phone + 'Calls last</span><div class="c3-mgr"><span class="x-av">' + initials(c.oncall_manager.name) + '</span>' +
+      '<span><b style="display:block;color:var(--d50)">' + esc(c.oncall_manager.name) + '</b><span class="vc-s">' + esc(c.oncall_manager.phone) + '</span></span></div></div>' +
+    tile(IC.clock, 'Stands back', c.pre_window_minutes + ' min', 'before working hours') +
+    tile(IC.eye, 'Watches', c.confirmation_wait_minutes + ' min', 'after someone answers') +
+    '</div><div class="c3-cols">' +
+      '<section class="x-card"><h3 class="x-h3">Urgent when</h3>' + chips(u.keywords.concat(u.customer_tiers ? u.customer_tiers.map((x) => x + ' customer') : [])) + '</section>' +
+      '<section class="x-card"><h3 class="x-h3">Not urgent when</h3>' + chips(c.non_urgent_criteria.keywords, true) + '</section>' +
+    '</div><section class="x-card" style="margin-top:.75rem"><h3 class="x-h3">Versions</h3><div class="c3-line">' + f.versions.map((x, i) =>
+      '<div class="c3-step' + (i === vi ? ' is-live' : '') + '"><span class="c3-dot"></span><b>Version ' + (i + 1) + '</b><span>' + esc(x.note) + ', ' + date(x.when) + '</span>' +
+      (i === vi ? '<span class="x-ok">' + IC.check + 'Live</span>' : '<button class="ah-link" type="button">Go back</button>') + '</div>').join('') + '</div></section>' +
+    '<h3 class="x-h3" style="margin-top:1.5rem">Templates</h3><div class="vc-tpls">' + C.TEMPLATES.map((t) =>
+      '<div class="vc-tpl"><b>' + esc(t.name) + '</b><p>' + esc(t.when) + '</p>' + dl(t) + '</div>').join('') + '</div>';
+
+  /* C4: one bar, rows, two lists. */
+  const cell = (ic, k, val, sub) => '<div><span class="vc-k">' + ic + esc(k) + '</span><span class="vc-v">' + val + '</span><span class="vc-s">' + sub + '</span></div>';
+  const C4 = scope + head + '<div class="c4-bar">' +
+    cell(IC.moon, 'Covers', clock(w.weeknights.from) + ' – ' + clock(w.weeknights.to), esc(w.timezone) + ', weekends ' + WK[w.weekends].toLowerCase()) +
+    cell(IC.phone, 'Calls last', esc(c.oncall_manager.name), esc(c.oncall_manager.phone)) +
+    cell(IC.clock, 'Stands back', c.pre_window_minutes + ' min', 'before working hours') +
+    cell(IC.eye, 'Watches', c.confirmation_wait_minutes + ' min', 'after someone answers') +
+    '</div><dl class="c4-rows">' +
+      '<dt>Urgent when</dt><dd>' + chips(u.keywords) + '</dd>' +
+      (u.customer_tiers ? '<dt>Only for</dt><dd>' + chips(u.customer_tiers.map((x) => x + ' customers')) + '</dd>' : '') +
+      '<dt>Not urgent when</dt><dd>' + chips(c.non_urgent_criteria.keywords, true) + '</dd>' +
+      '<dt>Tickets from</dt><dd class="x-mono" style="padding-top:.25rem;font-size:.8125rem;color:var(--d50)">' + esc(c.crm_source) + '</dd>' +
+    '</dl><div class="c4-two">' +
+      '<section><h3 class="x-h3">Versions</h3><ul class="c4-list">' + f.versions.map((x, i) => [x, i]).reverse().map(([x, i]) =>
+        '<li><span><b>Version ' + (i + 1) + '</b><span class="vc-s">' + esc(x.note) + ', ' + date(x.when) + '</span></span>' +
+        (i === vi ? '<span class="x-ok">' + IC.check + 'Live</span>' : '<button class="ah-link" type="button">Go back</button>') + '</li>').join('') + '</ul></section>' +
+      '<section><h3 class="x-h3">Templates</h3><ul class="c4-list">' + C.TEMPLATES.map((t) =>
+        '<li><span><b>' + esc(t.name) + '</b><span class="vc-s">' + esc(t.when) + '</span></span>' + dl(t) + '</li>').join('') + '</ul></section>' +
+    '</div>';
+
+  const out = { a: A, b: B, c: Cv, d: D, c2: C2, c3: C3, c4: C4 };
   document.querySelectorAll('[data-v]').forEach((el) => { el.innerHTML = out[el.getAttribute('data-v')]; });
   document.getElementById('xaTheme').addEventListener('click', () => {
     const r = document.documentElement, light = r.getAttribute('data-theme') === 'light';
