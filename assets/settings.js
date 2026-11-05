@@ -3423,8 +3423,9 @@
     const tonight = fs.indexOf(ahNightFile(key, AH_TODAY));
     const others = fs.map((x, i) => [x, i]).filter(([x, i]) => i !== tonight && ahAw(x) !== 'default');
     const phrase = (x) => { const aw = ahAw(x); return aw.days ? 'on ' + CFG.appliesSay(aw) : aw.dates ? 'on ' + CFG.appliesSay(aw) : 'for ' + ahList(aw.customer_tiers) + ' customers'; };
-    const now = n > 1 ? '<p class="ahc-now"><span class="ahc-now-k">Right now</span> AiMY reads ' + link(tonight) + '.' +
-      (others.length ? ' It reads ' + (() => { const l = others.map(([x, i]) => link(i) + ' ' + esc(phrase(x))); return l.length < 3 ? l.join(' and ') : l.slice(0, -1).join(', ') + ', and ' + l[l.length - 1]; })() + '.' : '') + '</p>' : '';
+    const now = n > 1 ? '<div class="set2-dc-ai ahc-now"><svg class="agv-mk" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
+      '<span><b>Right now</b> AiMY reads ' + link(tonight) + '.' +
+      (others.length ? ' It reads ' + (() => { const l = others.map(([x, i]) => link(i) + ' ' + esc(phrase(x))); return l.length < 3 ? l.join(' and ') : l.slice(0, -1).join(', ') + ', and ' + l[l.length - 1]; })() + '.' : '') + '</span></div>' : '';
     const menu = `<div class="ahc-menu" role="listbox" aria-label="Config files, in the order AiMY checks them"${open ? '' : ' hidden'}>` +
       '<p class="ahc-menu-h">Checked in this order. The first that fits a ticket is the one AiMY reads.</p>' +
       fs.map((x, i) => {
@@ -3445,7 +3446,7 @@
             '<span class="ahc-file-n">' + esc(v.file) + '<span class="ahc-fmt">' + CFG.FMT_LABEL[v.fmt] + '</span><span class="ahc-chev">' + AH_IC.chev + '</span></span>' +
             '<span class="ahc-file-m">' + esc(CFG.nameOf(v.data)) + ', ' + (ix + 1) + ' of ' + n + '. Version ' + (f.live + 1) + ', ' + esc(ahDate(v.when)) + '</span></span></button>' +
           menu + '</div>' +
-        '<div class="ahc-acts"><span class="ahc-ok">' + AH_IC.check + 'AiMY reads it</span>' +
+        '<div class="ahc-acts">' +
           `<button class="agv-btn ahc-btn" type="button" data-ah-download="${f.live}">${AH_IC.down}Download</button>` +
           '<button class="agv-btn is-brand ahc-btn" type="button" data-ah-upload>' + AH_IC.up + 'Upload a new version</button></div></div>' +
       ahFileBody(f) + ahTemplates(sc);
