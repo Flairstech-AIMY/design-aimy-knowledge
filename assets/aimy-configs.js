@@ -28,6 +28,7 @@
      reads the file in, so the first problem reported is the first one met. */
   const FIELDS = [
     ['product_id', 'string'],
+    ['name', 'string', true],
     ['crm_source', 'string'],
     ['coverage_windows', 'object'],
     ['coverage_windows.timezone', 'tz'],
@@ -179,6 +180,7 @@
     if (!data || typeof data !== 'object' || Array.isArray(data)) return { ok: false, line: 1, msg: 'The file should hold named fields, not a list' };
     for (let i = 0; i < FIELDS.length; i++) {
       const [path, kind, optional] = FIELDS[i];
+      if (/^coverage_windows\.(weeknights|weekends)/.test(path) && data.coverage_windows && data.coverage_windows.all_day === true) continue;
       const v = at(data, path), name = path.split('.').pop();
       const parent = path.indexOf('.') > -1 ? path.slice(0, path.lastIndexOf('.')) : '';
       if (v === undefined || v === null || v === '') {
@@ -195,11 +197,58 @@
       if (kind === 'tz' && TZ.indexOf(v) < 0) return say('“timezone” should be EST, AEST or GMT, not “' + v + '”');
       if (kind === 'weekends' && WEEKENDS.indexOf(v) < 0) return say('“weekends” should be all_day, nights or none, not “' + v + '”');
     }
+    /* When this file applies (the GitHub Actions way, like a workflow's
+       `on:`): `default`, or exactly one of days, dates or customer tiers. */
+    const aw = data.applies_when;
+    if (aw !== undefined && aw !== null && aw !== 'default') {
+      const line = lineOf(text, 'applies_when');
+      const say = (m) => ({ ok: false, line, field: 'applies_when', msg: m });
+      const keys = aw && typeof aw === 'object' && !Array.isArray(aw) ? Object.keys(aw) : [];
+      if (keys.length !== 1 || ['days', 'dates', 'customer_tiers'].indexOf(keys[0]) < 0) return say('“applies_when” should be default, or one of days, dates or customer_tiers');
+      const list = aw[keys[0]];
+      if (!Array.isArray(list) || !list.length) return say('“' + keys[0] + '” should be a list');
+      if (keys[0] === 'days') { const bad = list.filter((d) => DAYS.indexOf(String(d).toLowerCase()) < 0)[0]; if (bad !== undefined) return say('“days” should be day names like saturday, not “' + bad + '”'); }
+      if (keys[0] === 'dates') { const bad = list.filter((d) => !/^\d{4}-\d{2}-\d{2}$/.test(String(d)))[0]; if (bad !== undefined) return say('“dates” should be dates like 2026-12-25, not “' + bad + '”'); }
+    }
     if (product && data.product_id !== product) {
       return { ok: false, line: lineOf(text, 'product_id'), field: 'product_id', msg: 'This file is for “' + data.product_id + '”, not “' + product + '”' };
     }
     return { ok: true, data };
   }
+
+  /* ── When a file applies ── */
+  const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const listSay = (a) => (a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]);
+  const dateSay = (d) => +d.slice(8) + ' ' + MON[+d.slice(5, 7) - 1];
+  const awOf = (data) => (data && data.applies_when) || 'default';
+  /* "Saturdays and Sundays", "26 Nov, 25 Dec and 1 Jan", "Platinum customers". */
+  function appliesSay(aw) {
+    if (!aw || aw === 'default') return 'Every ticket the others don’t take';
+    if (aw.days) return listSay(aw.days.map((d) => String(d).charAt(0).toUpperCase() + String(d).slice(1).toLowerCase() + 's'));
+    if (aw.dates) return listSay(aw.dates.map(dateSay));
+    return listSay(aw.customer_tiers) + ' customers, any time';
+  }
+  /* Does this file set the hours for the night that starts on `iso`? Days and
+     dates do; a file for certain customers applies ticket by ticket, so it
+     never sets a night's hours. The default takes every night. */
+  function appliesNight(aw, iso) {
+    if (!aw || aw === 'default') return true;
+    if (aw.days) return aw.days.map((d) => String(d).toLowerCase()).indexOf(DAYS[new Date(iso + 'T12:00:00').getDay()]) > -1;
+    if (aw.dates) return aw.dates.indexOf(iso) > -1;
+    return false;
+  }
+  /* A file's name: its own `name`, or what its condition says. */
+  function nameOf(data) {
+    if (data && data.name) return data.name;
+    const aw = awOf(data);
+    if (aw === 'default') return 'Default';
+    if (aw.days) return aw.days.length === 2 && aw.days.join() === 'saturday,sunday' ? 'Weekends' : 'Set days';
+    if (aw.dates) return 'Set dates';
+    return listSay(aw.customer_tiers) + ' customers';
+  }
+  /* The most files one product may have. */
+  const MAX_FILES = 4;
 
   /* ── Templates ──
      The GitHub Actions way: each says when to use it before what is in it,
@@ -212,7 +261,8 @@
     non_urgent_criteria: { keywords: ['how to', 'feature request', 'billing'] },
     oncall_manager: { name: 'Your manager', phone: '+1 555 0100' },
     pre_window_minutes: 15,
-    confirmation_wait_minutes: 15
+    confirmation_wait_minutes: 15,
+    applies_when: 'default'
   }, over || {});
   const TEMPLATES = [
     { id: 'every-night', name: 'Every night and weekend',
@@ -251,31 +301,54 @@
     product_id: 'interfax', crm_source: 'Freshdesk: InterFAX – After hours',
     coverage_windows: { timezone: 'EST', weeknights: { from: '18:00', to: '08:00' }, weekends: 'all_day' },
     oncall_manager: { name: 'Sherif Nabil', phone: '+1 646 555 0187' } }, over || {}));
+  /* InterFAX has four files, the most a product can have: key accounts,
+     holidays and weekends ahead of its default. Its default no longer takes
+     weekends, because the weekend file does. */
+  const ifx = (over) => interfax(Object.assign({ coverage_windows: { timezone: 'EST', weeknights: { from: '18:00', to: '08:00' }, weekends: 'none' } }, over || {}));
+  const allDay = { timezone: 'EST', all_day: true };
   const FILES = {
-    'cxs-copilot': { doc: 'cfg-cxs-copilot', file: 'support-copilot-after-hours.yml', from: 'every-night', versions: [
-      { by: 'Habeba Mourad', when: '2026-10-21', note: 'First version', data: copilot1 },
-      { by: 'Habeba Mourad', when: '2026-11-02', note: 'Data loss counts as urgent', data: copilot2 } ] },
-    interfax: { doc: 'cfg-interfax', file: 'interfax-after-hours.yaml', from: 'tiered', versions: [
-      { by: 'Habeba Mourad', when: '2026-10-20', note: 'First version', data: interfax({ pre_window_minutes: 30 }) },
-      { by: 'Mahmoud Mohamed', when: '2026-10-28', note: 'Pre-window down to 15 minutes', data: interfax() },
-      { by: 'Habeba Mourad', when: '2026-11-02', note: 'Nights end at 8 am', data: interfax() } ] },
-    accuroute: { doc: 'cfg-accuroute', file: 'accuroute-after-hours.json', from: 'weeknights', versions: [
-      { by: 'Habeba Mourad', when: '2026-10-24', note: 'First version', data: cfg('weeknights', {
-        product_id: 'accuroute', crm_source: 'Freshdesk: AccuRoute – After hours',
-        coverage_windows: { timezone: 'AEST', weeknights: { from: '17:30', to: '08:30' }, weekends: 'none' },
-        oncall_manager: { name: 'Sherif Nabil', phone: '+1 646 555 0187' } }) } ] },
-    kapost: { doc: 'cfg-kapost', file: 'kapost-after-hours.xml', from: 'outages', versions: [
-      { by: 'Mahmoud Mohamed', when: '2026-10-30', note: 'First version', data: cfg('outages', {
-        product_id: 'kapost', crm_source: 'Freshdesk: Kapost – After hours',
-        coverage_windows: { timezone: 'GMT', weeknights: { from: '19:00', to: '07:00' }, weekends: 'nights' },
-        oncall_manager: { name: 'Yara Sameh', phone: '+44 20 7946 0321' } }) } ] }
+    'cxs-copilot': [
+      { doc: 'cfg-cxs-copilot', file: 'support-copilot-after-hours.yml', from: 'every-night', versions: [
+        { by: 'Habeba Mourad', when: '2026-10-21', note: 'First version', data: copilot1 },
+        { by: 'Habeba Mourad', when: '2026-11-02', note: 'Data loss counts as urgent', data: copilot2 } ] } ],
+    interfax: [
+      { doc: 'cfg-interfax-key-accounts', file: 'interfax-key-accounts.xml', from: null, versions: [
+        { by: 'Mona Adel', when: '2026-11-03', note: 'First version', data: ifx({ name: 'Key accounts', coverage_windows: allDay, pre_window_minutes: 0, confirmation_wait_minutes: 10,
+          urgency_criteria: { keywords: ['any ticket'], customer_tiers: ['Platinum'] }, non_urgent_criteria: { keywords: ['feature request'] },
+          oncall_manager: { name: 'Mona Adel', phone: '+20 100 555 0142' }, applies_when: { customer_tiers: ['Platinum'] } }) } ] },
+      { doc: 'cfg-interfax-holidays', file: 'interfax-holidays.json', from: null, versions: [
+        { by: 'Habeba Mourad', when: '2026-10-30', note: 'First version', data: ifx({ name: 'Holidays', coverage_windows: allDay, pre_window_minutes: 0,
+          urgency_criteria: { keywords: ['outage', 'down', 'data loss', 'cannot send'], customer_tiers: ['Silver', 'Gold', 'Platinum'] },
+          applies_when: { dates: ['2026-11-26', '2026-12-25'] } }) },
+        { by: 'Habeba Mourad', when: '2026-11-02', note: 'Added 1 Jan', data: ifx({ name: 'Holidays', coverage_windows: allDay, pre_window_minutes: 0,
+          urgency_criteria: { keywords: ['outage', 'down', 'data loss', 'cannot send'], customer_tiers: ['Silver', 'Gold', 'Platinum'] },
+          applies_when: { dates: ['2026-11-26', '2026-12-25', '2027-01-01'] } }) } ] },
+      { doc: 'cfg-interfax-weekends', file: 'interfax-weekends.yaml', from: null, versions: [
+        { by: 'Mahmoud Mohamed', when: '2026-10-28', note: 'First version', data: ifx({ name: 'Weekends', coverage_windows: allDay, pre_window_minutes: 0,
+          oncall_manager: { name: 'Yara Sameh', phone: '+1 646 555 0142' }, applies_when: { days: ['saturday', 'sunday'] } }) } ] },
+      { doc: 'cfg-interfax', file: 'interfax-after-hours.yaml', from: 'tiered', versions: [
+        { by: 'Habeba Mourad', when: '2026-10-20', note: 'First version', data: ifx({ pre_window_minutes: 30 }) },
+        { by: 'Mahmoud Mohamed', when: '2026-10-28', note: 'Pre-window down to 15 minutes', data: ifx() },
+        { by: 'Habeba Mourad', when: '2026-11-02', note: 'Nights end at 8 am', data: ifx() } ] } ],
+    accuroute: [
+      { doc: 'cfg-accuroute', file: 'accuroute-after-hours.json', from: 'weeknights', versions: [
+        { by: 'Habeba Mourad', when: '2026-10-24', note: 'First version', data: cfg('weeknights', {
+          product_id: 'accuroute', crm_source: 'Freshdesk: AccuRoute – After hours',
+          coverage_windows: { timezone: 'AEST', weeknights: { from: '17:30', to: '08:30' }, weekends: 'none' },
+          oncall_manager: { name: 'Sherif Nabil', phone: '+1 646 555 0187' } }) } ] } ],
+    kapost: [
+      { doc: 'cfg-kapost', file: 'kapost-after-hours.xml', from: 'outages', versions: [
+        { by: 'Mahmoud Mohamed', when: '2026-10-30', note: 'First version', data: cfg('outages', {
+          product_id: 'kapost', crm_source: 'Freshdesk: Kapost – After hours',
+          coverage_windows: { timezone: 'GMT', weeknights: { from: '19:00', to: '07:00' }, weekends: 'nights' },
+          oncall_manager: { name: 'Yara Sameh', phone: '+44 20 7946 0321' } }) } ] } ]
   };
   /* Each version carries its text in the file's own format. */
-  Object.keys(FILES).forEach((k) => {
-    const f = FILES[k];
+  Object.keys(FILES).forEach((k) => FILES[k].forEach((f) => {
     f.fmt = fmtOf(f.file);
     f.versions.forEach((v) => { v.text = write(v.data, f.fmt); });
-  });
+  }));
 
-  window.AIMY_CFG = { EXT, FMT_LABEL, fmtOf, TZ, FIELDS, write, read, check, TEMPLATES, template, fill, FILES };
+  window.AIMY_CFG = { EXT, FMT_LABEL, fmtOf, TZ, FIELDS, write, read, check, TEMPLATES, template, fill, FILES,
+    MAX_FILES, awOf, appliesSay, appliesNight, nameOf };
 })();

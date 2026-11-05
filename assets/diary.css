@@ -503,82 +503,119 @@ div.ah-opt { flex-wrap: wrap; }
 .ah-empty b { color: var(--d50); font-weight: var(--fw-semibold); }
 
 /* ── 24/7 › Configuration ──
-   Cleaner pass (Nour, 5 Nov; Mobbin: Copilot's Customization, Reddit's
-   Automoderator tabs, Wellfound's resume row, Snowflake's template rows):
-   one header row instead of a file card, tabs instead of four stacked
-   sections, the file's meaning in three groups, and templates as a list. */
+   Variant C3 (Nour, 5 Nov), ported value for value from explore-config.html:
+   the file name as the switcher over up to four files, a Right now line,
+   four tiles with the Schedule clock in the first, urgent and not urgent as
+   chips, the versions as a line, then templates. */
 .ahc { display: flex; flex-direction: column; padding-top: 1.5rem; }
-.ahc-ok { color: var(--ink-ok); font-weight: var(--fw-semibold); }
-.ahc-warn { color: var(--ink-warn); font-weight: var(--fw-semibold); }
-.ahc-bad { color: var(--ink-err); font-weight: var(--fw-semibold); }
-.ahc-acts { display: flex; flex-wrap: wrap; gap: .5rem; }
-.ahc-acts .agv-btn { display: inline-flex; align-items: center; gap: .375rem; }
-.ahc-acts .agv-btn svg { width: 1rem; height: 1rem; }
-/* The header row: the file on the left, its two actions on the right. */
-.ahc-top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem 1.5rem; padding: .25rem 0 0; }
-.ahc-top-t { flex: 1 1 20rem; min-width: 0; display: flex; flex-direction: column; gap: .375rem; }
-.ahc-file-n { display: flex; align-items: center; gap: .5rem; font-family: var(--font-mono); font-size: 1rem; font-weight: var(--fw-semibold); color: var(--d50); overflow-wrap: anywhere; }
-.ahc-file-m { font-size: .875rem; line-height: 1.5; color: var(--ink-secondary); }
-.ahc-file-m .ah-link { font-size: inherit; }
+.ahc-ok { display: inline-flex; align-items: center; gap: .375rem; color: var(--ink-ok); font-weight: var(--fw-semibold); font-size: .875rem; }
+.ahc-ok svg { width: 1rem; height: 1rem; }
+.ahc-warn { color: var(--ink-warn); font-weight: var(--fw-semibold); font-size: .875rem; }
+.ahc-bad { color: var(--ink-err); font-weight: var(--fw-semibold); font-size: .875rem; }
+.ahc-s { display: block; font-size: .8125rem; line-height: 1.45; color: var(--ink-secondary); }
+.ahc-acts { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }
+.ahc-btn { display: inline-flex; align-items: center; gap: .375rem; }
+.ahc-btn svg { width: 1rem; height: 1rem; }
 .ahc-none { margin: 0; font-size: .9375rem; line-height: 1.6; color: var(--ink-secondary); }
 .ahc-none b { color: var(--d50); font-weight: var(--fw-semibold); }
-.ahc .set2-tabs { margin-top: 1.5rem; }
-/* Four tabs stay on one line at phone width: tighter, and scrolling
-   sideways rather than wrapping a tab under the others. */
-@media (max-width: 559.98px) {
-  .ahc .set2-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
-  .ahc .set2-tab { padding: .5rem .375rem; flex: none; }
-}
-.ahc-body { padding-top: 1.5rem; }
+/* Right now: which file AiMY reads, each name a way to it. */
+.ahc-now { margin: 0 0 1rem; padding: .75rem 1rem; border-radius: var(--r-md); background: rgba(var(--accent-rgb), .08); font-size: .875rem; line-height: 1.55; color: var(--ink-primary); }
+.ahc-now-k { margin-right: .375rem; font-weight: var(--fw-bold); color: var(--ink-action); }
+.ahc-jump { border: 0; background: none; padding: 0; font: inherit; font-family: var(--font-mono); font-size: .8125rem; font-weight: var(--fw-semibold); color: var(--ink-action); cursor: pointer; text-decoration: underline; text-underline-offset: .2em; text-decoration-color: rgba(var(--accent-rgb), .45); }
+.ahc-jump:hover { text-decoration-color: currentColor; }
+.ahc-jump:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: .25rem; }
+/* The header: the file name is the switcher, the actions on the right. */
+.ahc-top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+.ahc-pickwrap { position: relative; min-width: 0; }
+.ahc-pick { display: flex; align-items: center; gap: .75rem; padding: .375rem .625rem .375rem .375rem; margin: -.375rem 0 -.375rem -.375rem; border: 1px solid transparent; border-radius: var(--r-lg); background: none; font: inherit; text-align: left; color: inherit; cursor: pointer; min-width: 0; }
+.ahc-pick:hover, .ahc-pickwrap.is-open .ahc-pick { border-color: var(--card-border-hover); background: rgba(var(--accent-rgb), .06); }
+.ahc-pick:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.ahc-file-i { width: 2.5rem; height: 2.5rem; flex: none; border-radius: var(--r-md); display: grid; place-items: center; background: rgba(var(--accent-rgb), .14); color: var(--ink-action); }
+.ahc-file-i svg { width: 1.25rem; height: 1.25rem; }
+.ahc-pick-t { display: flex; flex-direction: column; min-width: 0; }
+.ahc-file-n { display: flex; align-items: center; gap: .5rem; font-family: var(--font-mono); font-size: 1rem; font-weight: var(--fw-semibold); color: var(--d50); overflow-wrap: anywhere; }
+.ahc-fmt { flex: none; white-space: nowrap; display: inline-flex; align-items: center; height: 1.375rem; padding: 0 .5rem; border-radius: var(--r-pill); border: 1px solid var(--card-border); font-family: var(--font-sans); font-size: .6875rem; font-weight: var(--fw-semibold); letter-spacing: .04em; color: var(--d50); }
+.ahc-chev { display: inline-grid; color: var(--ink-secondary); transition: transform var(--t-fast); }
+.ahc-chev svg { width: 1rem; height: 1rem; }
+.ahc-pickwrap.is-open .ahc-chev { transform: rotate(180deg); }
+.ahc-file-m { margin-top: .125rem; font-size: .8125rem; color: var(--ink-secondary); }
+/* The file menu: the files in the order AiMY checks them. */
+.ahc-menu { position: absolute; z-index: 30; top: calc(100% + .5rem); left: -.375rem; width: 26rem; max-width: calc(100vw - 2rem); padding: .375rem; border-radius: var(--r-lg); border: 1px solid var(--card-border-hover); background: var(--card-bg-raised, var(--card-bg)); box-shadow: 0 12px 32px rgba(0, 0, 0, .32); }
+.ahc-menu[hidden] { display: none; }
+.ahc-menu-h { margin: 0; padding: .5rem .625rem .625rem; font-size: .8125rem; line-height: 1.45; color: var(--ink-secondary); }
+.ahc-opt { border-radius: var(--r-md); }
+.ahc-opt:hover { background: rgba(var(--accent-rgb), .08); }
+.ahc-opt.is-on { background: rgba(var(--accent-rgb), .14); }
+.ahc-opt-b { position: relative; width: 100%; display: flex; align-items: flex-start; gap: .625rem; padding: .625rem .625rem .375rem 2.625rem; border: 0; background: none; font: inherit; text-align: left; color: inherit; cursor: pointer; border-radius: var(--r-md); }
+.ahc-opt-b:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.ahc-num { position: absolute; left: .625rem; top: .625rem; width: 1.375rem; height: 1.375rem; border-radius: 999px; display: grid; place-items: center; background: rgba(var(--accent-rgb), .16); font-size: .75rem; font-weight: var(--fw-bold); color: var(--d50); }
+.ahc-opt.is-on .ahc-num { background: var(--brand); color: #fff; }
+.ahc-opt-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .125rem; }
+.ahc-opt-t b { font-size: .9375rem; color: var(--d50); }
+.ahc-f { font-family: var(--font-mono); font-size: .75rem; color: var(--ink-secondary); overflow-wrap: anywhere; }
+.ahc-tick { color: var(--ink-action); padding-top: .125rem; }
+.ahc-tick svg { width: 1rem; height: 1rem; }
+.ahc-up { display: block; margin: 0 0 0 2.625rem; padding: 0 0 .5rem; font-size: .8125rem; }
+.ahc-menu-f { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: .25rem; padding: .625rem .625rem .375rem; border-top: 1px solid var(--card-border); font-size: .8125rem; }
+.ahc-menu-f .ahc-s { display: inline; }
+/* The tiles: the hours on the Schedule clock, who is called last, how long
+   AiMY stands back, how long it watches. */
+.ahc-tiles { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)); gap: .75rem; margin-top: 1.5rem; }
+.ahc-tile { display: flex; flex-direction: column; gap: .375rem; padding: 1rem; border-radius: var(--r-lg); border: 1px solid var(--card-border); background: var(--card-bg); }
+.ahc-k { display: flex; align-items: center; gap: .375rem; font-size: .8125rem; color: var(--ink-secondary); }
+.ahc-k svg { width: .875rem; height: .875rem; }
+.ahc-v { display: block; font-size: 1.25rem; font-weight: var(--fw-bold); color: var(--d50); font-variant-numeric: tabular-nums; line-height: 1.25; }
+.ahc-cover { display: flex; align-items: center; gap: 1rem; }
+.ahc-cover .ah-dial.ahc-clock { width: 5.5rem; height: 5.5rem; }
+.ahc-clock circle.ah-arc { fill: none; }
+.ahc-mgr { display: flex; align-items: center; gap: .625rem; margin-top: .125rem; }
+.ahc-mgr b { display: block; font-size: .9375rem; color: var(--d50); }
+.ahc-av { width: 2rem; height: 2rem; flex: none; border-radius: 999px; display: grid; place-items: center; background: rgba(var(--accent-rgb), .18); color: var(--d50); font-size: .75rem; font-weight: var(--fw-bold); }
+.ahc-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; margin-top: .75rem; }
+.ahc-card { padding: 1.25rem; border-radius: var(--r-lg); border: 1px solid var(--card-border); background: var(--card-bg); }
+.ahc-h3 { margin: 0 0 .75rem; font-size: .9375rem; font-weight: var(--fw-semibold); color: var(--d50); }
+.ahc-chips { display: flex; flex-wrap: wrap; gap: .375rem; }
+.ahc-chip { display: inline-flex; align-items: center; height: 1.75rem; padding: 0 .625rem; border-radius: var(--r-pill); background: rgba(var(--accent-rgb), .12); color: var(--d50); font-size: .8125rem; font-weight: var(--fw-medium); white-space: nowrap; }
+.ahc-chip.is-no { background: rgba(var(--accent-rgb), .05); border: 1px solid var(--card-border); }
+/* Versions as a line, the live one filled. */
+.ahc-vercard { margin-top: .75rem; }
+.ahc-line { list-style: none; margin: .25rem 0 0; padding: 0; display: flex; align-items: flex-start; }
+.ahc-step { flex: 1; position: relative; padding-top: 1.5rem; min-width: 0; }
+.ahc-step::before { content: ""; position: absolute; top: .4375rem; left: 0; right: 0; height: 2px; background: var(--card-border-hover); }
+.ahc-step:first-child::before { left: .5rem; }
+.ahc-step:last-child::before { right: calc(100% - .5rem); }
+.ahc-step:only-child::before { display: none; }
+.ahc-dot { position: absolute; top: 0; left: 0; width: 1rem; height: 1rem; border-radius: 999px; background: var(--body-bg); border: 2px solid var(--card-border-hover); }
+.ahc-step.is-live .ahc-dot { background: var(--brand); border-color: var(--brand); }
+.ahc-step b { display: block; font-size: .875rem; color: var(--d50); }
+.ahc-step-t { display: block; margin-top: .125rem; padding-right: 1rem; font-size: .8125rem; line-height: 1.45; color: var(--ink-secondary); }
+.ahc-step .ah-link, .ahc-step .ahc-ok { margin-top: .375rem; font-size: .8125rem; }
+/* Templates: when to use each, then the formats. */
 .ahc-h2 { margin: 2.5rem 0 .5rem; font-size: 1.125rem; font-weight: var(--fw-semibold); color: var(--d50); }
 .ahc-lede { margin: 0 0 1rem; max-width: 40rem; font-size: .875rem; line-height: 1.55; color: var(--ink-secondary); }
-.ahc-fmt { display: inline-flex; align-items: center; height: 1.75rem; padding: 0 .75rem; border-radius: var(--r-pill); border: 1px solid var(--card-border); background: none; font: inherit; font-size: .75rem; font-weight: var(--fw-semibold); letter-spacing: .04em; color: var(--d50); cursor: pointer; transition: border-color var(--t-fast), background-color var(--t-fast); }
-.ahc-fmt:hover { border-color: var(--card-border-hover); background: rgba(var(--accent-rgb), .12); }
-.ahc-fmt:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
-.ahc-fmt.is-static { cursor: default; height: 1.375rem; padding: 0 .5rem; font-family: var(--font-sans); }
-.ahc-fmt.is-static:hover { border-color: var(--card-border); background: none; }
-/* In words: three groups, each a short heading over label and value. No
-   rule under every row; the groups carry the structure. */
-.ahc-groups { display: flex; flex-direction: column; gap: 2rem; max-width: 52rem; }
-.ahc-grp-t { margin: 0 0 .5rem; font-size: .9375rem; font-weight: var(--fw-semibold); color: var(--d50); }
-.ahc-words { margin: 0; display: flex; flex-direction: column; gap: .5rem; }
-.ahc-row { display: grid; grid-template-columns: 9rem minmax(0, 1fr); gap: 1rem; }
-.ahc-row dt { font-size: .875rem; color: var(--ink-secondary); line-height: 1.6; }
-.ahc-row dd { margin: 0; font-size: .9375rem; line-height: 1.6; color: var(--ink-primary); }
-.ahc-row dd b { font-weight: var(--fw-semibold); }
-@media (max-width: 559.98px) { .ahc-row { grid-template-columns: minmax(0, 1fr); gap: 0; } }
-/* The file as it is, with its line numbers. */
+.ahc-tpls { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
+.ahc-tpl { display: flex; flex-direction: column; gap: .5rem; padding: 1rem; border-radius: var(--r-lg); border: 1px solid var(--card-border); }
+.ahc-tpl b { font-size: .875rem; color: var(--d50); }
+.ahc-tpl p { margin: 0; flex: 1; font-size: .8125rem; line-height: 1.5; color: var(--ink-secondary); }
+.ahc-tag { align-self: flex-start; padding: .0625rem .5rem; border-radius: var(--r-pill); background: rgba(var(--accent-rgb), .16); font-size: .75rem; font-weight: var(--fw-semibold); color: var(--ink-action); }
+.ahc-dl { flex: none; align-self: flex-start; display: inline-flex; border: 1px solid var(--card-border); border-radius: var(--r-pill); overflow: hidden; }
+.ahc-dl button { border: 0; background: none; padding: 0 .625rem; height: 1.75rem; font: inherit; font-size: .75rem; font-weight: var(--fw-semibold); color: var(--d50); cursor: pointer; }
+.ahc-dl button + button { border-left: 1px solid var(--card-border); }
+.ahc-dl button:hover { background: rgba(var(--accent-rgb), .12); }
+.ahc-dl button:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+/* The file as it is, for a refused upload's lines. */
 .ahc-code { margin: 0; padding: .875rem 0; border-radius: var(--r-lg); background: var(--card-bg); border: 1px solid var(--card-border); overflow-x: auto; font-family: var(--font-mono); font-size: .8125rem; line-height: 1.7; color: var(--ink-primary); }
 .ahc-code code { font: inherit; }
 .ahc-ln { display: block; padding: 0 1rem 0 0; white-space: pre; }
 .ahc-n { display: inline-block; width: 3rem; padding-right: 1rem; text-align: right; color: var(--d200); user-select: none; }
 .ahc-ln.is-bad { background: var(--err-bg); box-shadow: inset 3px 0 0 var(--ink-err); }
 .ahc-ln.is-bad .ahc-n { color: var(--ink-err); font-weight: var(--fw-bold); }
-/* A refused upload: what is wrong, where, and that nothing changed. */
 .ahc-err { display: flex; flex-direction: column; gap: .75rem; margin-bottom: 1.5rem; padding: 1rem 1.25rem; border-radius: var(--r-lg); background: var(--err-bg); border: 1px solid var(--err-border, var(--ink-err)); }
 .ahc-err p { margin: 0; font-size: .9375rem; line-height: 1.6; color: var(--ink-primary); }
 .ahc-err b { color: var(--ink-err); font-weight: var(--fw-semibold); }
 .ahc-err .ahc-code { background: var(--body-bg); }
-/* Versions, newest first. */
-.ahc-vers { list-style: none; margin: 0; padding: 0; max-width: 52rem; }
-.ahc-ver { display: flex; align-items: center; gap: 1rem; padding: .875rem 0; }
-.ahc-ver + .ahc-ver { border-top: 1px solid var(--card-border); }
-.ahc-ver-n { flex: none; width: 5.5rem; font-size: .875rem; font-weight: var(--fw-semibold); color: var(--d50); font-variant-numeric: tabular-nums; }
-.ahc-ver-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .125rem; font-size: .9375rem; color: var(--ink-primary); }
-.ahc-ver-m { font-size: .8125rem; color: var(--d200); }
-.ahc-ver .ahc-ok, .ahc-ver .ah-link { flex: none; font-size: .875rem; }
-/* Templates: a row each, when to use it first, the formats on the right. */
-.ahc-tpls { list-style: none; margin: 0; padding: 0; max-width: 52rem; }
-.ahc-tpl { display: flex; align-items: center; gap: 1.5rem; padding: 1rem 0; }
-.ahc-tpl + .ahc-tpl { border-top: 1px solid var(--card-border); }
-.ahc-tpl-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .25rem; }
-.ahc-tpl-t { display: flex; align-items: center; gap: .5rem; font-size: .9375rem; font-weight: var(--fw-semibold); color: var(--d50); }
-.ahc-tpl-w { font-size: .875rem; line-height: 1.55; color: var(--ink-secondary); }
-.ahc-tpl-a { flex: none; display: flex; gap: .375rem; }
-.ahc-tag { padding: .0625rem .5rem; border-radius: var(--r-pill); background: rgba(var(--accent-rgb), .16); font-size: .75rem; font-weight: var(--fw-semibold); color: var(--ink-action); }
-@media (max-width: 559.98px) { .ahc-tpl { flex-direction: column; align-items: flex-start; gap: .625rem; } }
-/* A client's products, each a row into its own file. */
-.ahc-prods { list-style: none; margin: .5rem 0 0; padding: 0; max-width: 52rem; }
+/* A client's products, each a row into its files. */
+.ahc-prods { list-style: none; margin: .5rem 0 0; padding: 0; max-width: 56rem; }
 .ahc-prods li + li .ahc-prod { border-top: 1px solid var(--card-border); }
 .ahc-prod { width: 100%; display: grid; grid-template-columns: minmax(8rem, 13rem) minmax(0, 1fr) auto 1rem; align-items: center; gap: 1rem; padding: .875rem .25rem; border: 0; background: none; font: inherit; text-align: left; color: inherit; cursor: pointer; border-radius: var(--r-sm); }
 .ahc-prod:hover { background: rgba(var(--accent-rgb), .06); }
@@ -586,9 +623,20 @@ div.ah-opt { flex-wrap: wrap; }
 .ahc-prod svg { width: 1rem; height: 1rem; color: var(--d200); }
 .ahc-prod-n { font-size: .9375rem; font-weight: var(--fw-semibold); color: var(--d50); }
 .ahc-prod-f { font-size: .875rem; color: var(--ink-secondary); overflow-wrap: anywhere; }
-.ahc-prod > span:nth-child(3) { font-size: .875rem; }
+@media (max-width: 899.98px) {
+  .ahc-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ahc-tiles > :first-child { grid-column: 1 / -1; }
+  .ahc-cols { grid-template-columns: minmax(0, 1fr); }
+  .ahc-tpls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 @media (max-width: 559.98px) {
+  .ahc-tiles, .ahc-tpls { grid-template-columns: minmax(0, 1fr); }
+  .ahc-line { flex-direction: column; gap: 1rem; }
+  .ahc-step { padding: 0 0 0 1.75rem; }
+  .ahc-step::before { top: 0; bottom: -1rem; left: .4375rem; right: auto; width: 2px; height: auto; }
+  .ahc-step:last-child::before { display: none; }
   .ahc-prod { grid-template-columns: minmax(0, 1fr) 1rem; gap: .25rem .75rem; }
   .ahc-prod-n, .ahc-prod-f, .ahc-prod > span:nth-child(3) { grid-column: 1; }
   .ahc-prod svg { grid-column: 2; grid-row: 1 / span 3; }
 }
+@media (prefers-reduced-motion: reduce) { .ahc-chev { transition: none; } }

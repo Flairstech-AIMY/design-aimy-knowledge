@@ -2549,23 +2549,39 @@
   /* ── Configuration files ──
      Knowledge owns the documents (assets/aimy-configs.js holds the ones the
      prototype starts with). This is the Console's copy of each product's
-     versions, so a rollback or an upload here takes effect at once. */
+     files and their versions, so a rollback or an upload here takes effect
+     at once.
+
+     A product has up to four files (Nour, 5 Nov). Each says when it applies,
+     the GitHub Actions way: `applies_when` is default, or days, dates or
+     customer tiers. They are kept in the order AiMY checks them; for a
+     ticket it reads the first that fits, and the default, which fits
+     everything, is last. AiMY never merges two files. */
   const CFG = window.AIMY_CFG;
   const AH_CFG = {};
   Object.keys(CFG.FILES).forEach((k) => {
-    const f = CFG.FILES[k];
-    AH_CFG[k] = { doc: f.doc, file: f.file, fmt: f.fmt, from: f.from, live: f.versions.length - 1,
-      versions: f.versions.map((v) => Object.assign({ file: f.file, fmt: f.fmt }, v)), failed: null };
+    AH_CFG[k] = { failed: null, files: CFG.FILES[k].map((f) => ({ doc: f.doc, from: f.from, live: f.versions.length - 1,
+      versions: f.versions.map((v) => Object.assign({ file: f.file, fmt: f.fmt }, v)) })) };
   });
-  const ahCfg = (key) => (AH_CFG[key] ? AH_CFG[key].versions[AH_CFG[key].live].data : null);
+  const ahFiles = (key) => (AH_CFG[key] ? AH_CFG[key].files : []);
+  const ahLiveOf = (f) => f.versions[f.live];
+  const ahAw = (f) => CFG.awOf(ahLiveOf(f).data);
+  const ahDefFile = (key) => ahFiles(key).filter((f) => ahAw(f) === 'default')[0] || null;
+  /* The default file's settings: the product's usual night. */
+  const ahCfg = (key) => { const f = ahDefFile(key); return f ? ahLiveOf(f).data : null; };
+  /* The file that sets a night's hours: the first in order whose days or
+     dates take that night. A file for certain customers applies ticket by
+     ticket, so it never sets a night. */
+  const ahNightFile = (key, s) => ahFiles(key).filter((f) => CFG.appliesNight(ahAw(f), s))[0] || ahDefFile(key);
   const ahMin = (t) => +String(t).slice(0, 2) * 60 + +String(t).slice(3, 5);
   const ahHours = (key) => {
     const c = ahCfg(key);
-    if (!c) return null;
+    if (!c || !c.coverage_windows.weeknights) return null;
     const w = c.coverage_windows;
     return { from: ahMin(w.weeknights.from), to: ahMin(w.weeknights.to), tz: w.timezone, weekends: w.weekends };
   };
-  const ahManager = (key) => { const c = ahCfg(key); return c ? c.oncall_manager : null; };
+  /* Who is called when nobody on call answers: the night's file's manager. */
+  const ahManager = (key, s) => { const f = s ? ahNightFile(key, s) : ahDefFile(key); return f ? ahLiveOf(f).data.oncall_manager : null; };
 
   /* Schedules by product. `rota[iso]` is the night's queue, in call order;
      `avail[iso][pid]` is when that person is available, as minutes from the
@@ -2618,8 +2634,10 @@
   let AH_EDIT = false, AH_FIND = false, AH_Q = '', AH_FRESH = [];
   /* What to put focus back on after a repaint (a selector). */
   let AH_REFOCUS = '';
-  /* Configuration: "In words" or "The file". */
-  let AH_CFGVIEW = 'words';
+  /* Configuration: which file is open, by product, and whether the file
+     menu is open. */
+  const AH_CFGFILE = {};
+  let AH_CFGMENU = false;
 
   const ahD = (s) => new Date(s + 'T12:00:00');
   const ahIso = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -2668,7 +2686,7 @@
     const client = (node && ahClientOf(node.id)) || CLIENTS().filter((c) => c.id === 'cxs')[0];
     const prods = ahProducts(client);
     let prod = node && node.type === 'Product' ? node : null;
-    if (!prod && st.m !== 'ahconfig') prod = prods.filter((p) => AH_CFG[p.id])[0] || prods[0] || null;
+    if (!prod && st.m !== 'ahconfig') prod = prods.filter((p) => ahFiles(p.id).length)[0] || prods[0] || null;
     return { client, prod, prods, key: prod ? prod.id : '' };
   }
   const ahBook = (key) => {
@@ -2680,13 +2698,17 @@
   /* "Mohamed, then Sara": the order a night's queue is called in. */
   const ahThen = (q, wrap) => q.map((id) => (wrap || esc)(ahFirst(id))).join(', then ');
 
-  /* ── The hours a night covers, from the config file ──
+  /* ── The hours a night covers, from the night's config file ──
      `start` is the clock time it begins and `len` how long it runs, in
-     minutes. A weekend day under "all_day" runs from the morning the night
-     before ends to the next morning. Null when the file does not cover it. */
+     minutes. A whole day (a weekend under "all_day", or a file that covers
+     every hour) runs from the morning the night before ends to the next
+     morning. Null when the files do not cover it. */
   function ahSpan(key, s) {
-    const h = ahHours(key);
-    if (!h) return null;
+    const nf = ahNightFile(key, s);
+    if (!nf) return null;
+    const w = ahLiveOf(nf).data.coverage_windows, base = ahHours(key);
+    if (w.all_day) return { start: base ? base.to : 9 * 60, len: 1440, allDay: true };
+    const h = { from: ahMin(w.weeknights.from), to: ahMin(w.weeknights.to), weekends: w.weekends };
     const dow = ahD(s).getDay(), wkend = dow === 0 || dow === 6;
     if (wkend && h.weekends === 'none') return null;
     if (wkend && h.weekends === 'all_day') return { start: h.to, len: 1440, allDay: true };
@@ -2764,7 +2786,7 @@
       return { k: 'k-ok', kind: 'answered', what: ahPl(o.n, 'urgent ticket') + '. ' + ahThen(q.slice(0, o.top), (x) => x) + ' didn’t answer, so ' +
         ahFirst(q[o.top]) + ', ' + AH_NTH[o.top] + ' in line, took ' + (o.n === 1 ? 'it' : 'them') + (o.min ? ' in ' + o.min + ' min' : '') + '.' };
     }
-    const m = ahManager(key);
+    const m = ahManager(key, s);
     return { k: 'k-up', kind: 'went up', what: ahPl(o.n, 'urgent ticket') + '. Nobody on call answered, so AiMY called ' + (m ? m.name + ', the on-call manager' : 'the on-call manager') + '.' };
   }
 
@@ -2776,7 +2798,7 @@
   function ahNote(sc, days) {
     const key = sc.key, b = ahBook(key), bits = [], nm = esc(sc.prod.name);
     const span = days.length > 7 ? 'this month' : 'this week';
-    const mgr = ahManager(key), mName = esc(mgr ? mgr.name : 'the on-call manager');
+    const mgr = ahManager(key, AH_SEL), mName = esc(mgr ? mgr.name : 'the on-call manager');
     /* Only the nights the config file covers count for anything here. */
     const live = days.filter((s) => ahSpan(key, s));
     const load = b.team.map((id) => Object.assign({ id }, ahLoad(key, id, live)))
@@ -2918,7 +2940,7 @@
     if (!sp) {
       const wk = (ahHours(key) || {}).weekends;
       return html + '<div class="ah-q"><span>Not covered</span></div>' +
-        '<p class="ah-sub">' + esc(sc.prod.name) + '’s config file covers ' + (wk === 'none' ? 'weeknights only' : 'other nights') +
+        '<p class="ah-sub">' + esc(sc.prod.name) + '’s config files cover ' + (wk === 'none' ? 'weeknights only' : 'other nights') +
         ', so tickets on this one wait for the day team.</p>';
     }
 
@@ -2937,7 +2959,7 @@
       return html + '<p class="ah-sub">Nobody is on the team yet. <button class="ah-link" type="button" data-ah-editteam="1">Add people</button></p>';
     }
     const chip = (id, kk) => {
-      const a = ahAvail(b, key, sel, id), t = ahAt(sp, kk === 'from' ? a[0] : a[1]);
+      const a = ahAvail(b, key, sel, id), t = ahAt(sp, kk === 'from' ? a[0] : a[1]) + (kk === 'to' && sp.allDay && a[1] === sp.len ? ' next day' : '');
       return `<button class="ah-wchip" type="button" data-ah-avail="${esc(sel + '|' + id + '|' + kk)}" aria-haspopup="listbox"` +
         ` aria-label="${esc(ahFirst(id) + ' is available ' + (kk === 'from' ? 'from ' : 'until ') + t + ', change')}">${esc(t)}${I.down}</button>`;
     };
@@ -3065,8 +3087,9 @@
     return ahRange(AH_TODAY, 8).filter((s) => ahSpan(key, s))[0] || AH_TODAY;
   }
   function ahLadder(sc) {
-    const key = sc.key, b = ahBook(key), c = ahCfg(key), m = c.oncall_manager;
+    const key = sc.key, b = ahBook(key);
     const night = ahNight(key), q = ahQ(b, night);
+    const nf = ahNightFile(key, night), c = ahLiveOf(nf).data, m = c.oncall_manager;
     const when = night === AH_TODAY ? 'tonight' : 'on ' + ahLong(night);
     const time = (n) => `<div class="ah-tl-t" style="padding-top:.9375rem">${n} min</div>`;
     const rail = (first, last, rota) => `<div class="ah-tl-rail${first ? ' is-first' : ''}${last ? ' is-last' : ''}"><span class="ah-tl-dot${rota ? ' is-rota' : ''}"></span></div>`;
@@ -3093,7 +3116,7 @@
       '<div class="set2-sec-h"><h2 class="set2-sec-t">If nobody answers</h2></div>' +
       '<p class="ah-ladder-l">' + lede + '</p>' + h +
       '<p class="ah-tl-note">When someone answers, AiMY watches the ticket for ' + c.confirmation_wait_minutes + ' minutes. If nothing happens on it, AiMY calls the people on call again. ' +
-        'The manager and this wait come from <button class="ah-link" type="button" data-ah-cfgopen>' + esc(AH_CFG[key].versions[AH_CFG[key].live].file) + '</button>.</p>' +
+        'The manager and this wait come from <button class="ah-link" type="button" data-ah-cfgopen="' + ahFiles(key).indexOf(nf) + '">' + esc(ahLiveOf(nf).file) + '</button>.</p>' +
       '</section>';
   }
 
@@ -3103,8 +3126,8 @@
     if (!sc.prod) {
       return '<div class="ah-empty"><p><b>' + esc(sc.client.name) + ' has no products yet.</b> A schedule belongs to a product, so there is nothing to schedule here.</p></div>';
     }
-    if (!ahCfg(sc.key)) {
-      return '<div class="ah-empty"><p><b>' + esc(sc.prod.name) + ' has no config file yet.</b> AiMY reads a product’s hours and its on-call manager from that file, so there are no nights to schedule until it has one.</p>' +
+    if (!ahFiles(sc.key).length || !ahCfg(sc.key)) {
+      return '<div class="ah-empty"><p><b>' + esc(sc.prod.name) + ' has no ' + (ahFiles(sc.key).length ? 'default ' : '') + 'config file yet.</b> AiMY reads a product’s hours and its on-call manager from that file, so there are no nights to schedule until it has one.</p>' +
         '<button class="agv-btn is-brand" type="button" data-ah-cfgopen>Add its config file</button></div>';
     }
     return '<div class="b-diary">' + ahCalBody(sc) + '</div>' + ahLadder(sc);
@@ -3129,11 +3152,11 @@
         '<span class="set2-pop-k">' + I.tick + '</span></button>';
     const html = which === 'client'
       ? CLIENTS().map((c) => {
-          const ps = ahProducts(c), n = ps.filter((p) => AH_CFG[p.id]).length;
+          const ps = ahProducts(c), n = ps.filter((p) => ahFiles(p.id).length).length;
           return item(c.id, c.name, !ps.length ? 'no products' : n + ' of ' + ps.length + ' products have a config file', c.id === sc.client.id);
         }).join('')
       : (st.m === 'ahconfig' ? item(sc.client.id, 'All products', 'every product’s config file', !sc.prod) : '') +
-        sc.prods.map((p) => item(p.id, p.name, AH_CFG[p.id] ? AH_CFG[p.id].file : 'no config file yet', sc.prod && sc.prod.id === p.id)).join('');
+        sc.prods.map((p) => { const fs = ahFiles(p.id); return item(p.id, p.name, fs.length > 1 ? fs.length + ' config files' : fs.length ? ahLiveOf(fs[0]).file : 'no config file yet', sc.prod && sc.prod.id === p.id); }).join('');
     popover(anchor, html);
   }
 
@@ -3179,8 +3202,8 @@
       '<div class="ah-clock-d">' +
         '<div class="ah-clock-t"><span class="ah-tok is-static">' + esc(ahClock(h.from)) + '</span><span class="ah-clock-dash" aria-hidden="true">–</span>' +
           '<span class="ah-tok is-static">' + esc(ahClock(h.to)) + '</span></div>' +
-        '<span class="ah-clock-s">' + esc(h.tz + ' · ' + AH_WKND[h.weekends]) + '</span>' +
-        '<button class="ah-link" type="button" data-ah-cfgopen>Change in the config file</button>' +
+        '<span class="ah-clock-s">' + esc(h.tz + ' · ' + (ahFiles(sc.key).length > 1 ? 'the default file' : AH_WKND[h.weekends])) + '</span>' +
+        '<button class="ah-link" type="button" data-ah-cfgopen>' + (ahFiles(sc.key).length > 1 ? 'See all ' + ahFiles(sc.key).length + ' config files' : 'Change in the config file') + '</button>' +
       '</div>' +
     '</div>';
   }
@@ -3225,7 +3248,7 @@
   function ahState(st) {
     const sc = ahScopeOf(Object.assign({}, st || readURL(), { m: 'afterhours' }));
     if (!sc.prod) return null;
-    if (!ahCfg(sc.key)) return { note: 'No config file', s: 'warn' };
+    if (!ahFiles(sc.key).length) return { note: 'No config file', s: 'warn' };
     const b = ahBook(sc.key);
     const gap = ahRange(AH_TODAY, 7).filter((s) => ahSpan(sc.key, s) && !ahQ(b, s).length)[0];
     if (gap) return { note: gap === AH_TODAY ? 'Nobody on call tonight' : AH_DAY[ahD(gap).getDay()].slice(0, 3) + ' ' + ahD(gap).getDate() + ' has nobody', s: 'warn' };
@@ -3236,27 +3259,51 @@
     const sc = ahScopeOf(Object.assign({}, st || readURL(), { m: 'ahconfig' }));
     const ps = sc.prods;
     if (ps.some((p) => AH_CFG[p.id] && AH_CFG[p.id].failed)) return { note: 'An upload failed', s: 'err' };
-    const none = ps.filter((p) => !AH_CFG[p.id]).length;
+    const none = ps.filter((p) => !ahFiles(p.id).length).length;
     if (none) return { note: none + ' with no file', s: 'warn' };
-    return ps.length ? { note: ps.length + ' files', s: 'ok' } : null;
+    const n = ps.reduce((a, p) => a + ahFiles(p.id).length, 0);
+    return ps.length ? { note: n + ' files', s: 'ok' } : null;
   }
 
   /* ══ 24/7 › Configuration ══════════════════════════════════════════════
-     The file AiMY reads for each product (brief, Feature 0; AIMY-2974).
-     A product's page shows the version AiMY reads, in words or as the file,
-     every earlier version with a one-click way back, and the templates. A
-     client's page lists every product's file, so a file made in Knowledge
-     shows up here as soon as it exists.
+     The files AiMY reads for each product (brief, Feature 0; AIMY-2974).
+     Variant C3 of the variants page (Nour, 5 Nov), ported value for value:
+     the file's name is the switcher, a line says which file AiMY reads right
+     now, then four tiles (the hours on the Schedule page's own clock, who is
+     called last, how long AiMY stands back, how long it watches after an
+     answer), urgent and not urgent as chips, and the versions as a line.
 
-     Templates the GitHub Actions way: each card says when to use it first,
-     and downloads in YAML, JSON or XML with the product already filled in. */
-  const AH_DL_I = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>';
+     A client's page lists every product with its files, so a file made in
+     Knowledge shows up here as soon as it exists. Templates come last, the
+     GitHub Actions way: when to use each, then YAML, JSON or XML. */
+  const ahSvg = (p) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>';
+  /* Lucide: download, upload, file-code-2, check, moon, phone, clock, eye. */
+  const AH_IC = {
+    down: ahSvg('<path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/>'),
+    up: ahSvg('<path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>'),
+    file: ahSvg('<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m10 13-2 2 2 2"/><path d="m14 17 2-2-2-2"/>'),
+    check: ahSvg('<path d="M20 6 9 17l-5-5"/>'),
+    moon: ahSvg('<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>'),
+    phone: ahSvg('<path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/>'),
+    clock: ahSvg('<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>'),
+    eye: ahSvg('<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>'),
+    chev: ahSvg('<path d="m6 9 6 6 6-6"/>')
+  };
   const ahDate = (s) => ahD(s).getDate() + ' ' + AH_MON[ahD(s).getMonth()].slice(0, 3);
   const ahList = (a) => (a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]);
   const ahExt = (fmt) => (fmt === 'yaml' ? 'yaml' : fmt);
+  const ahInit = (n) => n.split(' ').filter(Boolean).map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+  /* The open file of a product: the one chosen, or the one AiMY reads tonight. */
+  const ahOpenIx = (key) => {
+    const fs = ahFiles(key), i = AH_CFGFILE[key];
+    if (i !== undefined && fs[i]) return i;
+    const nf = ahNightFile(key, AH_TODAY);
+    return nf ? fs.indexOf(nf) : 0;
+  };
 
-  /* Knowledge owns the documents. A Configuration File made there arrives
-     here the next time a 24/7 page paints; its product_id says whose it is. */
+  /* Knowledge owns the documents. A Configuration File made or replaced
+     there arrives here the next time a 24/7 page paints: its doc id says
+     which file it is; a new one goes in before the default. */
   const AH_SEEN = {};
   function ahPull() {
     if (!API || !API.configDocs) return;
@@ -3264,43 +3311,26 @@
       const sig = d.id + '@' + d.text.length + ':' + d.text.slice(-40);
       if (AH_SEEN[sig]) return;
       AH_SEEN[sig] = 1;
-      if (Object.keys(AH_CFG).some((k) => AH_CFG[k].versions.some((v) => v.text === d.text))) return;
+      const all = Object.keys(AH_CFG).reduce((a, k) => a.concat(AH_CFG[k].files.map((f) => [k, f])), []);
+      if (all.some(([, f]) => f.versions.some((v) => v.text === d.text))) return;
       const fmt = CFG.fmtOf(d.file), r = CFG.check(d.text, fmt, '');
       const m = d.text.match(/product_id\W+([\w-]+)/);
-      const pid = r.ok ? r.data.product_id : m ? m[1] : '';
+      const own = all.filter(([, f]) => f.doc === d.id)[0];
+      const pid = own ? own[0] : r.ok ? r.data.product_id : m ? m[1] : '';
       if (!NODE_AT[pid] || NODE_AT[pid].node.type !== 'Product') return;
-      if (!r.ok) { if (AH_CFG[pid]) AH_CFG[pid].failed = { file: d.file, text: d.text, line: r.line, msg: r.msg, when: AH_TODAY }; return; }
+      const book = AH_CFG[pid] || (AH_CFG[pid] = { failed: null, files: [] });
+      if (!r.ok) { book.failed = { file: d.file, text: d.text, line: r.line, msg: r.msg, when: AH_TODAY }; return; }
       const v = { by: d.by || 'Knowledge', when: AH_TODAY, note: 'Made in Knowledge', data: r.data, text: d.text, file: d.file, fmt };
-      if (AH_CFG[pid]) { AH_CFG[pid].versions.push(v); AH_CFG[pid].live = AH_CFG[pid].versions.length - 1; AH_CFG[pid].failed = null; }
-      else AH_CFG[pid] = { doc: d.id, file: d.file, fmt, from: null, live: 0, versions: [v], failed: null };
+      book.failed = null;
+      if (own) { own[1].versions.push(v); own[1].live = own[1].versions.length - 1; return; }
+      if (book.files.length >= CFG.MAX_FILES) { book.failed = { file: d.file, text: '', line: 0, msg: ahName(pid) + ' already has ' + CFG.MAX_FILES + ' files, the most a product can have', when: AH_TODAY }; return; }
+      const def = ahDefFile(pid);
+      if (CFG.awOf(r.data) === 'default' && def) { def.versions.push(v); def.live = def.versions.length - 1; return; }
+      const at = def ? book.files.indexOf(def) : book.files.length;
+      book.files.splice(at, 0, { doc: d.id, from: null, live: 0, versions: [v] });
     });
   }
 
-  /* The file read as sentences, in three groups: when AiMY acts, what it
-     treats as urgent, and who it calls. A hairline under every field read
-     as a spec sheet (Copilot's Customization page groups instead). */
-  function ahWords(c) {
-    const w = c.coverage_windows, u = c.urgency_criteria;
-    const quote = (a) => ahList(a.map((x) => '“' + esc(x) + '”'));
-    const row = (k, v) => '<div class="ahc-row"><dt>' + esc(k) + '</dt><dd>' + v + '</dd></div>';
-    const grp = (t, rows) => '<section class="ahc-grp"><h3 class="ahc-grp-t">' + esc(t) + '</h3><dl class="ahc-words">' + rows + '</dl></section>';
-    const urgent = quote(u.keywords) +
-      (u.customer_tiers && u.customer_tiers.length ? ', from ' + esc(ahList(u.customer_tiers)) + ' customers' : '') +
-      (u.impact && u.impact.length ? ', or when it affects ' + esc(ahList(u.impact)) : '');
-    return '<div class="ahc-groups">' +
-      grp('When AiMY acts',
-        row('Tickets from', esc(c.crm_source)) +
-        row('Covers', 'Weeknights ' + esc(ahClock(ahMin(w.weeknights.from)) + ' to ' + ahClock(ahMin(w.weeknights.to))) + ', ' +
-          esc(AH_WKND[w.weekends].toLowerCase()) + ', ' + esc(w.timezone)) +
-        row('Stands back', c.pre_window_minutes + ' minutes before working hours start')) +
-      grp('What counts as urgent',
-        row('Urgent', urgent) +
-        row('Not urgent', quote(c.non_urgent_criteria.keywords))) +
-      grp('Who it calls',
-        row('Last of all', '<b>' + esc(c.oncall_manager.name) + '</b>, the on-call manager, on ' + esc(c.oncall_manager.phone)) +
-        row('After an answer', 'Watches the ticket for ' + c.confirmation_wait_minutes + ' minutes, and calls again if nothing happens')) +
-      '</div>';
-  }
   function ahCode(text, bad, from, to) {
     const lines = text.replace(/\r/g, '').replace(/\n$/, '').split('\n');
     const a = from || 1, z = to || lines.length;
@@ -3308,89 +3338,130 @@
       `<span class="ahc-ln${a + i === bad ? ' is-bad' : ''}"><span class="ahc-n" aria-hidden="true">${a + i}</span>${esc(l) || ' '}</span>`).join('') + '</code></pre>';
   }
 
-  /* Templates as a list (Snowflake's and Slack's template rows): the name,
-     when to use it, and the three formats to download it in. */
-  function ahTemplates(sc) {
-    const f = sc.prod ? AH_CFG[sc.prod.id] : null;
-    const pid = sc.prod ? sc.prod.id : '';
-    return '<p class="ahc-lede">' + (sc.prod
-        ? 'Each downloads with ' + esc(sc.prod.name) + ' filled in. Change its ticket queue, criteria and manager, then upload it.'
-        : 'These download with a placeholder product id. Open a product to get one with it filled in.') + '</p>' +
-      '<ul class="ahc-tpls">' + CFG.TEMPLATES.map((t) => {
-        const tag = f && f.from === t.id ? 'Started from this'
-          : sc.prod && !f && t.id === 'every-night' ? 'Suggested' : '';
-        return '<li class="ahc-tpl"><div class="ahc-tpl-tx">' +
-            '<span class="ahc-tpl-t">' + esc(t.name) + (tag ? '<span class="ahc-tag">' + tag + '</span>' : '') + '</span>' +
-            '<span class="ahc-tpl-w">' + esc(t.when) + '</span></div>' +
-          `<span class="ahc-tpl-a" role="group" aria-label="${esc('Download ' + t.name)}">` + ['yaml', 'json', 'xml'].map((x) =>
-            `<button class="ahc-fmt" type="button" data-ah-tpl="${esc(t.id + '|' + x + '|' + pid)}" aria-label="${esc('Download ' + t.name + ' as ' + CFG.FMT_LABEL[x])}">${CFG.FMT_LABEL[x]}</button>`).join('') +
-          '</span></li>';
-      }).join('') + '</ul>';
+  /* The hours tile's clock: the Schedule page's own dial, smaller, drawn
+     full for a file that covers every hour. */
+  function ahMiniClock(w) {
+    const ticks = [0, 360, 720, 1080].map((m) => {
+      const [x1, y1] = ahPt(m, 37), [x2, y2] = ahPt(m, 41);
+      return `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}"/>`;
+    }).join('');
+    const from = w.all_day ? 0 : ahMin(w.weeknights.from), to = w.all_day ? 0 : ahMin(w.weeknights.to);
+    return '<svg class="ah-dial ahc-clock" viewBox="0 0 128 128" aria-hidden="true">' +
+      `<circle class="ah-track" cx="${AH_CX}" cy="${AH_CX}" r="${AH_R}"/><g class="ah-ticks">${ticks}</g>` +
+      (w.all_day ? `<circle class="ah-arc" cx="${AH_CX}" cy="${AH_CX}" r="${AH_R}"/>` : `<path class="ah-arc" d="${ahArc(from, to)}"/>` + ahKnob('to', to) + ahKnob('from', from)) +
+      '</svg>';
+  }
+  const ahChips = (a, quiet) => '<span class="ahc-chips">' + a.map((x) => `<span class="ahc-chip${quiet ? ' is-no' : ''}">${esc(x)}</span>`).join('') + '</span>';
+  const ahTile = (ic, k, val, sub) => '<div class="ahc-tile"><span class="ahc-k">' + ic + esc(k) + '</span><span class="ahc-v">' + val + '</span><span class="ahc-s">' + sub + '</span></div>';
+
+  /* Everything under the header for one file. */
+  function ahFileBody(f) {
+    const v = ahLiveOf(f), d = v.data, w = d.coverage_windows, u = d.urgency_criteria;
+    const cover = w.all_day ? 'All day' : esc(ahClock(ahMin(w.weeknights.from)) + ' – ' + ahClock(ahMin(w.weeknights.to)));
+    const sub = esc(w.timezone) + (w.all_day ? ', every hour' : ', ' + esc(AH_WKND[w.weekends].toLowerCase()));
+    return '<div class="ahc-tiles">' +
+        '<div class="ahc-tile"><span class="ahc-k">' + AH_IC.moon + 'Covers</span><div class="ahc-cover">' + ahMiniClock(w) +
+          '<div><span class="ahc-v">' + cover + '</span><span class="ahc-s">' + sub + '</span></div></div></div>' +
+        '<div class="ahc-tile"><span class="ahc-k">' + AH_IC.phone + 'Calls last</span><div class="ahc-mgr"><span class="ahc-av" aria-hidden="true">' + esc(ahInit(d.oncall_manager.name)) + '</span>' +
+          '<span><b>' + esc(d.oncall_manager.name) + '</b><span class="ahc-s">' + esc(d.oncall_manager.phone) + '</span></span></div></div>' +
+        (d.pre_window_minutes ? ahTile(AH_IC.clock, 'Stands back', d.pre_window_minutes + ' min', 'before working hours')
+          : ahTile(AH_IC.clock, 'Stands back', 'Never', 'it covers the whole day')) +
+        ahTile(AH_IC.eye, 'Watches', d.confirmation_wait_minutes + ' min', 'after someone answers') +
+      '</div><div class="ahc-cols">' +
+        '<section class="ahc-card"><h3 class="ahc-h3">Urgent when</h3>' + ahChips(u.keywords.concat((u.customer_tiers || []).map((t) => t + ' customer'))) + '</section>' +
+        '<section class="ahc-card"><h3 class="ahc-h3">Not urgent when</h3>' + ahChips(d.non_urgent_criteria.keywords, true) + '</section>' +
+      '</div><section class="ahc-card ahc-vercard"><h3 class="ahc-h3">Versions</h3><ol class="ahc-line">' + f.versions.map((x, i) =>
+        `<li class="ahc-step${i === f.live ? ' is-live' : ''}"><span class="ahc-dot" aria-hidden="true"></span><b>Version ${i + 1}</b>` +
+        '<span class="ahc-step-t">' + esc(x.note) + ', ' + esc(ahDate(x.when)) + '</span>' +
+        (i === f.live ? '<span class="ahc-ok">' + AH_IC.check + 'Live</span>' : `<button class="ah-link" type="button" data-ah-cfglive="${i}">Go back to this</button>`) + '</li>').join('') +
+      '</ol></section>';
   }
 
-  /* A file that was refused: what is wrong, on which line, and that the
-     version AiMY reads has not changed. */
+  /* Templates, the GitHub Actions way: when to use each, then the formats,
+     with the product filled in. */
+  function ahTemplates(sc) {
+    const def = sc.prod ? ahDefFile(sc.prod.id) : null;
+    const pid = sc.prod ? sc.prod.id : '';
+    return '<h2 class="ahc-h2">Templates</h2>' +
+      '<p class="ahc-lede">' + (sc.prod ? 'Each downloads with ' + esc(sc.prod.name) + ' filled in. Change its ticket queue, criteria and manager, then upload it.'
+        : 'These download with a placeholder product id. Open a product to get one with it filled in.') + '</p>' +
+      '<div class="ahc-tpls">' + CFG.TEMPLATES.map((t) => {
+        const tag = def && def.from === t.id ? 'The default started from this' : sc.prod && !ahFiles(pid).length && t.id === 'every-night' ? 'Suggested' : '';
+        return '<div class="ahc-tpl">' + (tag ? '<span class="ahc-tag">' + tag + '</span>' : '') + '<b>' + esc(t.name) + '</b><p>' + esc(t.when) + '</p>' +
+          `<span class="ahc-dl" role="group" aria-label="${esc('Download ' + t.name)}">` + ['yaml', 'json', 'xml'].map((x) =>
+            `<button type="button" data-ah-tpl="${esc(t.id + '|' + x + '|' + pid)}" aria-label="${esc('Download ' + t.name + ' as ' + CFG.FMT_LABEL[x])}">${CFG.FMT_LABEL[x]}</button>`).join('') +
+          '</span></div>';
+      }).join('') + '</div>';
+  }
+
+  /* A file that was refused: what is wrong, on which line, and that what
+     AiMY reads has not changed. */
   function ahFailed(key) {
-    const f = AH_CFG[key], x = f && f.failed;
+    const x = AH_CFG[key] && AH_CFG[key].failed;
     if (!x) return '';
     return '<div class="ahc-err" role="alert"><p><b>' + esc(x.file) + ' wasn’t used.</b> ' + (x.line ? 'Line ' + x.line + ': ' : '') + esc(x.msg) + '. ' +
-      (f.versions.length ? 'AiMY still reads version ' + (f.live + 1) + '.' : '') + '</p>' +
+      (ahFiles(key).length ? 'AiMY still reads the files it had.' : '') + '</p>' +
       (x.text && x.line ? ahCode(x.text, x.line, Math.max(1, x.line - 1), x.line + 1) : '') +
       '<div class="ahc-acts"><button class="agv-btn is-brand" type="button" data-ah-upload>Upload a fixed file</button>' +
       '<button class="agv-btn" type="button" data-ah-errclose>Dismiss</button></div></div>';
   }
 
   function ahCfgProduct(sc) {
-    const key = sc.key, f = AH_CFG[key];
-    if (!f || !f.versions.length) {
+    const key = sc.key, fs = ahFiles(key);
+    if (!fs.length) {
       return ahFailed(key) +
-        '<div class="ahc-top"><div class="ahc-top-t"><p class="ahc-none"><b>No config file yet.</b> AiMY doesn’t cover ' + esc(sc.prod.name) + ' after hours until it has one.</p></div>' +
-        '<div class="ahc-acts"><button class="agv-btn is-brand" type="button" data-ah-upload>Upload a config file</button></div></div>' +
-        '<h2 class="ahc-h2">Start from a template</h2>' + ahTemplates(sc);
+        '<div class="ahc-top"><p class="ahc-none"><b>No config file yet.</b> AiMY doesn’t cover ' + esc(sc.prod.name) + ' after hours until it has one.</p>' +
+        '<div class="ahc-acts"><button class="agv-btn is-brand ahc-btn" type="button" data-ah-addfile>' + AH_IC.up + 'Upload a config file</button></div></div>' +
+        ahTemplates(sc);
     }
-    const v = f.versions[f.live];
-    const view = AH_CFGVIEW;
-    const tab = (id, label, n) => `<button class="set2-tab${view === id ? ' is-on' : ''}" type="button" role="tab" aria-selected="${view === id}" data-ah-cfgview="${id}">` +
-      esc(label) + (n ? '<span class="set2-tab-n">' + n + '</span>' : '') + '</button>';
-    const body = view === 'file' ? ahCode(v.text)
-      : view === 'versions' ? '<ol class="ahc-vers" reversed>' + f.versions.map((x, i) => [x, i]).reverse().map(([x, i]) =>
-          `<li class="ahc-ver${i === f.live ? ' is-live' : ''}"><span class="ahc-ver-n">Version ${i + 1}</span>` +
-          '<span class="ahc-ver-t">' + esc(x.note) + '<span class="ahc-ver-m">' + esc(x.by + ', ' + ahDate(x.when) + ', ' + x.file) + '</span></span>' +
-          (i === f.live ? '<span class="ahc-ok">AiMY reads this</span>'
-            : `<button class="ah-link" type="button" data-ah-cfglive="${i}">Go back to this</button>`) + '</li>').join('') + '</ol>'
-      : view === 'templates' ? ahTemplates(sc)
-      : ahWords(v.data);
-    /* One header row (Wellfound's resume row): the file, its version and
-       who put it there, and the two things you do to a file. */
-    return ahFailed(key) +
-      '<div class="ahc-top"><div class="ahc-top-t">' +
-        '<span class="ahc-file-n">' + esc(v.file) + '<span class="ahc-fmt is-static">' + CFG.FMT_LABEL[v.fmt] + '</span></span>' +
-        '<span class="ahc-file-m">Version ' + (f.live + 1) + ', uploaded by ' + esc(v.by) + ' on ' + esc(ahDate(v.when)) + '. ' +
-          '<span class="ahc-ok">AiMY reads it.</span> ' +
-          `<button class="ah-link" type="button" data-card-open="${esc(f.doc)}">Open in Knowledge</button></span></div>` +
-        '<div class="ahc-acts">' +
-          '<button class="agv-btn is-brand" type="button" data-ah-upload>Upload a new version</button>' +
-          `<button class="agv-btn" type="button" data-ah-download="${f.live}">${AH_DL_I}Download</button>` +
-        '</div></div>' +
-      '<div class="set2-tabs" role="tablist" aria-label="Show">' +
-        tab('words', 'In words') + tab('file', 'The file') + tab('versions', 'Versions', f.versions.length) + tab('templates', 'Templates') +
-      '</div>' +
-      '<div class="ahc-body" role="tabpanel">' + body + '</div>';
+    const ix = ahOpenIx(key), f = fs[ix], v = ahLiveOf(f), n = fs.length;
+    const open = AH_CFGMENU;
+    /* Right now: the file AiMY reads tonight, and the others by what they
+       take. Each name is a one-click way to that file, so the menu is never
+       the only way in. */
+    const link = (i) => `<button class="ahc-jump" type="button" data-ah-cfgfile="${i}">${esc(ahLiveOf(fs[i]).file)}</button>`;
+    const tonight = fs.indexOf(ahNightFile(key, AH_TODAY));
+    const others = fs.map((x, i) => [x, i]).filter(([x, i]) => i !== tonight && ahAw(x) !== 'default');
+    const phrase = (x) => { const aw = ahAw(x); return aw.days ? 'on ' + CFG.appliesSay(aw) : aw.dates ? 'on ' + CFG.appliesSay(aw) : 'for ' + ahList(aw.customer_tiers) + ' customers'; };
+    const now = n > 1 ? '<p class="ahc-now"><span class="ahc-now-k">Right now</span> AiMY reads ' + link(tonight) + '.' +
+      (others.length ? ' It reads ' + (() => { const l = others.map(([x, i]) => link(i) + ' ' + esc(phrase(x))); return l.length < 3 ? l.join(' and ') : l.slice(0, -1).join(', ') + ', and ' + l[l.length - 1]; })() + '.' : '') + '</p>' : '';
+    const menu = `<div class="ahc-menu" role="listbox" aria-label="Config files, in the order AiMY checks them"${open ? '' : ' hidden'}>` +
+      '<p class="ahc-menu-h">Checked in this order. The first that fits a ticket is the one AiMY reads.</p>' +
+      fs.map((x, i) => {
+        const dflt = ahAw(x) === 'default';
+        return `<div class="ahc-opt${i === ix ? ' is-on' : ''}"><button class="ahc-opt-b" type="button" role="option" aria-selected="${i === ix}" data-ah-cfgfile="${i}">` +
+            `<span class="ahc-num">${i + 1}</span><span class="ahc-opt-t"><b>${esc(CFG.nameOf(ahLiveOf(x).data))}</b>` +
+            `<span class="ahc-s">${esc(CFG.appliesSay(ahAw(x)))}</span><span class="ahc-f">${esc(ahLiveOf(x).file)}</span></span>` +
+            (i === ix ? '<span class="ahc-tick">' + AH_IC.check + '</span>' : '') + '</button>' +
+          (!dflt && i > 0 ? `<button class="ah-link ahc-up" type="button" data-ah-cfgup="${i}">Move up</button>` : '') + '</div>';
+      }).join('') +
+      '<div class="ahc-menu-f"><span class="ahc-s">' + n + ' of ' + CFG.MAX_FILES + ' files</span>' +
+        (n < CFG.MAX_FILES ? '<button class="ah-link" type="button" data-ah-addfile>Add a file</button>' : '<span class="ahc-s">The most a product can have</span>') +
+      '</div></div>';
+    return ahFailed(key) + now +
+      `<div class="ahc-top"><div class="ahc-pickwrap${open ? ' is-open' : ''}">` +
+          `<button class="ahc-pick" type="button" aria-haspopup="listbox" aria-expanded="${open}" data-ah-cfgmenu>` +
+            '<span class="ahc-file-i">' + AH_IC.file + '</span><span class="ahc-pick-t">' +
+            '<span class="ahc-file-n">' + esc(v.file) + '<span class="ahc-fmt">' + CFG.FMT_LABEL[v.fmt] + '</span><span class="ahc-chev">' + AH_IC.chev + '</span></span>' +
+            '<span class="ahc-file-m">' + esc(CFG.nameOf(v.data)) + ', ' + (ix + 1) + ' of ' + n + '. Version ' + (f.live + 1) + ', ' + esc(ahDate(v.when)) + '</span></span></button>' +
+          menu + '</div>' +
+        '<div class="ahc-acts"><span class="ahc-ok">' + AH_IC.check + 'AiMY reads it</span>' +
+          `<button class="agv-btn ahc-btn" type="button" data-ah-download="${f.live}">${AH_IC.down}Download</button>` +
+          '<button class="agv-btn is-brand ahc-btn" type="button" data-ah-upload>' + AH_IC.up + 'Upload a new version</button></div></div>' +
+      ahFileBody(f) + ahTemplates(sc);
   }
 
   function ahCfgClient(sc) {
     if (!sc.prods.length) return '<p class="ahc-none"><b>' + esc(sc.client.name) + ' has no products yet.</b> A config file belongs to a product.</p>';
     return '<ul class="ahc-prods">' +
       sc.prods.map((p) => {
-        const f = AH_CFG[p.id];
-        const v = f && f.versions.length ? f.versions[f.live] : null;
-        const st = f && f.failed ? '<span class="ahc-bad">Upload failed</span>' : v ? '<span class="ahc-ok">AiMY reads it</span>' : '<span class="ahc-warn">No file yet</span>';
+        const fs = ahFiles(p.id), def = ahDefFile(p.id);
+        const st = AH_CFG[p.id] && AH_CFG[p.id].failed ? '<span class="ahc-bad">Upload failed</span>' : fs.length ? '<span class="ahc-ok">AiMY reads ' + (fs.length > 1 ? 'them' : 'it') + '</span>' : '<span class="ahc-warn">No file yet</span>';
         return `<li><button class="ahc-prod" type="button" data-ah-go="${esc(p.id)}">` +
           '<span class="ahc-prod-n">' + esc(p.name) + '</span>' +
-          '<span class="ahc-prod-f">' + (v ? esc(v.file) + ', version ' + (f.live + 1) : 'Not covered after hours') + '</span>' +
+          '<span class="ahc-prod-f">' + (fs.length > 1 ? fs.length + ' files: ' + esc(fs.map((x) => CFG.nameOf(ahLiveOf(x).data)).join(', ')) : def ? esc(ahLiveOf(def).file) : fs.length ? esc(ahLiveOf(fs[0]).file) : 'Not covered after hours') + '</span>' +
           st + I.chev + '</button></li>';
-      }).join('') + '</ul>' +
-      '<h2 class="ahc-h2">Templates</h2>' + ahTemplates(sc);
+      }).join('') + '</ul>' + ahTemplates(sc);
   }
 
   M.ahconfig = function (st) {
@@ -3409,7 +3480,9 @@
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
   }
   let AH_PICKER = null;
-  function ahUpload(key) {
+  /* `add` puts a new file on the product; otherwise the file goes in as a
+     new version of the open one. */
+  function ahUpload(key, add) {
     if (!AH_PICKER) {
       AH_PICKER = document.createElement('input');
       AH_PICKER.type = 'file';
@@ -3422,27 +3495,41 @@
       const file = AH_PICKER.files && AH_PICKER.files[0];
       if (!file) return;
       const rd = new FileReader();
-      rd.onload = () => ahTake(key, file.name, String(rd.result));
+      rd.onload = () => ahTake(key, file.name, String(rd.result), add);
       rd.readAsText(file);
     };
     AH_PICKER.click();
   }
-  /* Check a file and, if it is good, make it the version AiMY reads. */
-  function ahTake(key, name, text) {
+  /* Check a file and, if it is good, make it what AiMY reads. */
+  function ahTake(key, name, text, add) {
     const was = ahSnap();
     const fmt = CFG.fmtOf(name), r = CFG.check(text, fmt, key);
-    const f = AH_CFG[key] || (AH_CFG[key] = { doc: 'cfg-' + key, file: name, fmt, from: null, live: 0, versions: [], failed: null });
-    if (!r.ok) {
-      f.failed = { file: name, text, line: r.line, msg: r.msg, when: AH_TODAY };
-      ahSay2(name + ' wasn’t used. ' + (f.versions.length ? 'Version ' + (f.live + 1) + ' is still the one AiMY reads.' : 'Fix it and upload it again.'));
+    const book = AH_CFG[key] || (AH_CFG[key] = { failed: null, files: [] });
+    const refuse = (line, msg, t) => {
+      book.failed = { file: name, text: t || '', line, msg, when: AH_TODAY };
+      ahSay2(name + ' wasn’t used. ' + (book.files.length ? 'AiMY still reads the files it had.' : 'Fix it and upload it again.'));
       render();
-      return;
+    };
+    if (!r.ok) return refuse(r.line, r.msg, text);
+    const v = { by: 'Nour Wael', when: AH_TODAY, note: 'Uploaded ' + name, data: r.data, text, file: name, fmt };
+    const def = ahDefFile(key), aw = CFG.awOf(r.data);
+    let f;
+    if (add || !book.files.length) {
+      if (book.files.length >= CFG.MAX_FILES) return refuse(0, ahName(key) + ' already has ' + CFG.MAX_FILES + ' files, the most a product can have');
+      if (aw === 'default' && def) return refuse(1, 'This file is a default, and ' + ahName(key) + ' has one. Upload it as a new version of ' + ahLiveOf(def).file + ' instead');
+      f = { doc: 'cfg-' + key + '-' + (book.files.length + 1), from: null, live: 0, versions: [v] };
+      const at = def ? book.files.indexOf(def) : book.files.length;
+      book.files.splice(at, 0, f);
+      AH_CFGFILE[key] = at;
+    } else {
+      f = book.files[ahOpenIx(key)];
+      if ((aw === 'default') !== (ahAw(f) === 'default')) return refuse(1, aw === 'default' ? 'This file is a default, and the open file is not. Open the default to replace it' : 'The open file is the default, and this one is not. Add it as a file of its own');
+      f.versions.push(v);
+      f.live = f.versions.length - 1;
     }
-    f.versions.push({ by: 'Nour Wael', when: AH_TODAY, note: 'Uploaded ' + name, data: r.data, text, file: name, fmt });
-    f.live = f.versions.length - 1;
-    f.file = name; f.fmt = fmt; f.failed = null;
+    book.failed = null;
     if (API && API.configSaved) API.configSaved({ id: f.doc, file: name, text, product: key });
-    ahSay2('Version ' + f.versions.length + ' of ' + name + ' is live. AiMY reads it from now on.', was);
+    ahSay2(add ? name + ' is added. AiMY checks it ' + AH_NTH[book.files.indexOf(f)] + '.' : 'Version ' + f.versions.length + ' of ' + name + ' is live. AiMY reads it from now on.', was);
     render();
   }
 
@@ -3480,7 +3567,12 @@
   document.addEventListener('click', (e) => {
     const t = e.target.closest('[data-ah-day],[data-ah-q],[data-ah-qup],[data-ah-qset],[data-ah-fill],[data-ah-rotate],[data-ah-view],[data-ah-pick],[data-ah-go],' +
       '[data-ah-editteam],[data-ah-findopen],[data-ah-findclose],[data-ah-rm],[data-ah-addp],[data-ah-avail],[data-ah-availgo],' +
-      '[data-ah-cfgopen],[data-ah-cfgview],[data-ah-cfglive],[data-ah-upload],[data-ah-download],[data-ah-tpl],[data-ah-errclose]');
+      '[data-ah-cfgopen],[data-ah-cfgfile],[data-ah-cfgmenu],[data-ah-cfgup],[data-ah-addfile],[data-ah-cfglive],[data-ah-upload],[data-ah-download],[data-ah-tpl],[data-ah-errclose]');
+    /* The file menu closes on any press outside it. */
+    if (AH_CFGMENU && !e.target.closest('.ahc-pickwrap')) {
+      AH_CFGMENU = false;
+      if (!t || !t.hasAttribute('data-ah-cfgfile')) { render(); if (!t) return; }
+    }
     if (!t) return;
     const st = readURL();
     const sc = ahScopeOf(st);
@@ -3488,11 +3580,18 @@
     if (t.hasAttribute('data-ah-go')) { closePop(); AH_EDIT = false; AH_FIND = false; AH_Q = ''; patch({ node: t.getAttribute('data-ah-go') }); return; }
     if (t.hasAttribute('data-ah-day')) { AH_SEL = t.getAttribute('data-ah-day'); AH_FRESH = []; render(); return; }
     if (t.hasAttribute('data-ah-view')) { AH_VIEW = t.getAttribute('data-ah-view'); AH_FRESH = []; render(); return; }
-    if (t.hasAttribute('data-ah-cfgopen')) { patch({ m: 'ahconfig', node: sc.key || st.node }); return; }
-    if (t.hasAttribute('data-ah-cfgview')) { AH_CFGVIEW = t.getAttribute('data-ah-cfgview'); render(); return; }
-    if (t.hasAttribute('data-ah-upload')) { ahUpload(sc.key); return; }
+    if (t.hasAttribute('data-ah-cfgopen')) {
+      const i = t.getAttribute('data-ah-cfgopen');
+      if (i !== '' && sc.key) AH_CFGFILE[sc.key] = +i;
+      AH_CFGMENU = false;
+      patch({ m: 'ahconfig', node: sc.key || st.node }); return;
+    }
+    if (t.hasAttribute('data-ah-cfgmenu')) { AH_CFGMENU = !AH_CFGMENU; render(); return; }
+    if (t.hasAttribute('data-ah-cfgfile')) { AH_CFGFILE[sc.key] = +t.getAttribute('data-ah-cfgfile'); AH_CFGMENU = false; render(); return; }
+    if (t.hasAttribute('data-ah-upload')) { ahUpload(sc.key, false); return; }
+    if (t.hasAttribute('data-ah-addfile')) { AH_CFGMENU = false; ahUpload(sc.key, true); return; }
     if (t.hasAttribute('data-ah-download')) {
-      const f = AH_CFG[sc.key];
+      const f = ahFiles(sc.key)[ahOpenIx(sc.key)];
       const v = f && f.versions[+t.getAttribute('data-ah-download')];
       if (v) ahDownload(v.file, v.text);
       return;
@@ -3510,10 +3609,20 @@
     const was = ahSnap();
     if (t.hasAttribute('data-ah-errclose')) { if (AH_CFG[sc.key]) AH_CFG[sc.key].failed = null; render(); return; }
     if (t.hasAttribute('data-ah-cfglive')) {
-      const f = AH_CFG[sc.key], i = +t.getAttribute('data-ah-cfglive');
+      const f = ahFiles(sc.key)[ahOpenIx(sc.key)], i = +t.getAttribute('data-ah-cfglive');
       if (!f || i === f.live) return;
       f.live = i;
-      ahSay2('Version ' + (i + 1) + ' is the one AiMY reads again.', was);
+      ahSay2('Version ' + (i + 1) + ' of ' + ahLiveOf(f).file + ' is the one AiMY reads again.', was);
+      render(); return;
+    }
+    if (t.hasAttribute('data-ah-cfgup')) {
+      /* One place earlier in the order AiMY checks. The default stays last. */
+      const fs = ahFiles(sc.key), i = +t.getAttribute('data-ah-cfgup');
+      if (i < 1 || !fs[i] || ahAw(fs[i]) === 'default') return;
+      const open = fs[ahOpenIx(sc.key)];
+      fs.splice(i - 1, 0, fs.splice(i, 1)[0]);
+      AH_CFGFILE[sc.key] = fs.indexOf(open);
+      ahSay2(ahLiveOf(fs[i - 1]).file + ' is checked ' + AH_NTH[i - 1] + ' now, before ' + ahLiveOf(fs[i]).file + '.', was);
       render(); return;
     }
     if (t.hasAttribute('data-ah-availgo')) {
@@ -3611,6 +3720,7 @@
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && e.target.closest && e.target.closest('[data-ah-find]')) { AH_FIND = false; AH_Q = ''; render(); return; }
+    if (e.key === 'Escape' && AH_CFGMENU) { AH_CFGMENU = false; AH_REFOCUS = '[data-ah-cfgmenu]'; render(); return; }
     /* An availability time steps by half hours on its arrow keys. */
     const g = e.target.closest && e.target.closest('[data-ah-avail]');
     if (!g) return;

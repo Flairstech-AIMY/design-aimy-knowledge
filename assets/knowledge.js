@@ -1278,17 +1278,21 @@
      built from the same fixtures the Console reads so the two agree. Added
      before anything counts or derives from the corpus. */
   const CFG = window.AIMY_CFG || null;
-  if (CFG) Object.keys(CFG.FILES).forEach((pid) => {
-    const f = CFG.FILES[pid], v = f.versions[f.versions.length - 1];
+  /* A product may have up to four files, each saying when it applies; each
+     is a document of its own. */
+  if (CFG) Object.keys(CFG.FILES).forEach((pid) => CFG.FILES[pid].forEach((f) => {
+    const v = f.versions[f.versions.length - 1];
     if (CORPUS.some((o) => o.id === f.doc)) return;
+    const name = CFG.nameOf(v.data);
     /* Habeba Mourad owns the after-hours brief and writes these files. */
     CORPUS.push({ id: f.doc, t: 'config', work: 'verified', owner: 'H. Mourad',
-      title: (PRODUCTS[pid] || pid) + ': after-hours configuration', col: 'support', src: 'upload', prod: pid, client: CLIENT_OF_PRODUCT[pid] || '',
+      title: (PRODUCTS[pid] || pid) + ': after-hours configuration' + (name === 'Default' ? '' : ', ' + name.toLowerCase()),
+      col: 'support', src: 'upload', prod: pid, client: CLIENT_OF_PRODUCT[pid] || '',
       tags: ['after-hours', 'configuration'], upd: 2, ing: 2, xc: 15, xu: 2,
-      sum: 'How AiMY handles ' + (PRODUCTS[pid] || pid) + ' tickets after hours: when it covers, what counts as urgent, and who it calls last.',
+      sum: 'How AiMY handles ' + (PRODUCTS[pid] || pid) + ' tickets after hours. Applies: ' + CFG.appliesSay(CFG.awOf(v.data)) + '.',
       props: { 'source-file': f.file, size: Math.max(1, Math.round(v.text.length / 1024)) + ' KB' },
       x: { text: v.text } });
-  });
+  }));
   const byId = (id) => CORPUS.find((o) => o.id === id);
   const TOTAL = CORPUS.length;
 
