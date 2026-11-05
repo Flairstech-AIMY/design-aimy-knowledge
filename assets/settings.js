@@ -3373,7 +3373,8 @@
           (u.impact && u.impact.length ? '<h4 class="ahc-h4">Or when it affects</h4>' + ahChips(u.impact) : '') + '</section>' +
         '<section class="ahc-card"><h3 class="ahc-h3">Not urgent when it says</h3>' + ahChips(d.non_urgent_criteria.keywords.map(ahQuote), true) + '</section>' +
 
-      '</div><section class="ahc-card ahc-vercard"><h3 class="ahc-h3">Versions</h3><ol class="ahc-line">' + f.versions.map((x, i) =>
+      '</div><section class="ahc-card ahc-vercard"><h3 class="ahc-h3">Versions' + (f.versions.length > 1 ? ' <span class="ahc-count">' + f.versions.length + '</span>' : '') + '</h3>' +
+      `<ol class="ahc-line" tabindex="0" aria-label="${esc(f.versions.length + ' versions, oldest first')}">` + f.versions.map((x, i) =>
         `<li class="ahc-step${i === f.live ? ' is-live' : ''}"><span class="ahc-dot" aria-hidden="true"></span><b>Version ${i + 1}</b>` +
         '<span class="ahc-step-t">' + esc(x.note) + ', ' + esc(ahDate(x.when)) + '</span>' +
         (i === f.live ? '<span class="ahc-ok">' + AH_IC.check + 'Live</span>' : `<button class="ah-link" type="button" data-ah-cfglive="${i}">Go back to this</button>`) + '</li>').join('') +
@@ -3559,6 +3560,20 @@
     $$('.b-cal-day.is-fresh').forEach((el) => el.addEventListener('animationend', () => { AH_FRESH = []; }, { once: true }));
     if (AH_FOCUS) { AH_FOCUS = false; const i = document.querySelector('[data-ah-find]'); if (i) i.focus(); }
     if (AH_REFOCUS) { const g = document.querySelector(AH_REFOCUS); AH_REFOCUS = ''; if (g) g.focus(); }
+    $$('.ahc-line').forEach((el) => {
+      const down = getComputedStyle(el).flexDirection === 'column', live = el.querySelector('.ahc-step.is-live');
+      if (live) {
+        if (down) el.scrollTop = live.offsetTop - el.clientHeight / 2 + live.offsetHeight / 2;
+        else el.scrollLeft = live.offsetLeft - el.clientWidth / 2 + live.offsetWidth / 2;
+      }
+      const ends = () => {
+        const pos = down ? el.scrollTop : el.scrollLeft, size = down ? el.clientHeight : el.clientWidth, all = down ? el.scrollHeight : el.scrollWidth;
+        el.classList.toggle('is-before', pos > 2);
+        el.classList.toggle('is-after', pos + size < all - 2);
+      };
+      ends();
+      el.addEventListener('scroll', ends, { passive: true });
+    });
   }
 
   const ahSnap = () => JSON.stringify({ AH, AH_CFG });
