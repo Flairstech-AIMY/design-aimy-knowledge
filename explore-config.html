@@ -247,6 +247,29 @@
       .mf-split { grid-template-columns: minmax(0, 1fr); }
     }
     @media (max-width: 559.98px) { .mf-cards { grid-template-columns: minmax(0, 1fr); } }
+
+    /* ── F3: the file name as a dropdown ── */
+    .mf-pickwrap { position: relative; min-width: 0; }
+    .mf-pick { display: flex; align-items: center; gap: .75rem; padding: .375rem .625rem .375rem .375rem; margin: -.375rem 0 -.375rem -.375rem; border: 1px solid transparent; border-radius: var(--r-lg); background: none; font: inherit; text-align: left; color: inherit; cursor: pointer; min-width: 0; }
+    .mf-pick:hover, .mf-pickwrap.is-open .mf-pick { border-color: var(--card-border-hover); background: rgba(var(--accent-rgb), .06); }
+    .mf-pick:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+    .mf-pick-t { display: flex; flex-direction: column; min-width: 0; }
+    .mf-chev { color: var(--ink-secondary); transition: transform var(--t-fast); }
+    .mf-pickwrap.is-open .mf-chev { transform: rotate(180deg); }
+    .mf-menu { display: none; position: absolute; z-index: 5; top: calc(100% + .5rem); left: -.375rem; width: 26rem; max-width: calc(100vw - 2rem); padding: .375rem; border-radius: var(--r-lg); border: 1px solid var(--card-border-hover); background: var(--card-bg-raised, var(--card-bg)); box-shadow: 0 12px 32px rgba(0,0,0,.32); }
+    .mf-pickwrap.is-open .mf-menu { display: block; }
+    .mf-menu-h { padding: .5rem .625rem .625rem; font-size: .8125rem; line-height: 1.45; color: var(--ink-secondary); }
+    .mf-opt { position: relative; width: 100%; display: flex; align-items: flex-start; gap: .625rem; padding: .625rem .625rem .625rem 2.625rem; border: 0; border-radius: var(--r-md); background: none; font: inherit; text-align: left; color: inherit; cursor: pointer; }
+    .mf-opt:hover { background: rgba(var(--accent-rgb), .08); }
+    .mf-opt.is-on { background: rgba(var(--accent-rgb), .14); }
+    .mf-opt .mf-n { left: .625rem; top: .625rem; }
+    .mf-opt.is-on .mf-n { background: var(--brand); color: #fff; }
+    .mf-opt .mf-rt { flex: 1; }
+    .mf-tick { color: var(--ink-action); padding-top: .125rem; }
+    .mf-menu-f { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: .25rem; padding: .625rem .625rem .375rem; border-top: 1px solid var(--card-border); font-size: .8125rem; }
+    .mf-jump { border: 0; background: none; padding: 0; font: inherit; font-size: .8125rem; font-weight: var(--fw-semibold); color: var(--ink-action); cursor: pointer; text-decoration: underline; text-underline-offset: .2em; text-decoration-color: rgba(var(--accent-rgb), .45); }
+    .mf-jump:hover { text-decoration-color: currentColor; }
+    @media (prefers-reduced-motion: reduce) { .mf-chev { transition: none; } }
   </style>
 </head>
 <body class="xa">
@@ -259,7 +282,7 @@
     <button class="agv-btn" type="button" id="xaTheme">Switch theme</button>
   </div>
   <nav class="xa-jump" aria-label="Variants">
-    <a href="#vc">C1 · As it was</a><a href="#c2">C2 · The week</a><a href="#c3">C3 · Dial and timeline</a><a href="#c4">C4 · One stat bar</a><a href="#f1">Four files · Cards</a><a href="#f2">Four files · List</a>
+    <a href="#vc">C1 · As it was</a><a href="#c2">C2 · The week</a><a href="#c3">C3 · Dial and timeline</a><a href="#c4">C4 · One stat bar</a><a href="#f1">Four files · Cards</a><a href="#f2">Four files · List</a><a href="#f3">Four files · Dropdown</a>
   </nav>
   <section class="xa-v" id="vc">
     <div class="xa-vh"><b>C1 · As it was</b><span>Four tiles, then the rules, versions and templates in cards</span></div>
@@ -285,6 +308,11 @@
     <div class="xa-vh"><b>C3 with four files · List</b><span>The same four, as an ordered list beside the chosen file</span></div>
     <p class="xa-why">The order is the rule, so the list shows it top to bottom, with Move up on each file except the default. It keeps the file name, its condition and its place together, and leaves the full width under the header to C3.</p>
     <div class="xa-frame" data-v="f2"></div>
+  </section>
+  <section class="xa-v" id="f3">
+    <div class="xa-vh"><b>C3 with four files · Dropdown</b><span>The file name is the switcher</span></div>
+    <p class="xa-why">Your idea: the file's name in the header opens the four files, in the order AiMY checks them, with the condition under each. It is shown open here; press the name to close it, or pick a file. The files named in the "Right now" line switch too, so the menu is not the only way to reach one. Nothing else on the page moves, so C3 keeps the full width.</p>
+    <div class="xa-frame" data-v="f3"></div>
   </section>
   <section class="xa-v" id="c4">
     <div class="xa-vh"><b>C4 · One stat bar</b><span>Lighter: one bar for the four facts, then plain rows</span></div>
@@ -577,8 +605,45 @@
         '<li><span><b>' + esc(t.name) + '</b><span class="vc-s">' + esc(t.when) + '</span></span>' + dl(t) + '</li>').join('') + '</ul></section>' +
     '</div>';
 
-  const out = { a: A, b: B, c: Cv, d: D, c2: C2, c3: C3, c4: C4, f1: F1, f2: F2 };
+
+  /* F3: the file name is the switcher. Pressing it opens the four files in
+     the order AiMY checks them; the "Right now" line names files too, and
+     each name there is a one-click way to the same file, so the menu is
+     never the only way in. */
+  let f3Sel = 3, f3Open = true;
+  const F3 = () => {
+    const x = FOUR[f3Sel];
+    const link = (i) => '<button class="mf-jump x-mono" type="button" data-f3="' + i + '">' + esc(FOUR[i].file) + '</button>';
+    const menu = '<div class="mf-menu" role="listbox" aria-label="Config files, in the order AiMY checks them">' +
+      '<div class="mf-menu-h">Checked in this order. The first that fits a ticket is the one AiMY reads.</div>' +
+      FOUR.map((y, i) => '<button class="mf-opt' + (i === f3Sel ? ' is-on' : '') + '" type="button" role="option" aria-selected="' + (i === f3Sel) + '" data-f3="' + i + '">' +
+        '<span class="mf-n">' + (i + 1) + '</span><span class="mf-rt"><b>' + esc(y.name) + '</b><span class="vc-s">' + esc(y.when) + '</span><span class="mf-f x-mono">' + esc(y.file) + '</span></span>' +
+        (i === f3Sel ? '<span class="mf-tick">' + IC.check + '</span>' : '') + '</button>').join('') +
+      '<div class="mf-menu-f"><span class="vc-s">4 of 4 files</span><button class="ah-link" type="button">Change the order</button></div></div>';
+    return scope +
+      '<p class="mf-now"><span class="mf-now-k">Right now</span> AiMY reads ' + link(3) + '. On Saturday it reads ' + link(2) + ', on 26 Nov ' + link(1) + ', and a Platinum customer is always ' + link(0) + '.</p>' +
+      '<div class="x-head"><div class="mf-pickwrap' + (f3Open ? ' is-open' : '') + '"><button class="mf-pick" type="button" aria-haspopup="listbox" aria-expanded="' + f3Open + '" data-f3toggle>' +
+          '<span class="x-file-i">' + IC.file + '</span><span class="mf-pick-t"><span class="x-file-n">' + esc(x.file) + '<span class="x-fmt">' + x.fmt + '</span>' +
+          '<svg class="x-ic mf-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>' +
+          '<span class="x-file-m">' + esc(x.name) + ', ' + (f3Sel + 1) + ' of 4. Version ' + (x.live + 1) + ', ' + date(x.versions[x.live].when) + '</span></span></button>' +
+          menu + '</div>' +
+        '<div class="x-acts"><span class="x-ok">' + IC.check + 'AiMY reads it</span>' +
+          '<button class="agv-btn x-btn" type="button">' + IC.down + 'Download</button>' +
+          '<button class="agv-btn is-brand x-btn" type="button">' + IC.up + 'Upload a new version</button></div></div>' +
+      c3Body(x);
+  };
+  const out = { a: A, b: B, c: Cv, d: D, c2: C2, c3: C3, c4: C4, f1: F1, f2: F2, f3: F3() };
   document.querySelectorAll('[data-v]').forEach((el) => { el.innerHTML = out[el.getAttribute('data-v')]; });
+  const f3El = document.querySelector('[data-v="f3"]');
+  const f3Paint = () => { f3El.innerHTML = F3(); };
+  f3El.addEventListener('click', (e) => {
+    const t = e.target.closest('[data-f3],[data-f3toggle]');
+    if (!t) return;
+    if (t.hasAttribute('data-f3toggle')) f3Open = !f3Open;
+    else { f3Sel = +t.getAttribute('data-f3'); f3Open = false; }
+    f3Paint();
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && f3Open) { f3Open = false; f3Paint(); } });
   document.getElementById('xaTheme').addEventListener('click', () => {
     const r = document.documentElement, light = r.getAttribute('data-theme') === 'light';
     if (light) r.removeAttribute('data-theme'); else r.setAttribute('data-theme', 'light');
