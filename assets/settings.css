@@ -2405,6 +2405,12 @@ body.is-settings .set2-bulk { bottom: 4.75rem; }
 /* 10rem of dead foot existed only so the last row could clear a bar that
    floated over it. Nothing floats now, so the page ends where it ends. */
 body.is-settings .set2-col { padding-bottom: 5rem; }
+/* The page starts level with the rail's back button (Nour, 5 Nov). The rail
+   sits 1.25rem under the topnav, so the scroll port does too and the column
+   adds nothing: the 1.5rem + 2.25rem that stacked here put the title 40px
+   below "All documents", a gap that read as a margin, not as the same row. */
+body.is-settings .page-scroll:has(.set2-col) { padding-top: 1.25rem; }
+body.is-settings .set2-col { padding-top: 0; }
 .set2-map-mid {
   min-width: 0;
   display: flex;
