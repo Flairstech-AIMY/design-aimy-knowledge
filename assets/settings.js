@@ -1551,12 +1551,6 @@
        is the group and Skills is a page in it, beside the agents' own
        Tone & Voice. `?m=skills` still lands on Skills, through ALIAS. */
     { g: 'Admin',  id: 'agents',    name: 'Agents', wide: true },
-    /* ── AFTER HOURS ──
-       Who takes the call when AiMY hands a customer over out of hours. Admin,
-       beside the people it schedules; scoped to a client, or a product with a
-       rota of its own. The rail says who is on tonight. */
-    { g: 'Admin',  id: 'afterhours', name: 'After hours', wide: true,
-      state: function (st) { return ahState(st); } },
 
     /* ── THE ARCHIVE ──
        Archived documents were reachable only by typing `archived` into the ask
@@ -1586,9 +1580,18 @@
        dropping it. */
     { g: 'Admin',  id: 'grounding', name: 'Grounding', off: true },
     { g: 'Admin',  id: 'plan',      name: 'Entitlements and plan', off: true },
-    { g: 'Admin',  id: 'audit',     name: 'Audit trail', tier: 'Enterprise', off: true }
+    { g: 'Admin',  id: 'audit',     name: 'Audit trail', tier: 'Enterprise', off: true },
+
+    /* ── 24/7 ──
+       After-hours support, a section of its own (Nour, 5 Nov): Schedule, who
+       AiMY calls night by night, and Configuration, the file it reads for
+       each product. `afterhours` keeps the id every earlier link used. */
+    { g: '24/7',   id: 'afterhours', name: 'Schedule', wide: true,
+      state: function (st) { return ahState(st); } },
+    { g: '24/7',   id: 'ahconfig',  name: 'Configuration', wide: true,
+      state: function (st) { return ahCfgState(st); } }
   ];
-  const GROUPS = ['Client', 'Admin'];
+  const GROUPS = ['Client', 'Admin', '24/7'];
 
   /* ── Old ids, carried across rather than 404ed ──
      Every `settings.html?m=…` that has been pasted anywhere comes through here.
@@ -2505,24 +2508,26 @@
       </section>`;
   };
 
-  /* ══ AFTER HOURS ═══════════════════════════════════════════════════════
-     24/7 After hours: AiMY takes a customer's first contact out of hours and
-     hands anything important to the person on call. This module is where an
-     admin says who that is, night by night, per client — and per product
-     where a product keeps a rota of its own.
+  /* ══ AFTER HOURS: 24/7 ═════════════════════════════════════════════════
+     AiMY takes after-hours tickets, decides which are urgent, and calls the
+     people on call for anything that is. The Confluence brief (AC2, "AiMY
+     After-Hours Support Automation - Project Brief") is the spec; this is
+     its Phase 2 calendar (AIMY-2999) and the page that shows each product's
+     configuration file (AIMY-2974).
 
-     IT IS THE SALES DIARY. Nour: re-use the diary component, tweak it for
-     this, don't build a new thing. So the markup below is `calBody` from
-     Sales `bdr.js` (month, day beside it, "next" under the day) and the CSS
-     is `diary.css`, the same rules ported to rem. What changed is what goes
-     in it: a day's dots are the night's state, the day column lists the
-     people you could put on call with AiMY's reason for each, and "Next in
-     the diary" is the open nights coming up.
+     Two pages in a rail section of their own, "24/7" (Nour, 5 Nov):
+     Schedule, who is on call night by night, and Configuration, the file
+     AiMY reads for each product. Everything is per product.
 
-     One page, not three (Nour, 4 Nov): the rota, what happened on past
-     nights, and the escalation ladder all stand here. Only the person on
-     call rotates; the rungs above are fixed people, and every handoff climbs
-     them one at a time. */
+     SCHEDULE IS THE SALES DIARY, tweaked, not a new calendar: the week (or
+     month) beside the night you chose. A night is a queue of up to five
+     people, called in order; each person has the hours they are available
+     that night. When the queue runs out, AiMY calls the product's on-call
+     manager. Each person gets 2 calls, 5 minutes apart (the brief's rule).
+
+     The night's hours, the manager and the wait after an answer are not set
+     here: they come from the product's config file, so the clock is read
+     only and says where to change them. */
   const AH_TODAY = '2026-11-04';
   const AH_PEOPLE = [
     { id: 'mo', name: 'Mohamed Ramy' },
@@ -2538,72 +2543,83 @@
   const AH_P = {};
   AH_PEOPLE.forEach((p) => { AH_P[p.id] = p; });
   const ahFirst = (id) => AH_P[id].name.split(' ')[0];
-  const AH_HOURS0 = { from: 18 * 60, to: 9 * 60, tz: 'Cairo', weekends: true };
-  /* Zones with the offset they keep in November, said the way an admin says
-     them. A real build reads these from the platform; the prototype names
-     the ones FlairsTech's clients sit in. */
-  const AH_TZ = [
-    ['Cairo', 'GMT+2', 'Africa/Cairo'], ['London', 'GMT', 'Europe/London'], ['Berlin', 'GMT+1', 'Europe/Berlin'],
-    ['Dubai', 'GMT+4', 'Asia/Dubai'], ['New York', 'GMT−5', 'America/New_York'], ['Chicago', 'GMT−6', 'America/Chicago'],
-    ['Denver', 'GMT−7', 'America/Denver'], ['Los Angeles', 'GMT−8', 'America/Los_Angeles'], ['UTC', 'UTC', 'UTC'],
-  ];
-  const AH_LEADS = [
-    { name: 'Yara Sameh', role: 'team lead' }, { name: 'Nour Wael', role: 'product owner' },
-    { name: 'Mona Adel', role: 'head of operations' }, { name: 'Hana Mostafa', role: 'support lead' },
-    { name: 'Omar Khaled', role: 'account manager' }, { name: 'Sherif Nabil', role: 'operations manager' },
-  ];
-  const AH_WAITS = [5, 10, 15, 20, 30, 45, 60];
-  const AH_LADDER0 = [
-    { name: 'Yara Sameh', role: 'team lead', wait: 10 },
-    { name: 'Nour Wael', role: 'product owner', wait: 15 },
-    { name: 'Mona Adel', role: 'head of operations', wait: 15 },
-  ];
-  /* Rotas by scope id: a client, or a product that has its own. `out` is what
-     happened on a past night — n handoffs, and `top` the rung that answered
-     the last of them (0 the person on call, 1 the first rung above). */
+  /* The brief's call rule: 2 calls, 5 minutes apart, then the next person. */
+  const AH_CALLS = 2, AH_RETRY = 5;
+
+  /* ── Configuration files ──
+     Knowledge owns the documents (assets/aimy-configs.js holds the ones the
+     prototype starts with). This is the Console's copy of each product's
+     versions, so a rollback or an upload here takes effect at once. */
+  const CFG = window.AIMY_CFG;
+  const AH_CFG = {};
+  Object.keys(CFG.FILES).forEach((k) => {
+    const f = CFG.FILES[k];
+    AH_CFG[k] = { doc: f.doc, file: f.file, fmt: f.fmt, from: f.from, live: f.versions.length - 1,
+      versions: f.versions.map((v) => Object.assign({ file: f.file, fmt: f.fmt }, v)), failed: null };
+  });
+  const ahCfg = (key) => (AH_CFG[key] ? AH_CFG[key].versions[AH_CFG[key].live].data : null);
+  const ahMin = (t) => +String(t).slice(0, 2) * 60 + +String(t).slice(3, 5);
+  const ahHours = (key) => {
+    const c = ahCfg(key);
+    if (!c) return null;
+    const w = c.coverage_windows;
+    return { from: ahMin(w.weeknights.from), to: ahMin(w.weeknights.to), tz: w.timezone, weekends: w.weekends };
+  };
+  const ahManager = (key) => { const c = ahCfg(key); return c ? c.oncall_manager : null; };
+
+  /* Schedules by product. `rota[iso]` is the night's queue, in call order;
+     `avail[iso][pid]` is when that person is available, as minutes from the
+     night's start (absent: the whole night). `out` is what happened on a
+     past night: n urgent tickets, and `top` who answered the last of them,
+     counted along the queue, with the queue's length meaning the manager. */
   const AH = {
-    cxs: {
-      hours: Object.assign({}, AH_HOURS0),
+    'cxs-copilot': {
       team: ['mo', 'sa', 'al', 'ta', 'ka'],
-      ladder: AH_LADDER0.map((r) => Object.assign({}, r)),
-      qwait: 10,
       rota: {
         '2026-10-19': ['ta'], '2026-10-20': ['ka'], '2026-10-21': ['sa'], '2026-10-22': ['al'], '2026-10-23': ['mo'], '2026-10-24': ['ta'], '2026-10-25': ['ka'],
         '2026-10-26': ['mo'], '2026-10-27': ['ta'], '2026-10-28': ['ka'], '2026-10-29': ['mo'], '2026-10-30': ['al'], '2026-10-31': ['mo', 'sa'], '2026-11-01': ['sa'],
         '2026-11-02': ['mo', 'ka'], '2026-11-03': ['sa'], '2026-11-04': ['mo', 'sa'], '2026-11-05': ['mo'], '2026-11-06': ['al', 'ta'], '2026-11-08': ['al'],
         '2026-11-09': ['ka'], '2026-11-12': ['ta'] },
+      avail: {
+        '2026-11-04': { mo: [0, 420], sa: [420, 900] },
+        '2026-11-05': { mo: [0, 600] },
+        '2026-11-06': { ta: [180, 900] } },
       out: {
         '2026-10-19': { n: 1, top: 0, min: 5 }, '2026-10-20': { n: 0 }, '2026-10-21': { n: 2, top: 0, min: 8 },
         '2026-10-22': { n: 1, top: 0, min: 3 }, '2026-10-23': { n: 3, top: 0, min: 6 }, '2026-10-24': { n: 2, top: 1 },
         '2026-10-25': { n: 0 }, '2026-10-26': { n: 1, top: 0, min: 7 }, '2026-10-27': { n: 1, top: 0, min: 9 },
         '2026-10-28': { n: 0 }, '2026-10-29': { n: 2, top: 0, min: 5 }, '2026-10-30': { n: 1, top: 0, min: 4 },
-        '2026-10-31': { n: 4, top: 3 }, '2026-11-01': { n: 1, top: 0, min: 6 }, '2026-11-02': { n: 2, top: 1, min: 11 },
+        '2026-10-31': { n: 4, top: 2 }, '2026-11-01': { n: 1, top: 0, min: 6 }, '2026-11-02': { n: 2, top: 1, min: 11 },
         '2026-11-03': { n: 1, top: 0, min: 4 } }
     },
-    upland: {
-      hours: Object.assign({}, AH_HOURS0, { tz: 'New York' }),
+    interfax: {
       team: ['ta', 'ka', 'mo', 'al'],
-      ladder: AH_LADDER0.map((r) => Object.assign({}, r)),
-      qwait: 10,
       rota: { '2026-10-31': ['mo'], '2026-11-02': ['ka'], '2026-11-03': ['ta'], '2026-11-04': ['ka', 'ta'], '2026-11-05': ['ta'],
               '2026-11-06': ['ka'], '2026-11-07': ['mo'], '2026-11-08': ['ta'], '2026-11-12': ['al'] },
+      avail: {},
       out: { '2026-10-31': { n: 1, top: 0, min: 12 }, '2026-11-02': { n: 0 }, '2026-11-03': { n: 1, top: 0, min: 5 } }
-    }
+    },
+    accuroute: {
+      team: ['ka', 'al', 'sa'],
+      rota: { '2026-11-02': ['ka'], '2026-11-03': ['al'], '2026-11-04': ['sa', 'ka'], '2026-11-05': ['al'] },
+      avail: {},
+      out: { '2026-11-02': { n: 0 }, '2026-11-03': { n: 1, top: 0, min: 6 } }
+    },
+    kapost: { team: ['ta', 'sa'], rota: {}, avail: {}, out: {} }
   };
   /* The night you are looking at. Not URL state, the same call Sales makes
      for CALSEL: it is where you are reading, not where you are. */
   let AH_SEL = AH_TODAY;
   /* Week first, because the rotation is weekly (Nour); the month is the
-     overview. The week is the diary's own grid, one row tall, with room in
-     each day for the name of whoever has it. */
+     overview. */
   let AH_VIEW = 'week';
   /* The day column's own state: editing the team, searching it, and the
      nights a rotate or a fill just set, which light for a moment. */
   let AH_EDIT = false, AH_FIND = false, AH_Q = '', AH_FRESH = [];
-  /* Which time in the hours line is a field right now ('from', 'to' or ''). */
-  let AH_KNOBFOCUS = '';
-  /* The rung whose person menu is open. */
-  let AH_RUNG = -1;
+  /* What to put focus back on after a repaint (a selector). */
+  let AH_REFOCUS = '';
+  /* Configuration: "In words" or "The file". */
+  let AH_CFGVIEW = 'words';
 
   const ahD = (s) => new Date(s + 'T12:00:00');
   const ahIso = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -2618,24 +2634,22 @@
   /* A gap in the coming week is a problem; one further out is not planned yet. */
   const ahSoon = (s) => s < ahAdd(AH_TODAY, 7);
   const ahPl = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
-  /* A night is a queue (Nour, 4 Nov): up to five people, called in order.
-     AiMY hands off to the first; with no answer, the next one after the
-     book's queue wait; after the last, the escalation path takes over. */
-  const AH_QMAX = 5;
-  const AH_NTH = ['first', 'second', 'third', 'fourth', 'fifth'];
-  const ahQ = (b, s) => b.rota[s] || [];
-  const ahOn = (b, s, pid) => ahQ(b, s).indexOf(pid) > -1;
-  const ahSetQ = (b, s, q) => { if (q.length) b.rota[s] = q.slice(0, AH_QMAX); else delete b.rota[s]; };
-  /* How many steps the queue takes on the path: a night with nobody on it
-     still counts as one, the step that was empty. */
-  const ahQSteps = (b, s) => Math.max(1, ahQ(b, s).length);
-  const AH_ARROW_UP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>';
   const ahClock = (m) => {
     const h = Math.floor(m / 60), mm = m % 60, h12 = h % 12 || 12;
     return h12 + (mm ? ':' + String(mm).padStart(2, '0') : '') + (h < 12 ? ' am' : ' pm');
   };
+  /* A night is a queue (Nour, 4 Nov): up to five people, called in order. */
+  const AH_QMAX = 5;
+  const AH_NTH = ['first', 'second', 'third', 'fourth', 'fifth'];
+  const ahQ = (b, s) => b.rota[s] || [];
+  const ahOn = (b, s, pid) => ahQ(b, s).indexOf(pid) > -1;
+  const ahSetQ = (b, s, q) => {
+    if (q.length) b.rota[s] = q.slice(0, AH_QMAX); else delete b.rota[s];
+    if (b.avail[s]) Object.keys(b.avail[s]).forEach((id) => { if (q.indexOf(id) < 0) delete b.avail[s][id]; });
+  };
+  const AH_ARROW_UP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>';
 
-  /* ── Scope: a client, or a product under it ── */
+  /* ── Scope: a product, under its client ── */
   function ahClientOf(id) {
     let n = NODE_AT[id];
     while (n && n.node.type !== 'Client') n = NODE_AT[n.pid];
@@ -2646,24 +2660,70 @@
     (function walk(ns) { (ns || []).forEach((n) => { if (n.type === 'Product') out.push(n); walk(n.kids); }); })(client.kids);
     return out;
   }
+  /* Schedule is always one product's: a client alone opens its first
+     product with a config file, or its first product. Configuration may
+     stand on the client, where it lists every product's file. */
   function ahScopeOf(st) {
     const node = NODE_AT[st.node] ? NODE_AT[st.node].node : null;
     const client = (node && ahClientOf(node.id)) || CLIENTS().filter((c) => c.id === 'cxs')[0];
-    const prod = node && node.type === 'Product' ? node : null;
-    /* A product with no rota of its own is covered by its client's. */
-    const key = prod && AH[prod.id] ? prod.id : client.id;
-    return { client, prod, key, own: !!(prod && AH[prod.id]) };
+    const prods = ahProducts(client);
+    let prod = node && node.type === 'Product' ? node : null;
+    if (!prod && st.m !== 'ahconfig') prod = prods.filter((p) => AH_CFG[p.id])[0] || prods[0] || null;
+    return { client, prod, prods, key: prod ? prod.id : '' };
   }
-  const ahBook = (key) => AH[key] || (AH[key] = { hours: Object.assign({}, AH_HOURS0), ladder: AH_LADDER0.map((r) => Object.assign({}, r)), qwait: 10, team: [], rota: {}, out: {} });
+  const ahBook = (key) => {
+    const b = AH[key] || (AH[key] = { team: [], rota: {}, avail: {}, out: {} });
+    if (!b.avail) b.avail = {};
+    return b;
+  };
+  const ahName = (key) => (NODE_AT[key] ? NODE_AT[key].node.name : key);
   /* "Mohamed, then Sara": the order a night's queue is called in. */
   const ahThen = (q, wrap) => q.map((id) => (wrap || esc)(ahFirst(id))).join(', then ');
-  const ahName = (key) => (NODE_AT[key] ? NODE_AT[key].node.name : key);
-  /* The same person on another rota that night — another client, or the
-     client a product split away from. Load is counted across all of them. */
+
+  /* ── The hours a night covers, from the config file ──
+     `start` is the clock time it begins and `len` how long it runs, in
+     minutes. A weekend day under "all_day" runs from the morning the night
+     before ends to the next morning. Null when the file does not cover it. */
+  function ahSpan(key, s) {
+    const h = ahHours(key);
+    if (!h) return null;
+    const dow = ahD(s).getDay(), wkend = dow === 0 || dow === 6;
+    if (wkend && h.weekends === 'none') return null;
+    if (wkend && h.weekends === 'all_day') return { start: h.to, len: 1440, allDay: true };
+    return { start: h.from, len: ((h.to - h.from) % 1440 + 1440) % 1440 || 1440 };
+  }
+  const ahAt = (sp, off) => ahClock((sp.start + off) % 1440);
+  const ahAvail = (b, key, s, pid) => {
+    const sp = ahSpan(key, s), a = b.avail[s] && b.avail[s][pid];
+    return a ? a.slice() : [0, sp ? sp.len : 0];
+  };
+  const ahFull = (b, key, s, pid) => { const sp = ahSpan(key, s), a = ahAvail(b, key, s, pid); return !!sp && a[0] === 0 && a[1] === sp.len; };
+  const ahAvailSay = (b, key, s, pid) => {
+    const sp = ahSpan(key, s);
+    if (!sp) return '';
+    if (ahFull(b, key, s, pid)) return sp.allDay ? 'all day' : 'all night';
+    const a = ahAvail(b, key, s, pid);
+    return ahAt(sp, a[0]) + ' – ' + ahAt(sp, a[1]);
+  };
+  /* The stretches of a night nobody in its queue is available for. */
+  function ahHoles(b, key, s) {
+    const sp = ahSpan(key, s), q = ahQ(b, s);
+    if (!sp || !q.length) return [];
+    const out = [];
+    let at = 0;
+    q.map((id) => ahAvail(b, key, s, id)).sort((x, y) => x[0] - y[0]).forEach(([f, t]) => {
+      if (f > at) out.push([at, f]);
+      at = Math.max(at, t);
+    });
+    if (at < sp.len) out.push([at, sp.len]);
+    return out;
+  }
+
+  /* The same person on another product's schedule that night. Load is
+     counted across all of them. */
   function ahElsewhere(key, pid, s) {
     return Object.keys(AH).filter((k) => k !== key && ahOn(AH[k], s, pid));
   }
-
   function ahLoad(key, pid, days) {
     const b = ahBook(key);
     let here = 0, there = 0;
@@ -2676,7 +2736,7 @@
     const mins = [];
     Object.keys(b.out).forEach((s) => {
       const o = b.out[s];
-      /* A night's handoffs are the first person's to answer. */
+      /* A night's urgent tickets are the first person's to answer. */
       if (ahQ(b, s)[0] !== pid || !o.n) return;
       total += o.n; ans += o.top === 0 ? o.n : o.n - 1;
       if (o.top === 0 && o.min) mins.push(o.min);
@@ -2698,49 +2758,52 @@
     const b = ahBook(key), o = b.out[s];
     if (!o) return null;
     if (!o.n) return { k: 'k-quiet', what: 'Quiet night', kind: 'quiet' };
-    if (o.top === 0) return { k: 'k-ok', what: ahPl(o.n, 'handoff') + ', answered' + (o.min ? ' in ' + o.min + ' min on average' : ''), kind: 'answered' };
-    const q = ahQ(b, s), n = ahQSteps(b, s);
+    if (o.top === 0) return { k: 'k-ok', what: ahPl(o.n, 'urgent ticket') + ', answered' + (o.min ? ' in ' + o.min + ' min on average' : ''), kind: 'answered' };
+    const q = ahQ(b, s);
     if (o.top < q.length) {
-      return { k: 'k-ok', kind: 'answered', what: ahPl(o.n, 'handoff') + '. ' + ahThen(q.slice(0, o.top), (x) => x) + ' didn’t answer, so ' +
+      return { k: 'k-ok', kind: 'answered', what: ahPl(o.n, 'urgent ticket') + '. ' + ahThen(q.slice(0, o.top), (x) => x) + ' didn’t answer, so ' +
         ahFirst(q[o.top]) + ', ' + AH_NTH[o.top] + ' in line, took ' + (o.n === 1 ? 'it' : 'them') + (o.min ? ' in ' + o.min + ' min' : '') + '.' };
     }
-    const r = b.ladder[o.top - n] || { name: 'the next person up', role: 'rung ' + (o.top + 1) };
-    return { k: 'k-up', what: ahPl(o.n, 'handoff') + '. Nobody answered in time, so it went up to ' + r.name + ', ' + r.role + '.', kind: 'went up' };
+    const m = ahManager(key);
+    return { k: 'k-up', kind: 'went up', what: ahPl(o.n, 'urgent ticket') + '. Nobody on call answered, so AiMY called ' + (m ? m.name + ', the on-call manager' : 'the on-call manager') + '.' };
   }
 
-  /* ── AiMY's reading of the month, above it ── */
-  /* The reading's emphasis: bold on who fits and on what is wrong, nothing
-     more (Nour: tinted highlights were too much). */
+  /* ── AiMY's reading: the diary's footer ──
+     Bold on who fits and on what is wrong, nothing more (Nour: tinted
+     highlights were too much). */
   const ahHl = (t) => '<b>' + t + '</b>';
   const ahHw = ahHl;
   function ahNote(sc, days) {
-    const key = sc.key, b = ahBook(key), bits = [];
+    const key = sc.key, b = ahBook(key), bits = [], nm = esc(sc.prod.name);
     const span = days.length > 7 ? 'this month' : 'this week';
-    if (sc.prod && !sc.own) {
-      bits.push(ahHl(esc(sc.prod.name)) + ' uses ' + esc(sc.client.name) + '’s rota, so a change here changes it for every ' + esc(sc.client.name) + ' product.');
-    }
-    const load = b.team.map((id) => Object.assign({ id }, ahLoad(key, id, days)))
+    const mgr = ahManager(key), mName = esc(mgr ? mgr.name : 'the on-call manager');
+    /* Only the nights the config file covers count for anything here. */
+    const live = days.filter((s) => ahSpan(key, s));
+    const load = b.team.map((id) => Object.assign({ id }, ahLoad(key, id, live)))
       .sort((a, c) => (c.here + c.there) - (a.here + a.there));
     const hi = load[0], lo = load[load.length - 1];
-    const covered = days.filter((s) => ahQ(b, s).length).length;
+    const covered = live.filter((s) => ahQ(b, s).length).length;
     if (!b.team.length) {
-      bits.push(ahHw('Nobody is on the ' + esc(sc.prod && sc.own ? sc.prod.name : sc.client.name) + ' team yet') + '. Add people with Edit team, and AiMY can fill the nights.');
+      bits.push(ahHw('Nobody is on the ' + nm + ' team yet') + '. Add people with Edit team, and AiMY can fill the nights.');
     } else if (!covered) {
-      bits.push(ahHw('Nobody is on call for ' + esc(sc.prod && sc.own ? sc.prod.name : sc.client.name) + ' ' + span + ' yet') + '. AiMY can fill it, counting the nights each person already has on other clients.');
+      bits.push(ahHw('Nobody is on call for ' + nm + ' ' + span + ' yet') + '. AiMY can fill it, counting the nights each person already has on other products.');
     } else if (load.length > 1 && hi.here + hi.there - (lo.here + lo.there) >= 2) {
       bits.push(ahHl(esc(ahFirst(hi.id)) + ' has ' + ahPl(hi.here, 'night')) + ' ' + span +
-        (hi.there ? ', plus ' + hi.there + ' on ' + esc(days.reduce((acc, s) => acc.concat(ahElsewhere(key, hi.id, s)), [])
+        (hi.there ? ', plus ' + hi.there + ' on ' + esc(live.reduce((acc, s) => acc.concat(ahElsewhere(key, hi.id, s)), [])
           .filter((k, i, all) => all.indexOf(k) === i).map(ahName).join(' and ')) : '') + '. ' + ahHl(esc(ahFirst(lo.id)) + ' has ' + (lo.here + lo.there ? lo.here + lo.there : 'none')) + '.');
     }
     const clashOf = (s) => ahQ(b, s).filter((id) => ahElsewhere(key, id, s).length)[0];
-    const clash = days.filter((s) => !ahPast(s) && clashOf(s))[0];
+    const clash = live.filter((s) => !ahPast(s) && clashOf(s))[0];
     if (clash) bits.push('On ' + esc(ahLong(clash)) + ' ' + ahHw(esc(ahFirst(clashOf(clash))) + ' is on call for ' + esc(ahName(ahElsewhere(key, clashOf(clash), clash)[0])) + ' too') + '.');
-    const up = days.filter((s) => b.out[s] && b.out[s].top >= ahQSteps(b, s));
-    if (up.length) {
-      const s = up[up.length - 1], r = b.ladder[b.out[s].top - ahQSteps(b, s)] || { name: 'the next person up' };
-      bits.push('On ' + esc(ahLong(s)) + ' the handoffs ' + ahHw('went up to ' + esc(r.name)) + ' because nobody below answered in time.');
+    /* Hours inside a night that nobody on it is available for. */
+    const hole = live.filter((s) => !ahPast(s) && ahHoles(b, key, s).length)[0];
+    if (hole) {
+      const h = ahHoles(b, key, hole)[0], sp = ahSpan(key, hole);
+      bits.push('On ' + esc(ahLong(hole)) + ' ' + ahHw('nobody is available from ' + ahAt(sp, h[0]) + ' to ' + ahAt(sp, h[1])) + '.');
     }
-    const gaps = days.filter((s) => !ahPast(s) && !ahQ(b, s).length);
+    const up = days.filter((s) => b.out[s] && b.out[s].n && b.out[s].top >= ahQ(b, s).length);
+    if (up.length) bits.push('On ' + esc(ahLong(up[up.length - 1])) + ' nobody on call answered, so AiMY ' + ahHw('called ' + mName) + '.');
+    const gaps = live.filter((s) => !ahPast(s) && !ahQ(b, s).length);
     const urgent = gaps.filter(ahSoon);
     if (!covered || !b.team.length) { /* said above */ }
     else if (urgent.length === 1) bits.push(ahHw(esc(ahLong(urgent[0])) + ' has nobody on call') + '.');
@@ -2750,47 +2813,40 @@
     /* Before you assign: the night you are on, and who fits it. */
     const sel = AH_SEL, acts = [];
     let adv = '';
-    if (!ahPast(sel) && b.team.length) {
+    if (!ahPast(sel) && ahSpan(key, sel) && b.team.length) {
       const q = ahQ(b, sel);
       const flagOf = (id) => ahElsewhere(key, id, sel).length ? ' is on call for ' + ahName(ahElsewhere(key, id, sel)[0]) + ' that night'
         : ahOn(b, ahAdd(sel, -1), id) ? ' has the night before too'
         : ahOn(b, ahAdd(sel, 1), id) ? ' has the night after too' : '';
       const flagged = q.filter(flagOf)[0];
       const pick = ahRanked(key, sel).filter((x) => q.indexOf(x) < 0)[0];
-      const set = (nq, label, brand) => `<button class="agv-btn${brand ? ' is-brand' : ''}" type="button" data-ah-qset="${esc(sel + '|' + nq.join(','))}">${esc(label)}</button>`;
+      const set = (nq, label) => `<button class="agv-btn is-brand" type="button" data-ah-qset="${esc(sel + '|' + nq.join(','))}">${esc(label)}</button>`;
       if (pick) {
         const h = ahHandling(key, pick), wkN = ahLoad(key, pick, ahRange(ahWeek(sel), 7));
         const why = ahPl(wkN.here + wkN.there, 'night') + ' that week' + (h.total ? ', answered ' + h.ans + ' of ' + h.total : '');
         const avoid = b.team.filter((x) => q.indexOf(x) < 0 && ahElsewhere(key, x, sel).length)[0];
         if (!q.length) {
-          adv = ('For ' + esc(ahLong(sel)) + ', ' + ahHl(esc(ahFirst(pick)) + ' fits best') + ': ' + esc(why) + '.' +
-            (avoid ? ' ' + ahHw(esc(ahFirst(avoid)) + ' is on ' + esc(ahName(ahElsewhere(key, avoid, sel)[0])) + ' that night') + '.' : ''));
-          acts.push(set([pick], 'Put ' + ahFirst(pick) + ' on ' + AH_DAY[ahD(sel).getDay()].slice(0, 3), true));
+          adv = 'For ' + esc(ahLong(sel)) + ', ' + ahHl(esc(ahFirst(pick)) + ' fits best') + ': ' + esc(why) + '.' +
+            (avoid ? ' ' + ahHw(esc(ahFirst(avoid)) + ' is on ' + esc(ahName(ahElsewhere(key, avoid, sel)[0])) + ' that night') + '.' : '');
+          acts.push(set([pick], 'Put ' + ahFirst(pick) + ' on ' + AH_DAY[ahD(sel).getDay()].slice(0, 3)));
         } else if (flagged) {
-          adv = ('On ' + esc(ahLong(sel)) + ' ' + ahHw(esc(ahFirst(flagged)) + esc(flagOf(flagged))) + '. ' + ahHl(esc(ahFirst(pick)) + ' fits better') + ': ' + esc(why) + '.');
-          acts.push(set(q.map((x) => (x === flagged ? pick : x)), 'Put ' + ahFirst(pick) + ' in ' + ahFirst(flagged) + '’s place', true));
-        } else if (q.length === 1 && b.ladder.length) {
-          /* One person alone: a missed handoff skips straight up the path. */
-          adv = ('On ' + esc(ahLong(sel)) + ' ' + ahHw('only ' + esc(ahFirst(q[0])) + ' is on call') + ', so a missed handoff goes up to ' + esc(b.ladder[0].name) + '. ' +
-            ahHl(esc(ahFirst(pick)) + ' fits second') + ': ' + esc(why) + '.');
-          acts.push(set(q.concat(pick), 'Add ' + ahFirst(pick) + ' second', true));
+          adv = 'On ' + esc(ahLong(sel)) + ' ' + ahHw(esc(ahFirst(flagged)) + esc(flagOf(flagged))) + '. ' + ahHl(esc(ahFirst(pick)) + ' fits better') + ': ' + esc(why) + '.';
+          acts.push(set(q.map((x) => (x === flagged ? pick : x)), 'Put ' + ahFirst(pick) + ' in ' + ahFirst(flagged) + '’s place'));
+        } else if (q.length === 1) {
+          /* One person alone: a missed call goes straight to the manager. */
+          adv = 'On ' + esc(ahLong(sel)) + ' ' + ahHw('only ' + esc(ahFirst(q[0])) + ' is on call') + ', so a missed call goes straight to ' + mName + '. ' +
+            ahHl(esc(ahFirst(pick)) + ' fits second') + ': ' + esc(why) + '.';
+          acts.push(set(q.concat(pick), 'Add ' + ahFirst(pick) + ' second'));
         }
       }
     }
     if (gaps.length && b.team.length) acts.push('<button class="agv-btn" type="button" data-ah-fill="' + esc(days[0] + '|' + days.length) + '">Fill ' +
       (gaps.length === 1 ? 'the open night' : 'the ' + gaps.length + ' open nights') + '</button>');
-    if (sc.prod && !sc.own) acts.unshift('<button class="agv-btn is-brand" type="button" data-ah-own="' + esc(sc.prod.id) + '">Give ' + esc(sc.prod.name) + ' its own rota</button>');
-    /* The diary's footer (Nour): a row of the panel under a rule, across both
-       columns, not a card above it. It holds two lines whatever it says, so
-       a shorter reading after an assignment does not move the diary. */
-    /* Two sentences at most, in order of use: the product's note, the advice
-       for the night you are on, then the most pressing of the rest (the
-       open nights, then load, a clash, a climb). Five at once was a paragraph
-       nobody reads, and it changed length with every click. */
-    const prodNote = sc.prod && !sc.own ? bits.shift() : '';
-    /* The advice already speaks for the night you are on. */
+    /* Two sentences at most: the advice for the night you are on, then the
+       most pressing of the rest. The footer holds three lines whatever it
+       says, so a shorter reading after an assignment does not move the diary. */
     const pressing = bits.filter((t) => !adv || t.indexOf(esc(ahLong(sel))) < 0).sort((a, c) => ahRank(a) - ahRank(c));
-    const said = [prodNote, adv].concat(pressing).filter(Boolean).slice(0, 2);
+    const said = [adv].concat(pressing).filter(Boolean).slice(0, 2);
     return '<div class="ah-foot"><svg class="agv-mk" viewBox="0 0 18 20" aria-hidden="true"><use href="#aimy-logo-small"/></svg>' +
       '<span class="ah-foot-t">' + said.join(' ') + '</span>' +
       (acts.length ? '<span class="ah-foot-a">' + acts.join('') + '</span>' : '') + '</div>';
@@ -2798,18 +2854,20 @@
 
   /* How pressing a sentence of the reading is, by what it is about. */
   function ahRank(t) {
-    return /has nobody on call|have nobody on call|Nobody is on/.test(t) ? 0
+    return /has nobody on call|have nobody on call|Nobody is on|nobody is available/.test(t) ? 0
       : / has \d+ night| has 1 night| has none/.test(t) ? 1
-      : / too(<\/b>)?\.$/.test(t) ? 2 : /went up/.test(t) ? 3 : 4;
+      : / too(<\/b>)?\.$/.test(t) ? 2 : /nobody on call answered/.test(t) ? 3 : 4;
   }
 
   /* ── Rotating: next week as it would be, worked out before the press ──
-     Nights already set next week stay; an empty one takes the person after
-     this week's, in the team's order; a night nobody had stays empty. */
+     Nights already set next week stay; an empty one takes last week's queue,
+     each person moved one along in the team's order; a night nobody had,
+     or one the config file does not cover, stays as it is. */
   function ahRotatePlan(key, week) {
     const b = ahBook(key);
     let n = 0;
     const rows = ahRange(ahAdd(week, 7), 7).map((s) => {
+      if (!ahSpan(key, s)) return { s, q: [], off: true };
       if (ahQ(b, s).length) return { s, q: ahQ(b, s) };
       const was = ahQ(b, ahAdd(s, -7)).filter((id) => b.team.indexOf(id) > -1);
       if (!was.length) return { s, q: [] };
@@ -2821,13 +2879,14 @@
   }
 
   /* ── The day column: one question about one night ──
-     A name and that person's nights this week is all a row carries. The team
-     is edited behind its own button, so choosing never shares a row with
-     removing; Nobody is a choice of its own. A long team scrolls inside the
-     height four people take, and search swaps in for the question line, so
-     the diary keeps its height whatever the column is doing. */
+     The people on the night's queue come first, numbered in the order they
+     get the call, each with the hours they are available; then the rest of
+     the team. Pressing a name puts it on the end of the queue or takes it
+     off; the arrow calls someone one place earlier. A long team scrolls
+     inside the height four people take, and search swaps in for the question
+     line, so the diary keeps its height whatever the column is doing. */
   function ahSide(sc) {
-    const key = sc.key, b = ahBook(key), sel = AH_SEL, q = ahQ(b, sel);
+    const key = sc.key, b = ahBook(key), sel = AH_SEL, q = ahQ(b, sel), sp = ahSpan(key, sel);
     const wkDays = ahRange(ahWeek(sel), 7);
     const k = AH_Q.trim().toLowerCase();
     const hit = (id) => !k || AH_P[id].name.toLowerCase().indexOf(k) > -1;
@@ -2856,12 +2915,19 @@
         '</div>';
     }
 
+    if (!sp) {
+      const wk = (ahHours(key) || {}).weekends;
+      return html + '<div class="ah-q"><span>Not covered</span></div>' +
+        '<p class="ah-sub">' + esc(sc.prod.name) + '’s config file covers ' + (wk === 'none' ? 'weeknights only' : 'other nights') +
+        ', so tickets on this one wait for the day team.</p>';
+    }
+
     if (ahPast(sel)) {
       const o = ahOutcome(key, sel);
       return html + '<div class="ah-q"><span>' + (q.length === 1 ? esc(AH_P[q[0]].name) + ' was on call' : q.length ? 'On call: ' + ahThen(q) : 'Nobody was on call') + '</span></div>' +
         (q.length && o ? '<div class="b-cal-ev is-plain"><span class="b-cal-evtop">' + `<span class="b-cal-dot ${o.k}"></span>` +
-          '<span class="b-cal-etime">' + esc(o.kind === 'quiet' ? 'No handoffs' : ahPl(b.out[sel].n, 'handoff')) + '</span>' +
-          (o.kind !== 'quiet' ? `<span class="b-kind${o.kind === 'went up' ? ' is-warn' : ''}">` + esc(o.kind) + '</span>' : '') +
+          '<span class="b-cal-etime">' + esc(o.kind === 'quiet' ? 'No urgent tickets' : ahPl(b.out[sel].n, 'urgent ticket')) + '</span>' +
+          (o.kind !== 'quiet' ? `<span class="b-kind${o.kind === 'went up' ? ' is-warn' : ''}">` + esc(o.kind === 'went up' ? 'manager called' : o.kind) + '</span>' : '') +
           '</span><span class="b-cal-ewhat">' + esc(o.what) + '</span></div>'
           : '<p class="ah-sub">This night is over.</p>');
     }
@@ -2870,25 +2936,27 @@
     if (!b.team.length) {
       return html + '<p class="ah-sub">Nobody is on the team yet. <button class="ah-link" type="button" data-ah-editteam="1">Add people</button></p>';
     }
-    /* The queue reads top to bottom: the people on it first, numbered in the
-       order they get the call, then the rest of the team. Pressing a name
-       puts it at the end of the queue, or takes it off; the arrow moves a
-       person one place earlier. Five at most. */
+    const chip = (id, kk) => {
+      const a = ahAvail(b, key, sel, id), t = ahAt(sp, kk === 'from' ? a[0] : a[1]);
+      return `<button class="ah-wchip" type="button" data-ah-avail="${esc(sel + '|' + id + '|' + kk)}" aria-haspopup="listbox"` +
+        ` aria-label="${esc(ahFirst(id) + ' is available ' + (kk === 'from' ? 'from ' : 'until ') + t + ', change')}">${esc(t)}${I.down}</button>`;
+    };
     const order = q.filter((id) => AH_P[id]).concat(b.team.filter((id) => q.indexOf(id) < 0));
     html += '<div class="ah-roster" role="group" aria-label="Who’s on call, in order"><div class="ah-scroll" data-ah-scroll="pick">' + none +
       order.map((id) => {
         const at = q.indexOf(id), on = at > -1;
         const here = wkDays.filter((s) => ahOn(b, s, id)).length;
-        const elsKeys = wkDays.reduce((a, s) => a.concat(ahElsewhere(key, id, s)), []);
-        const elsWhere = elsKeys.filter((x, i, all) => all.indexOf(x) === i).map(ahName).join(' and ');
-        const els = elsKeys.length;
+        /* Other products' nights by count only: their names wrapped the row
+           onto a second line, and the footer names them when it matters. */
+        const els = wkDays.reduce((a, s) => a + ahElsewhere(key, id, s).length, 0);
         return `<div class="ah-opt${on ? ' is-on' : ''}" data-ah-name="${id}"${hide(id)}>` +
           `<button class="ah-opt-b" type="button" role="checkbox" aria-checked="${on}" data-ah-q="${esc(sel + '|' + id)}"` +
             (on ? ` aria-label="${esc(AH_P[id].name + ', ' + AH_NTH[at] + ' to get the call')}"` : '') + '>' +
             (on ? `<span class="ah-pos" aria-hidden="true">${at + 1}</span>` : '<span class="ah-ring"></span>') +
             '<span class="ah-opt-t"><span class="ah-opt-n">' + esc(AH_P[id].name) + '</span>' +
-            '<span class="ah-opt-c">' + ahPl(here, 'night') + ' this week' + (els ? ', ' + els + ' more on ' + esc(elsWhere) : '') + '</span></span></button>' +
+            '<span class="ah-opt-c">' + ahPl(here, 'night') + ' this week' + (els ? ', ' + els + ' elsewhere' : '') + '</span></span></button>' +
           (at > 0 ? `<button class="ah-ib ah-up" type="button" data-ah-qup="${esc(sel + '|' + id)}" aria-label="${esc('Call ' + ahFirst(id) + ' before ' + ahFirst(q[at - 1]))}">${AH_ARROW_UP}</button>` : '') +
+          (on ? '<div class="ah-avl"><span>Available</span>' + chip(id, 'from') + '<span aria-hidden="true">–</span>' + chip(id, 'to') + '</div>' : '') +
         '</div>';
       }).join('') + '</div>' +
       `<button class="ah-opt is-nobody${!q.length ? ' is-on' : ''}" type="button" aria-pressed="${!q.length}" data-ah-qset="${esc(sel)}|">` +
@@ -2902,7 +2970,7 @@
       ? '<button class="b-cal-add ah-rot" type="button" data-ah-rotate="' + esc(wk) + '"><span class="b-cal-plus">' + I.repeat + '</span>' +
         '<span class="ah-rot-t"><span>Rotate into next week</span><span class="ah-rot-p">' +
         plan.rows.map((x) => {
-          const who = x.q.length ? esc(ahFirst(x.q[0])) + (x.q.length > 1 ? ' +' + (x.q.length - 1) : '') : 'nobody';
+          const who = x.off ? 'off' : x.q.length ? esc(ahFirst(x.q[0])) + (x.q.length > 1 ? ' +' + (x.q.length - 1) : '') : 'nobody';
           return AH_DAY[ahD(x.s).getDay()].slice(0, 3) + ' ' + (x.fresh ? '<b>' + who + '</b>' : who);
         }).join(', ') +
         '</span></span></button>'
@@ -2935,16 +3003,21 @@
 
     const grid = sh.cells.map((s, i) => {
       const dd = ahD(s), out = !wk && dd.getMonth() !== sh.mo, end = dd.getDay() === 0 || dd.getDay() === 6;
-      const q = ahQ(b, s), pid = q[0], o = ahPast(s) ? ahOutcome(key, s) : null;
+      const sp = ahSpan(key, s);
+      const q = ahQ(b, s), pid = q[0], o = ahPast(s) && sp ? ahOutcome(key, s) : null;
+      const holes = sp && !ahPast(s) && q.length ? ahHoles(b, key, s).length : 0;
       const dots = [];
       if (o) dots.push(o.k);
+      else if (holes) dots.push('k-up');
       else if (pid) dots.push('k-on');
-      else if (!ahPast(s) && ahSoon(s)) dots.push('k-gap');
-      const said = pid ? q.map((x) => AH_P[x].name).join(', then ') + ' on call' : ahPast(s) ? 'nobody was on call' : 'nobody on call yet';
+      else if (sp && !ahPast(s) && ahSoon(s)) dots.push('k-gap');
+      const said = !sp ? 'not covered' : pid ? q.map((x) => AH_P[x].name).join(', then ') + ' on call' + (holes ? ', with hours nobody is available for' : '')
+        : ahPast(s) ? 'nobody was on call' : 'nobody on call yet';
+      const more = q.length > 1 ? '<span class="b-cal-more">+' + (q.length - 1) + '</span>' : '';
       /* In the week there is room to say who, so the day says it, and an
          open night says what to do with it. */
-      const more = q.length > 1 ? '<span class="b-cal-more">+' + (q.length - 1) + '</span>' : '';
-      const who = !wk ? '' : pid ? `<span class="b-cal-who${more ? ' is-q' : ''}"><span class="b-cal-wn">${esc(ahFirst(pid))}</span>${more}</span>`
+      const who = !wk ? '' : !sp ? '<span class="b-cal-who is-none">Off</span>'
+        : pid ? `<span class="b-cal-who${more ? ' is-q' : ''}"><span class="b-cal-wn">${esc(ahFirst(pid))}</span>${more}</span>`
         : ahPast(s) ? '<span class="b-cal-who is-none">Nobody</span>'
         : `<span class="b-cal-who ${ahSoon(s) ? 'is-gap' : 'is-ask'}">+ Assign</span>`;
       const fresh = AH_FRESH.indexOf(s) > -1;
@@ -2982,75 +3055,62 @@
       '</div></div>';
   }
 
-  /* ── If nobody answers: the escalation timeline, under the diary ──
-     Variant B (Nour, 4 Nov): a rail down the page, the minute each step is
-     reached on its left (0, 10, 25, 40), and the wait on the rail between
-     two steps. Every change is a press, never typing: a name opens the
-     people who can stand there (and "Take off the path"), a wait opens a
-     list of minutes, and "Add someone" puts a step at the end. Any number
-     of steps reads the same, on a phone too. Only the first step rotates. */
+  /* ── If nobody answers: the timeline under the diary ──
+     Variant B (Nour, 4 Nov), now saying what the brief says happens: the
+     night's queue in order, each person called twice, 5 minutes apart, then
+     the product's on-call manager from its config file. Nothing here is
+     edited: the queue is edited in the diary, the rest in the config file. */
+  function ahNight(key) {
+    if (!ahPast(AH_SEL) && ahSpan(key, AH_SEL)) return AH_SEL;
+    return ahRange(AH_TODAY, 8).filter((s) => ahSpan(key, s))[0] || AH_TODAY;
+  }
   function ahLadder(sc) {
-    const b = ahBook(sc.key), l = b.ladder, qw = b.qwait || 10;
-    /* The night the diary is on, or tonight when that night is over. */
-    const night = ahPast(AH_SEL) ? AH_TODAY : AH_SEL, q = ahQ(b, night);
+    const key = sc.key, b = ahBook(key), c = ahCfg(key), m = c.oncall_manager;
+    const night = ahNight(key), q = ahQ(b, night);
     const when = night === AH_TODAY ? 'tonight' : 'on ' + ahLong(night);
-    const time = (m) => `<div class="ah-tl-t" style="padding-top:.9375rem">${m} min</div>`;
+    const time = (n) => `<div class="ah-tl-t" style="padding-top:.9375rem">${n} min</div>`;
     const rail = (first, last, rota) => `<div class="ah-tl-rail${first ? ' is-first' : ''}${last ? ' is-last' : ''}"><span class="ah-tl-dot${rota ? ' is-rota' : ''}"></span></div>`;
-    const gap = (chip) => '<div></div><div class="ah-tl-rail"></div><div class="ah-tl-gap">' + chip + 'with no answer</div>';
-    let at = 0;
+    const gap = '<div></div><div class="ah-tl-rail"></div><div class="ah-tl-gap"><span class="ah-wchip is-static">No answer to ' + AH_CALLS + ' calls, ' + AH_RETRY + ' min apart</span></div>';
+    const step = AH_CALLS * AH_RETRY;
     let h = '<div class="ah-tl">';
-    if (!q.length) {
-      h += time(0) + rail(true, !l.length, true) +
-        '<div class="ah-tl-row"><div class="ah-tl-card"><span class="ah-tl-rot">' + I.repeat + '</span>' +
-        '<span><b class="ah-tl-n">Nobody on call</b> <span class="ah-role">· ' + esc(when) + '</span></span></div></div>';
-    }
     q.forEach((id, i) => {
-      if (i) {
-        at += qw;
-        h += gap(`<button class="ah-wchip" type="button" data-ah-qwaitmenu aria-haspopup="listbox" aria-label="${esc('Wait ' + qw + ' minutes between the people on call, change')}">${qw} min${I.down}</button>`);
-      }
-      h += time(at) + rail(i === 0, i === q.length - 1 && !l.length, true) +
+      if (i) h += gap;
+      h += time(step * i) + rail(i === 0, false, true) +
         '<div class="ah-tl-row"><div class="ah-tl-card"><span class="ah-tl-rot">' + I.repeat + '</span>' +
         '<span><b class="ah-tl-n">' + esc(AH_P[id].name) + '</b> <span class="ah-role">· ' +
-        esc(q.length === 1 ? 'on call ' + when : AH_NTH[i] + ' on call' + (i ? '' : ' ' + when)) + '</span></span></div></div>';
+        esc((q.length === 1 ? 'on call' : AH_NTH[i] + ' on call') + ', ' + ahAvailSay(b, key, night, id)) + '</span></span></div></div>';
     });
-    l.forEach((r, i) => {
-      at += r.wait;
-      h += gap(`<button class="ah-wchip" type="button" data-ah-waitmenu="${i}" aria-haspopup="listbox" aria-label="${esc('Wait ' + r.wait + ' minutes before ' + r.name + ', change')}">${r.wait} min${I.down}</button>`);
-      h += time(at) + rail(false, i === l.length - 1, false) +
-        '<div class="ah-tl-row"><div class="ah-tl-card">' +
-          `<button class="ah-nm" type="button" data-ah-rungmenu="${i}" aria-haspopup="listbox" aria-label="${esc(r.name + ', ' + r.role + ', change who')}">${esc(r.name)}${I.down}</button>` +
-          `<span class="ah-role">${esc(r.role)}</span></div></div>`;
-    });
+    if (q.length) h += gap;
+    h += time(step * q.length) + rail(!q.length, true, false) +
+      '<div class="ah-tl-row"><div class="ah-tl-card"><span><b class="ah-tl-n">' + esc(m.name) + '</b> <span class="ah-role">· on-call manager, ' + esc(m.phone) + '</span></span></div></div>';
     h += '</div>';
-    const left = AH_LEADS.filter((x) => !l.some((r) => r.name === x.name));
-    const add = left.length ? '<div class="ah-tl-addrow"><button class="ah-tl-add" type="button" data-ah-rungadd aria-haspopup="listbox"><span class="b-cal-plus">' + I.plus + '</span>Add someone</button></div>' : '';
     const bold = (t) => '<b>' + esc(t) + '</b>';
-    const first = !q.length ? 'Nobody is on call ' + esc(when) + ' yet.'
-      : q.length === 1 ? 'A handoff ' + esc(when) + ' goes to ' + bold(ahFirst(q[0])) + '.'
-      : 'A handoff ' + esc(when) + ' goes to ' + ahThen(q, bold) + ', ' + qw + ' minutes apart.';
-    const rest = !l.length ? ' Add someone to go to when nobody answers.'
-      : (q.length ? ' If nobody answers, it' : ' A handoff') + ' goes up one step at a time and reaches ' + bold(l[l.length - 1].name) + ' after ' + at + ' minutes.';
+    const lede = q.length
+      ? 'An urgent ticket ' + esc(when) + ' goes to whoever in the queue is available at that hour, in order: ' + ahThen(q, bold) + '. ' +
+        'Each gets ' + AH_CALLS + ' calls, ' + AH_RETRY + ' minutes apart. If nobody answers, AiMY calls ' + bold(m.name) + ', the on-call manager.'
+      : 'Nobody is on call ' + esc(when) + ' yet, so an urgent ticket goes straight to ' + bold(m.name) + ', the on-call manager.';
     return '<section class="set2-sec ah-ladder">' +
       '<div class="set2-sec-h"><h2 class="set2-sec-t">If nobody answers</h2></div>' +
-      '<p class="ah-ladder-l">' + first + rest + '</p>' +
-      h + add + '</section>';
-  }
-  function ahLeadMenu(anchor, attr, exceptName) {
-    const b = ahBook(ahScopeOf(readURL()).key);
-    const list = AH_LEADS.map((l, j) => [l, j]).filter(([l]) => l.name === exceptName || !b.ladder.some((r) => r.name === l.name));
-    popover(anchor, list.map(([l, j]) =>
-      `<button class="set2-pop-i is-scope${l.name === exceptName ? ' is-on' : ''}" type="button" role="option" data-${attr}="${j}">` +
-        '<span class="set2-pop-tx"><span class="set2-pop-n">' + esc(l.name) + '</span><span class="set2-pop-p">' + esc(l.role) + '</span></span>' +
-        '<span class="set2-pop-k">' + I.tick + '</span></button>').join('') +
-      (attr === 'ah-runggo' ? `<button class="set2-pop-i is-scope ah-pop-rm" type="button" data-ah-rungrm="${AH_RUNG}"><span class="set2-pop-tx"><span class="set2-pop-n">Take off the path</span></span></button>` : ''));
+      '<p class="ah-ladder-l">' + lede + '</p>' + h +
+      '<p class="ah-tl-note">When someone answers, AiMY watches the ticket for ' + c.confirmation_wait_minutes + ' minutes. If nothing happens on it, AiMY calls the people on call again. ' +
+        'The manager and this wait come from <button class="ah-link" type="button" data-ah-cfgopen>' + esc(AH_CFG[key].versions[AH_CFG[key].live].file) + '</button>.</p>' +
+      '</section>';
   }
 
   M.afterhours = function (st) {
+    ahPull();
     const sc = ahScopeOf(st);
+    if (!sc.prod) {
+      return '<div class="ah-empty"><p><b>' + esc(sc.client.name) + ' has no products yet.</b> A schedule belongs to a product, so there is nothing to schedule here.</p></div>';
+    }
+    if (!ahCfg(sc.key)) {
+      return '<div class="ah-empty"><p><b>' + esc(sc.prod.name) + ' has no config file yet.</b> AiMY reads a product’s hours and its on-call manager from that file, so there are no nights to schedule until it has one.</p>' +
+        '<button class="agv-btn is-brand" type="button" data-ah-cfgopen>Add its config file</button></div>';
+    }
     return '<div class="b-diary">' + ahCalBody(sc) + '</div>' + ahLadder(sc);
   };
 
+  /* Client, then product; on Configuration the product may be "All products". */
   function ahScope(st) {
     const sc = ahScopeOf(st);
     const sep = '<span class="set2-scope-s">&rsaquo;</span>';
@@ -3058,17 +3118,30 @@
       '<button class="set2-scope-pick" type="button" data-ah-pick="client" aria-haspopup="menu" aria-label="Choose a client">' +
         '<span class="set2-scope-k">Client</span><b>' + esc(sc.client.name) + '</b>' + I.down + '</button>' + sep +
       '<button class="set2-scope-pick" type="button" data-ah-pick="prod" aria-haspopup="menu" aria-label="Choose a product">' +
-        '<span class="set2-scope-k">Product</span><b>' + esc(sc.prod ? sc.prod.name : 'All products') + '</b>' + I.down + '</button>' +
-      (sc.prod ? '<span class="set2-scope-i">' + (sc.own ? 'its own rota' : 'uses ' + esc(sc.client.name) + '’s rota') + '</span>' : '') +
+        '<span class="set2-scope-k">Product</span><b>' + esc(sc.prod ? sc.prod.name : sc.prods.length ? 'All products' : 'None yet') + '</b>' + I.down + '</button>' +
     '</div>';
   }
-  /* ── When the night runs: a clock in the page's top right ──
-     The sleep-schedule dial (Apple Health, Calm, Bevel on Mobbin), distilled
-     to what it is for: the night as an arc on a 24-hour ring, midnight at the
-     top, from a moon knob to a sun knob, and the same two times beside it in
-     words. Drag a knob or use its arrow keys, in quarter hours; or press a
-     time and type it. Nothing is said twice: the knobs carry the moon and
-     sun, so the words carry only the times, start then end. */
+  function ahPickMenu(anchor, which) {
+    const st = readURL(), sc = ahScopeOf(st);
+    const item = (id, name, line, on) =>
+      `<button class="set2-pop-i is-scope${on ? ' is-on' : ''}" type="button" data-ah-go="${esc(id)}" aria-current="${on ? 'true' : 'false'}">` +
+        '<span class="set2-pop-tx"><span class="set2-pop-n">' + esc(name) + '</span><span class="set2-pop-p">' + esc(line) + '</span></span>' +
+        '<span class="set2-pop-k">' + I.tick + '</span></button>';
+    const html = which === 'client'
+      ? CLIENTS().map((c) => {
+          const ps = ahProducts(c), n = ps.filter((p) => AH_CFG[p.id]).length;
+          return item(c.id, c.name, !ps.length ? 'no products' : n + ' of ' + ps.length + ' products have a config file', c.id === sc.client.id);
+        }).join('')
+      : (st.m === 'ahconfig' ? item(sc.client.id, 'All products', 'every product’s config file', !sc.prod) : '') +
+        sc.prods.map((p) => item(p.id, p.name, AH_CFG[p.id] ? AH_CFG[p.id].file : 'no config file yet', sc.prod && sc.prod.id === p.id)).join('');
+    popover(anchor, html);
+  }
+
+  /* ── The night's hours: the clock in the page's top right ──
+     The same dial as before (moon to sun on a 24-hour ring), read only now:
+     the hours are the product's config file's, so the clock says them and
+     where to change them, and a drag here would be a change the file then
+     contradicts. */
   const AH_CX = 64, AH_R = 50;
   const ahPt = (m, r) => {
     const a = m / 1440 * 2 * Math.PI;
@@ -3083,143 +3156,289 @@
   const AH_SUN = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>';
   function ahKnob(k, m) {
     const [x, y] = ahPt(m, AH_R);
-    return `<g class="ah-knob" data-ah-knob="${k}" transform="translate(${x.toFixed(2)} ${y.toFixed(2)})" tabindex="0" role="slider" aria-valuemin="0" aria-valuemax="1439"` +
-      ` aria-valuenow="${m}" aria-valuetext="${esc(ahClock(m))}" aria-label="${k === 'from' ? 'Nights start' : 'Nights end'}">` +
-      '<circle class="ah-knob-hit" r="18"/><circle class="ah-knob-face" r="12"/>' +
+    return `<g class="ah-knob is-static" transform="translate(${x.toFixed(2)} ${y.toFixed(2)})" aria-hidden="true">` +
+      '<circle class="ah-knob-face" r="12"/>' +
       '<g transform="translate(-6.5 -6.5) scale(0.5417)" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' +
       (k === 'from' ? AH_MOON : AH_SUN) + '</g></g>';
   }
+  const AH_WKND = { all_day: 'Weekends all day', nights: 'Weekend nights only', none: 'No weekends' };
   function ahClockCard(sc) {
-    const h = ahBook(sc.key).hours || AH_HOURS0;
+    const h = ahHours(sc.key);
+    if (!h) return '';
     const quarters = [0, 360, 720, 1080].map((m) => {
       const [x1, y1] = ahPt(m, 37), [x2, y2] = ahPt(m, 41);
       return `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}"/>`;
     }).join('');
-    /* Adjusting is never typing (Nour). A time is a button: press it for
-       the list of times in half hours, or use its arrow keys for quarter
-       hours, or drag its knob on the dial. */
-    const tok = (k) => `<button class="ah-tok" type="button" data-ah-tok="${k}" aria-haspopup="listbox" aria-label="${k === 'from' ? 'Nights start at ' : 'Nights end at '}${esc(ahClock(h[k]))}, change">${esc(ahClock(h[k]))}</button>`;
     return '<div class="ah-clock">' +
-      `<svg class="ah-dial" viewBox="0 0 128 128" data-ah-dial role="group" aria-label="${esc('Nights run from ' + ahClock(h.from) + ' to ' + ahClock(h.to) + ', ' + h.tz + ' time')}">` +
+      `<svg class="ah-dial" viewBox="0 0 128 128" role="img" aria-label="${esc('Nights run from ' + ahClock(h.from) + ' to ' + ahClock(h.to) + ', ' + h.tz)}">` +
         `<circle class="ah-track" cx="${AH_CX}" cy="${AH_CX}" r="${AH_R}"/>` +
         '<g class="ah-ticks">' + quarters + '</g>' +
         `<path class="ah-arc" d="${ahArc(h.from, h.to)}"/>` +
         ahKnob('to', h.to) + ahKnob('from', h.from) +
       '</svg>' +
       '<div class="ah-clock-d">' +
-        '<div class="ah-clock-t">' + tok('from') + '<span class="ah-clock-dash" aria-hidden="true">–</span>' + tok('to') + '</div>' +
-        `<button class="ah-tz" type="button" data-ah-tz aria-haspopup="menu" aria-label="Time zone ${esc(h.tz)}, change">${esc(h.tz)} time` + I.down + '</button>' +
-        `<button class="ah-sw${h.weekends ? ' is-on' : ''}" type="button" role="switch" aria-checked="${!!h.weekends}" data-ah-weekends>` +
-          '<span class="ah-sw-t" aria-hidden="true"><span class="ah-sw-k"></span></span>Weekends all day</button>' +
+        '<div class="ah-clock-t"><span class="ah-tok is-static">' + esc(ahClock(h.from)) + '</span><span class="ah-clock-dash" aria-hidden="true">–</span>' +
+          '<span class="ah-tok is-static">' + esc(ahClock(h.to)) + '</span></div>' +
+        '<span class="ah-clock-s">' + esc(h.tz + ' · ' + AH_WKND[h.weekends]) + '</span>' +
+        '<button class="ah-link" type="button" data-ah-cfgopen>Change in the config file</button>' +
       '</div>' +
     '</div>';
   }
-  /* The page's head with the clock beside it: the title, its line and the
-     scope on the left, the clock on the right. */
+  /* The page's head with the clock beside it, on Schedule only. */
   function ahHead(st, headHtml) {
     return '<div class="ah-head"><div class="ah-head-l">' + headHtml + '</div>' + ahClockCard(ahScopeOf(st)) + '</div>';
   }
-  /* Dragging a knob redraws the arc and the knob in place, then commits once
-     on release with one undo. */
-  function ahSetHour(k, v, quiet) {
-    const sc = ahScopeOf(readURL()), b = ahBook(sc.key);
-    if (v === b.hours[k]) return;
-    const was = ahSnap();
-    b.hours = Object.assign({}, b.hours, { [k]: v });
-    ahSay2('Nights for ' + (sc.prod && sc.own ? sc.prod.name : sc.client.name) + ' now ' + (k === 'from' ? 'start at ' : 'end at ') + ahClock(v) + ', ' + b.hours.tz + ' time.', was);
-    render();
-  }
-  let AH_DRAG = null;
-  document.addEventListener('pointerdown', (e) => {
-    const g = e.target.closest && e.target.closest('[data-ah-knob]');
-    if (!g) return;
-    const svg = g.ownerSVGElement;
-    const h = ahBook(ahScopeOf(readURL()).key).hours;
-    AH_DRAG = { k: g.getAttribute('data-ah-knob'), svg, g, h: Object.assign({}, h), v: h[g.getAttribute('data-ah-knob')] };
-    svg.classList.add('is-drag');
-    try { g.setPointerCapture(e.pointerId); } catch (err) { /* older engines */ }
-    e.preventDefault();
-  });
-  document.addEventListener('pointermove', (e) => {
-    if (!AH_DRAG) return;
-    const r = AH_DRAG.svg.getBoundingClientRect();
-    const x = e.clientX - (r.left + r.width / 2), y = e.clientY - (r.top + r.height / 2);
-    let a = Math.atan2(x, -y); if (a < 0) a += 2 * Math.PI;
-    const v = Math.round(a / (2 * Math.PI) * 1440 / 15) * 15 % 1440;
-    if (v === AH_DRAG.v) return;
-    AH_DRAG.v = v; AH_DRAG.h[AH_DRAG.k] = v;
-    const [px, py] = ahPt(v, AH_R);
-    AH_DRAG.g.setAttribute('transform', 'translate(' + px.toFixed(2) + ' ' + py.toFixed(2) + ')');
-    AH_DRAG.svg.querySelector('.ah-arc').setAttribute('d', ahArc(AH_DRAG.h.from, AH_DRAG.h.to));
-    const t = document.querySelector('[data-ah-tok="' + AH_DRAG.k + '"]'); if (t) t.textContent = ahClock(v);
-  });
-  document.addEventListener('pointerup', () => {
-    if (!AH_DRAG) return;
-    const d = AH_DRAG; AH_DRAG = null;
-    d.svg.classList.remove('is-drag');
-    ahSetHour(d.k, d.v);
-  });
-  document.addEventListener('keydown', (e) => {
-    const g = e.target.closest && e.target.closest('[data-ah-knob],[data-ah-tok]');
-    if (!g) return;
-    const step = { ArrowUp: 15, ArrowRight: 15, ArrowDown: -15, ArrowLeft: -15, PageUp: 60, PageDown: -60 }[e.key];
-    if (!step) return;
-    e.preventDefault();
-    const k = g.getAttribute('data-ah-knob') || g.getAttribute('data-ah-tok'), h = ahBook(ahScopeOf(readURL()).key).hours;
-    AH_KNOBFOCUS = (g.hasAttribute('data-ah-tok') ? 'tok:' : '') + k;
-    ahSetHour(k, ((h[k] + step) % 1440 + 1440) % 1440);
-  });
 
-  function ahTimeMenu(anchor, k) {
-    const h = ahBook(ahScopeOf(readURL()).key).hours || AH_HOURS0;
-    const list = Array.from({ length: 48 }, (_, i) => i * 30);
-    if (list.indexOf(h[k]) < 0) { list.push(h[k]); list.sort((a, c) => a - c); }
-    const p = popover(anchor, list.map((m) =>
-      `<button class="set2-pop-i is-scope${m === h[k] ? ' is-on' : ''}" type="button" role="option" aria-selected="${m === h[k]}" data-ah-timego="${k}|${m}">` +
-        '<span class="set2-pop-tx"><span class="set2-pop-n">' + esc(ahClock(m)) + '</span></span><span class="set2-pop-k">' + I.tick + '</span></button>').join(''), 'is-times');
-    /* Open on the time it is set to, not at midnight. */
+  /* ── When someone is available: a list of half hours inside the night ──
+     The start offers only times before the end, and the end only times after
+     the start, so a choice can never leave someone available for no time. */
+  function ahAvailMenu(anchor, s, pid, k) {
+    const key = ahScopeOf(readURL()).key, b = ahBook(key), sp = ahSpan(key, s);
+    if (!sp) return;
+    const a = ahAvail(b, key, s, pid), cur = k === 'from' ? a[0] : a[1];
+    const offs = [];
+    for (let o = 0; o < sp.len; o += 30) offs.push(o);
+    offs.push(sp.len);
+    if (offs.indexOf(cur) < 0) { offs.push(cur); offs.sort((x, y) => x - y); }
+    const ok = offs.filter((o) => (k === 'from' ? o < a[1] : o > a[0]));
+    const p = popover(anchor, ok.map((o) =>
+      `<button class="set2-pop-i is-scope${o === cur ? ' is-on' : ''}" type="button" role="option" aria-selected="${o === cur}" data-ah-availgo="${esc(s + '|' + pid + '|' + k + '|' + o)}">` +
+        '<span class="set2-pop-tx"><span class="set2-pop-n">' + esc(ahAt(sp, o)) + '</span></span><span class="set2-pop-k">' + I.tick + '</span></button>').join(''), 'is-times');
     const on = (p || document.getElementById('setPop') || document).querySelector('.is-on');
     if (on && on.parentElement) on.parentElement.scrollTop = on.offsetTop - on.parentElement.clientHeight / 2 + on.offsetHeight / 2;
   }
-  function ahTzMenu(anchor) {
-    const h = ahBook(ahScopeOf(readURL()).key).hours || AH_HOURS0;
-    popover(anchor, AH_TZ.map((z) =>
-      `<button class="set2-pop-i is-scope${z[0] === h.tz ? ' is-on' : ''}" type="button" data-ah-tzgo="${esc(z[0])}" aria-current="${z[0] === h.tz}">` +
-        '<span class="set2-pop-tx"><span class="set2-pop-n">' + esc(z[0]) + '</span><span class="set2-pop-p">' + esc(z[1]) + '</span></span>' +
-        '<span class="set2-pop-k">' + I.tick + '</span></button>').join(''));
+  function ahSetAvail(s, pid, k, off, was) {
+    const key = ahScopeOf(readURL()).key, b = ahBook(key), sp = ahSpan(key, s);
+    if (!sp) return;
+    const a = ahAvail(b, key, s, pid);
+    const next = k === 'from' ? [Math.max(0, Math.min(off, a[1] - 30)), a[1]] : [a[0], Math.min(sp.len, Math.max(off, a[0] + 30))];
+    if (next[0] === a[0] && next[1] === a[1]) return;
+    b.avail[s] = b.avail[s] || {};
+    if (next[0] === 0 && next[1] === sp.len) delete b.avail[s][pid]; else b.avail[s][pid] = next;
+    ahSay2(ahFirst(pid) + ' is available ' + ahAvailSay(b, key, s, pid) + ' on ' + ahLong(s) + '.', was);
+    render();
   }
 
-
-  function ahPickMenu(anchor, which) {
-    const sc = ahScopeOf(readURL());
-    const item = (id, name, line, on) =>
-      `<button class="set2-pop-i is-scope${on ? ' is-on' : ''}" type="button" data-ah-go="${esc(id)}" aria-current="${on ? 'true' : 'false'}">` +
-        '<span class="set2-pop-tx"><span class="set2-pop-n">' + esc(name) + '</span><span class="set2-pop-p">' + esc(line) + '</span></span>' +
-        '<span class="set2-pop-k">' + I.tick + '</span></button>';
-    const html = which === 'client'
-      ? CLIENTS().map((c) => {
-          const r = AH[c.id] ? AH[c.id].rota : null;
-          const tq = r && r[AH_TODAY] ? r[AH_TODAY] : [];
-          return item(c.id, c.name, !r ? 'no rota yet' : tq.length ? 'tonight: ' + AH_P[tq[0]].name + (tq.length > 1 ? ' and ' + (tq.length - 1) + ' more' : '') : 'nobody on call tonight', c.id === sc.client.id);
-        }).join('')
-      : item(sc.client.id, 'All products', sc.client.name + '’s rota', !sc.prod) +
-        ahProducts(sc.client).map((p) => item(p.id, p.name, AH[p.id] ? 'its own rota' : 'uses ' + sc.client.name + '’s rota', sc.prod && sc.prod.id === p.id)).join('');
-    popover(anchor, html);
-  }
-
-  /* The rail row says who is on tonight, or that a night this week is open. */
+  /* ── The rail ──
+     Schedule: who is first on call tonight, or the first night this week
+     with nobody. Configuration: the client's products with no file. */
   function ahState(st) {
-    const sc = ahScopeOf(st || readURL()), b = ahBook(sc.key);
-    const gap = ahRange(AH_TODAY, 7).filter((s) => !ahQ(b, s).length)[0];
+    const sc = ahScopeOf(Object.assign({}, st || readURL(), { m: 'afterhours' }));
+    if (!sc.prod) return null;
+    if (!ahCfg(sc.key)) return { note: 'No config file', s: 'warn' };
+    const b = ahBook(sc.key);
+    const gap = ahRange(AH_TODAY, 7).filter((s) => ahSpan(sc.key, s) && !ahQ(b, s).length)[0];
     if (gap) return { note: gap === AH_TODAY ? 'Nobody on call tonight' : AH_DAY[ahD(gap).getDay()].slice(0, 3) + ' ' + ahD(gap).getDate() + ' has nobody', s: 'warn' };
     const tq = ahQ(b, AH_TODAY);
-    return { note: 'Tonight: ' + AH_P[tq[0]].name + (tq.length > 1 ? ' +' + (tq.length - 1) : ''), s: '' };
+    return tq.length ? { note: 'Tonight: ' + AH_P[tq[0]].name + (tq.length > 1 ? ' +' + (tq.length - 1) : ''), s: '' } : { note: 'Not covered tonight', s: '' };
+  }
+  function ahCfgState(st) {
+    const sc = ahScopeOf(Object.assign({}, st || readURL(), { m: 'ahconfig' }));
+    const ps = sc.prods;
+    if (ps.some((p) => AH_CFG[p.id] && AH_CFG[p.id].failed)) return { note: 'An upload failed', s: 'err' };
+    const none = ps.filter((p) => !AH_CFG[p.id]).length;
+    if (none) return { note: none + ' with no file', s: 'warn' };
+    return ps.length ? { note: ps.length + ' files', s: 'ok' } : null;
+  }
+
+  /* ══ 24/7 › Configuration ══════════════════════════════════════════════
+     The file AiMY reads for each product (brief, Feature 0; AIMY-2974).
+     A product's page shows the version AiMY reads, in words or as the file,
+     every earlier version with a one-click way back, and the templates. A
+     client's page lists every product's file, so a file made in Knowledge
+     shows up here as soon as it exists.
+
+     Templates the GitHub Actions way: each card says when to use it first,
+     and downloads in YAML, JSON or XML with the product already filled in. */
+  const AH_FILE_I = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m10 13-2 2 2 2"/><path d="m14 17 2-2-2-2"/></svg>';
+  const AH_DL_I = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>';
+  const ahDate = (s) => ahD(s).getDate() + ' ' + AH_MON[ahD(s).getMonth()].slice(0, 3);
+  const ahList = (a) => (a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]);
+  const ahExt = (fmt) => (fmt === 'yaml' ? 'yaml' : fmt);
+
+  /* Knowledge owns the documents. A Configuration File made there arrives
+     here the next time a 24/7 page paints; its product_id says whose it is. */
+  const AH_SEEN = {};
+  function ahPull() {
+    if (!API || !API.configDocs) return;
+    API.configDocs().forEach((d) => {
+      const sig = d.id + '@' + d.text.length + ':' + d.text.slice(-40);
+      if (AH_SEEN[sig]) return;
+      AH_SEEN[sig] = 1;
+      if (Object.keys(AH_CFG).some((k) => AH_CFG[k].versions.some((v) => v.text === d.text))) return;
+      const fmt = CFG.fmtOf(d.file), r = CFG.check(d.text, fmt, '');
+      const m = d.text.match(/product_id\W+([\w-]+)/);
+      const pid = r.ok ? r.data.product_id : m ? m[1] : '';
+      if (!NODE_AT[pid] || NODE_AT[pid].node.type !== 'Product') return;
+      if (!r.ok) { if (AH_CFG[pid]) AH_CFG[pid].failed = { file: d.file, text: d.text, line: r.line, msg: r.msg, when: AH_TODAY }; return; }
+      const v = { by: d.by || 'Knowledge', when: AH_TODAY, note: 'Made in Knowledge', data: r.data, text: d.text, file: d.file, fmt };
+      if (AH_CFG[pid]) { AH_CFG[pid].versions.push(v); AH_CFG[pid].live = AH_CFG[pid].versions.length - 1; AH_CFG[pid].failed = null; }
+      else AH_CFG[pid] = { doc: d.id, file: d.file, fmt, from: null, live: 0, versions: [v], failed: null };
+    });
+  }
+
+  /* The file read as sentences: what AiMY does with each field. */
+  function ahWords(c) {
+    const w = c.coverage_windows, u = c.urgency_criteria;
+    const row = (k, v) => '<div class="ahc-row"><dt>' + esc(k) + '</dt><dd>' + v + '</dd></div>';
+    const urgent = [ahList(u.keywords.map((x) => '“' + esc(x) + '”'))]
+      .concat(u.customer_tiers && u.customer_tiers.length ? [esc(ahList(u.customer_tiers)) + ' customers'] : [])
+      .concat(u.impact && u.impact.length ? ['impact on ' + esc(ahList(u.impact))] : []);
+    return '<dl class="ahc-words">' +
+      row('Tickets from', esc(c.crm_source)) +
+      row('Covers', 'Weeknights ' + esc(ahClock(ahMin(w.weeknights.from)) + ' to ' + ahClock(ahMin(w.weeknights.to))) + ', ' +
+        esc(AH_WKND[w.weekends].toLowerCase()) + ', ' + esc(w.timezone)) +
+      row('Stands back', c.pre_window_minutes + ' minutes before working hours start, leaving the ticket for the day team') +
+      row('Urgent when', urgent.join('; ')) +
+      row('Not urgent when', ahList(c.non_urgent_criteria.keywords.map((x) => '“' + esc(x) + '”'))) +
+      row('Calls last', '<b>' + esc(c.oncall_manager.name) + '</b>, the on-call manager, on ' + esc(c.oncall_manager.phone) + ', when nobody on call answers') +
+      row('After an answer', 'Watches the ticket for ' + c.confirmation_wait_minutes + ' minutes, and calls the people on call again if nothing happens') +
+      '</dl>';
+  }
+  function ahCode(text, bad, from, to) {
+    const lines = text.replace(/\r/g, '').replace(/\n$/, '').split('\n');
+    const a = from || 1, z = to || lines.length;
+    return '<pre class="ahc-code"><code>' + lines.slice(a - 1, z).map((l, i) =>
+      `<span class="ahc-ln${a + i === bad ? ' is-bad' : ''}"><span class="ahc-n" aria-hidden="true">${a + i}</span>${esc(l) || ' '}</span>`).join('') + '</code></pre>';
+  }
+
+  function ahTemplates(sc) {
+    const f = sc.prod ? AH_CFG[sc.prod.id] : null;
+    const pid = sc.prod ? sc.prod.id : '';
+    return '<section class="set2-sec"><div class="set2-sec-h"><h2 class="set2-sec-t">Start from a template</h2></div>' +
+      '<p class="ah-ladder-l">Download one with the product filled in, change its ticket queue, criteria and manager, then upload it' + (sc.prod ? ' here or in Knowledge.' : ' on its product’s page or in Knowledge.') + '</p>' +
+      '<div class="ahc-grid">' + CFG.TEMPLATES.map((t) => {
+        const tag = f && f.from === t.id ? esc(sc.prod.name) + ' started from this'
+          : sc.prod && !f && t.id === 'every-night' ? 'Suggested for ' + esc(sc.prod.name) : '';
+        return '<article class="ahc-tpl">' +
+          (tag ? '<span class="ahc-tag">' + tag + '</span>' : '') +
+          '<h3 class="ahc-tpl-t">' + esc(t.name) + '</h3>' +
+          '<p class="ahc-tpl-w">' + esc(t.when) + '</p>' +
+          '<div class="ahc-tpl-a"><span class="ahc-tpl-k">Download</span>' + ['yaml', 'json', 'xml'].map((x) =>
+            `<button class="ahc-fmt" type="button" data-ah-tpl="${esc(t.id + '|' + x + '|' + pid)}" aria-label="${esc('Download ' + t.name + ' as ' + CFG.FMT_LABEL[x])}">${CFG.FMT_LABEL[x]}</button>`).join('') +
+          '</div></article>';
+      }).join('') + '</div></section>';
+  }
+
+  /* A file that was refused: what is wrong, on which line, and that the
+     version AiMY reads has not changed. */
+  function ahFailed(key) {
+    const f = AH_CFG[key], x = f && f.failed;
+    if (!x) return '';
+    return '<div class="ahc-err" role="alert"><p><b>' + esc(x.file) + ' wasn’t used.</b> ' + (x.line ? 'Line ' + x.line + ': ' : '') + esc(x.msg) + '. ' +
+      (f.versions.length ? 'AiMY still reads version ' + (f.live + 1) + '.' : '') + '</p>' +
+      (x.text && x.line ? ahCode(x.text, x.line, Math.max(1, x.line - 2), x.line + 2) : '') +
+      '<div class="ahc-acts"><button class="agv-btn is-brand" type="button" data-ah-upload>Upload a fixed file</button>' +
+      '<button class="agv-btn" type="button" data-ah-errclose>Dismiss</button></div></div>';
+  }
+
+  function ahCfgProduct(sc) {
+    const key = sc.key, f = AH_CFG[key];
+    if (!f || !f.versions.length) {
+      return ahFailed(key) + '<div class="ah-empty"><p><b>' + esc(sc.prod.name) + ' has no config file yet</b>, so AiMY doesn’t cover it after hours. ' +
+        'Start from a template below, or upload a file you already have: .yaml, .yml, .json or .xml.</p>' +
+        '<button class="agv-btn is-brand" type="button" data-ah-upload>Upload a config file</button></div>' + ahTemplates(sc);
+    }
+    const v = f.versions[f.live], words = AH_CFGVIEW === 'words';
+    return ahFailed(key) +
+      '<section class="ahc-file">' +
+        '<span class="ahc-file-i" aria-hidden="true">' + AH_FILE_I + '</span>' +
+        '<div class="ahc-file-t"><span class="ahc-file-n">' + esc(v.file) + '<span class="ahc-fmt is-static">' + CFG.FMT_LABEL[v.fmt] + '</span></span>' +
+          '<span class="ahc-file-m">Version ' + (f.live + 1) + ' of ' + f.versions.length + ', ' + esc(v.by) + ', ' + esc(ahDate(v.when)) + '. ' +
+          '<span class="ahc-ok">AiMY reads this version.</span></span></div>' +
+        '<div class="ahc-acts">' +
+          '<button class="agv-btn is-brand" type="button" data-ah-upload>Upload a new version</button>' +
+          `<button class="agv-btn" type="button" data-ah-download="${f.live}">${AH_DL_I}Download</button>` +
+          `<a class="agv-btn" href="index.html?doc=${esc(f.doc)}">Open in Knowledge</a>` +
+        '</div>' +
+      '</section>' +
+      '<section class="set2-sec"><div class="set2-sec-h ahc-h"><h2 class="set2-sec-t">What AiMY reads</h2>' +
+        '<span class="b-cal-seg" role="group" aria-label="Show">' +
+          `<button class="b-cal-btn is-word${words ? ' is-on' : ''}" type="button" data-ah-cfgview="words" aria-pressed="${words}">In words</button>` +
+          `<button class="b-cal-btn is-word${!words ? ' is-on' : ''}" type="button" data-ah-cfgview="file" aria-pressed="${!words}">The file</button>` +
+        '</span></div>' +
+        (words ? ahWords(v.data) : ahCode(v.text)) +
+      '</section>' +
+      '<section class="set2-sec"><div class="set2-sec-h"><h2 class="set2-sec-t">Versions</h2></div><ol class="ahc-vers" reversed>' +
+        f.versions.map((x, i) => [x, i]).reverse().map(([x, i]) =>
+          `<li class="ahc-ver${i === f.live ? ' is-live' : ''}"><span class="ahc-ver-n">Version ${i + 1}</span>` +
+          '<span class="ahc-ver-t">' + esc(x.note) + '<span class="ahc-ver-m">' + esc(x.by + ', ' + ahDate(x.when)) + '</span></span>' +
+          (i === f.live ? '<span class="ahc-ok">AiMY reads this</span>'
+            : `<button class="ah-link" type="button" data-ah-cfglive="${i}">Go back to this</button>`) + '</li>').join('') +
+      '</ol></section>' + ahTemplates(sc);
+  }
+
+  function ahCfgClient(sc) {
+    if (!sc.prods.length) return '<div class="ah-empty"><p><b>' + esc(sc.client.name) + ' has no products yet.</b> A config file belongs to a product.</p></div>';
+    return '<section class="set2-sec"><div class="set2-sec-h"><h2 class="set2-sec-t">Products</h2></div><ul class="ahc-prods">' +
+      sc.prods.map((p) => {
+        const f = AH_CFG[p.id];
+        const v = f && f.versions.length ? f.versions[f.live] : null;
+        const st = f && f.failed ? '<span class="ahc-bad">Upload failed</span>' : v ? '<span class="ahc-ok">AiMY reads it</span>' : '<span class="ahc-warn">No file yet</span>';
+        return `<li><button class="ahc-prod" type="button" data-ah-go="${esc(p.id)}">` +
+          '<span class="ahc-prod-n">' + esc(p.name) + '</span>' +
+          '<span class="ahc-prod-f">' + (v ? esc(v.file) + ' · version ' + (f.live + 1) + ', ' + esc(ahDate(v.when)) : 'AiMY doesn’t cover it after hours') + '</span>' +
+          st + I.chev + '</button></li>';
+      }).join('') + '</ul></section>' + ahTemplates(sc);
+  }
+
+  M.ahconfig = function (st) {
+    ahPull();
+    const sc = ahScopeOf(st);
+    return '<div class="ahc">' + (sc.prod ? ahCfgProduct(sc) : ahCfgClient(sc)) + '</div>';
+  };
+
+  /* ── Files in and out ── */
+  function ahDownload(name, text) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+  }
+  let AH_PICKER = null;
+  function ahUpload(key) {
+    if (!AH_PICKER) {
+      AH_PICKER = document.createElement('input');
+      AH_PICKER.type = 'file';
+      AH_PICKER.hidden = true;
+      document.body.appendChild(AH_PICKER);
+    }
+    AH_PICKER.value = '';
+    AH_PICKER.accept = CFG.EXT.join(',');
+    AH_PICKER.onchange = () => {
+      const file = AH_PICKER.files && AH_PICKER.files[0];
+      if (!file) return;
+      const rd = new FileReader();
+      rd.onload = () => ahTake(key, file.name, String(rd.result));
+      rd.readAsText(file);
+    };
+    AH_PICKER.click();
+  }
+  /* Check a file and, if it is good, make it the version AiMY reads. */
+  function ahTake(key, name, text) {
+    const was = ahSnap();
+    const fmt = CFG.fmtOf(name), r = CFG.check(text, fmt, key);
+    const f = AH_CFG[key] || (AH_CFG[key] = { doc: 'cfg-' + key, file: name, fmt, from: null, live: 0, versions: [], failed: null });
+    if (!r.ok) {
+      f.failed = { file: name, text, line: r.line, msg: r.msg, when: AH_TODAY };
+      ahSay2(name + ' wasn’t used. ' + (f.versions.length ? 'Version ' + (f.live + 1) + ' is still the one AiMY reads.' : 'Fix it and upload it again.'));
+      render();
+      return;
+    }
+    f.versions.push({ by: 'Nour Wael', when: AH_TODAY, note: 'Uploaded ' + name, data: r.data, text, file: name, fmt });
+    f.live = f.versions.length - 1;
+    f.file = name; f.fmt = fmt; f.failed = null;
+    if (API && API.configSaved) API.configSaved({ id: f.doc, file: name, text, product: key });
+    ahSay2('Version ' + f.versions.length + ' of ' + name + ' is live. AiMY reads it from now on.', was);
+    render();
   }
 
   /* ── After a paint: the roster's scroll, its held height, and its fades ──
-     A repaint rebuilds the column, so the scroll position is put back, the
-     chosen person is kept in view, and while search is open the list keeps
-     the height it measured before anything was typed. */
+     A repaint rebuilds the column, so the scroll position is put back and,
+     while search is open, the list keeps the height it measured before
+     anything was typed. */
   const AH_SCROLL = {}, AH_HEIGHT = {};
   let AH_FOCUS = false;
   function ahEdges(el) {
@@ -3232,32 +3451,25 @@
       if (!AH_FIND || !AH_Q.trim()) { el.style.height = ''; AH_HEIGHT[k] = el.offsetHeight; }
       if (AH_FIND) el.style.height = AH_HEIGHT[k] + 'px';
       el.scrollTop = AH_SCROLL[k] || 0;
-      const on = el.querySelector('.is-on');
-      if (on) {
-        const top = on.offsetTop - el.offsetTop, bot = top + on.offsetHeight;
-        if (top < el.scrollTop) el.scrollTop = top;
-        else if (bot > el.scrollTop + el.clientHeight) el.scrollTop = bot - el.clientHeight;
-      }
       ahEdges(el);
       el.addEventListener('scroll', () => { AH_SCROLL[k] = el.scrollTop; ahEdges(el); }, { passive: true });
     });
     $$('.b-cal-day.is-fresh').forEach((el) => el.addEventListener('animationend', () => { AH_FRESH = []; }, { once: true }));
     if (AH_FOCUS) { AH_FOCUS = false; const i = document.querySelector('[data-ah-find]'); if (i) i.focus(); }
-
-    if (AH_KNOBFOCUS) {
-      const f = AH_KNOBFOCUS.indexOf('tok:') === 0 ? '[data-ah-tok="' + AH_KNOBFOCUS.slice(4) + '"]' : '[data-ah-knob="' + AH_KNOBFOCUS + '"]';
-      AH_KNOBFOCUS = ''; const g = document.querySelector(f); if (g) g.focus();
-    }
+    if (AH_REFOCUS) { const g = document.querySelector(AH_REFOCUS); AH_REFOCUS = ''; if (g) g.focus(); }
   }
 
-  const ahSnap = () => JSON.stringify(AH);
-  const ahRestore = (s) => { const o = JSON.parse(s); Object.keys(AH).forEach((k) => delete AH[k]); Object.assign(AH, o); };
+  const ahSnap = () => JSON.stringify({ AH, AH_CFG });
+  const ahRestore = (s) => {
+    const o = JSON.parse(s);
+    [[AH, o.AH], [AH_CFG, o.AH_CFG]].forEach(([to, from]) => { Object.keys(to).forEach((k) => delete to[k]); Object.assign(to, from); });
+  };
   const ahSay2 = (m, was) => { if (API && API.toast) API.toast(m, was ? () => { ahRestore(was); render(); } : undefined); };
 
   document.addEventListener('click', (e) => {
-    const t = e.target.closest('[data-ah-day],[data-ah-q],[data-ah-qup],[data-ah-qset],[data-ah-qwaitmenu],[data-ah-qwaitgo],[data-ah-fill],[data-ah-rotate],[data-ah-view],[data-ah-own],[data-ah-pick],[data-ah-go],' +
-      '[data-ah-editteam],[data-ah-findopen],[data-ah-findclose],[data-ah-rm],[data-ah-addp],[data-ah-tok],[data-ah-timego],[data-ah-tz],' +
-      '[data-ah-waitmenu],[data-ah-waitgo],[data-ah-rungmenu],[data-ah-runggo],[data-ah-rungrm],[data-ah-rungadd],[data-ah-rungaddgo],[data-ah-tzgo],[data-ah-weekends]');
+    const t = e.target.closest('[data-ah-day],[data-ah-q],[data-ah-qup],[data-ah-qset],[data-ah-fill],[data-ah-rotate],[data-ah-view],[data-ah-pick],[data-ah-go],' +
+      '[data-ah-editteam],[data-ah-findopen],[data-ah-findclose],[data-ah-rm],[data-ah-addp],[data-ah-avail],[data-ah-availgo],' +
+      '[data-ah-cfgopen],[data-ah-cfgview],[data-ah-cfglive],[data-ah-upload],[data-ah-download],[data-ah-tpl],[data-ah-errclose]');
     if (!t) return;
     const st = readURL();
     const sc = ahScopeOf(st);
@@ -3265,44 +3477,41 @@
     if (t.hasAttribute('data-ah-go')) { closePop(); AH_EDIT = false; AH_FIND = false; AH_Q = ''; patch({ node: t.getAttribute('data-ah-go') }); return; }
     if (t.hasAttribute('data-ah-day')) { AH_SEL = t.getAttribute('data-ah-day'); AH_FRESH = []; render(); return; }
     if (t.hasAttribute('data-ah-view')) { AH_VIEW = t.getAttribute('data-ah-view'); AH_FRESH = []; render(); return; }
-    if (t.hasAttribute('data-ah-tok')) { ahTimeMenu(t, t.getAttribute('data-ah-tok')); return; }
-    if (t.hasAttribute('data-ah-timego')) { const [k, m] = t.getAttribute('data-ah-timego').split('|'); closePop(); ahSetHour(k, +m); return; }
-    if (t.hasAttribute('data-ah-tz')) { ahTzMenu(t); return; }
-    if (t.hasAttribute('data-ah-waitmenu')) {
-      const i = +t.getAttribute('data-ah-waitmenu'), w = ahBook(sc.key).ladder[i].wait;
-      const ws = AH_WAITS.indexOf(w) < 0 ? AH_WAITS.concat(w).sort((a, c) => a - c) : AH_WAITS;
-      popover(t, ws.map((m) => `<button class="set2-pop-i is-scope${m === w ? ' is-on' : ''}" type="button" role="option" data-ah-waitgo="${i}|${m}">` +
-        '<span class="set2-pop-tx"><span class="set2-pop-n">' + m + ' min</span></span><span class="set2-pop-k">' + I.tick + '</span></button>').join(''), 'is-times');
+    if (t.hasAttribute('data-ah-cfgopen')) { patch({ m: 'ahconfig', node: sc.key || st.node }); return; }
+    if (t.hasAttribute('data-ah-cfgview')) { AH_CFGVIEW = t.getAttribute('data-ah-cfgview'); render(); return; }
+    if (t.hasAttribute('data-ah-upload')) { ahUpload(sc.key); return; }
+    if (t.hasAttribute('data-ah-download')) {
+      const f = AH_CFG[sc.key];
+      const v = f && f.versions[+t.getAttribute('data-ah-download')];
+      if (v) ahDownload(v.file, v.text);
       return;
     }
-    if (t.hasAttribute('data-ah-qwaitmenu')) {
-      const w = ahBook(sc.key).qwait || 10;
-      const ws = AH_WAITS.indexOf(w) < 0 ? AH_WAITS.concat(w).sort((a, c) => a - c) : AH_WAITS;
-      popover(t, ws.map((m) => `<button class="set2-pop-i is-scope${m === w ? ' is-on' : ''}" type="button" role="option" data-ah-qwaitgo="${m}">` +
-        '<span class="set2-pop-tx"><span class="set2-pop-n">' + m + ' min</span></span><span class="set2-pop-k">' + I.tick + '</span></button>').join(''), 'is-times');
+    if (t.hasAttribute('data-ah-tpl')) {
+      const [id, fmt, pid] = t.getAttribute('data-ah-tpl').split('|');
+      const tp = CFG.template(id);
+      ahDownload((pid || 'your-product') + '-after-hours.' + ahExt(fmt), CFG.write(CFG.fill(tp, pid), fmt));
       return;
     }
-    if (t.hasAttribute('data-ah-rungmenu')) { AH_RUNG = +t.getAttribute('data-ah-rungmenu'); ahLeadMenu(t, 'ah-runggo', ahBook(sc.key).ladder[AH_RUNG].name); return; }
-    if (t.hasAttribute('data-ah-rungadd')) { ahLeadMenu(t, 'ah-rungaddgo', ''); return; }
-    if (t.hasAttribute('data-ah-tzgo')) {
-      closePop();
-      const b0 = ahBook(sc.key), z = t.getAttribute('data-ah-tzgo');
-      if (b0.hours.tz === z) return;
-      const was0 = ahSnap();
-      b0.hours = Object.assign({}, b0.hours, { tz: z });
-      ahSay2('Nights for ' + (sc.prod && sc.own ? sc.prod.name : sc.client.name) + ' now run on ' + z + ' time.', was0);
-      render(); return;
-    }
-    if (t.hasAttribute('data-ah-weekends')) {
-      const b0 = ahBook(sc.key), was0 = ahSnap();
-      b0.hours = Object.assign({}, b0.hours, { weekends: !b0.hours.weekends });
-      ahSay2(b0.hours.weekends ? 'Weekends are covered all day, Saturday and Sunday.' : 'Weekends keep the same night hours as weekdays.', was0);
-      render(); return;
-    }
+    if (t.hasAttribute('data-ah-avail')) { const [s, pid, k] = t.getAttribute('data-ah-avail').split('|'); ahAvailMenu(t, s, pid, k); return; }
     if (t.hasAttribute('data-ah-editteam')) { AH_EDIT = t.getAttribute('data-ah-editteam') === '1'; render(); return; }
     if (t.hasAttribute('data-ah-findopen')) { AH_FIND = true; AH_Q = ''; AH_FOCUS = true; render(); return; }
     if (t.hasAttribute('data-ah-findclose')) { AH_FIND = false; AH_Q = ''; render(); return; }
     const was = ahSnap();
+    if (t.hasAttribute('data-ah-errclose')) { if (AH_CFG[sc.key]) AH_CFG[sc.key].failed = null; render(); return; }
+    if (t.hasAttribute('data-ah-cfglive')) {
+      const f = AH_CFG[sc.key], i = +t.getAttribute('data-ah-cfglive');
+      if (!f || i === f.live) return;
+      f.live = i;
+      ahSay2('Version ' + (i + 1) + ' is the one AiMY reads again.', was);
+      render(); return;
+    }
+    if (t.hasAttribute('data-ah-availgo')) {
+      closePop();
+      const [s, pid, k, off] = t.getAttribute('data-ah-availgo').split('|');
+      AH_REFOCUS = '[data-ah-avail="' + s + '|' + pid + '|' + k + '"]';
+      ahSetAvail(s, pid, k, +off, was);
+      return;
+    }
     const b = ahBook(sc.key);
     if (t.hasAttribute('data-ah-q')) {
       /* A name joins the end of the night's queue, or leaves it. */
@@ -3338,26 +3547,18 @@
       ahSay2(nq.length ? ahLong(s) + ': ' + ahThen(nq, (x) => x) + '.' : 'Nobody is on call ' + ahLong(s) + '.', was);
       render(); return;
     }
-    if (t.hasAttribute('data-ah-qwaitgo')) {
-      closePop();
-      const m = +t.getAttribute('data-ah-qwaitgo');
-      if ((b.qwait || 10) === m) return;
-      b.qwait = m;
-      ahSay2('The people on call now get a handoff ' + m + ' minutes apart.', was);
-      render(); return;
-    }
     if (t.hasAttribute('data-ah-fill')) {
       const [f, n] = t.getAttribute('data-ah-fill').split('|');
-      const days = ahRange(f, +n).filter((s) => !ahPast(s) && !ahQ(b, s).length);
+      const days = ahRange(f, +n).filter((s) => !ahPast(s) && ahSpan(sc.key, s) && !ahQ(b, s).length);
       days.forEach((s) => { const p = ahRanked(sc.key, s)[0]; if (p) b.rota[s] = [p]; });
       AH_FRESH = days.filter((s) => ahQ(b, s).length);
       ahSay2('AiMY filled ' + ahPl(AH_FRESH.length, 'night') + ', spread so nobody carries more than their share.', was);
       render(); return;
     }
     if (t.hasAttribute('data-ah-rotate')) {
-      /* A weekly rotation: next week's empty nights go to the person after
-         this week's, in the team's order. The diary moves to next week and
-         lights the nights it set, so the change is seen. */
+      /* A weekly rotation: next week's empty nights take this week's queues,
+         each person one along in the team's order. The diary moves to next
+         week and lights the nights it set, so the change is seen. */
       const wk = t.getAttribute('data-ah-rotate');
       const plan = ahRotatePlan(sc.key, wk);
       plan.rows.forEach((x) => { if (x.fresh) b.rota[x.s] = x.q; });
@@ -3366,37 +3567,6 @@
       const nx = ahAdd(wk, 7);
       ahSay2(ahD(nx).getDate() + ' to ' + ahD(ahAdd(nx, 6)).getDate() + ' ' + AH_MON[ahD(ahAdd(nx, 6)).getMonth()] + ': ' +
         ahPl(plan.n, 'night') + ' set, each one person along from the week before.', was);
-      render(); return;
-    }
-    if (t.hasAttribute('data-ah-waitgo')) {
-      closePop();
-      const [i, m] = t.getAttribute('data-ah-waitgo').split('|').map(Number);
-      if (b.ladder[i].wait === m) return;
-      b.ladder[i] = Object.assign({}, b.ladder[i], { wait: m });
-      ahSay2(b.ladder[i].name + ' now gets the call ' + m + ' minutes after the step before.', was);
-      render(); return;
-    }
-    if (t.hasAttribute('data-ah-runggo')) {
-      closePop();
-      const l = AH_LEADS[+t.getAttribute('data-ah-runggo')], old = b.ladder[AH_RUNG];
-      if (!old || old.name === l.name) return;
-      b.ladder[AH_RUNG] = Object.assign({}, old, { name: l.name, role: l.role });
-      ahSay2(l.name + ' takes ' + old.name + '’s place on the path.', was);
-      render(); return;
-    }
-    if (t.hasAttribute('data-ah-rungaddgo')) {
-      closePop();
-      const l = AH_LEADS[+t.getAttribute('data-ah-rungaddgo')];
-      b.ladder.push({ name: l.name, role: l.role, wait: 15 });
-      ahSay2(l.name + ' is the last step now, 15 minutes after the one before.', was);
-      render(); return;
-    }
-    if (t.hasAttribute('data-ah-rungrm')) {
-      closePop();
-      const i = +t.getAttribute('data-ah-rungrm'), r = b.ladder[i];
-      if (!r) return;
-      b.ladder.splice(i, 1);
-      ahSay2(r.name + ' is off the path.', was);
       render(); return;
     }
     if (t.hasAttribute('data-ah-rm')) {
@@ -3410,15 +3580,6 @@
       const pid = t.getAttribute('data-ah-addp');
       b.team.push(pid);
       ahSay2(AH_P[pid].name + ' joins the team, last in the rotation.', was);
-      render(); return;
-    }
-    if (t.hasAttribute('data-ah-own')) {
-      const pid = t.getAttribute('data-ah-own');
-      const src = ahBook(sc.client.id);
-      /* Empty, not a copy: a copy would put every person on two rotas the
-         same night. The team and the ladder carry across. */
-      AH[pid] = { hours: Object.assign({}, src.hours || AH_HOURS0), ladder: src.ladder.map((r) => Object.assign({}, r)), qwait: src.qwait || 10, team: src.team.slice(), rota: {}, out: {} };
-      ahSay2(ahName(pid) + ' has its own rota now. Nobody is on it yet.', was);
       render(); return;
     }
   });
@@ -3438,10 +3599,18 @@
     $$('.ah-scroll').forEach((el) => { el.scrollTop = 0; AH_SCROLL[el.getAttribute('data-ah-scroll')] = 0; ahEdges(el); });
   });
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && e.target.closest && e.target.closest('[data-ah-find]')) { AH_FIND = false; AH_Q = ''; render(); }
+    if (e.key === 'Escape' && e.target.closest && e.target.closest('[data-ah-find]')) { AH_FIND = false; AH_Q = ''; render(); return; }
+    /* An availability time steps by half hours on its arrow keys. */
+    const g = e.target.closest && e.target.closest('[data-ah-avail]');
+    if (!g) return;
+    const step = { ArrowUp: 30, ArrowRight: 30, ArrowDown: -30, ArrowLeft: -30 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    const [s, pid, k] = g.getAttribute('data-ah-avail').split('|');
+    const key = ahScopeOf(readURL()).key, a = ahAvail(ahBook(key), key, s, pid);
+    AH_REFOCUS = '[data-ah-avail="' + s + '|' + pid + '|' + k + '"]';
+    ahSetAvail(s, pid, k, (k === 'from' ? a[0] : a[1]) + step, ahSnap());
   });
-  /* Leaving the field keeps what was typed, the way the other inline fields
-     in this console commit. */
 
   /* ══ AGENTS ════════════════════════════════════════════════════════════
      A group of two pages: Tone & Voice, which is the agents themselves, and
@@ -11125,7 +11294,8 @@
      part of the heading. A description belongs to its title. */
   const PAGE_LEDE = {
     selling: () => `What you pick here is what <b>AiMY Sales</b> offers when you build a campaign.`,
-    afterhours: () => `Who takes the call when AiMY hands a customer over after hours, night by night.`,
+    afterhours: () => `Who AiMY calls, in order, when an urgent ticket comes in after hours. Night by night, for each product.`,
+    ahconfig: () => `The file AiMY reads for each product: when it covers, what counts as urgent, and who it calls when nobody on call answers.`,
     archive: () => `Out of the library and out of every answer — kept, not deleted.
       Restoring one puts it back exactly as it was.`
   };
@@ -11193,7 +11363,7 @@
     if (m.scope === 'prod') return prodScope(st);
     if (pg && pg.id === 'people') return peopleScope(st);
     if (pg && pg.id === 'usage') return usageScope(st);
-    if (m.id === 'afterhours') return ahScope(st);
+    if (m.id === 'afterhours' || m.id === 'ahconfig') return ahScope(st);
     return '';
   }
 
