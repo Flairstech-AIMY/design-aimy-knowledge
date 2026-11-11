@@ -8801,7 +8801,10 @@
       (isUser
         ? `<div class="msg-avatar">${esc(USER.initials)}${USER.photo
             ? `<img class="av-photo" src="${esc(USER.photo)}" alt="" decoding="async">` : ''}</div>`
-        : '<div class="msg-avatar aimy-av"><svg width="15" height="17" viewBox="0 0 18 20"><use href="#aimy-logo-small"/></svg></div>') +
+        /* AiMY's turns carry no mark (Nour, 11 Nov, the same change as
+           Sales): the thread is AiMY's, so the mark said nothing the canvas
+           does not, and the answer gets its 40px back. */
+        : '') +
       `<div class="msg-bubble"${turn.id ? ` id="${turn.id}"` : ''}${live ? ' data-live="1"' : ''}>${live ? turn.html() : turn.html}</div>` +
       (isUser ? '' : msgActs(turn));
     /* Re-attached on every build, not only the first, or `repaint()` would stop

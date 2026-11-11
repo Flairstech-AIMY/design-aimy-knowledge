@@ -1599,9 +1599,18 @@ button {
    does that half. */
 .overlay-main .overlay-thread {
   max-width: none;
-  padding-left: max(1.5rem, calc((100% - 42rem) / 2));
-  padding-right: max(1.5rem, calc((100% - 42rem) / 2));
+  /* 52.5rem (840px) since 11 Nov, was 42rem: Nour asked for the messages to
+     take more of the screen, as in Sales. The composer widens with it (just
+     below: a 54rem wrap less its 0.75rem sides is the same 52.5rem), so
+     bubbles and bar share both edges; 0.75rem rather than 1.5rem once room
+     runs out keeps them on the bar's edges on a phone too.
+     The right side is less the 0.3125rem scrollbar, reserved always, so the
+     right edge is the bar's whether the thread scrolls or not. */
+  scrollbar-gutter: stable;
+  padding-left: max(0.75rem, calc((100% - 52.5rem) / 2));
+  padding-right: max(0.4375rem, calc((100% - 52.5rem) / 2 - 0.3125rem));
 }
+.aimy-overlay:not(.is-meeting) .overlay-main .overlay-input-wrap { max-width: 54rem; }
 
 /* ══ THE BADGE AND THE BASIS BELONG TO THE TOP OF THE THREAD ═════════════
    Both float over the conversation. At the top that is what they are for —
@@ -3481,6 +3490,24 @@ span.topnav-tab:hover { background: none; }
    with the avatar stranded above it. flex-basis 0 with grow takes whatever is
    left after the avatar, which is what "full width" meant here all along. */
 .chat-msg.aimy:has(.answer-surface) .msg-bubble { max-width: 100%; flex: 1 1 0; min-width: 0; }
+
+/* ══ AiMY'S TURNS HAVE NO MARK AND TAKE 95% OF THE COLUMN ═══════════════
+   Nour, 11 Nov, the same change as Sales (bdr.css, "AiMY'S TURNS HAVE NO
+   MARK"). turnEl no longer draws a mark beside AiMY, so every AiMY turn,
+   prose or answer, starts on the column's left edge and runs 95% of it;
+   your turns keep their face and their own cap. The rows under an answer
+   lose the 2.5rem that cleared the mark, so they start where the bubble
+   does. `.overlay-thread` in front outranks the answer-surface rule above. */
+.chat-msg.aimy { max-width: 100%; }
+.overlay-thread .chat-msg.aimy .msg-bubble { max-width: none; min-width: 0; flex: 0 1 95%; }
+.chat-msg.aimy .msg-acts,
+.chat-msg.aimy .msg-follow,
+.chat-msg.aimy .msg-sources { margin-left: 0; }
+/* Your bubble leaves room for your face. The row wraps (above), and on a
+   phone a long question's 30rem bubble did not fit beside the face, so it
+   dropped onto a line of its own under it (measured at 375: face at y 353,
+   bubble at 393, bubble running under the face's column). */
+.chat-msg.user .msg-bubble { max-width: min(30rem, calc(100% - 2.5rem)); min-width: 0; }
 .answer-surface { display: flex; flex-direction: column; gap: 0.75rem; }
 /* The surface owns the rhythm, once. Several of these blocks carry their own
    vertical margins for the places they appear outside an answer, and those
@@ -8406,3 +8433,41 @@ button.aimy-float-icon:focus-visible { outline: 0.125rem solid var(--brand); out
 .k-search:hover { border-bottom-color: var(--ink-quiet); }
 .k-search.is-on, :root[data-theme="light"] .k-search.is-on { border-bottom-color: rgba(var(--accent-rgb), 0.6); }
 .k-search:focus-within { border-bottom-color: var(--brand); background: none; }
+
+/* ══ THE PHONE'S OWN BARS NEVER COVER THE APP ══════════════════════════
+   Nour, 11 Nov, the same rules as Sales (aimy-responsive.css §5): "take care
+   of the bottom and top native mobile navigation bars so the composer or the
+   ui not get hidden by them". viewport-fit=cover (both pages' meta) hands
+   the page the whole glass: status bar and notch at the top, the home
+   indicator or Android's gesture/button bar at the foot, the notch at the
+   side in landscape. env() says how much each takes and is 0 on a laptop,
+   so nothing here moves at 1536.
+
+   TOP: the masthead grows by the status bar and pads it out, so its row
+   stays 60px under it; the canvas, the rail drawers and the gate's stage
+   all hang off --topbar-height and follow. BOTTOM: the canvas composer
+   rises by the inset (the float bar and the gate already did). SIDES: the
+   shell, the canvas (its chats door sits inside the inset column), the
+   chats and rail drawers and the float bar keep out of a landscape notch. */
+:root:root {
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left:   env(safe-area-inset-left, 0px);
+  --safe-right:  env(safe-area-inset-right, 0px);
+  --topbar-height: calc(3.75rem + var(--safe-top));
+}
+.app-topnav { padding-top: var(--safe-top); }
+body { padding-left: var(--safe-left); padding-right: var(--safe-right); }
+
+.aimy-overlay { padding-left: var(--safe-left); padding-right: var(--safe-right); }
+.overlay-main { padding-bottom: calc(1.5rem + var(--safe-bottom)); }
+/* Borders, not padding: these drawers set their own padding per width, and
+   their ground shows through a transparent border. */
+.app-sidebar { border-left: var(--safe-left) solid transparent; }
+@media (max-width: 56.25rem) {
+  .overlay-chats { border-left: var(--safe-left) solid transparent; }
+}
+.aimy-float-wrap {
+  width: min(var(--measure-bar), calc(100% - 3rem - var(--safe-left) - var(--safe-right)));
+  left: calc(50% + (var(--safe-left) - var(--safe-right)) / 2);
+}

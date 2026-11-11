@@ -439,9 +439,12 @@ body[data-rail="collapsed"] .gate-rail-peek { display: inline-flex; }
      `--gate-column` is what the PROSE gets, which is not the same number: the
      thread is capped at 45rem by knowledge.css, and below 1240 the stage is
      narrower than that, so the column is whichever binds first. */
-  --gate-measure: 48rem;
+  /* 11 Nov: 56rem and 53rem, were 48rem and 45rem. Nour asked for the
+     messages to take more of the screen, the same 848px column and composer
+     as Sales and the Console canvas. */
+  --gate-measure: 56rem;
   --gate-gutter: 1.5rem;
-  --gate-column: min(45rem, calc(var(--gate-measure) - 2 * var(--gate-gutter)));
+  --gate-column: min(53rem, calc(var(--gate-measure) - 2 * var(--gate-gutter)));
   position: relative;
   z-index: 1;
   display: flex;
@@ -1045,4 +1048,30 @@ body[data-thread="active"] .gate-stage .overlay-thread {
   margin-inline: 0;
   padding-left: max(var(--gate-gutter), calc((100% - var(--gate-column)) / 2));
   padding-right: max(var(--gate-gutter), calc((100% - var(--gate-column)) / 2));
+}
+
+/* ══ THE PHONE'S OWN BARS, ON THE GATE ═════════════════════════════════
+   knowledge.css "THE PHONE'S OWN BARS" does the masthead and the sides. The
+   stage cleared the home indicator only below 720; a tablet has one too, so
+   the inset is on the stage at every width (0 on a laptop). */
+.gate-stage { padding-bottom: var(--safe-bottom); }
+
+/* The composer takes the stage's width. knowledge.css caps every
+   .overlay-input-wrap at 45rem, which held the gate's composer at 720px
+   once the stage widened to 53rem (11 Nov). */
+.gate-stage .overlay-input-wrap { max-width: none; }
+/* AND THE THREAD'S RIGHT EDGE IS THE COMPOSER'S. Its padding is worked out
+   from the stage, but a scrolling thread draws a 0.3125rem scrollbar
+   (aimy-ds.css) inside it, so your face ended 5px short of the composer's
+   right edge whenever the thread was long. The gutter is reserved always and
+   taken off the right padding, so the edges agree scrolled or not. */
+body[data-thread="active"] .gate-stage .overlay-thread {
+  scrollbar-gutter: stable;
+  padding-right: max(calc(var(--gate-gutter) - 0.3125rem), calc((100% - var(--gate-column)) / 2 - 0.3125rem));
+}
+/* The rail drawer is fixed to the window, so its ground covers a landscape
+   notch. Its door needs nothing: it sits inside the body, whose padding
+   already clears the notch. */
+@media (max-width: 56.25rem) {
+  .gate-rail { border-left: var(--safe-left) solid transparent; }
 }
