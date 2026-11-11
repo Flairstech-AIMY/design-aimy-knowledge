@@ -1446,6 +1446,79 @@
         _custom: [{ id: 'reassign', kind: 'text', name: 'reassign_group', value: 'OL-Extended Support' }]
       } } });
   }
+  /* A sample with every field answered, the optional ones too, and one
+     custom field of each kind, to see the whole form at once (Nour, 11 Nov
+     2026). Every value is made up; the title says it is a sample. */
+  if (CFGFORM && !CORPUS.some((o) => o.id === 'cfg-every-field')) {
+    CORPUS.push({ id: 'cfg-every-field', t: 'config', work: 'drafted', owner: 'N. Wael',
+      title: 'Sample: after-hours configuration with every field filled in',
+      col: 'support', src: 'upload', prod: 'objectiflune', client: 'upland',
+      tags: ['after-hours', 'configuration', 'sample'], upd: 0, ing: 0, xc: 0, xu: 0,
+      sum: 'A made-up configuration with every field answered, to see the whole form.',
+      props: {},
+      x: { text: '', form: {
+        'tickets.crm_source': 'freshdesk',
+        'schedule.timezone': 'Europe/London',
+        'schedule.working_hours': [
+          { day: 'mon', start: '08:30', end: '18:00' }, { day: 'tue', start: '08:30', end: '18:00' },
+          { day: 'wed', start: '08:30', end: '18:00' }, { day: 'thu', start: '08:30', end: '18:00' },
+          { day: 'fri', start: '08:30', end: '16:00' }, { day: 'sat', start: '10:00', end: '14:00' }],
+        'schedule.pre_window_minutes': 30,
+        'schedule.holidays': [
+          { date: '2026-12-25', name: 'Christmas Day' }, { date: '2026-12-26', name: 'Boxing Day' },
+          { date: '2027-01-01', name: 'New Year’s Day' }],
+        'coverage.customer_tiers': [
+          { tier: 'Platinum', covered_days: 'all days' }, { tier: 'Gold', covered_days: 'all days' },
+          { tier: 'Silver', covered_days: 'weekdays only' }],
+        'coverage.tier_source': 'The “Support tier” field on the organization in Freshdesk',
+        'coverage.special_customers': [
+          { customer: 'Northwind Health', rule: 'Always escalate, whatever the time' },
+          { customer: 'Contoso Retail', rule: 'Never call on Sundays; reply and wait' }],
+        'urgent.examples': [
+          'Users can’t log in',
+          'Production is down and nothing is going out',
+          'Data is missing or wrong in a live report',
+          'A payment run failed',
+          'Every user in an organization is affected'],
+        'urgent.keywords': ['urgent', 'outage', 'down', 'data loss', 'cannot log in'],
+        'urgent.match': 'any',
+        'urgent.definition': 'Production is down or data is at risk for a customer AiMY covers, and it cannot wait for the morning.',
+        'urgent.min_users_affected': 5,
+        'urgent.triage_questions': [
+          { question: 'Is this happening in production?', means: 'Yes: urgent. Only in test: it can wait.' },
+          { question: 'How many people can’t work?', means: 'Five or more: urgent. Fewer: it can wait.' },
+          { question: 'Is there a workaround?', means: 'Yes: it can wait. No: urgent.' }],
+        'not_urgent.action': 'downgrade',
+        'not_urgent.examples': ['A forgotten password', 'A how-to question', 'A feature request', 'A report that is slow but correct'],
+        'on_call.source': 'list',
+        'on_call.teamup_link': 'https://teamup.com/your-calendar',
+        'on_call.people': [
+          { name: 'Yara Sameh', phone: '+44 20 7946 0101' },
+          { name: 'Mohamed Fathy', phone: '+44 20 7946 0102' },
+          { name: 'Salma Adel', phone: '+44 20 7946 0103 (call, then message)' }],
+        'on_call.management_fallback': [
+          { name: 'Nour Wael', phone: '+44 20 7946 0110' },
+          { name: 'Mona Adel', phone: '+44 20 7946 0111' }],
+        'on_call.steps': [
+          'Check the customer’s tier before calling',
+          'Add the ticket number and the business impact to the message',
+          'Call on the person’s preferred number first'],
+        'on_call.wait_before_next_minutes': 10,
+        'on_call.calls_per_person': 3,
+        'on_call.confirmation_wait_minutes': 20,
+        _custom: [
+          { id: 'sx1', kind: 'text', name: 'Reassign group', value: 'Extended Support' },
+          { id: 'sx2', kind: 'long', name: 'Notes for the night team', value: 'Freshdesk sends a second alert after 10 minutes. Ignore it if the ticket already has a reply.' },
+          { id: 'sx3', kind: 'number', name: 'Tickets before a manager is told', value: 3 },
+          { id: 'sx4', kind: 'boolean', name: 'Send a summary in the morning', value: true },
+          { id: 'sx5', kind: 'choice', name: 'Language of replies', options: ['English', 'French', 'Arabic'], value: 'English' },
+          { id: 'sx6', kind: 'multi', name: 'Channels', options: ['Email', 'Phone', 'Chat', 'Portal'], value: ['Email', 'Phone'] },
+          { id: 'sx7', kind: 'list', name: 'Ticket tags to skip', value: ['spam', 'auto-reply', 'out-of-office'] },
+          { id: 'sx8', kind: 'table', name: 'Product owners', columns: ['Area', 'Owner'],
+            value: [{ c0: 'Billing', c1: 'Salma Adel' }, { c0: 'Reports', c1: 'Mohamed Fathy' }] }
+        ]
+      } } });
+  }
   const byId = (id) => CORPUS.find((o) => o.id === id);
   const TOTAL = CORPUS.length;
 

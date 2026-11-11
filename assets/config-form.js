@@ -374,7 +374,7 @@
   const initials = (n) => String(n || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
   const needSay = (o, k) => {
     const m = needOf(o, k);
-    return m.length ? `<span class="cf-a is-need">Needs ${esc(m.map((f) => f.label.toLowerCase()).join(' and '))}</span>` : '';
+    return m.length ? `<span class="cf-a is-need">Needs ${esc(m.map((f) => /^[A-Z][a-z]/.test(f.label) && !/^AiMY/.test(f.label) ? f.label.charAt(0).toLowerCase() + f.label.slice(1) : f.label).join(' and '))}</span>` : '';
   };
 
   const ANSWER = {
@@ -605,9 +605,9 @@
             <button class="cf-day" type="button" aria-pressed="${!!r}" data-cf-day="${esc(f.key)}|${d[0]}"
               aria-label="${esc(d[2])}: ${r ? 'the team works' : 'the team is off'}">${d[1]}</button>
             <div class="cf-wk-times">${r
-              ? `<input class="cf-time${parseTime(r.start) ? '' : ' is-bad'}" type="text" inputmode="text" autocomplete="off" value="${esc(say12(r.start))}" data-cf-time="${esc(f.key)}|${d[0]}|start" aria-label="${esc(d[2])}, team starts">
+              ? `<span class="cf-tp-host"><input class="cf-time${parseTime(r.start) ? '' : ' is-bad'}" type="text" inputmode="text" autocomplete="off" aria-haspopup="true" aria-expanded="false" value="${esc(say12(r.start))}" data-cf-time="${esc(f.key)}|${d[0]}|start" aria-label="${esc(d[2])}, team starts"></span>
                  <span class="cf-to">to</span>
-                 <input class="cf-time${parseTime(r.end) ? '' : ' is-bad'}" type="text" inputmode="text" autocomplete="off" value="${esc(say12(r.end))}" data-cf-time="${esc(f.key)}|${d[0]}|end" aria-label="${esc(d[2])}, team stops">
+                 <span class="cf-tp-host"><input class="cf-time${parseTime(r.end) ? '' : ' is-bad'}" type="text" inputmode="text" autocomplete="off" aria-haspopup="true" aria-expanded="false" value="${esc(say12(r.end))}" data-cf-time="${esc(f.key)}|${d[0]}|end" aria-label="${esc(d[2])}, team stops"></span>
                  ${tag ? `<span class="cf-wk-tag">${tag}</span>` : ''}`
               : '<span class="cf-off">Off. AiMY covers the day.</span>'}</div>
           </div>`;
@@ -692,6 +692,7 @@
     }
     return null;
   }
+  let PAINTING = false;
   function paint(o, focusSel, fx) {
     const r = root();
     if (!r || !o) return;
@@ -699,7 +700,10 @@
     const keep = focusSel === undefined && a && r.contains(a) ? focusKey(a) : focusSel;
     const caret = a && 'selectionStart' in a && keep === focusKey(a) ? [a.selectionStart, a.selectionEnd] : null;
     FX = fx || {};
-    r.innerHTML = inner(o);
+    /* Replacing the focused field blurs it, and that blur is not the person
+       leaving: onFocusOut ignores everything while this runs. */
+    PAINTING = true;
+    try { r.innerHTML = inner(o); } finally { PAINTING = false; }
     FX = {};
     grow(r);
     seat();
@@ -997,6 +1001,19 @@
       undoable(o, 'Tuesday to Friday now run ' + say12(mon.start) + ' to ' + say12(mon.end), before);
       return;
     }
+    if ((el = t.closest('[data-cf-tp]'))) {
+      const input = el.closest('.cf-tp-host') && el.closest('.cf-tp-host').querySelector('[data-cf-time]');
+      if (!input) return;
+      const p = input.getAttribute('data-cf-time').split('|');
+      const next = el.getAttribute('data-cf-tp');
+      setHours(o, p[0], (rs) => { const r = rs.filter((x) => x.day === p[1])[0]; if (r) r[p[2]] = next; });
+      touch(o);
+      /* One click picks and closes; the caret stays in the field. */
+      TP_SKIP = true;
+      paint(o, '[data-cf-time="' + input.getAttribute('data-cf-time') + '"]');
+      TP_SKIP = false;
+      return;
+    }
     if ((el = t.closest('[data-cf-week]'))) {
       const key = el.getAttribute('data-cf-week');
       form[key] = ['mon', 'tue', 'wed', 'thu', 'fri'].map((d) => ({ day: d, start: '09:00', end: '17:00' }));
@@ -1132,7 +1149,9 @@
     /* Nothing here should reach the page's own shortcuts. */
     if (/^(INPUT|TEXTAREA)$/.test(t.tagName)) e.stopPropagation();
     if ((v = t.getAttribute('data-cf-li-add'))) {
-      if (e.key === 'Enter') { e.preventDefault(); if (addItem(o, v, t.value, true)) { /* repainted */ } return; }
+      /* Emptied before the repaint: the field the repaint removes still
+         blurs, and a blur with text in it adds that text again. */
+      if (e.key === 'Enter') { e.preventDefault(); const text = t.value; t.value = ''; addItem(o, v, text, true); return; }
       return;
     }
     if ((v = t.getAttribute('data-cf-item'))) {
@@ -1163,6 +1182,7 @@
         if (el) el.select();
         return;
       }
+      if (e.key === 'Escape' && closeTp()) { e.preventDefault(); return; }
       if (e.key === 'Enter') { e.preventDefault(); t.blur(); }
       return;
     }
@@ -1207,8 +1227,57 @@
     if (t.hasAttribute('data-oneline') && e.key === 'Enter') { e.preventDefault(); }
   }
 
+  /* ── The time picker ──
+     A typed time stays the main way in (9, 930, 6pm, arrows step 15 min);
+     focusing the field also opens a small picker under it: the hour, then
+     the minutes, then am or pm, one click each. The picker never takes the
+     focus, so typing and picking mix freely. */
+  let TP_STILL = false;
+  let TP_SKIP = false;
+  /* A simple list: every half hour of the day, the field's time marked. */
+  function tpHTML(input) {
+    const n = toMin(input.value);
+    const near = n === null ? 540 : Math.round(n / 30) * 30 % 1440;
+    const times = [];
+    for (let m = 0; m < 1440; m += 30) times.push(m);
+    const hm = (m) => { const v = say12(fromMin(m)); return v === 'midnight' ? '12 am' : v === 'noon' ? '12 pm' : v; };
+    return `<div class="cf-tpick${TP_STILL ? ' is-still' : ''}" role="listbox" aria-label="Pick a time">${times.map((m) =>
+      `<button class="cf-tp-b${m === near ? ' is-near' : ''}" type="button" tabindex="-1" role="option" aria-selected="${n === m}" data-cf-tp="${fromMin(m)}">${hm(m)}</button>`).join('')}</div>`;
+  }
+  function closeTp() {
+    const open = document.querySelectorAll('[data-cf-root] .cf-tpick');
+    open.forEach((p) => {
+      const host = p.closest('.cf-tp-host');
+      const i = host && host.querySelector('[data-cf-time]');
+      if (i) i.setAttribute('aria-expanded', 'false');
+      p.remove();
+    });
+    return open.length > 0;
+  }
+  function openTp(input) {
+    closeTp();
+    const host = input.closest('.cf-tp-host');
+    if (!host) return;
+    host.insertAdjacentHTML('beforeend', tpHTML(input));
+    input.setAttribute('aria-expanded', 'true');
+    /* Opens upward when there is no room under the field. */
+    const pick = host.querySelector('.cf-tpick');
+    const sc = scroller();
+    const bottom = sc ? sc.getBoundingClientRect().bottom : window.innerHeight;
+    if (pick.getBoundingClientRect().bottom > bottom - 8) pick.classList.add('is-up');
+    const near = pick.querySelector('.is-near');
+    if (near) pick.scrollTop = near.offsetTop - pick.clientHeight / 2 + near.offsetHeight / 2;
+  }
+  function onFocusIn(e) {
+    const t = e.target;
+    if (TP_SKIP) { TP_SKIP = false; return; }
+    if (t && t.hasAttribute && t.hasAttribute('data-cf-time') && t.closest('[data-cf-root]')) openTp(t);
+  }
+
   function onFocusOut(e) {
     const t = e.target;
+    /* A field this form's own repaint removed is not being left. */
+    if (PAINTING || !t.isConnected) return;
     if (!t.closest || !t.closest('[data-cf-root]')) return;
     const o = docOf();
     if (!o) return;
@@ -1235,9 +1304,10 @@
       later(() => { closeTz(); paint(o, next && next.isConnected && root() && root().contains(next) ? focusKey(next) : undefined); });
       return;
     }
-    if (t.hasAttribute('data-cf-li-add') && t.value.trim()) {
+    if (t.hasAttribute('data-cf-li-add') && t.isConnected && t.value.trim()) {
       const key = t.getAttribute('data-cf-li-add');
       const text = t.value;
+      t.value = '';
       later(() => { const kept = next && next.isConnected ? focusKey(next) : null; addItem(o, key, text, false); const el = kept && root() && root().querySelector(kept); if (el) el.focus(); });
     }
   }
@@ -1249,7 +1319,9 @@
     if (!/\n/.test(text)) return;
     e.preventDefault();
     const o = docOf();
-    if (o) addItem(o, t.getAttribute('data-cf-li-add'), t.value + '\n' + text, false);
+    const was = t.value;
+    t.value = '';
+    if (o) addItem(o, t.getAttribute('data-cf-li-add'), was + '\n' + text, false);
   }
 
   /* A field that tidies itself on blur repaints the form. Pressed with the
@@ -1270,6 +1342,9 @@
     document.addEventListener('input', onInput);
     document.addEventListener('keydown', onKey, true);
     document.addEventListener('focusout', onFocusOut);
+    document.addEventListener('focusin', onFocusIn);
+    /* Pressing in the picker keeps the caret in the field. */
+    document.addEventListener('mousedown', (e) => { if (e.target.closest && e.target.closest('.cf-tpick')) e.preventDefault(); }, true);
     document.addEventListener('paste', onPaste);
     /* And when the page itself repaints on that same press (the document's
        title commits on blur by redrawing everything), the control pressed is
