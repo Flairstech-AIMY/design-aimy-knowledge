@@ -486,3 +486,9 @@ textarea.cf-cell.input { height: 2.375rem; }
 /* The editor's icon is centred on its title's line, which puts the mark on
    the capitals (20px Poppins: caps centred on a 1.6rem line). */
 .cf-panel-head .cf-node, .cf-side .cf-panel-head .cf-node { display: flex; align-items: center; flex: none; height: 1.6rem; margin-top: 0.2rem; }
+
+/* One focus mark on a field: the library's own border. The page's global
+   focus ring drew a second one outside it (Nour: "remove double focus"). */
+.cf input:focus-visible, .cf textarea:focus-visible, .cf-side input:focus-visible, .cf-side textarea:focus-visible,
+.cf input:focus, .cf textarea:focus, .cf-side input:focus, .cf-side textarea:focus { outline: none; }
+.cf .stepper:focus-within, .cf-side .stepper:focus-within { border-color: var(--brand); }
