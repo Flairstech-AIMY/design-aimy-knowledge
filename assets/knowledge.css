@@ -8485,3 +8485,16 @@ body { padding-left: var(--safe-left); padding-right: var(--safe-right); }
   width: min(var(--measure-bar), calc(100% - 3rem - var(--safe-left) - var(--safe-right)));
   left: calc(50% + (var(--safe-left) - var(--safe-right)) / 2);
 }
+/* ── One focus mark on every field (Nour, 11 Nov 2026: "remove the double
+   focus everywhere") ──
+   aimy-ds.css rings every input:focus-visible with a 2px outline 2px out.
+   Fields here show focus with their own border (.input:focus and every
+   component's own field), so the ring drew a second mark around the first.
+   Text fields, text areas and selects lose the ring; checkboxes, radios and
+   ranges keep it, and buttons and links are untouched. The :where() border
+   is a floor for any bare field with no focus style of its own, and loses
+   to every component's rule. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):focus-visible,
+textarea:focus-visible,
+select:focus-visible { outline: none; }
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]), textarea, select):focus-visible { border-color: var(--brand); }

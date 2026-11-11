@@ -510,3 +510,9 @@ textarea.cf-cell.input { height: 2.375rem; }
 .cf-rcards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .cf-rcards .rc-title { font-weight: var(--fw-medium); line-height: 1.45; }
 .cf-rcards .radio-card:has(input:checked) .rc-title { font-weight: var(--fw-semibold); }
+
+/* The editor's title takes focus when a node opens, so a screen reader says
+   where you are; it is not a control, so it shows no ring (Nour: "why titles
+   being highlighted?"). */
+.cf-panel-head h2:focus, .cf-panel-head h2:focus-visible,
+.cf-side .cf-panel-head h2:focus-visible, .cf-view .cf-panel-head h2:focus-visible { outline: none; box-shadow: none; }
