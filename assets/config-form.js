@@ -308,13 +308,15 @@
   const PICK = {};      // the stop whose editor is open beside the path
   const PHONE = {};     // on a phone, the stop opened as its own view
   let NARROW = false;
+  /* Wide: the editor sits beside the canvas inside the document column, and
+     the document's own right panel stays as it is (Nour). Canvas (18rem at
+     least) + gap + editor (30rem at least): below 50rem the canvas stands
+     alone and a node opens as its own view. */
   const narrowNow = () => {
     const r = root();
     const w = r ? r.getBoundingClientRect().width : 0;
-    /* Path (20rem) + gap (2rem) + editor (32rem): below 54rem the editor
-       would be squeezed, so the path stands alone and a stop opens as a view. */
     const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-    return w ? w < 54 * rem : window.innerWidth < 1100;
+    return w ? w < 50 * rem : window.innerWidth < 1100;
   };
   const IC = {
     tickets: '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
@@ -348,11 +350,13 @@
     if (NARROW && PHONE[o.id]) {
       return head + `<div class="cf-view${FX.view ? ' is-in-' + FX.view : ''}">${stopEditor(o, PHONE[o.id], true)}</div>`;
     }
-    if (!PICK[o.id]) PICK[o.id] = firstNeed(o) || 'tickets';
-    return head + progressHTML(o) + `<div class="cf-night${NARROW ? ' is-narrow' : ''}${FX.view ? ' is-in-' + FX.view : ''}">
-        <ol class="cf-path" aria-label="What happens to a ticket after hours">${pathHTML(o)}</ol>
-        ${NARROW ? '' : `<div class="cf-panel${FX.panel ? ' is-swap' : ''}" data-cf-panel="${PICK[o.id]}">${stopEditor(o, PICK[o.id], false)}</div>`}
+    if (!NARROW && !PICK[o.id]) PICK[o.id] = firstNeed(o) || 'tickets';
+    const canvas = `<div class="cf-canvas${FX.view ? ' is-in-' + FX.view : ''}">
+        <div class="cf-flow" role="list" aria-label="What happens to a ticket after hours">${flowHTML(o)}</div>
       </div>`;
+    return head + progressHTML(o) + (NARROW ? canvas : `<div class="cf-cp">${canvas}
+        <section class="cf-side${FX.panel ? ' is-swap' : ''}" data-cf-side="${esc(o.id)}" aria-label="${esc(Q[PICK[o.id]][0])}, being changed">${stopEditor(o, PICK[o.id], false, false)}</section>
+      </div>`);
   }
 
   function progressHTML(o) {
@@ -438,29 +442,28 @@
     }
   };
 
-  function stopHTML(o, k, extra) {
+  /* A node: what AiMY checks or does, and this product's answer under it.
+     The whole card opens it. */
+  function nodeHTML(o, k) {
     const cur = !NARROW && PICK[o.id] === k;
     const need = needOf(o, k).length > 0;
-    return `<li class="cf-stop${cur ? ' is-current' : ''}${need ? ' is-need' : ''}${extra ? ' ' + extra : ''}" data-k="${k}">
-        <button class="cf-stop-btn" type="button" data-cf-stop="${k}"${cur ? ' aria-current="true"' : ''} aria-label="${esc(Q[k][0])}${need ? ', needs answers' : ''}">
-          <span class="cf-node" aria-hidden="true">${svg(IC[k], 15)}</span>
-          <span class="cf-stop-q">${esc(Q[k][0])}</span>
+    return `<div class="cf-nd${cur ? ' is-current' : ''}${need ? ' is-need' : ''}" role="listitem" data-cf-nd="${k}">
+        <button class="cf-nd-btn" type="button" data-cf-stop="${k}" aria-expanded="${cur}" aria-label="${esc(Q[k][0])}${need ? ', needs answers' : ''}, change">
+          <span class="cf-nd-ic" aria-hidden="true">${svg(IC[k], 16)}</span>
+          <span class="cf-nd-t">${esc(Q[k][0])}</span>
         </button>
-        <div class="cf-stop-a">${ANSWER[k](o, o.x.form)}</div>
-      </li>`;
+        <div class="cf-nd-a">${ANSWER[k](o, o.x.form)}</div>
+      </div>`;
   }
 
-  function pathHTML(o) {
-    return stopHTML(o, 'tickets') + stopHTML(o, 'schedule', 'has-exit') + stopHTML(o, 'coverage') + stopHTML(o, 'urgent', 'is-forks') +
-      `<li class="cf-fork"><ol class="cf-lanes">
-          <li class="cf-lane"><span class="cf-lane-tag">Not urgent</span><ol>${stopHTML(o, 'not_urgent')}</ol></li>
-          <li class="cf-lane is-yes"><span class="cf-lane-tag">Urgent</span><ol>${stopHTML(o, 'on_call')}</ol></li>
-        </ol></li>` +
-      stopHTML(o, 'custom', 'is-aside');
+  function flowHTML(o) {
+    return nodeHTML(o, 'tickets') + nodeHTML(o, 'schedule') + nodeHTML(o, 'coverage') + nodeHTML(o, 'urgent') +
+      `<div class="cf-fk" role="presentation"><span class="cf-fk-tag is-no">Not urgent</span><span class="cf-fk-tag is-yes">Urgent</span>${nodeHTML(o, 'not_urgent')}${nodeHTML(o, 'on_call')}</div>` +
+      `<div class="cf-fk-extra" role="presentation">${nodeHTML(o, 'custom')}</div>`;
   }
 
   /* The editor for one stop: its question, the fields, then the next stop. */
-  function stopEditor(o, k, phone) {
+  function stopEditor(o, k, phone, side) {
     const i = PATH.indexOf(k);
     const prev = PATH[i - 1], next = PATH[i + 1];
     const short = (x) => Q[x][0];
@@ -469,6 +472,7 @@
       <header class="cf-panel-head">
         <span class="cf-node" aria-hidden="true">${svg(IC[k], 15)}</span>
         <div><h2 id="${idOf('t-' + k)}" tabindex="-1">${esc(Q[k][0])}</h2>${Q[k][1] ? `<p>${esc(Q[k][1])}</p>` : ''}</div>
+        ${side ? `<button class="cf-side-x" type="button" data-cf-sideclose aria-label="Close ${esc(Q[k][0])} and show the document's details">${svg(I.x, 16)}</button>` : ''}
       </header>
       <div class="cf-ed">${body}</div>
       <div class="cf-ed-foot">
@@ -478,25 +482,8 @@
       </div>`;
   }
 
-  /* Desk: the panel starts level with the stop it edits, joined to it. */
-  function seat() {
-    const r = root();
-    if (!r) return;
-    const night = r.querySelector('.cf-night'), panel = r.querySelector('.cf-panel');
-    if (!night || !panel) return;
-    const stop = r.querySelector('.cf-stop.is-current .cf-node');
-    const pnode = panel.querySelector('.cf-panel-head .cf-node');
-    if (!stop || !pnode) { panel.style.marginTop = '0px'; return; }
-    /* The panel's node sits on the same line as the stop's node, so the
-       stretch of rail between them is level. */
-    const at = stop.getBoundingClientRect().top - night.getBoundingClientRect().top;
-    /* offsetTop, not the box: the editor's content may be mid-entrance,
-       6px low, while this runs. */
-    let inset = 0;
-    for (let n = pnode; n && n !== panel; n = n.offsetParent) inset += n.offsetTop;
-    inset += panel.clientTop;
-    panel.style.marginTop = Math.max(0, Math.round(at - inset)) + 'px';
-  }
+
+
 
   function secHTML(o, s) {
     const form = o.x.form;
@@ -715,6 +702,9 @@
      Structure changes repaint the form; typing never does. Focus and the
      caret come back to the same control by its data key. */
   const root = () => document.querySelector('[data-cf-root]');
+  /* The form and its editor in the rail, together. */
+  const scope = () => { const r = root(); return (r && r.closest('.doc-page')) || r || document; };
+  const inForm = (t) => !!(t && t.closest && t.closest('[data-cf-root], [data-cf-side]'));
   const docOf = () => { const r = root(); return r && HOST ? HOST.doc(r.getAttribute('data-cf-root')) : null; };
   function focusKey(el) {
     if (!el || !el.attributes) return null;
@@ -724,12 +714,35 @@
     }
     return null;
   }
+  /* The editor beside the canvas is sticky; it must end above the floating
+     composer, or its last fields sit under it and out of reach (Nour). Its
+     height is what is left between its sticky top and the composer's top. */
+  function fitSide() {
+    const side = document.querySelector('[data-cf-side]');
+    if (!side) return;
+    const port = scroller();
+    /* Where it sticks: the scroller's top, plus its own top padding, plus
+       the 1rem the editor sticks at. */
+    const top = (port ? port.getBoundingClientRect().top + (parseFloat(getComputedStyle(port).paddingTop) || 0) : 0) + 16;
+    /* The composer, and the answer card that opens above it when it has one. */
+    let barTop = Infinity;
+    ['aimyFloatWrap', 'aimyPeek'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el || !el.offsetHeight) return;
+      const cs = getComputedStyle(el);
+      if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity === 0) return;
+      barTop = Math.min(barTop, el.getBoundingClientRect().top);
+    });
+    const bottom = Math.min(port ? port.getBoundingClientRect().bottom : window.innerHeight, barTop) - 16;
+    side.style.maxHeight = Math.max(240, Math.round(bottom - top)) + 'px';
+  }
   let PAINTING = false;
   function paint(o, focusSel, fx) {
     const r = root();
     if (!r || !o) return;
+    const sc = scope();
     const a = document.activeElement;
-    const keep = focusSel === undefined && a && r.contains(a) ? focusKey(a) : focusSel;
+    const keep = focusSel === undefined && a && inForm(a) ? focusKey(a) : focusSel;
     const caret = a && 'selectionStart' in a && keep === focusKey(a) ? [a.selectionStart, a.selectionEnd] : null;
     FX = fx || {};
     /* Replacing the focused field blurs it, and that blur is not the person
@@ -737,10 +750,10 @@
     PAINTING = true;
     try { r.innerHTML = inner(o); } finally { PAINTING = false; }
     FX = {};
-    grow(r);
-    seat();
+    grow(sc);
+    fitSide();
     if (keep) {
-      const el = r.querySelector(keep);
+      const el = sc.querySelector(keep);
       if (el) {
         el.focus({ preventScroll: true });
         if (caret && 'setSelectionRange' in el) try { el.setSelectionRange(caret[0], caret[1]); } catch (e) { /* date inputs */ }
@@ -751,13 +764,12 @@
   function meta(o) {
     const r = root();
     if (!r) return;
-    /* The path's answers and the progress line follow the typing. */
-    const path = r.querySelector('.cf-path');
-    if (path) path.innerHTML = pathHTML(o);
+    /* The canvas's answers and the progress line follow the typing. */
+    const flow = r.querySelector('.cf-flow');
+    if (flow) flow.innerHTML = flowHTML(o);
     const pr = r.querySelector('.cf-progress');
     if (pr) pr.outerHTML = progressHTML(o);
-    seat();
-    r.querySelectorAll('.cf-field').forEach((el) => {
+    scope().querySelectorAll('.cf-field').forEach((el) => {
       const f = FIELD[el.getAttribute('data-cf-field')];
       if (!f || !f.required) return;
       const tag = el.querySelector('.cf-req');
@@ -768,7 +780,7 @@
   }
   function touch(o) { if (HOST) HOST.dirty(o); }
   function grow(scope) {
-    (scope || document).querySelectorAll('[data-cf-root] [data-grow]').forEach(fit);
+    (scope || document).querySelectorAll('[data-cf-root] [data-grow], [data-cf-side] [data-grow]').forEach(fit);
   }
   function fit(t) { t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }
 
@@ -843,39 +855,46 @@
       if (o) setTime(o, v.slice(0, i), v.slice(i + 1));
       return;
     }
-    if (!t.closest || !t.closest('[data-cf-root]')) { closeTz(); return; }
+    if (!inForm(t)) { closeTz(); return; }
     const o = docOf();
     if (!o) return;
     const form = o.x.form;
     let el;
     /* A stop on the path, Next and Previous: on a desk the editor beside
        the path changes; on a phone the stop opens as its own view. */
-    if ((el = t.closest('[data-cf-stop]'))) {
-      const to = el.getAttribute('data-cf-stop');
+    /* A node (anywhere on its card), Next and Previous: wide, the rail
+       becomes its editor; narrow, it opens as its own view. */
+    if ((el = t.closest('[data-cf-stop]')) || (!t.closest('button, a, input, textarea') && (el = t.closest('[data-cf-nd]')))) {
+      const to = el.getAttribute('data-cf-stop') || el.getAttribute('data-cf-nd');
       const phone = narrowNow();
       const from = phone ? PHONE[o.id] : PICK[o.id];
       if (to === from && !phone) return;
       if (phone) PHONE[o.id] = to; else PICK[o.id] = to;
       const back = from && PATH.indexOf(to) < PATH.indexOf(from);
       paint(o, null, phone ? { view: back ? 'back' : 'fwd' } : { panel: true });
-      const r = root();
-      if (r) {
-        const sc = scroller();
-        const target = phone ? r.querySelector('.cf-view') : r.querySelector('.cf-panel');
-        if (sc && target) {
-          const t0 = target.getBoundingClientRect().top - sc.getBoundingClientRect().top;
-          if (t0 < 0 || t0 > sc.clientHeight * 0.6) sc.scrollTop += t0 - 16;
-        }
-        const h = r.querySelector('.cf-panel-head h2');
-        if (h && (phone || el.closest('.cf-ed-foot'))) h.focus({ preventScroll: true });
+      const sc = scope(), port = scroller();
+      const target = phone ? sc.querySelector('.cf-view') : null;
+      if (port && target) {
+        const t0 = target.getBoundingClientRect().top - port.getBoundingClientRect().top;
+        if (t0 < 0 || t0 > port.clientHeight * 0.6) port.scrollTop += t0 - 16;
       }
+      const h = sc.querySelector(phone ? '.cf-view .cf-panel-head h2' : '.cf-side .cf-panel-head h2');
+      if (h) h.focus({ preventScroll: true });
+      return;
+    }
+    if ((el = t.closest('[data-cf-sideclose]'))) {
+      const from = PICK[o.id];
+      PICK[o.id] = null;
+      paint(o, null);
+      const btn = from && scope().querySelector('.cf-nd-btn[data-cf-stop="' + from + '"]');
+      if (btn) btn.focus({ preventScroll: true });
       return;
     }
     if ((el = t.closest('[data-cf-night]'))) {
       const from = PHONE[o.id];
       PHONE[o.id] = null;
       paint(o, null, { view: 'back' });
-      const r = root(), btn = r && from && r.querySelector('.cf-stop-btn[data-cf-stop="' + from + '"]');
+      const btn = from && scope().querySelector('.cf-nd-btn[data-cf-stop="' + from + '"]');
       if (btn) { btn.focus({ preventScroll: true }); btn.scrollIntoView({ block: 'center' }); }
       return;
     }
@@ -925,7 +944,7 @@
       const key = el.getAttribute('data-cf-open');
       opened(o)[key] = true;
       paint(o, null, { enter: key });
-      const fld = root().querySelector('[data-cf-field="' + key + '"]');
+      const fld = scope().querySelector('[data-cf-field="' + key + '"]');
       const inp = fld && fld.querySelector('input, textarea, [role="radio"][tabindex="0"], button.cf-add');
       if (inp) inp.focus({ preventScroll: false });
       return;
@@ -977,7 +996,7 @@
       setV(form, key, rows);
       touch(o);
       paint(o, '[data-cf-row="' + key + '|' + (rows.length - 1) + '"] .cf-cell', { enter: key + '|' + (rows.length - 1) });
-      const first = root().querySelector('[data-cf-row="' + CSS.escape(key + '|' + (rows.length - 1)) + '"] .cf-cell, [data-cf-row="' + CSS.escape(key + '|' + (rows.length - 1)) + '"] .cf-seg-btn');
+      const first = scope().querySelector('[data-cf-row="' + CSS.escape(key + '|' + (rows.length - 1)) + '"] .cf-cell, [data-cf-row="' + CSS.escape(key + '|' + (rows.length - 1)) + '"] .cf-seg-btn');
       if (first) first.focus();
       return;
     }
@@ -1082,7 +1101,7 @@
 
   function onInput(e) {
     const t = e.target;
-    if (!t.closest || !t.closest('[data-cf-root]')) return;
+    if (!inForm(t)) return;
     const o = docOf();
     if (!o) return;
     const form = o.x.form;
@@ -1150,7 +1169,7 @@
     input.setAttribute('aria-expanded', 'true');
   }
   function closeTz() {
-    document.querySelectorAll('[data-cf-root] .cf-tz-list').forEach((l) => { l.hidden = true; });
+    document.querySelectorAll('[data-cf-root] .cf-tz-list, [data-cf-side] .cf-tz-list').forEach((l) => { l.hidden = true; });
     document.querySelectorAll('[data-cf-tz]').forEach((i) => { i.setAttribute('aria-expanded', 'false'); i.removeAttribute('aria-activedescendant'); });
   }
   function pickTz(o, opt) {
@@ -1163,7 +1182,7 @@
 
   function onKey(e) {
     const t = e.target;
-    if (!t.closest || !t.closest('[data-cf-root]')) return;
+    if (!inForm(t)) return;
     const o = docOf();
     if (!o) return;
     const form = o.x.form;
@@ -1178,7 +1197,7 @@
     }
     if ((v = t.getAttribute('data-cf-item'))) {
       const i = v.lastIndexOf('|'), key = v.slice(0, i), at = +v.slice(i + 1);
-      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); const add = root().querySelector('[data-cf-li-add="' + CSS.escape(key) + '"]'); if (add) add.focus(); return; }
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); const add = scope().querySelector('[data-cf-li-add="' + CSS.escape(key) + '"]'); if (add) add.focus(); return; }
       if (e.key === 'Backspace' && t.value === '') {
         e.preventDefault();
         const list = (getV(form, key) || []).slice();
@@ -1203,7 +1222,7 @@
     if ((v = t.getAttribute('data-cf-num'))) {
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
         e.preventDefault();
-        const b = root().querySelector('[data-cf-step="' + CSS.escape(v + '|' + (e.key === 'ArrowUp' ? 1 : -1)) + '"]');
+        const b = scope().querySelector('[data-cf-step="' + CSS.escape(v + '|' + (e.key === 'ArrowUp' ? 1 : -1)) + '"]');
         if (b) b.click();
       }
       if (e.key === 'Enter') { e.preventDefault(); t.blur(); }
@@ -1245,7 +1264,7 @@
     const t = e.target;
     /* A field this form's own repaint removed is not being left. */
     if (PAINTING || !t.isConnected) return;
-    if (!t.closest || !t.closest('[data-cf-root]')) return;
+    if (!inForm(t)) return;
     const o = docOf();
     if (!o) return;
     const next = e.relatedTarget;
@@ -1264,14 +1283,14 @@
     }
     if (t.hasAttribute('data-cf-tz')) {
       if (next && next.closest && next.closest('.cf-tz')) return;
-      later(() => { closeTz(); paint(o, next && next.isConnected && root() && root().contains(next) ? focusKey(next) : undefined); });
+      later(() => { closeTz(); paint(o, next && next.isConnected && inForm(next) ? focusKey(next) : undefined); });
       return;
     }
     if (t.hasAttribute('data-cf-li-add') && t.isConnected && t.value.trim()) {
       const key = t.getAttribute('data-cf-li-add');
       const text = t.value;
       t.value = '';
-      later(() => { const kept = next && next.isConnected ? focusKey(next) : null; addItem(o, key, text, false); const el = kept && root() && root().querySelector(kept); if (el) el.focus(); });
+      later(() => { const kept = next && next.isConnected ? focusKey(next) : null; addItem(o, key, text, false); const el = kept && root() && scope().querySelector(kept); if (el) el.focus(); });
     }
   }
 
@@ -1306,6 +1325,15 @@
     document.addEventListener('keydown', onKey, true);
     document.addEventListener('focusout', onFocusOut);
     document.addEventListener('paste', onPaste);
+    const bar = document.getElementById('aimyFloatWrap');
+    if (bar && window.ResizeObserver) {
+      const ro = new ResizeObserver(() => fitSide());
+      ro.observe(bar);
+      const peek = document.getElementById('aimyPeek');
+      if (peek) ro.observe(peek);
+    }
+    /* The answer card shows and hides by class on the wrapper. */
+    if (bar && window.MutationObserver) new MutationObserver(() => setTimeout(fitSide, 260)).observe(bar, { attributes: true, attributeFilter: ['class'] });
     /* And when the page itself repaints on that same press (the document's
        title commits on blur by redrawing everything), the control pressed is
        found again by its key and given the press it lost. */
@@ -1313,7 +1341,7 @@
     /* A press whose click did land needs nothing more. */
     document.addEventListener('click', (e) => { if (downEl && downEl.contains(e.target)) downHit = true; }, true);
     document.addEventListener('pointerdown', (e) => {
-      if (!(e.target.closest && e.target.closest('[data-cf-root]'))) return;
+      if (!inForm(e.target)) return;
       PDOWN = true;
       downHit = false;
       downEl = e.target.closest('button, input, textarea, [data-cf-tile]');
@@ -1328,7 +1356,7 @@
         downEl = downKey = null;
         downHit = false;
         if (!hit && was && !was.isConnected && key && root()) {
-          const el = root().querySelector(key);
+          const el = scope().querySelector(key);
           if (el) { if (/^(INPUT|TEXTAREA)$/.test(el.tagName)) el.focus(); else el.click(); }
         }
         flush();
@@ -1338,7 +1366,7 @@
     document.addEventListener('pointercancel', up, true);
     window.addEventListener('resize', () => {
       if (!root()) return;
-      if (narrowNow() !== NARROW && CUR) paint(CUR, undefined); else { grow(); seat(); }
+      if (narrowNow() !== NARROW && CUR) paint(CUR, undefined); else { grow(); fitSide(); }
     });
   }
   /* After knowledge.js has put the form on the page. */
@@ -1347,7 +1375,8 @@
     if (!r) return;
     /* The first paint guessed the width from the window; correct it once. */
     if (narrowNow() !== NARROW && CUR) { paint(CUR, undefined); return; }
-    grow(); seat();
+    grow(scope());
+    fitSide();
   }
 
   window.AIMY_CFGFORM = { SCHEMA, render, attach, painted, left, parseTime, teamMinutes, say12 };
