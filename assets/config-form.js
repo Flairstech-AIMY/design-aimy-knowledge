@@ -212,7 +212,14 @@
     if (ZONES.indexOf('UTC') < 0) ZONES.push('UTC');
     return ZONES;
   };
-  const zoneOk = (z) => !!z && zones().indexOf(z) > -1;
+  /* A zone AiMY can use: in the browser's list, or any older alias the
+     browser still resolves (America/Argentina/ComodRivadavia is one). */
+  const zoneOk = (z) => {
+    if (!z) return false;
+    if (zones().indexOf(z) > -1) return true;
+    if (!/^[A-Za-z_]+(\/[A-Za-z0-9_+-]+)+$/.test(z)) return false;
+    try { new Intl.DateTimeFormat('en-US', { timeZone: z }); return true; } catch (e) { return false; }
+  };
   const zoneCity = (z) => String(z).split('/').pop().replace(/_/g, ' ');
   function zoneMatches(q) {
     q = String(q || '').trim().toLowerCase().replace(/[\s_]+/g, ' ');
@@ -280,6 +287,29 @@
     a.concat(s.fields.filter((f) => f.required && shown(f, form) && !filled(f, form[f.key]))), []);
   const required = (form) => SCHEMA.reduce((a, s) => a.concat(s.fields.filter((f) => f.required && shown(f, form))), []);
   function left(o) { return missingIn((o && o.x && o.x.form) || {}).length; }
+  /* Answers AiMY could not use, as opposed to answers not given yet. Each
+     names its field and says what is wrong, in the words a person fixes. */
+  function errorsIn(form, sec) {
+    const out = [];
+    const add = (s2, key, msg) => { if (!sec || sec === s2) out.push({ sec: s2, key, msg }); };
+    const tz = form['schedule.timezone'];
+    if (tz && !zoneOk(tz)) add('schedule', 'schedule.timezone', 'AiMY doesn\u2019t know the timezone \u201c' + tz + '\u201d');
+    (form['schedule.holidays'] || []).forEach((r) => { if (String(r.name || '').trim() && !r.date) add('schedule', 'schedule.holidays', '\u201c' + r.name + '\u201d has no date'); });
+    (form['coverage.customer_tiers'] || []).forEach((r) => { if (String(r.tier || '').trim() && !r.covered_days) add('coverage', 'coverage.customer_tiers', r.tier + ' has no days'); });
+    ['on_call.people', 'on_call.management_fallback'].forEach((k) => {
+      if (k === 'on_call.people' && form['on_call.source'] !== 'list') return;
+      (form[k] || []).forEach((r) => {
+        const name = String(r.name || '').trim(), ph = String(r.phone || '').trim();
+        if (name && !ph) add('on_call', k, name + ' has no phone number');
+        else if (ph && !PHONE_OK.test(ph)) add('on_call', k, (name || 'Someone') + '\u2019s phone is not a number');
+        else if (ph && !name) add('on_call', k, ph + ' has no name');
+      });
+    });
+    const link = form['on_call.teamup_link'];
+    if (form['on_call.source'] === 'teamup' && link && !/^https?:\/\/\S+$/.test(link)) add('on_call', 'on_call.teamup_link', 'The TeamUp link is not a web address');
+    return out;
+  }
+  function fix(o) { return errorsIn((o && o.x && o.x.form) || {}).length; }
 
   /* Advanced fields the person has opened this session, per document. A field
      with a value is always open; one at its default waits behind its pill. */
@@ -344,7 +374,8 @@
     custom: ['Extras', CUSTOM_HELP]
   };
   const needOf = (o, k) => (k === 'custom' ? [] : missingIn(o.x.form, k));
-  const firstNeed = (o) => PATH.filter((k) => needOf(o, k).length)[0] || null;
+  const errOf = (o, k) => (k === 'custom' ? [] : errorsIn(o.x.form, k));
+  const firstNeed = (o) => PATH.filter((k) => needOf(o, k).length || errOf(o, k).length)[0] || null;
 
   function inner(o) {
     CUR = o;
@@ -367,15 +398,18 @@
 
   function progressHTML(o) {
     const form = o.x.form;
-    const req = required(form), miss = missingIn(form);
+    const req = required(form), miss = missingIn(form), errs = errorsIn(form);
     const done = req.length - miss.length;
     const next = firstNeed(o);
-    return `<div class="cf-progress${miss.length ? '' : ' is-ok'}">
+    const state = miss.length ? '' : errs.length ? ' is-err' : ' is-ok';
+    const say = miss.length
+      ? 'Publish opens when all are in' + (errs.length ? ' and ' + plural(errs.length, 'answer is', 'answers are') + ' fixed.' : '.')
+      : errs.length ? '<b class="cf-p-err">' + plural(errs.length, 'answer needs', 'answers need') + ' fixing</b> before Publish opens.'
+      : 'Everything AiMY needs is here. Publish is open.';
+    return `<div class="cf-progress${state}">
         <div class="cf-meter" aria-hidden="true"><i style="transform: scaleX(${req.length ? (done / req.length).toFixed(3) : 1})"></i></div>
-        <p><b>${done} of ${req.length}</b> required answers in. ${miss.length
-          ? 'Publish opens when all are in.'
-          : 'Everything AiMY needs is here. Publish is open.'}</p>
-        ${next && !(PICK[o.id] === next && !NARROW) ? `<button class="btn btn-ghost btn-sm" type="button" data-cf-stop="${next}"><span>Answer the next: ${esc(Q[next][0])}</span>${svg('<path d="m9 18 6-6-6-6"/>', 14)}</button>` : ''}
+        <p><b>${done} of ${req.length}</b> required answers in. ${say}</p>
+        ${next && !(PICK[o.id] === next && !NARROW) ? `<button class="btn btn-ghost btn-sm" type="button" data-cf-stop="${next}"><span>${needOf(o, next).length ? 'Answer' : 'Fix'} the next: ${esc(Q[next][0])}</span>${svg('<path d="m9 18 6-6-6-6"/>', 14)}</button>` : ''}
       </div>`;
   }
 
@@ -385,42 +419,70 @@
   const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
   const hrs = (m) => (Math.round(m / 6) / 10).toString();
   const initials = (n) => String(n || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+  /* The node's state line: what is still needed (amber) or what is wrong (red). */
+  const lc = (l) => (/^[A-Z][a-z]/.test(l) && !/^AiMY/.test(l) ? l.charAt(0).toLowerCase() + l.slice(1) : l);
   const needSay = (o, k) => {
-    const m = needOf(o, k);
-    return m.length ? `<span class="cf-a is-need">Needs ${esc(m.map((f) => /^[A-Z][a-z]/.test(f.label) && !/^AiMY/.test(f.label) ? f.label.charAt(0).toLowerCase() + f.label.slice(1) : f.label).join(' and '))}</span>` : '';
+    const e = errOf(o, k), m = needOf(o, k);
+    if (e.length) return `<p class="cf-a is-err">${esc(e[0].msg)}${e.length > 1 ? esc(' and ' + (e.length - 1) + ' more to fix') : ''}</p>`;
+    return m.length ? `<p class="cf-a is-need">Needs ${esc(m.map((f) => lc(f.label)).join(' and '))}</p>` : '';
   };
+  /* A card is rows of label and value, the same shape in every card, so the
+     eye runs down one column of labels (Nour: "the data in canvas should be
+     redesigned to be more readable"). The library's description list, without
+     its row lines or muted labels (no separators, no muted text). */
+  const rows = (list) => `<dl class="desc-list cf-dl">${list.filter(Boolean).map((r) =>
+    `<dt>${esc(r[0])}</dt><dd${r[2] ? ' class="' + r[2] + '"' : ''}>${r[1]}</dd>`).join('')}</dl>`;
+  const unset = (t) => [t || 'Not set', 'is-unset'];
+  const lines = (list, n, more) => list.slice(0, list.length > n + 1 ? n : n + 1).map((x) => `<span class="cf-dl-line">${esc(x)}</span>`).join('') +
+    (list.length > n + 1 ? `<span class="cf-dl-more">and ${list.length - n} more${more ? ' ' + more : ''}</span>` : '');
 
   const ANSWER = {
-    tickets: (o, form) => needSay(o, 'tickets') || `<span class="cf-a">In <b>${esc(optLabel(FIELD['tickets.crm_source'], form['tickets.crm_source']))}</b></span>`,
+    tickets: (o, form) => {
+      const v = form['tickets.crm_source'];
+      return rows([['System'].concat(v ? [esc(optLabel(FIELD['tickets.crm_source'], v))] : unset())]);
+    },
     schedule: (o, form) => {
-      const rows = form['schedule.working_hours'] || [];
+      const r = form['schedule.working_hours'] || [];
       const tz = form['schedule.timezone'];
       const hol = rowsOf(form['schedule.holidays']).length;
       const pre = form['schedule.pre_window_minutes'] !== undefined ? form['schedule.pre_window_minutes'] : 15;
-      const win = rows.length ? aimyWindows(rows) : [];
-      return (needSay(o, 'schedule') || '<span class="cf-a">AiMY covers</span>') +
-        (win.length ? `<span class="cf-a-list is-plain">${win.map((w) => `<span>${esc(w)}</span>`).join('')}</span>` : '') +
-        `<span class="cf-a-sub">${tz && zoneOk(tz) ? esc(zoneCity(tz)) + ' time' : 'No timezone yet'} · hands over ${pre} min before the team starts${hol ? ' · ' + plural(hol, 'holiday', 'holidays') : ''}</span>`;
+      return rows([
+        ['AiMY covers'].concat(r.length ? [aimyWindows(r).map((x) => `<span class="cf-dl-line">${esc(x)}</span>`).join('')] : unset('No team hours yet')),
+        ['Timezone'].concat(tz ? (zoneOk(tz) ? [esc(zoneCity(tz))] : [esc(tz), 'is-err']) : unset()),
+        ['Hands over', esc(pre + ' min before the team starts')],
+        ['Holidays', hol ? esc(plural(hol, 'holiday', 'holidays')) : 'None']
+      ]);
     },
     coverage: (o, form) => {
       const tiers = rowsOf(form['coverage.customer_tiers']);
       const ex = rowsOf(form['coverage.special_customers']);
-      return (tiers.length ? `<span class="cf-a">Covers <b>${esc(tiers.map((t) => (t.tier || 'a tier') + (t.covered_days ? ', ' + t.covered_days : '')).join('; '))}</b></span>`
-          : '<span class="cf-a">No tiers listed yet</span>') +
-        `<span class="cf-a-sub">${form['coverage.tier_source'] ? 'Checked in ' + esc(form['coverage.tier_source']) : 'No place to check a tier yet'}${ex.length ? ' · ' + plural(ex.length, 'exception', 'exceptions') : ''}</span>`;
+      const src = form['coverage.tier_source'];
+      return rows([
+        ['Tiers'].concat(tiers.length ? [tiers.map((t) => `<span class="cf-dl-line">${esc(t.tier || 'A tier')}${t.covered_days ? `<span class="cf-dl-sub">${esc(t.covered_days === 'all days' ? 'all days' : 'weekdays')}</span>` : ''}</span>`).join('')] : ['None listed']),
+        ['Checked in', src ? `<span class="cf-dl-clamp">${esc(src)}</span>` : 'None'],
+        ['Exceptions', ex.length ? esc(plural(ex.length, 'customer', 'customers')) : 'None']
+      ]);
     },
     urgent: (o, form) => {
       const ex = itemsOf(form['urgent.examples']), kw = itemsOf(form['urgent.keywords']);
-      const match = form['urgent.match'] || 'any';
       const n = ex.length + kw.length;
-      return (needSay(o, 'urgent') || `<span class="cf-a">Urgent when it matches <b>${match === 'all' ? 'all' : 'any'} of ${plural(n, 'sign', 'signs')}</b></span>`) +
-        (ex.length ? `<span class="cf-a-list">${ex.slice(0, 2).map((s) => `<span>${esc(s)}</span>`).join('')}${ex.length > 2 ? `<span class="cf-a-more">and ${ex.length - 2} more</span>` : ''}</span>` : '');
+      const users = form['urgent.min_users_affected'];
+      const tq = rowsOf(form['urgent.triage_questions']);
+      return rows([
+        ['Urgent when'].concat(n ? [esc((form['urgent.match'] === 'all' ? 'All' : 'Any') + ' of ' + plural(n, 'sign', 'signs'))] : unset('No signs yet')),
+        ex.length ? ['Cases', lines(ex, 2)] : null,
+        kw.length ? ['Keywords', esc(kw.slice(0, 4).join(', ') + (kw.length > 4 ? ' and ' + (kw.length - 4) + ' more' : ''))] : null,
+        users ? ['Users', esc(users + ' or more affected')] : null,
+        tq.length ? ['When unclear', esc(plural(tq.length, 'question', 'questions'))] : null
+      ]);
     },
     not_urgent: (o, form) => {
       const a = form['not_urgent.action'];
       const ex = itemsOf(form['not_urgent.examples']);
-      return (needSay(o, 'not_urgent') || `<span class="cf-a"><b>${esc(optLabel(FIELD['not_urgent.action'], a))}</b></span>`) +
-        (ex.length ? `<span class="cf-a-sub">${plural(ex.length, 'example', 'examples')} of what can wait</span>` : '');
+      return rows([
+        ['AiMY'].concat(a ? [esc(optLabel(FIELD['not_urgent.action'], a))] : unset()),
+        ex.length ? ['Examples', esc(plural(ex.length, 'case', 'cases'))] : null
+      ]);
     },
     on_call: (o, form) => {
       const src = form['on_call.source'];
@@ -428,23 +490,34 @@
       const fb = rowsOf(form['on_call.management_fallback']);
       const calls = form['on_call.calls_per_person'] !== undefined ? form['on_call.calls_per_person'] : 2;
       const wait = form['on_call.wait_before_next_minutes'] !== undefined ? form['on_call.wait_before_next_minutes'] : 15;
-      const person = (p, fall) => `<span class="cf-chain-p${fall ? ' is-fall' : ''}"><span class="cf-av" aria-hidden="true">${esc(initials(p.name))}</span><span>${esc(p.name || 'Unnamed')}</span></span>`;
-      const first = src === 'teamup' ? `<span class="cf-chain-p"><span class="cf-av" aria-hidden="true">${svg('<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>', 13)}</span><span>Whoever TeamUp has on call</span></span>`
-        : ppl.map((p) => person(p)).join('');
-      return needSay(o, 'on_call') + (first || fb.length ? `<span class="cf-chain">${first}${fb.length ? `<span class="cf-chain-gap">If nobody answers</span>${fb.map((p) => person(p, true)).join('')}` : ''}</span>` : '') +
-        (src ? `<span class="cf-a-sub">${plural(calls, 'call', 'calls')} each, the next after ${wait} min</span>` : '');
+      const person = (p, fall) => `<span class="cf-chain-p${fall ? ' is-fall' : ''}" title="${esc(p.name || 'Unnamed')}"><span class="cf-av" aria-hidden="true">${esc(initials(p.name))}</span><span>${esc(p.name || 'Unnamed')}</span></span>`;
+      const some = (list, n, fall) => `<span class="cf-chain">${list.slice(0, list.length > n + 1 ? n : n + 1).map((p) => person(p, fall)).join('')}${list.length > n + 1 ? `<span class="cf-dl-more">and ${list.length - n} more</span>` : ''}</span>`;
+      return rows([
+        ['On call'].concat(src === 'teamup' ? ['From the TeamUp calendar'] : ppl.length ? [some(ppl, 3)] : unset(src ? 'Nobody listed' : 'Not set')),
+        ['No answer'].concat(fb.length ? [some(fb, 2, true)] : unset('Nobody listed')),
+        src ? ['Each person', esc(plural(calls, 'call', 'calls') + ', the next after ' + wait + ' min')] : null
+      ]);
     },
+    /* Extras are free-form, so each is a small tile: its name on top, its
+       value under it, values said as themselves rather than counted. */
     custom: (o, form) => {
       const list = customs(form);
-      if (!list.length) return '<span class="cf-a-sub">Nothing extra yet</span>';
+      if (!list.length) return rows([['Fields', 'None yet']]);
       const say = (c) => {
         const v = c.value;
-        if (Array.isArray(v)) return v.length ? plural(v.length, c.kind === 'table' ? 'row' : 'item', c.kind === 'table' ? 'rows' : 'items') : 'empty';
-        if (v === true) return 'yes';
-        if (v === false) return 'no';
-        return v === undefined || v === '' ? 'empty' : String(v);
+        if (c.kind === 'table') {
+          const rs = (Array.isArray(v) ? v : []).filter((r) => Object.keys(r || {}).some((x) => String(r[x] || '').trim()));
+          return rs.length ? rs.slice(0, 2).map((r) => r.c0 || r.c1 || 'A row').join(', ') + (rs.length > 2 ? ' and ' + (rs.length - 2) + ' more' : '') : 'Empty';
+        }
+        if (Array.isArray(v)) { const it = v.filter((x) => String(x).trim()); return it.length ? it.join(', ') : 'Empty'; }
+        if (v === true) return 'Yes';
+        if (v === false) return 'No';
+        return v === undefined || v === '' ? 'Empty' : String(v);
       };
-      return `<span class="cf-a-kv">${list.map((c) => `<span><span>${esc(c.name || 'Untitled field')}</span><b>${esc(say(c))}</b></span>`).join('')}</span>`;
+      return `<dl class="desc-list cf-dl is-tiles">${list.map((c) => {
+        const v = say(c);
+        return `<div class="cf-dl-tile"><dt>${esc(c.name || 'Untitled field')}</dt><dd${v === 'Empty' ? ' class="is-empty"' : ''}><span class="cf-dl-clamp">${esc(v)}</span></dd></div>`;
+      }).join('')}</dl>`;
     }
   };
 
@@ -452,13 +525,13 @@
      The whole card opens it. */
   function nodeHTML(o, k) {
     const cur = !NARROW && PICK[o.id] === k;
-    const need = needOf(o, k).length > 0;
-    return `<div class="cf-nd${cur ? ' is-current' : ''}${need ? ' is-need' : ''}" role="listitem" data-cf-nd="${k}">
-        <button class="cf-nd-btn" type="button" data-cf-stop="${k}" aria-expanded="${cur}" aria-label="${esc(Q[k][0])}${need ? ', needs answers' : ''}, change">
+    const need = needOf(o, k).length > 0, err = errOf(o, k).length > 0;
+    return `<div class="cf-nd${cur ? ' is-current' : ''}${err ? ' is-err' : need ? ' is-need' : ''}" role="listitem" data-cf-nd="${k}">
+        <button class="cf-nd-btn" type="button" data-cf-stop="${k}" aria-expanded="${cur}" aria-label="${esc(Q[k][0])}${err ? ', needs fixing' : need ? ', needs answers' : ''}, change">
           <span class="cf-nd-ic" aria-hidden="true">${svg(IC[k], 16)}</span>
           <span class="cf-nd-t">${esc(Q[k][0])}</span>
         </button>
-        <div class="cf-nd-a">${ANSWER[k](o, o.x.form)}</div>
+        <div class="cf-nd-a">${needSay(o, k)}${ANSWER[k](o, o.x.form)}</div>
       </div>`;
   }
 
@@ -516,13 +589,15 @@
     const id = idOf(f.key);
     const group = f.kind === 'choice' || f.kind === 'hours' || f.kind === 'table' || f.kind === 'list' || f.kind === 'boolean' || f.kind === 'multi';
     const req = f.required && !filled(f, v) ? '<span class="tag tag-warn cf-req">Required</span>' : '';
+    const errs = FIELD[f.key] ? errorsIn(form, f.sec).filter((x) => x.key === f.key) : [];
     const close = f.advanced ? `<button class="link cf-close" type="button" data-cf-close="${f.key}">${f.def !== undefined ? 'Back to the default' : 'Remove'}</button>` : '';
     const enter = FX.enter === f.key ? ' is-entering' : '';
-    return `<div class="cf-field${enter}" data-cf-field="${esc(f.key)}" data-kind="${f.kind}">
+    return `<div class="cf-field${enter}${errs.length ? ' is-err' : ''}" data-cf-field="${esc(f.key)}" data-kind="${f.kind}">
         <div class="cf-label-row">${group
           ? `<span class="cf-label" id="${id}-l">${esc(f.label)}</span>`
-          : `<label class="cf-label" id="${id}-l" for="${id}">${esc(f.label)}</label>`}${req}${close}</div>
+          : `<label class="cf-label" id="${id}-l" for="${id}">${esc(f.label)}</label>`}${req}${errs.length ? '<span class="tag tag-err cf-fixtag">Needs fixing</span>' : ''}${close}</div>
         ${f.help ? `<p class="cf-help" id="${id}-h">${esc(f.help)}</p>` : ''}
+        ${errs.length ? `<ul class="cf-errs" role="alert">${errs.map((x) => `<li class="field-error">${esc(x.msg)}</li>`).join('')}</ul>` : ''}
         <div class="cf-control">${control(o, f, v)}</div>
       </div>`;
   }
@@ -710,13 +785,13 @@
       }
       /* A date opens the library's calendar; it reads as words ("25 Dec 2026"). */
       if (c[2] === 'date') {
-        return `<button class="input cf-date" type="button" aria-haspopup="dialog" data-cf-date="${esc(k)}" ${al}>${v ? esc(dateSay(v)) : '<span class="cf-date-none">Pick a date</span>'}${svg(I.cal, 14)}</button>`;
+        return `<button class="input cf-date${!v && String(r.name || '').trim() ? ' error' : ''}" type="button" aria-haspopup="dialog" data-cf-date="${esc(k)}" ${al}>${v ? esc(dateSay(v)) : '<span class="cf-date-none">Pick a date</span>'}${svg(I.cal, 14)}</button>`;
       }
       /* A phone column holds one number AiMY can dial, nothing else. */
       if (c[2] === 'phone') {
-        const bad = v && !PHONE_OK.test(String(v).trim());
-        return `<input class="input cf-cell${bad ? ' error' : ''}" type="tel" inputmode="tel" autocomplete="tel" spellcheck="false" data-cf-cell="${esc(k)}" data-phone value="${esc(v)}" ${al}${bad ? ' aria-invalid="true"' : ''}>` +
-          (bad ? '<p class="field-error cf-phone-err">A phone number only, like +44 20 7946 0101 or (514) 555-0137 ext. 6037.</p>' : '');
+        const bad = (v && !PHONE_OK.test(String(v).trim())) || (!String(v).trim() && String(r.name || '').trim());
+        return `<input class="input cf-cell${bad ? ' error' : ''}" type="tel" inputmode="tel" autocomplete="tel" spellcheck="false" data-cf-cell="${esc(k)}" data-phone value="${esc(v)}" placeholder="+44 20 7946 0101" ${al}${bad ? ' aria-invalid="true"' : ''}>` +
+          (bad && v ? '<p class="field-error cf-phone-err">A phone number only, like +44 20 7946 0101 or (514) 555-0137 ext. 6037.</p>' : '');
       }
       /* Text wraps instead of running off the cell. Only "long" columns take a new line. */
       return `<textarea class="input cf-cell cf-ta" rows="1" data-grow${c[2] === 'long' ? '' : ' data-oneline'} data-cf-cell="${esc(k)}" ${al}>${esc(v)}</textarea>`;
@@ -1479,5 +1554,5 @@
     fitSide();
   }
 
-  window.AIMY_CFGFORM = { SCHEMA, render, attach, painted, left, parseTime, teamMinutes, say12 };
+  window.AIMY_CFGFORM = { SCHEMA, render, attach, painted, left, fix, parseTime, teamMinutes, say12 };
 })();

@@ -1519,6 +1519,82 @@
         ]
       } } });
   }
+  /* A stress sample: long values and long lists in every field, to check the
+     layout holds (Nour, 11 Nov 2026: "check it with extensive data too").
+     Every value is made up. */
+  if (CFGFORM && !CORPUS.some((o) => o.id === 'cfg-stress')) {
+    const many = (n, f) => Array.from({ length: n }, (_, i) => f(i));
+    CORPUS.push({ id: 'cfg-stress', t: 'config', work: 'drafted', owner: 'N. Wael',
+      title: 'Sample: after-hours configuration with long values and long lists',
+      col: 'support', src: 'upload', prod: 'objectiflune', client: 'upland',
+      tags: ['after-hours', 'configuration', 'sample'], upd: 0, ing: 0, xc: 0, xu: 0,
+      sum: 'A made-up configuration with very long values and many rows, to check the layout holds.',
+      props: {},
+      x: { text: '', form: {
+        'tickets.crm_source': 'teamsupport',
+        'schedule.timezone': 'America/Argentina/ComodRivadavia',
+        'schedule.working_hours': [
+          { day: 'mon', start: '07:30', end: '19:30' }, { day: 'tue', start: '07:30', end: '19:30' },
+          { day: 'wed', start: '07:30', end: '12:00' }, { day: 'thu', start: '22:00', end: '06:00' },
+          { day: 'fri', start: '07:30', end: '19:30' }, { day: 'sat', start: '09:00', end: '13:00' },
+          { day: 'sun', start: '18:00', end: '23:30' }],
+        'schedule.pre_window_minutes': 240,
+        'schedule.holidays': many(12, (i) => ({ date: '2027-' + String(i + 1).padStart(2, '0') + '-1' + (i % 9), name: ['New Year’s Day observed in every regional office', 'Founders’ Day', 'Spring bank holiday', 'Company-wide offsite and planning week, first day'][i % 4] })),
+        'coverage.customer_tiers': [
+          { tier: 'Platinum Enterprise with Dedicated Technical Account Manager', covered_days: 'all days' },
+          { tier: 'Gold', covered_days: 'all days' }, { tier: 'Silver Plus (legacy contracts signed before 2024)', covered_days: 'weekdays only' },
+          { tier: 'Silver', covered_days: 'weekdays only' }, { tier: 'Partner resellers', covered_days: 'weekdays only' }],
+        'coverage.tier_source': 'The “Support entitlement tier (contract)” custom field on the organization record in TeamSupport, falling back to the renewals spreadsheet on SharePoint when the field is empty',
+        'coverage.special_customers': many(6, (i) => ({ customer: ['Northwind Health Systems International (all subsidiaries)', 'Contoso Retail', 'Fabrikam Logistics and Freight Forwarding', 'Adventure Works', 'Tailspin Toys', 'Woodgrove Bank'][i], rule: ['Always escalate, whatever the time, the tier or the kind of ticket, and copy their account director', 'Never call on Sundays; reply and wait', 'Call only for production outages', 'Escalate straight to the manager', 'Treat as Gold', 'Reply in French'][i] })),
+        'urgent.examples': many(15, (i) => ['Users can’t log in to the production tenant from any region, including through single sign-on and the emergency local accounts', 'Production is down and nothing is going out', 'Data is missing or wrong in a live report', 'A payment run failed', 'Every user in an organization is affected'][i % 5] + (i > 4 ? ' (case ' + (i + 1) + ')' : '')),
+        'urgent.keywords': many(25, (i) => ['urgent', 'outage', 'down', 'data loss', 'cannot log in', 'production', 'critical', 'severity one', 'everyone affected', 'payroll'][i % 10] + (i > 9 ? ' ' + i : '')),
+        'urgent.match': 'all',
+        'urgent.definition': 'Production is down or data is at risk for a customer AiMY covers, it affects many people, it cannot wait for the morning, and there is no workaround the customer can use in the meantime without losing money or data. When in doubt, treat it as urgent and let the person on call decide.',
+        'urgent.min_users_affected': 250,
+        'urgent.triage_questions': many(8, (i) => ({ question: ['Is this happening in production, or only in a test or staging environment that customers never see?', 'How many people can’t work?', 'Is there a workaround?', 'When did it start?'][i % 4], means: ['Production: urgent. Test or staging only: it can wait until the team starts, unless a release is scheduled tonight.', 'Twenty-five or more: urgent.', 'Yes: it can wait. No: urgent.', 'In the last hour: urgent.'][i % 4] })),
+        'not_urgent.action': 'call_customer',
+        'not_urgent.examples': many(10, (i) => ['A forgotten password for one user who can still reset it themselves through the self-service portal', 'A how-to question', 'A feature request', 'A report that is slow but correct', 'A billing question'][i % 5]),
+        'on_call.source': 'list',
+        'on_call.people': many(8, (i) => ({ name: ['Alexandria Konstantinidou-Papadopoulos', 'Mohamed Fathy', 'Salma Adel', 'Jean-Baptiste Lefebvre-Moreau', 'Yara Sameh', 'Oluwaseun Adebayo-Williams', 'Li Wei', 'Sherif Nabil'][i], phone: ['+44 20 7946 0101 ext. 4521', '+1 (646) 555-0187', '+20 100 555 0142', '+33 1 70 55 01 23 ext. 12', '+44 20 7946 0102', '+234 1 555 0199', '+86 10 5555 0123', '+1 646 555 0188'][i] })),
+        'on_call.management_fallback': many(4, (i) => ({ name: ['Nour Wael', 'Mona Adel', 'Habeba Mourad', 'Mahmoud Mohamed'][i], phone: ['+44 20 7946 0110', '+20 100 555 0186', '+20 100 555 0150', '+44 20 7946 0111 ext. 900'][i] })),
+        'on_call.steps': many(6, (i) => ['Check the customer’s tier and any exception before calling anyone, and note both in the ticket', 'Add the ticket number and the business impact to the message', 'Call on the person’s preferred number first', 'Post in the on-call channel', 'Wait for an answer', 'Write what happened in the ticket'][i]),
+        'on_call.wait_before_next_minutes': 45,
+        'on_call.calls_per_person': 10,
+        'on_call.confirmation_wait_minutes': 120,
+        _custom: [
+          { id: 'st1', kind: 'text', name: 'Reassign group when the night team hands the ticket back in the morning', value: 'Extended Support, second line, Europe and Middle East region' },
+          { id: 'st2', kind: 'long', name: 'Notes for the night team', value: 'TeamSupport sends a second alert after 10 minutes. Ignore it if the ticket already has a reply. If the customer replies in another language, answer in that language. Never close a ticket overnight; the day team closes it.' },
+          { id: 'st3', kind: 'number', name: 'Tickets before a manager is told', value: 12 },
+          { id: 'st4', kind: 'boolean', name: 'Send a summary in the morning', value: false },
+          { id: 'st5', kind: 'choice', name: 'Language of replies', options: ['English', 'French', 'Arabic', 'German', 'Spanish', 'Portuguese (Brazil)'], value: 'Portuguese (Brazil)' },
+          { id: 'st6', kind: 'multi', name: 'Channels', options: ['Email', 'Phone', 'Chat', 'Portal', 'WhatsApp', 'Microsoft Teams', 'Slack Connect'], value: ['Email', 'Phone', 'Microsoft Teams', 'Slack Connect'] },
+          { id: 'st7', kind: 'list', name: 'Ticket tags to skip', value: many(12, (i) => ['spam', 'auto-reply', 'out-of-office', 'newsletter-unsubscribe-request'][i % 4]) },
+          { id: 'st8', kind: 'table', name: 'Product owners by area', columns: ['Area of the product', 'Owner', 'Backup owner'],
+            value: many(5, (i) => ({ c0: ['Billing and invoicing, including tax calculation', 'Reports', 'Integrations', 'Mobile apps', 'Single sign-on'][i], c1: ['Salma Adel', 'Mohamed Fathy', 'Li Wei', 'Yara Sameh', 'Sherif Nabil'][i], c2: ['Mona Adel', 'Nour Wael', 'Habeba Mourad', 'Mahmoud Mohamed', 'Mona Adel'][i] })) }
+        ]
+      } } });
+  }
+  /* A sample that still needs work: required answers missing and answers
+     AiMY cannot use, to see every warning and error state at once. */
+  if (CFGFORM && !CORPUS.some((o) => o.id === 'cfg-needs-work')) {
+    CORPUS.push({ id: 'cfg-needs-work', t: 'config', work: 'drafted', owner: 'N. Wael',
+      title: 'Sample: after-hours configuration that still needs work',
+      col: 'support', src: 'upload', prod: 'objectiflune', client: 'upland',
+      tags: ['after-hours', 'configuration', 'sample'], upd: 0, ing: 0, xc: 0, xu: 0,
+      sum: 'A made-up configuration with answers missing and answers AiMY cannot use.',
+      props: {},
+      x: { text: '', form: {
+        'schedule.timezone': 'Cairo time',
+        'schedule.working_hours': [
+          { day: 'sun', start: '09:00', end: '17:00' }, { day: 'mon', start: '09:00', end: '17:00' },
+          { day: 'tue', start: '09:00', end: '17:00' }, { day: 'wed', start: '09:00', end: '17:00' }, { day: 'thu', start: '09:00', end: '17:00' }],
+        'schedule.holidays': [{ date: '2027-03-30', name: 'Eid al-Fitr' }, { name: 'Eid al-Adha' }],
+        'coverage.customer_tiers': [{ tier: 'Gold', covered_days: 'all days' }, { tier: 'Silver' }],
+        'urgent.keywords': ['outage', 'down'],
+        'on_call.source': 'list',
+        'on_call.people': [{ name: 'Yara Sameh', phone: '' }, { name: 'Mohamed Fathy', phone: 'call him on Teams' }, { name: 'Salma Adel', phone: '+20 100 555 0103' }]
+      } } });
+  }
   const byId = (id) => CORPUS.find((o) => o.id === id);
   const TOTAL = CORPUS.length;
 
@@ -4247,10 +4323,11 @@
        asks a configuration file before trusting it. */
     config:   (o) => {
       if (isCfgForm(o)) {
-        const n = CFGFORM.left(o);
+        const n = CFGFORM.left(o), e = CFGFORM.fix(o);
         return tcSum(o.sum) + `<div class="tc-tags">${n
-          ? '<span class="tag tag-warn">' + n + ' required ' + (n === 1 ? 'field' : 'fields') + ' left</span>'
-          : '<span class="tag tag-ok">AiMY reads it</span>'}</div>`;
+          ? '<span class="tag tag-warn">' + n + ' required ' + (n === 1 ? 'field' : 'fields') + ' left</span>' : ''}${e
+          ? '<span class="tag tag-err">' + e + (e === 1 ? ' answer' : ' answers') + ' to fix</span>' : ''}${!n && !e
+          ? '<span class="tag tag-ok">AiMY reads it</span>' : ''}</div>`;
       }
       const r = cfgCheck(o);
       return `<p class="tc-mono">${esc(subjectFile(o) || 'No file yet')}</p>` +
@@ -7339,7 +7416,7 @@
       fields:  () => [],
       start:   ['file'],
       ai:      { blank: [], filled: [] },
-      ready:   (o) => { if (isCfgForm(o)) { const n = CFGFORM.left(o); return n ? n + ' required ' + (n === 1 ? 'field' : 'fields') + ' left' : ''; }
+      ready:   (o) => { if (isCfgForm(o)) { const n = CFGFORM.left(o), e = CFGFORM.fix(o); return n ? n + ' required ' + (n === 1 ? 'field' : 'fields') + ' left' : e ? 'Fix ' + e + (e === 1 ? ' answer' : ' answers') + ' first' : ''; }
         const r = cfgCheck(o); return !r ? 'Upload the file first' : r.ok ? '' : 'Fix line ' + r.line + ' first'; },
       copy:    {}
     },
