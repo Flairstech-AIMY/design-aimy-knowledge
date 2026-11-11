@@ -967,7 +967,9 @@
         const t0 = target.getBoundingClientRect().top - port.getBoundingClientRect().top;
         if (t0 < 0 || t0 > port.clientHeight * 0.6) port.scrollTop += t0 - 16;
       }
-      const h = sc.querySelector(phone ? '.cf-view .cf-panel-head h2' : '.cf-side .cf-panel-head h2');
+      /* Only a keyboard open moves focus to the title (for screen readers); a
+         click leaves it alone, so nothing gets ringed on open (Nour). */
+      const h = e.detail === 0 && sc.querySelector(phone ? '.cf-view .cf-panel-head h2' : '.cf-side .cf-panel-head h2');
       if (h) h.focus({ preventScroll: true });
       return;
     }
