@@ -3507,7 +3507,21 @@ span.topnav-tab:hover { background: none; }
    phone a long question's 30rem bubble did not fit beside the face, so it
    dropped onto a line of its own under it (measured at 375: face at y 353,
    bubble at 393, bubble running under the face's column). */
-.chat-msg.user .msg-bubble { max-width: min(30rem, calc(100% - 2.5rem)); min-width: 0; }
+.chat-msg.user .msg-bubble { max-width: min(33.75rem, calc(100% - 2.5rem)); min-width: 0; }
+
+/* ══ THE BUBBLE IS SALES' SHAPE, ON THIS PRODUCT'S SEE-THROUGH GROUND ══════
+   Nour, 11 Nov: Knowledge's gate and Console bubbles match Sales' (sales.css
+   7549-7578), and Sales took this product's 4% wash for AiMY (Sales ab07579),
+   so the ground stays as aimy-ds.css draws it. 16px at 400 with 1.5 leading,
+   0.75rem by 1rem, 0.75rem corners with the square one on the speaker's side,
+   your bubble up to 540px with a 22% accent edge (cap above), a 28px round
+   face 0.75rem away. The thinking turn keeps its bare frame: its rules are
+   more specific than these. */
+.chat-msg { gap: 0.75rem; }
+.chat-msg .msg-avatar { width: 1.75rem; height: 1.75rem; margin-top: 0.125rem; font-size: 0.75rem; font-weight: 600; }
+.chat-msg .msg-bubble { padding: 0.75rem 1rem; font-size: 1rem; font-weight: 400; line-height: 1.5; }
+.chat-msg.aimy .msg-bubble { border-radius: 0.25rem 0.75rem 0.75rem 0.75rem; }
+.chat-msg.user .msg-bubble { border-radius: 0.75rem 0.25rem 0.75rem 0.75rem; border-color: rgba(var(--accent-rgb), 0.22); }
 .answer-surface { display: flex; flex-direction: column; gap: 0.75rem; }
 /* The surface owns the rhythm, once. Several of these blocks carry their own
    vertical margins for the places they appear outside an answer, and those
