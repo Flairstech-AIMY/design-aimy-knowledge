@@ -503,3 +503,10 @@ textarea.cf-cell.input { height: 2.375rem; }
 .cf input:focus-visible, .cf textarea:focus-visible, .cf-side input:focus-visible, .cf-side textarea:focus-visible,
 .cf input:focus, .cf textarea:focus, .cf-side input:focus, .cf-side textarea:focus { outline: none; }
 .cf .stepper:focus-within, .cf-side .stepper:focus-within { border-color: var(--brand); }
+
+/* Radio card labels here are answers, not titles: regular weight, the
+   picked one a step heavier (Nour: "why those in bold?"). Four answers sit
+   two by two rather than three and one. */
+.cf-rcards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.cf-rcards .rc-title { font-weight: var(--fw-medium); line-height: 1.45; }
+.cf-rcards .radio-card:has(input:checked) .rc-title { font-weight: var(--fw-semibold); }
