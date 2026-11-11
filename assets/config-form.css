@@ -52,9 +52,11 @@
 .cf-progress.is-ok .cf-meter i { background: var(--ok); }
 
 /* ── A ticket's night: the path, and the editor beside the picked stop ── */
-.cf-night { display: grid; grid-template-columns: 27rem minmax(0, 1fr); column-gap: 2.5rem; align-items: start; }
+/* The path gives up width first (27rem down to 20rem) so the editor keeps
+   at least 32rem; below that the page is the path alone (see Narrower). */
+.cf-night { display: grid; grid-template-columns: minmax(20rem, 27rem) minmax(32rem, 1fr); column-gap: 2rem; align-items: start; }
 .cf-path, .cf-path ol { list-style: none; margin: 0; padding: 0; }
-.cf-path { position: relative; padding-top: calc(1.25rem + 1px); }
+.cf-path { container: cfp / inline-size; position: relative; padding-top: calc(1.25rem + 1px); }
 .cf-night.is-narrow .cf-path { padding-top: 0; }
 
 /* A stop: the node on the rail, the question, the answer under it. The rail
@@ -90,7 +92,10 @@
 .cf-a-list.is-plain > span { padding-left: 0; font-weight: var(--fw-semibold); }
 .cf-a-list.is-plain > span::before { content: none; }
 .cf-a-kv { display: flex; flex-direction: column; gap: 0.125rem; font-size: var(--ty-meta); line-height: 1.45; }
-.cf-a-kv > span { display: flex; gap: 0.5rem; color: var(--ink-secondary); }
+.cf-a-kv > span { display: flex; gap: 0.5rem; min-width: 0; color: var(--ink-secondary); }
+.cf-a-kv > span > span { flex: 0 1 auto; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A long value reads as one line on the path; the editor has it whole. */
+.cf-a-kv b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cf-a-kv b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
 
 /* The picked stop wears the accent and the editor joins it. */
@@ -145,7 +150,7 @@
 }
 /* Joined to its stop by a short stretch of rail at the node's height. */
 .cf-panel::before {
-  content: ""; position: absolute; top: calc(1.25rem + var(--cf-node) / 2 - 1px); left: calc(-2.5rem - 1px); width: 2.5rem; height: 2px; background: var(--cf-rail);
+  content: ""; position: absolute; top: calc(1.25rem + var(--cf-node) / 2 - 1px); left: calc(-2rem - 1px); width: 2rem; height: 2px; background: var(--cf-rail);
 }
 .cf-panel.is-swap > * { animation: cf-swap 250ms var(--cf-ease) both; }
 .cf-panel-head { display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 1.5rem; }
@@ -153,11 +158,11 @@
 .cf-panel-head h2 { margin: 0; font-size: var(--ty-title); font-weight: var(--fw-bold); color: var(--ink-primary); line-height: 1.6rem; padding-top: 0.2rem; }
 .cf-panel-head h2:focus { outline: none; }
 .cf-panel-head p { margin: 0.125rem 0 0; font-size: var(--ty-meta); color: var(--ink-secondary); line-height: 1.5; }
-.cf-ed { min-width: 0; }
+.cf-ed { min-width: 0; container: cfe / inline-size; }
 .cf-ed .cf-sec { padding: 0; }
 .cf-ed-foot {
   display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-  margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--cf-edge);
+  margin-top: 2rem;
 }
 .cf-nav {
   display: inline-flex; align-items: center; gap: 0.375rem; min-height: 2.5rem; padding: 0 0.875rem;
@@ -190,7 +195,7 @@
 .cf-form { min-width: 0; }
 .cf-sec { scroll-margin-top: 1.25rem; padding-bottom: 3rem; }
 .cf-sec + .cf-sec { padding-top: 0.25rem; }
-.cf-sec-head { padding-bottom: 0.875rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--cf-edge); }
+.cf-sec-head { margin-bottom: 1.5rem; }
 .cf-sec-head h2 { margin: 0; font-size: var(--ty-title); font-weight: var(--fw-bold); color: var(--ink-primary); line-height: 1.3; }
 .cf-sec-head p { margin: 0.25rem 0 0; font-size: var(--ty-meta); color: var(--ink-secondary); line-height: 1.5; }
 .cf-fields { display: flex; flex-direction: column; gap: 2rem; }
@@ -300,11 +305,12 @@ textarea.cf-in { height: auto; min-height: 4.5rem; padding: 0.625rem 0.875rem; l
 .cf-num:hover { border-color: var(--cf-edge-hover); }
 .cf-num:focus-within { border-color: rgba(var(--accent-rgb), 0.6); box-shadow: var(--cf-ring); }
 .cf-num-in {
-  width: 3.25rem; height: 100%; padding: 0; border: 0; background: none; text-align: right;
+  /* As wide as the number, no wider (Nour: "so much unnecessary padding"). */
+  width: calc(var(--n, 1) * 1ch + 0.125rem); height: 100%; padding: 0; border: 0; background: none; text-align: right;
   font: inherit; color: var(--ink-primary); font-weight: var(--fw-semibold); font-variant-numeric: tabular-nums;
 }
 .cf-num-in:focus { outline: none; }
-.cf-unit { padding: 0 0.25rem 0 0.375rem; color: var(--ink-secondary); }
+.cf-unit { padding: 0 0 0 0.25rem; color: var(--ink-secondary); }
 .cf-num-btn {
   display: grid; place-items: center; width: 2.25rem; height: 100%; border: 0; background: none; cursor: pointer; color: var(--ink-secondary);
   transition: color 150ms ease, background-color 150ms ease, transform 160ms var(--cf-ease);
@@ -319,7 +325,8 @@ textarea.cf-in { height: auto; min-height: 4.5rem; padding: 0.625rem 0.875rem; l
 /* ── Team hours: a row per day, the week drawn beside it ── */
 .cf-week { max-width: 30rem; }
 .cf-wk-row { display: grid; grid-template-columns: 3.5rem minmax(0, 1fr); align-items: center; gap: 1rem; min-height: 2.75rem; }
-.cf-wk-row + .cf-wk-row { border-top: 1px solid var(--cf-edge); }
+/* No lines between the days (Nour, 11 Nov 2026: no separators anywhere);
+   the rows' own height spaces them. */
 .cf-day {
   width: 3.5rem; height: 2rem; border: 1px dashed var(--cf-edge-hover); border-radius: 999px; background: none; cursor: pointer;
   color: var(--ink-secondary); font-size: var(--ty-meta); font-weight: var(--fw-medium);
@@ -332,20 +339,16 @@ textarea.cf-in { height: auto; min-height: 4.5rem; padding: 0.625rem 0.875rem; l
   color: var(--ink-primary); font-weight: var(--fw-semibold);
 }
 .cf-wk-times { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
-.cf-time {
   width: 5.75rem; height: 2.125rem; padding: 0 0.5rem; border: 1px solid var(--cf-edge); border-radius: 0.5rem;
   background: var(--card-bg); text-align: center; font-variant-numeric: tabular-nums;
   transition: border-color 150ms ease, box-shadow 150ms ease;
 }
-.cf-time:hover { border-color: var(--cf-edge-hover); }
-.cf-time:focus { outline: none; border-color: rgba(var(--accent-rgb), 0.6); box-shadow: var(--cf-ring); }
-.cf-time.is-bad { border-color: var(--err); box-shadow: 0 0 0 3px rgba(var(--err-rgb, 239, 68, 68), 0.16); }
 .cf-to { color: var(--ink-secondary); font-size: var(--ty-meta); }
 .cf-wk-tag { font-size: var(--ty-micro); font-weight: var(--fw-semibold); color: var(--ink-info); white-space: nowrap; }
 .cf-off { font-size: var(--ty-meta); color: var(--ink-secondary); }
 .cf-wk-foot {
   display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
-  margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--cf-edge);
+  margin-top: 1rem;
 }
 .cf-wk-sum { margin: 0; font-size: var(--ty-meta); color: var(--ink-secondary); line-height: 1.45; }
 .cf-wk-sum b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
@@ -379,9 +382,9 @@ textarea.cf-in { height: auto; min-height: 4.5rem; padding: 0.625rem 0.875rem; l
 .cf-list { max-width: none; }
 .cf-li {
   display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 0.25rem;
-  padding: 0.25rem 0; border-top: 1px solid var(--cf-edge);
+  padding: 0.125rem 0;
 }
-.cf-li:first-child { border-top: 0; padding-top: 0; }
+.cf-li:first-child { padding-top: 0; }
 .cf-li-in {
   display: block; width: 100%; min-height: 2.125rem; padding: 0.375rem 0.5rem; margin-left: -0.5rem;
   border: 1px solid transparent; border-radius: 0.5rem; background: none; resize: none; overflow: hidden;
@@ -408,7 +411,7 @@ textarea.cf-in { height: auto; min-height: 4.5rem; padding: 0.625rem 0.875rem; l
   display: grid; grid-template-columns: var(--cf-cols); align-items: start; gap: 0.5rem;
   padding: 0.375rem 0.375rem 0.375rem 0.5rem;
 }
-.cf-tr + .cf-tr { border-top: 1px solid var(--cf-edge); }
+
 .cf-th { align-items: center; min-height: 2.25rem; padding-top: 0.25rem; padding-bottom: 0.25rem; }
 .cf-th span { padding: 0 0.5rem; font-size: var(--ty-micro); font-weight: var(--fw-semibold); color: var(--ink-secondary); }
 .cf-td { min-width: 0; }
@@ -471,7 +474,8 @@ textarea.cf-cell { resize: none; overflow: hidden; }
   .cf-progress .cf-link { margin-left: -0.625rem; }
   .cf-meter { flex-basis: 100%; }
 }
-@container cf (max-width: 26rem) {
+/* When the path is narrow, Routine and Calls stack instead of squeezing. */
+@container cfp (max-width: 24rem) {
   .cf-lanes { grid-template-columns: minmax(0, 1fr); row-gap: 1.5rem; }
   .cf-fork::before { right: auto; width: 0; border-radius: 0; border-right: 0; height: 1rem; }
   .cf-lane.is-yes .cf-lane-tag { left: calc(var(--cf-node) / 2 + 0.375rem); }
@@ -479,9 +483,13 @@ textarea.cf-cell { resize: none; overflow: hidden; }
 @container cf (max-width: 40rem) {
   .cf-head { align-items: flex-start; margin-bottom: 1.25rem; }
   .cf-panel-head h2 { font-size: var(--ty-body); line-height: 1.6rem; }
-
+  .cf-ed-foot { flex-direction: column-reverse; align-items: stretch; }
+  .cf-nav { justify-content: center; }
+}
+/* The fields follow the editor's own width, wherever it sits: beside the
+   path on a laptop, or a whole phone screen. */
+@container cfe (max-width: 32rem) {
   .cf-wk-times { flex-wrap: wrap; row-gap: 0.25rem; }
-  .cf-time { width: 5.5rem; }
   .cf-wk-foot { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
 
   .cf-tr:not(.cf-th) { grid-template-columns: minmax(0, 1fr) auto; gap: 0.125rem 0.25rem; padding: 0.5rem 0.25rem 0.625rem 0.5rem; }
@@ -492,36 +500,18 @@ textarea.cf-cell { resize: none; overflow: hidden; }
   .cf-tr .cf-ord::before { content: "Called "; font-weight: var(--fw-semibold); }
   .cf-tr .cf-row-acts { grid-column: 2; grid-row: 1; }
   .cf-tr .cf-x { opacity: 1; margin-top: 0; }
-  .cf-seg:not(.is-wrap) { display: flex; flex-wrap: nowrap; }
-  .cf-seg:not(.is-wrap) .cf-seg-btn { flex: 1 1 auto; padding: 0 0.5rem; }
+  .cf-seg:not(.is-wrap) { display: flex; width: 100%; }
+  .cf-seg:not(.is-wrap) .cf-seg-btn { flex: 1 1 0; min-width: 0; padding: 0 0.375rem; }
   .cf-more { flex-direction: column; gap: 0.25rem; }
   .cf-pill { height: auto; min-height: 2.25rem; padding-top: 0.375rem; padding-bottom: 0.375rem; white-space: normal; text-align: left; }
-  .cf-ed-foot { flex-direction: column-reverse; align-items: stretch; }
-  .cf-nav { justify-content: center; }
   .cf-label-row { flex-wrap: wrap; }
 }
+/* Never past the editor's edge, at any width. */
+.cf-seg { max-width: 100%; }
+.cf-seg-btn { overflow: hidden; text-overflow: ellipsis; }
 
-/* ── The time picker under an hour field ──
-   One column, every half hour, the field's time in the accent and scrolled
-   to the middle. It opens from the field (150ms, from 0.97). */
-.cf-tp-host { position: relative; display: inline-flex; }
-.cf-tpick {
-  position: absolute; z-index: 30; top: calc(100% + 0.375rem); left: 0; width: 100%;
-  max-height: 14rem; overflow-y: auto; overscroll-behavior: contain; padding: 0.25rem;
-  display: flex; flex-direction: column; gap: 0.0625rem;
-  border: 1px solid var(--cf-edge-hover); border-radius: 0.75rem; background: var(--card-bg-raised);
-  box-shadow: 0 0.75rem 2rem rgba(0, 0, 0, 0.32); scrollbar-width: thin;
-  transform-origin: top center; animation: cf-pop 150ms var(--cf-ease) both;
-}
-.cf-tpick.is-up { top: auto; bottom: calc(100% + 0.375rem); transform-origin: bottom center; }
-.cf-tpick.is-still { animation: none; }
-.cf-tp-b {
-  flex: none; height: 2rem; padding: 0 0.5rem; border: 0; border-radius: 0.5rem; background: none; cursor: pointer;
-  color: var(--ink-primary); font-size: var(--ty-meta); font-variant-numeric: tabular-nums; text-align: center;
-  transition: background-color 150ms ease, color 150ms ease;
-}
-.cf-tp-b:hover { background: var(--card-bg); }
-.cf-tp-b.is-near { background: rgba(var(--accent-rgb), 0.16); font-weight: var(--fw-semibold); }
-.cf-tp-b[aria-selected="true"] { background: var(--accent); color: #fff; }
-@media (prefers-reduced-motion: reduce) { .cf-tpick { animation: none; } }
+/* ── Hour chips ──
+   The Schedule page's own time chip (.ah-wchip in diary.css) and its list;
+   only the en dash between the two gets its spacing here. */
+.cf-wk-times .cf-to { font-size: var(--ty-meta); }
 }

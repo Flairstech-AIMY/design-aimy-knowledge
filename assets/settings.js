@@ -14836,6 +14836,10 @@
   }
 
   window.AIMY_SETTINGS = {
+    /* The Console's one popover, for the hand-filled config's time chips
+       (the same list the Schedule page opens for each person's hours). */
+    pop: function (anchor, html, cls) { return popover(anchor, html, cls); },
+    closePop: function () { closePop(); },
     dcState: dcState,
     usMeState: usMeState,
     usViewAs: usViewAs,

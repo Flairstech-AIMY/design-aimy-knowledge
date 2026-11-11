@@ -311,7 +311,10 @@
   const narrowNow = () => {
     const r = root();
     const w = r ? r.getBoundingClientRect().width : 0;
-    return w ? w < 736 : window.innerWidth < 800;
+    /* Path (20rem) + gap (2rem) + editor (32rem): below 54rem the editor
+       would be squeezed, so the path stands alone and a stop opens as a view. */
+    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    return w ? w < 54 * rem : window.innerWidth < 1100;
   };
   const IC = {
     tickets: '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
@@ -543,7 +546,7 @@
         const val = v === undefined || v === null ? (f.def !== undefined ? f.def : '') : v;
         return `<div class="cf-num">
             <button class="cf-num-btn" type="button" data-cf-step="${esc(f.key)}|-1" aria-label="Less" tabindex="-1">${svg(I.minus, 14)}</button>
-            <input class="cf-num-in" id="${id}" inputmode="numeric" autocomplete="off" data-cf-num="${esc(f.key)}" value="${esc(val)}"${desc}${f.unit ? ` aria-label="${esc(f.label)}, in ${esc(f.unit === 'min' ? 'minutes' : f.unit)}"` : ''}>
+            <input class="cf-num-in" id="${id}" inputmode="numeric" autocomplete="off" data-cf-num="${esc(f.key)}" value="${esc(val)}" style="--n: ${Math.max(1, String(val).length)}"${desc}${f.unit ? ` aria-label="${esc(f.label)}, in ${esc(f.unit === 'min' ? 'minutes' : f.unit)}"` : ''}>
             ${f.unit ? `<span class="cf-unit" aria-hidden="true">${esc(+val === 1 && f.unit !== 'min' ? f.unit.replace(/s$/, '') : f.unit)}</span>` : ''}
             <button class="cf-num-btn" type="button" data-cf-step="${esc(f.key)}|1" aria-label="More" tabindex="-1">${svg(I.plus, 14)}</button>
           </div>${f.def !== undefined && +val === f.def ? '<span class="cf-def">The default</span>' : ''}`;
@@ -590,6 +593,37 @@
         : `<p class="cf-note is-err">AiMY doesn\u2019t know \u201c${esc(v)}\u201d. Type a city and pick it from the list.</p>`) : ''}`;
   }
 
+  /* A time is the Schedule page's chip: the time and a down arrow; it opens
+     the Console's list of half hours, and its arrow keys step half an hour. */
+  const hm = (t) => { const v = say12(t); return v === 'midnight' ? '12 am' : v === 'noon' ? '12 pm' : v; };
+  const CHEV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+  const tchip = (key, d, r, k) => `<button class="ah-wchip cf-tchip" type="button" aria-haspopup="listbox" data-cf-tchip="${esc(key)}|${d[0]}|${k}"
+      aria-label="${esc(d[2] + ', the team ' + (k === 'start' ? 'starts at ' : 'stops at ') + hm(r[k]) + ', change')}">${esc(hm(r[k]))}${CHEV}</button>`;
+  function tchipMenu(anchor) {
+    const S = window.AIMY_SETTINGS;
+    if (!S || !S.pop) return;
+    const v = anchor.getAttribute('data-cf-tchip');
+    const o = docOf(), p = v.split('|');
+    const r = o && (o.x.form[p[0]] || []).filter((x) => x.day === p[1])[0];
+    if (!r) return;
+    const cur = toMin(r[p[2]]);
+    const opts = [];
+    for (let m = 0; m < 1440; m += 30) opts.push(m);
+    if (cur !== null && opts.indexOf(cur) < 0) { opts.push(cur); opts.sort((x, y) => x - y); }
+    const tick = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+    const pop = S.pop(anchor, opts.map((m) =>
+      `<button class="set2-pop-i is-scope${m === cur ? ' is-on' : ''}" type="button" role="option" aria-selected="${m === cur}" data-cf-tgo="${esc(v + '|' + fromMin(m))}">` +
+        `<span class="set2-pop-tx"><span class="set2-pop-n">${esc(hm(fromMin(m)))}</span></span><span class="set2-pop-k">${tick}</span></button>`).join(''), 'is-times');
+    const on = (pop || document.getElementById('setPop') || document).querySelector('.is-on');
+    if (on && on.parentElement) on.parentElement.scrollTop = on.offsetTop - on.parentElement.clientHeight / 2 + on.offsetHeight / 2;
+  }
+  function setTime(o, v, t) {
+    const p = v.split('|');
+    setHours(o, p[0], (rs) => { const r = rs.filter((x) => x.day === p[1])[0]; if (r) r[p[2]] = t; });
+    touch(o);
+    paint(o, '[data-cf-tchip="' + v + '"]');
+  }
+
   function hoursHTML(f, rows, lab) {
     const byDay = {};
     rows.forEach((r) => { byDay[r.day] = r; });
@@ -605,9 +639,7 @@
             <button class="cf-day" type="button" aria-pressed="${!!r}" data-cf-day="${esc(f.key)}|${d[0]}"
               aria-label="${esc(d[2])}: ${r ? 'the team works' : 'the team is off'}">${d[1]}</button>
             <div class="cf-wk-times">${r
-              ? `<span class="cf-tp-host"><input class="cf-time${parseTime(r.start) ? '' : ' is-bad'}" type="text" inputmode="text" autocomplete="off" aria-haspopup="true" aria-expanded="false" value="${esc(say12(r.start))}" data-cf-time="${esc(f.key)}|${d[0]}|start" aria-label="${esc(d[2])}, team starts"></span>
-                 <span class="cf-to">to</span>
-                 <span class="cf-tp-host"><input class="cf-time${parseTime(r.end) ? '' : ' is-bad'}" type="text" inputmode="text" autocomplete="off" aria-haspopup="true" aria-expanded="false" value="${esc(say12(r.end))}" data-cf-time="${esc(f.key)}|${d[0]}|end" aria-label="${esc(d[2])}, team stops"></span>
+              ? `${tchip(f.key, d, r, 'start')}<span class="cf-to" aria-hidden="true">–</span>${tchip(f.key, d, r, 'end')}
                  ${tag ? `<span class="cf-wk-tag">${tag}</span>` : ''}`
               : '<span class="cf-off">Off. AiMY covers the day.</span>'}</div>
           </div>`;
@@ -803,6 +835,14 @@
 
   function onClick(e) {
     const t = e.target;
+    /* A time picked in the Console's popover, which sits outside the form. */
+    const go = t.closest && t.closest('[data-cf-tgo]');
+    if (go) {
+      const o = docOf(), v = go.getAttribute('data-cf-tgo'), i = v.lastIndexOf('|');
+      if (window.AIMY_SETTINGS && window.AIMY_SETTINGS.closePop) window.AIMY_SETTINGS.closePop();
+      if (o) setTime(o, v.slice(0, i), v.slice(i + 1));
+      return;
+    }
     if (!t.closest || !t.closest('[data-cf-root]')) { closeTz(); return; }
     const o = docOf();
     if (!o) return;
@@ -1001,24 +1041,12 @@
       undoable(o, 'Tuesday to Friday now run ' + say12(mon.start) + ' to ' + say12(mon.end), before);
       return;
     }
-    if ((el = t.closest('[data-cf-tp]'))) {
-      const input = el.closest('.cf-tp-host') && el.closest('.cf-tp-host').querySelector('[data-cf-time]');
-      if (!input) return;
-      const p = input.getAttribute('data-cf-time').split('|');
-      const next = el.getAttribute('data-cf-tp');
-      setHours(o, p[0], (rs) => { const r = rs.filter((x) => x.day === p[1])[0]; if (r) r[p[2]] = next; });
-      touch(o);
-      /* One click picks and closes; the caret stays in the field. */
-      TP_SKIP = true;
-      paint(o, '[data-cf-time="' + input.getAttribute('data-cf-time') + '"]');
-      TP_SKIP = false;
-      return;
-    }
+    if ((el = t.closest('[data-cf-tchip]'))) { tchipMenu(el); return; }
     if ((el = t.closest('[data-cf-week]'))) {
       const key = el.getAttribute('data-cf-week');
       form[key] = ['mon', 'tue', 'wed', 'thu', 'fri'].map((d) => ({ day: d, start: '09:00', end: '17:00' }));
       touch(o);
-      paint(o, '[data-cf-time="' + key + '|mon|start"]');
+      paint(o, '[data-cf-tchip="' + key + '|mon|start"]');
       return;
     }
     if ((el = t.closest('[data-cf-cadd]'))) {
@@ -1094,15 +1122,9 @@
     if ((v = t.getAttribute('data-cf-num'))) {
       const s = t.value.replace(/[^\d]/g, '');
       if (s !== t.value) t.value = s;
+      t.style.setProperty('--n', Math.max(1, s.length));
       setV(form, v, s === '' ? undefined : +s);
       touch(o); meta(o);
-      return;
-    }
-    if ((v = t.getAttribute('data-cf-time'))) {
-      const p = v.split('|');
-      const val = parseTime(t.value);
-      t.classList.toggle('is-bad', !val && t.value.trim() !== '');
-      if (val) { setHours(o, p[0], (rs) => { const r = rs.filter((x) => x.day === p[1])[0]; if (r) r[p[2]] = val; }); touch(o); meta(o); }
       return;
     }
     if ((v = t.getAttribute('data-cf-tz'))) {
@@ -1168,22 +1190,14 @@
       }
       return;
     }
-    if ((v = t.getAttribute('data-cf-time'))) {
-      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-        e.preventDefault();
-        const p = v.split('|');
-        const n = toMin(t.value);
-        const step = e.shiftKey ? 60 : 15;
-        const next = fromMin(n === null ? 540 : Math.round(n / step) * step + (e.key === 'ArrowUp' ? step : -step));
-        setHours(o, p[0], (rs) => { const r = rs.filter((x) => x.day === p[1])[0]; if (r) r[p[2]] = next; });
-        touch(o);
-        paint(o, '[data-cf-time="' + v + '"]');
-        const el = root().querySelector('[data-cf-time="' + CSS.escape(v) + '"]');
-        if (el) el.select();
-        return;
-      }
-      if (e.key === 'Escape' && closeTp()) { e.preventDefault(); return; }
-      if (e.key === 'Enter') { e.preventDefault(); t.blur(); }
+    if ((v = t.getAttribute('data-cf-tchip'))) {
+      const step = { ArrowUp: 30, ArrowRight: 30, ArrowDown: -30, ArrowLeft: -30 }[e.key];
+      if (!step) return;
+      e.preventDefault();
+      const p = v.split('|');
+      const r = (o.x.form[p[0]] || []).filter((x) => x.day === p[1])[0];
+      const n = r ? toMin(r[p[2]]) : null;
+      setTime(o, v, fromMin((n === null ? 540 : Math.round(n / 30) * 30) + step));
       return;
     }
     if ((v = t.getAttribute('data-cf-num'))) {
@@ -1227,53 +1241,6 @@
     if (t.hasAttribute('data-oneline') && e.key === 'Enter') { e.preventDefault(); }
   }
 
-  /* ── The time picker ──
-     A typed time stays the main way in (9, 930, 6pm, arrows step 15 min);
-     focusing the field also opens a small picker under it: the hour, then
-     the minutes, then am or pm, one click each. The picker never takes the
-     focus, so typing and picking mix freely. */
-  let TP_STILL = false;
-  let TP_SKIP = false;
-  /* A simple list: every half hour of the day, the field's time marked. */
-  function tpHTML(input) {
-    const n = toMin(input.value);
-    const near = n === null ? 540 : Math.round(n / 30) * 30 % 1440;
-    const times = [];
-    for (let m = 0; m < 1440; m += 30) times.push(m);
-    const hm = (m) => { const v = say12(fromMin(m)); return v === 'midnight' ? '12 am' : v === 'noon' ? '12 pm' : v; };
-    return `<div class="cf-tpick${TP_STILL ? ' is-still' : ''}" role="listbox" aria-label="Pick a time">${times.map((m) =>
-      `<button class="cf-tp-b${m === near ? ' is-near' : ''}" type="button" tabindex="-1" role="option" aria-selected="${n === m}" data-cf-tp="${fromMin(m)}">${hm(m)}</button>`).join('')}</div>`;
-  }
-  function closeTp() {
-    const open = document.querySelectorAll('[data-cf-root] .cf-tpick');
-    open.forEach((p) => {
-      const host = p.closest('.cf-tp-host');
-      const i = host && host.querySelector('[data-cf-time]');
-      if (i) i.setAttribute('aria-expanded', 'false');
-      p.remove();
-    });
-    return open.length > 0;
-  }
-  function openTp(input) {
-    closeTp();
-    const host = input.closest('.cf-tp-host');
-    if (!host) return;
-    host.insertAdjacentHTML('beforeend', tpHTML(input));
-    input.setAttribute('aria-expanded', 'true');
-    /* Opens upward when there is no room under the field. */
-    const pick = host.querySelector('.cf-tpick');
-    const sc = scroller();
-    const bottom = sc ? sc.getBoundingClientRect().bottom : window.innerHeight;
-    if (pick.getBoundingClientRect().bottom > bottom - 8) pick.classList.add('is-up');
-    const near = pick.querySelector('.is-near');
-    if (near) pick.scrollTop = near.offsetTop - pick.clientHeight / 2 + near.offsetHeight / 2;
-  }
-  function onFocusIn(e) {
-    const t = e.target;
-    if (TP_SKIP) { TP_SKIP = false; return; }
-    if (t && t.hasAttribute && t.hasAttribute('data-cf-time') && t.closest('[data-cf-root]')) openTp(t);
-  }
-
   function onFocusOut(e) {
     const t = e.target;
     /* A field this form's own repaint removed is not being left. */
@@ -1284,10 +1251,6 @@
     const next = e.relatedTarget;
     /* Leaving a field tidies what was typed: the times read as times, a
        number fits its range, the timezone list closes. */
-    if (t.hasAttribute('data-cf-time')) {
-      if (parseTime(t.value)) later(() => { if (document.activeElement !== t) paint(o, next && next.isConnected ? focusKey(next) : undefined); });
-      return;
-    }
     if (t.hasAttribute('data-cf-num')) {
       const key = t.getAttribute('data-cf-num'), f = fieldOf(o.x.form, key);
       let n = getV(o.x.form, key);
@@ -1342,9 +1305,6 @@
     document.addEventListener('input', onInput);
     document.addEventListener('keydown', onKey, true);
     document.addEventListener('focusout', onFocusOut);
-    document.addEventListener('focusin', onFocusIn);
-    /* Pressing in the picker keeps the caret in the field. */
-    document.addEventListener('mousedown', (e) => { if (e.target.closest && e.target.closest('.cf-tpick')) e.preventDefault(); }, true);
     document.addEventListener('paste', onPaste);
     /* And when the page itself repaints on that same press (the document's
        title commits on blur by redrawing everything), the control pressed is
