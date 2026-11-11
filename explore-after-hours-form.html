@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>After-Hours Config variants</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/aimy-ds.css?v=46" />
+  <link rel="stylesheet" href="assets/knowledge.css?v=352" />
+  <link rel="stylesheet" href="assets/settings.css?v=665" />
+  <link rel="stylesheet" href="assets/diary.css?v=44" />
+  <script>
+    (function () { try { if (localStorage.getItem('aimy-ds-theme') === 'light') document.documentElement.setAttribute('data-theme', 'light'); } catch (e) {} })();
+  </script>
+  <style>
+    /* Six ways to show the same After-Hours Config (AIMY-2974), all on the
+       "every field" sample. No separator lines anywhere (Nour, 11 Nov 2026);
+       space and surfaces do the grouping. */
+    body.xa { display: block; height: auto; overflow-y: visible; min-height: 100vh; background: var(--body-bg); color: var(--ink-primary); font-family: var(--font-sans); }
+    .xa-wrap { max-width: 74rem; margin: 0 auto; padding: 2.5rem 1.5rem 6rem; }
+    .xa-top h1 { margin: 0; font-size: 1.75rem; font-weight: var(--fw-bold); color: var(--d50); }
+    .xa-top p { margin: .5rem 0 0; max-width: 50rem; font-size: .9375rem; line-height: 1.6; color: var(--ink-secondary); }
+    .xa-jump { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: .5rem; margin: 1.5rem -1.5rem 2.5rem; padding: .75rem 1.5rem; background: var(--body-bg); }
+    .xa-jump a { display: inline-flex; align-items: center; gap: .5rem; height: 2.25rem; padding: 0 .875rem; border-radius: var(--r-pill); border: 1px solid var(--card-border); color: var(--d50); font-size: .875rem; font-weight: var(--fw-semibold); text-decoration: none; transition: border-color 150ms ease, background-color 150ms ease; }
+    .xa-jump a b { display: grid; place-items: center; width: 1.375rem; height: 1.375rem; border-radius: 50%; background: rgba(var(--accent-rgb), .18); font-size: .75rem; }
+    .xa-jump a:hover { border-color: var(--card-border-hover); background: var(--card-bg); }
+    .xa-v { margin: 0 0 5rem; scroll-margin-top: 4.5rem; }
+    .xa-vh { display: flex; align-items: center; gap: .75rem; margin-bottom: .5rem; }
+    .xa-vh b { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; background: var(--accent); color: #fff; font-size: .875rem; }
+    .xa-vh h2 { margin: 0; font-size: 1.375rem; font-weight: var(--fw-bold); color: var(--d50); }
+    .xa-why { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem; max-width: 68rem; margin: 0 0 1.25rem; font-size: .875rem; line-height: 1.55; color: var(--ink-secondary); }
+    .xa-why h3 { margin: 0 0 .25rem; font-size: .8125rem; font-weight: var(--fw-semibold); color: var(--d50); }
+    .xa-why p { margin: 0; }
+    .xa-why a { color: var(--ink-action); text-decoration: none; font-weight: var(--fw-semibold); }
+    .xa-why a:hover { text-decoration: underline; text-underline-offset: 2px; }
+    /* A frame the width of the document's column at 1536. */
+    .xa-frame { max-width: 70rem; padding: 1.75rem; border-radius: 1.25rem; border: 1px solid var(--card-border); background: var(--body-bg); container: fr / inline-size; }
+    .xa-title { margin: 0; font-size: 1.75rem; font-weight: var(--fw-bold); color: var(--d50); }
+    .xa-for { margin: .5rem 0 1.5rem; font-size: .875rem; color: var(--ink-secondary); }
+    .xa-for b { color: var(--d50); font-weight: var(--fw-semibold); }
+
+    /* Shared bits */
+    .ic { width: 1rem; height: 1rem; flex: none; display: inline-block; vertical-align: middle; }
+    .ic svg { width: 100%; height: 100%; display: block; }
+    .chips { display: flex; flex-wrap: wrap; gap: .375rem; }
+    .chip { display: inline-flex; align-items: center; gap: .375rem; min-height: 1.75rem; padding: .125rem .625rem; border-radius: var(--r-pill); background: var(--card-bg-raised); border: 1px solid var(--card-border); color: var(--ink-secondary); font-size: .8125rem; line-height: 1.35; }
+    .chip b { color: var(--d50); font-weight: var(--fw-semibold); }
+    .tok { display: inline-flex; align-items: center; gap: .25rem; padding: .0625rem .5rem; border-radius: .5rem; background: rgba(var(--accent-rgb), .16); color: var(--d50); font-weight: var(--fw-semibold); white-space: nowrap; cursor: pointer; }
+    .tok:hover { background: rgba(var(--accent-rgb), .26); }
+    .seg { display: inline-flex; gap: .1875rem; padding: .1875rem; border: 1px solid var(--card-border); border-radius: .75rem; background: var(--card-bg); }
+    .seg span { display: inline-flex; align-items: center; height: 2rem; padding: 0 .875rem; border-radius: .5625rem; font-size: .875rem; color: var(--ink-secondary); }
+    .seg span.on { background: rgba(var(--accent-rgb), .16); color: var(--d50); font-weight: var(--fw-semibold); box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), .45); }
+    .av { width: 1.75rem; height: 1.75rem; flex: none; border-radius: 50%; display: grid; place-items: center; background: rgba(var(--accent-rgb), .18); color: var(--d50); font-size: .6875rem; font-weight: var(--fw-bold); }
+    .av.fall { background: rgba(var(--warn-rgb, 245, 158, 11), .2); }
+    .lbl { font-size: .875rem; font-weight: var(--fw-semibold); color: var(--d50); }
+    .say { font-size: .875rem; line-height: 1.5; color: var(--ink-secondary); }
+    .say b { color: var(--d50); font-weight: var(--fw-semibold); }
+    .daypill { display: inline-grid; place-items: center; width: 3rem; height: 1.875rem; border-radius: var(--r-pill); background: rgba(var(--accent-rgb), .16); color: var(--d50); font-size: .8125rem; font-weight: var(--fw-semibold); box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), .45); }
+    .daypill.off { background: none; color: var(--ink-secondary); box-shadow: inset 0 0 0 1px var(--card-border-hover); font-weight: var(--fw-medium); }
+    .wk { display: grid; grid-template-columns: 3rem auto; align-items: center; gap: .375rem .75rem; }
+    .wk .t { display: flex; align-items: center; gap: .5rem; font-size: .875rem; color: var(--ink-secondary); }
+    .ah-wchip svg { width: .875rem; height: .875rem; }
+    .btn-next { display: inline-flex; align-items: center; gap: .375rem; height: 2.5rem; padding: 0 1rem; border-radius: var(--r-pill); background: var(--brand); color: #fff; font-size: .875rem; font-weight: var(--fw-semibold); border: 0; }
+    .lines { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: .25rem; font-size: .875rem; color: var(--d50); line-height: 1.45; }
+    .lines li { position: relative; padding-left: .875rem; }
+    .lines li::before { content: ""; position: absolute; left: .125rem; top: calc(.725em - .15625rem); width: .3125rem; height: .3125rem; border-radius: 50%; background: rgba(var(--accent-rgb), .7); }
+    .more { font-size: .8125rem; color: var(--ink-action); font-weight: var(--fw-semibold); }
+
+    /* ── A · Two-column settings ── */
+    .a-sec { display: grid; grid-template-columns: 17rem minmax(0, 1fr); gap: 2rem; padding: 1.25rem 0; }
+    .a-sec h3 { margin: 0; font-size: 1rem; font-weight: var(--fw-bold); color: var(--d50); }
+    .a-sec p { margin: .25rem 0 0; font-size: .8125rem; line-height: 1.5; color: var(--ink-secondary); }
+    .a-card { display: flex; flex-direction: column; gap: 1.25rem; padding: 1.25rem; border-radius: 1rem; background: var(--card-bg); border: 1px solid var(--card-border); }
+    .a-row { display: grid; grid-template-columns: 12rem minmax(0, 1fr); gap: 1rem; align-items: start; }
+    .a-row > .lbl { padding-top: .3rem; }
+    .a-row > .seg { justify-self: start; }
+
+    /* ── B · When / If / Then ── */
+    .b-flow { display: flex; flex-direction: column; gap: .75rem; max-width: 56rem; }
+    .b-blk { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: 1.25rem; align-items: start; padding: 1.125rem 1.25rem; border-radius: 1rem; background: var(--card-bg); border: 1px solid var(--card-border); }
+    .b-tag { display: inline-flex; align-items: center; gap: .375rem; height: 1.75rem; padding: 0 .625rem; border-radius: var(--r-pill); font-size: .75rem; font-weight: var(--fw-bold); letter-spacing: .02em; justify-self: start; margin-top: .125rem; /* centred on the first 2rem line */ }
+    .b-tag.when { background: rgba(var(--info-rgb, 59, 130, 246), .16); color: var(--ink-info); }
+    .b-tag.if { background: rgba(var(--accent-rgb), .18); color: var(--d50); }
+    .b-tag.then { background: rgba(var(--warn-rgb, 245, 158, 11), .18); color: var(--ink-warn); }
+    .b-tag.else { background: var(--card-bg-raised); color: var(--d50); box-shadow: inset 0 0 0 1px var(--card-border-hover); }
+    .b-tag.also { background: none; color: var(--ink-secondary); box-shadow: inset 0 0 0 1px var(--card-border-hover); }
+    .b-s { margin: 0; font-size: 1rem; line-height: 2; color: var(--ink-secondary); }
+    .b-s + .b-s { margin-top: .25rem; }
+    .b-and { display: inline-block; margin: .25rem 0; font-size: .75rem; font-weight: var(--fw-bold); color: var(--ink-secondary); }
+    .b-sub { margin: .375rem 0 0 0; }
+
+    /* ── C · Canvas with a side panel ── */
+    .c-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 24rem; min-height: 40rem; border-radius: 1rem; overflow: hidden; border: 1px solid var(--card-border); }
+    .c-canvas { position: relative; padding: 2rem 1rem 2.5rem; background-color: var(--card-bg); background-image: radial-gradient(rgba(255,255,255,.07) 1px, transparent 1px); background-size: 18px 18px; display: flex; flex-direction: column; align-items: center; }
+    :root[data-theme="light"] .c-canvas { background-image: radial-gradient(rgba(15,23,42,.10) 1px, transparent 1px); }
+    .c-node { position: relative; width: 17rem; padding: .75rem .875rem; border-radius: .875rem; background: var(--card-bg-raised); border: 1px solid var(--card-border-hover); display: grid; grid-template-columns: 2rem minmax(0, 1fr); gap: .625rem; align-items: start; box-shadow: 0 .25rem .75rem rgba(0,0,0,.18); }
+    .c-node.sel { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .25); }
+    .c-ico { width: 2rem; height: 2rem; border-radius: .5rem; display: grid; place-items: center; background: rgba(var(--accent-rgb), .16); color: var(--ink-action); }
+    .c-ico .ic { width: 1rem; height: 1rem; }
+    .c-node h4 { margin: 0; font-size: .875rem; font-weight: var(--fw-bold); color: var(--d50); line-height: 1.35; }
+    .c-node p { margin: .125rem 0 0; font-size: .8125rem; color: var(--ink-secondary); line-height: 1.4; }
+    .c-link { width: 2px; height: 1.75rem; background: rgba(var(--accent-rgb), .55); }
+    .c-fork { position: relative; display: grid; grid-template-columns: 17rem 17rem; gap: 2rem; padding-top: 2.5rem; margin-top: 1.75rem; }
+    .c-fork::before { content: ""; position: absolute; top: 0; left: 8.5rem; right: 8.5rem; height: 1.5rem; border: 2px solid rgba(var(--accent-rgb), .55); border-bottom: 0; border-radius: .75rem .75rem 0 0; }
+    .c-fork::after { content: ""; position: absolute; top: -1.75rem; left: 50%; width: 2px; height: 1.75rem; background: rgba(var(--accent-rgb), .55); }
+    .c-yn { position: absolute; top: .875rem; font-size: .6875rem; font-weight: var(--fw-bold); padding: .125rem .5rem; border-radius: var(--r-pill); }
+    .c-yn.no { left: 7rem; background: var(--card-bg-raised); color: var(--d50); box-shadow: inset 0 0 0 1px var(--card-border-hover); }
+    .c-yn.yes { right: 6.5rem; background: rgba(var(--warn-rgb, 245, 158, 11), .2); color: var(--ink-warn); }
+    .c-fork .c-node { width: auto; }
+    .c-panel { padding: 1.25rem; background: var(--body-bg); display: flex; flex-direction: column; gap: 1.25rem; }
+    .c-panel h4 { margin: 0; font-size: 1.125rem; font-weight: var(--fw-bold); color: var(--d50); }
+
+    /* ── D · The week first ── */
+    .d-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 20rem; gap: 1.5rem; }
+    .d-cal { display: grid; grid-template-columns: 2.75rem repeat(7, minmax(0, 1fr)); gap: 0 .25rem; }
+    .d-h { padding-bottom: .5rem; text-align: center; font-size: .8125rem; font-weight: var(--fw-semibold); color: var(--d50); }
+    .d-axis { position: relative; height: 24rem; font-size: .6875rem; color: var(--ink-secondary); }
+    .d-axis span { position: absolute; right: .375rem; transform: translateY(-50%); }
+    .d-col { position: relative; height: 24rem; border-radius: .5rem; background: rgba(var(--accent-rgb), .30); overflow: hidden; }
+    .d-team { position: absolute; left: 0; right: 0; background: var(--card-bg-raised); border-radius: .375rem; display: flex; align-items: flex-start; justify-content: center; padding-top: .375rem; font-size: .6875rem; font-weight: var(--fw-semibold); color: var(--d50); box-shadow: inset 0 0 0 1px var(--card-border-hover); }
+    .d-key { display: flex; gap: 1rem; margin-top: .75rem; font-size: .8125rem; color: var(--ink-secondary); }
+    .d-key i { display: inline-block; width: .875rem; height: .875rem; border-radius: .25rem; vertical-align: -.125rem; margin-right: .375rem; }
+    .d-side { display: flex; flex-direction: column; gap: .75rem; }
+    .d-item { padding: .875rem 1rem; border-radius: .875rem; background: var(--card-bg); border: 1px solid var(--card-border); }
+    .d-item h4 { margin: 0 0 .25rem; font-size: .8125rem; font-weight: var(--fw-semibold); color: var(--ink-secondary); }
+
+    /* ── E · The call sequence ── */
+    .e-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 20rem; gap: 2rem; }
+    .e-seq { display: flex; flex-direction: column; align-items: stretch; max-width: 32rem; }
+    .e-step { display: grid; grid-template-columns: 2.25rem minmax(0, 1fr) auto; gap: .75rem; align-items: center; padding: .875rem 1rem; border-radius: .875rem; background: var(--card-bg); border: 1px solid var(--card-border); }
+    .e-step.call { background: var(--card-bg-raised); }
+    .e-step.fall .av { background: rgba(var(--warn-rgb, 245, 158, 11), .2); }
+    .e-step h4 { margin: 0; font-size: .875rem; font-weight: var(--fw-bold); color: var(--d50); }
+    .e-step p { margin: .125rem 0 0; font-size: .8125rem; color: var(--ink-secondary); }
+    .e-n { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: 50%; background: rgba(var(--accent-rgb), .16); color: var(--ink-action); }
+    .e-gap { display: flex; flex-direction: column; align-items: center; padding: .25rem 0; }
+    .e-gap::before, .e-gap::after { content: ""; width: 2px; height: .625rem; background: rgba(var(--accent-rgb), .45); }
+    .e-wait { display: inline-flex; align-items: center; gap: .375rem; height: 1.75rem; padding: 0 .75rem; border-radius: var(--r-pill); border: 1px solid var(--card-border-hover); background: var(--body-bg); font-size: .8125rem; font-weight: var(--fw-semibold); color: var(--d50); }
+    .e-wait.warn { color: var(--ink-warn); border-color: rgba(var(--warn-rgb, 245, 158, 11), .5); }
+    .e-side { display: flex; flex-direction: column; gap: 1.25rem; padding: 1.25rem; border-radius: 1rem; background: var(--card-bg); border: 1px solid var(--card-border); align-self: start; }
+    .e-side h4 { margin: 0 0 .375rem; font-size: .8125rem; font-weight: var(--fw-semibold); color: var(--d50); }
+
+    /* ── F · Summary rows and a side sheet ── */
+    .f-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 26rem; gap: 1.25rem; align-items: start; }
+    .f-list { display: flex; flex-direction: column; gap: .5rem; }
+    .f-row { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr) auto; gap: .875rem; align-items: center; padding: .875rem 1rem; border-radius: .875rem; background: var(--card-bg); border: 1px solid var(--card-border); cursor: pointer; }
+    .f-row:hover { border-color: var(--card-border-hover); }
+    .f-row.sel { border-color: var(--accent); background: rgba(var(--accent-rgb), .08); }
+    .f-row .c-ico { width: 2.5rem; height: 2.5rem; border-radius: .75rem; }
+    .f-row h4 { margin: 0; font-size: .9375rem; font-weight: var(--fw-bold); color: var(--d50); }
+    .f-row p { margin: .125rem 0 0; font-size: .8125rem; color: var(--ink-secondary); line-height: 1.45; }
+    .f-ok { display: inline-flex; align-items: center; gap: .25rem; font-size: .75rem; font-weight: var(--fw-semibold); color: var(--ink-ok); }
+    .f-sheet { position: sticky; top: 4.5rem; padding: 1.25rem; border-radius: 1rem; background: var(--card-bg-raised); border: 1px solid var(--card-border-hover); box-shadow: 0 1rem 2.5rem rgba(0,0,0,.28); display: flex; flex-direction: column; gap: 1.25rem; }
+    .f-sheet-h { display: flex; align-items: center; justify-content: space-between; }
+    .f-sheet-h h4 { margin: 0; font-size: 1.125rem; font-weight: var(--fw-bold); color: var(--d50); }
+    .f-x { width: 2rem; height: 2rem; display: grid; place-items: center; border-radius: .5rem; color: var(--ink-secondary); }
+    .f-people { display: flex; flex-direction: column; gap: .5rem; }
+    .f-p { display: grid; grid-template-columns: 1.5rem 1.75rem minmax(0, 1fr); gap: .625rem; align-items: center; padding: .5rem .625rem; border-radius: .75rem; background: var(--card-bg); }
+    .f-p .n { font-size: .75rem; font-weight: var(--fw-bold); color: var(--ink-secondary); text-align: center; }
+    .f-p b { display: block; font-size: .875rem; color: var(--d50); font-weight: var(--fw-semibold); }
+    .f-p span.ph { font-size: .8125rem; color: var(--ink-secondary); }
+
+    /* Narrower: every variant changes shape, nothing hides. */
+    @container fr (max-width: 52rem) {
+      .a-sec { grid-template-columns: minmax(0, 1fr); gap: .75rem; }
+      .a-row { grid-template-columns: minmax(0, 1fr); gap: .375rem; }
+      .c-wrap, .d-wrap, .e-wrap, .f-wrap { grid-template-columns: minmax(0, 1fr); }
+      .c-fork { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .75rem; width: 100%; }
+      .c-fork::before { left: 25%; right: 25%; }
+      .c-yn.no { left: calc(25% - 2rem); } .c-yn.yes { right: calc(25% - 2.5rem); }
+      .c-node { width: 100%; max-width: 20rem; }
+      .f-sheet { position: static; }
+    }
+    @container fr (max-width: 30rem) {
+      .b-blk { grid-template-columns: minmax(0, 1fr); gap: .5rem; }
+      .c-fork { grid-template-columns: minmax(0, 1fr); padding-top: 1rem; }
+      .c-fork::before, .c-yn { display: none; }
+      .d-cal { grid-template-columns: 2rem repeat(7, minmax(0, 1fr)); gap: 0 .125rem; }
+      .d-team { font-size: 0; }
+      .seg { display: flex; width: 100%; }
+      .seg span { flex: 1 1 0; min-width: 0; justify-content: center; padding: 0 .375rem; }
+    }
+    @media (max-width: 640px) {
+      .xa-wrap { padding: 1.5rem 1rem 4rem; }
+      .xa-frame { padding: 1rem; }
+      .xa-why { grid-template-columns: minmax(0, 1fr); gap: .75rem; }
+      .xa-jump { margin-left: -1rem; margin-right: -1rem; padding: .75rem 1rem; flex-wrap: nowrap; overflow-x: auto; }
+      .xa-jump a { flex: none; }
+    }
+  </style>
+</head>
+<body class="xa">
+<div class="xa-wrap">
+  <header class="xa-top">
+    <h1>After-Hours Config: six redesigns</h1>
+    <p>The same config in six shapes, every one drawn on the sample with every field filled in. Each keeps all the developers' fields; what changes is how the data is shown and where you change it. The references are from Mobbin.</p>
+  </header>
+  <nav class="xa-jump" aria-label="Variants">
+    <a href="#a"><b>A</b>Two-column settings</a>
+    <a href="#b"><b>B</b>When, if, then</a>
+    <a href="#c"><b>C</b>Canvas and panel</a>
+    <a href="#d"><b>D</b>The week first</a>
+    <a href="#e"><b>E</b>The call sequence</a>
+    <a href="#f"><b>F</b>Summary rows and a sheet</a>
+  </nav>
+
+  <!-- ═════ A ═════ -->
+  <section class="xa-v" id="a">
+    <div class="xa-vh"><b>A</b><h2>Two-column settings</h2></div>
+    <div class="xa-why">
+      <div><h3>The idea</h3><p>A classic settings page: each section's name and what it is for on the left, its answers on the right, every value visible and changed in place.</p></div>
+      <div><h3>Good at</h3><p>Nothing to learn and nothing hidden; it reads top to bottom like the developers' form, only grouped and aligned.</p></div>
+      <div><h3>From</h3><p><a href="https://mobbin.com/screens/d5ecaffe-602c-48c8-b40a-fb22160a743d" target="_blank" rel="noopener">Better Stack</a>, <a href="https://mobbin.com/screens/7303ee16-6bfa-4578-a603-f9222dab19c6" target="_blank" rel="noopener">Sentry</a>, <a href="https://mobbin.com/screens/bb709810-1e56-46ec-be14-ab6632b244f4" target="_blank" rel="noopener">Clockwise</a>. Risk: long; it does not say what happens to a ticket.</p></div>
+    </div>
+    <div class="xa-frame">
+      <h1 class="xa-title">Sample: after-hours configuration</h1>
+      <p class="xa-for">For <b>Objectif Lune Support</b> · 7 of 7 required answers in</p>
+      <div class="a-sec"><div><h3>Tickets</h3><p>Where this product's tickets arrive.</p></div>
+        <div class="a-card"><div class="a-row"><span class="lbl">Ticket system</span><div class="seg"><span class="on">Freshdesk</span><span>Zendesk</span><span>TeamSupport</span></div></div></div></div>
+      <div class="a-sec"><div><h3>Hours</h3><p>When the team works. AiMY covers the rest of the week.</p></div>
+        <div class="a-card">
+          <div class="a-row"><span class="lbl">Timezone</span><span class="say"><b>Europe/London</b> · it's 2:14 pm there now</span></div>
+          <div class="a-row"><span class="lbl">Team hours</span><div class="wk" data-week></div></div>
+          <div class="a-row"><span class="lbl">AiMY covers</span><span class="say">Mon to Thu, <b>6 pm to 8:30 am</b> next day; Fri <b>4 pm</b> to Sat <b>10 am</b>; Sat <b>2 pm</b> to Mon <b>8:30 am</b></span></div>
+          <div class="a-row"><span class="lbl">Hand over before start</span><span class="say"><b>30 min</b></span></div>
+          <div class="a-row"><span class="lbl">Holidays</span><div class="chips"><span class="chip"><b>25 Dec</b> Christmas Day</span><span class="chip"><b>26 Dec</b> Boxing Day</span><span class="chip"><b>1 Jan</b> New Year's Day</span></div></div>
+        </div></div>
+      <div class="a-sec"><div><h3>Customers</h3><p>Which tiers AiMY covers and who has their own rule.</p></div>
+        <div class="a-card">
+          <div class="a-row"><span class="lbl">Covered tiers</span><div class="chips"><span class="chip"><b>Platinum</b> all days</span><span class="chip"><b>Gold</b> all days</span><span class="chip"><b>Silver</b> weekdays</span></div></div>
+          <div class="a-row"><span class="lbl">Where to check a tier</span><span class="say">The "Support tier" field on the organization in Freshdesk</span></div>
+          <div class="a-row"><span class="lbl">Exceptions</span><div class="say"><b>Northwind Health</b>: always escalate, whatever the time<br><b>Contoso Retail</b>: never call on Sundays; reply and wait</div></div>
+        </div></div>
+      <div class="a-sec"><div><h3>Urgency</h3><p>What makes a ticket urgent.</p></div>
+        <div class="a-card">
+          <div class="a-row"><span class="lbl">Urgent when</span><ul class="lines" data-urgent></ul></div>
+          <div class="a-row"><span class="lbl">Keywords</span><div class="chips" data-kw></div></div>
+          <div class="a-row"><span class="lbl">Matches</span><div class="seg"><span class="on">Any of these</span><span>All of these</span></div></div>
+          <div class="a-row"><span class="lbl">Fewest users</span><span class="say"><b>5 users</b></span></div>
+        </div></div>
+      <div class="a-sec"><div><h3>Calls</h3><p>Who AiMY calls when it's urgent, in order.</p></div>
+        <div class="a-card">
+          <div class="a-row"><span class="lbl">On call</span><div class="chips" data-chain></div></div>
+          <div class="a-row"><span class="lbl">Each person</span><span class="say"><b>3 calls</b>, the next person after <b>10 min</b>, <b>20 min</b> to act after an answer</span></div>
+        </div></div>
+    </div>
+  </section>
+
+  <!-- ═════ B ═════ -->
+  <section class="xa-v" id="b">
+    <div class="xa-vh"><b>B</b><h2>When, if, then</h2></div>
+    <div class="xa-why">
+      <div><h3>The idea</h3><p>The config is one rule, read like an automation: when a ticket arrives out of hours, if it is covered and urgent, then call in order, otherwise do the routine thing. Every highlighted word is a control.</p></div>
+      <div><h3>Good at</h3><p>One look says exactly what AiMY does, in the same shape as the automations people already know.</p></div>
+      <div><h3>From</h3><p><a href="https://mobbin.com/screens/d6639870-e299-48d1-bd8e-66921cfdce78" target="_blank" rel="noopener">Productboard</a>, <a href="https://mobbin.com/screens/596c64d5-47bd-4508-8d3b-6636a2a68ce8" target="_blank" rel="noopener">Employment Hero</a>, <a href="https://mobbin.com/screens/e97dc953-7425-4e32-a143-42a77f55e25f" target="_blank" rel="noopener">ClickUp</a>. Risk: long lists (10 signs) need to fold behind a count.</p></div>
+    </div>
+    <div class="xa-frame">
+      <h1 class="xa-title">Sample: after-hours configuration</h1>
+      <p class="xa-for">For <b>Objectif Lune Support</b> · 7 of 7 required answers in</p>
+      <div class="b-flow">
+        <div class="b-blk"><span class="b-tag when">When</span><div>
+          <p class="b-s">A ticket arrives in <span class="tok">Freshdesk</span> while the team is off: <span class="tok">Mon to Thu after 6 pm</span> <span class="tok">Fri after 4 pm</span> <span class="tok">Sat after 2 pm</span>, <span class="tok">London time</span></p>
+          <p class="b-s">and it is not within <span class="tok">30 min</span> of the team starting, or on a holiday: <span class="tok">25 Dec</span> <span class="tok">26 Dec</span> <span class="tok">1 Jan</span></p></div></div>
+        <div class="b-blk"><span class="b-tag if">If</span><div>
+          <p class="b-s">the customer is <span class="tok">Platinum</span> <span class="tok">Gold</span> any day, or <span class="tok">Silver</span> on weekdays, checked in <span class="tok">the "Support tier" field</span></p>
+          <span class="b-and">AND</span>
+          <p class="b-s">it matches <span class="tok">any</span> of <span class="tok">5 cases</span> and <span class="tok">5 keywords</span>, with at least <span class="tok">5 users</span> affected</p>
+          <ul class="lines b-sub" data-urgent-short></ul></div></div>
+        <div class="b-blk"><span class="b-tag then">Then</span><div>
+          <p class="b-s">call <span class="tok">Yara Sameh</span> then <span class="tok">Mohamed Fathy</span> then <span class="tok">Salma Adel</span>, <span class="tok">3 calls</span> each, <span class="tok">10 min</span> apart</p>
+          <p class="b-s">and if nobody answers, <span class="tok">Nour Wael</span> then <span class="tok">Mona Adel</span>. After an answer, wait <span class="tok">20 min</span> for action.</p></div></div>
+        <div class="b-blk"><span class="b-tag else">Otherwise</span><div>
+          <p class="b-s"><span class="tok">Reply and lower the priority</span> · <span class="more">4 examples of what can wait</span></p></div></div>
+        <div class="b-blk"><span class="b-tag also">Exceptions</span><div>
+          <p class="b-s"><span class="tok">Northwind Health</span> always escalates · <span class="tok">Contoso Retail</span> is never called on Sundays</p></div></div>
+        <div class="b-blk"><span class="b-tag also">Also</span><div class="chips">
+          <span class="chip">Reassign group <b>Extended Support</b></span><span class="chip">Morning summary <b>Yes</b></span><span class="chip">Replies in <b>English</b></span><span class="chip">Channels <b>Email, Phone</b></span><span class="chip"><b>+4</b> more</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════ C ═════ -->
+  <section class="xa-v" id="c">
+    <div class="xa-vh"><b>C</b><h2>Canvas and panel</h2></div>
+    <div class="xa-why">
+      <div><h3>The idea</h3><p>The path as nodes on a canvas, forking at urgency into Routine and Calls. Clicking a node opens its editor in a panel on the right, like an escalation path in incident.io.</p></div>
+      <div><h3>Good at</h3><p>The path is the picture; editing never moves it. Familiar to anyone who has built an automation.</p></div>
+      <div><h3>From</h3><p><a href="https://mobbin.com/screens/53a0d416-ec02-443d-b4be-3e04686020cc" target="_blank" rel="noopener">incident.io</a>, <a href="https://mobbin.com/screens/a228b19a-d72d-457a-8c00-0100daf4d98f" target="_blank" rel="noopener">HoneyBook</a>, <a href="https://mobbin.com/screens/638bd490-ad7e-42b4-b5b6-cd44c83be2df" target="_blank" rel="noopener">Attio</a>. Risk: wide; on a phone the panel becomes its own screen.</p></div>
+    </div>
+    <div class="xa-frame">
+      <div class="c-wrap">
+        <div class="c-canvas">
+          <div class="c-node"><span class="c-ico" data-i="inbox"></span><div><h4>Tickets</h4><p>Arrive in Freshdesk</p></div></div>
+          <span class="c-link"></span>
+          <div class="c-node sel"><span class="c-ico" data-i="clock"></span><div><h4>Hours</h4><p>AiMY covers Fri 4 pm to Sat 10 am and every night after 6 pm</p></div></div>
+          <span class="c-link"></span>
+          <div class="c-node"><span class="c-ico" data-i="shield"></span><div><h4>Customers</h4><p>Platinum, Gold, Silver on weekdays · 2 exceptions</p></div></div>
+          <span class="c-link"></span>
+          <div class="c-node"><span class="c-ico" data-i="alert"></span><div><h4>Urgency</h4><p>Any of 10 signs, 5 or more users</p></div></div>
+          <div class="c-fork">
+            <span class="c-yn no">Not urgent</span><span class="c-yn yes">Urgent</span>
+            <div class="c-node"><span class="c-ico" data-i="moon"></span><div><h4>Routine</h4><p>Reply and lower the priority</p></div></div>
+            <div class="c-node"><span class="c-ico" data-i="phone"></span><div><h4>Calls</h4><p>Yara, Mohamed, Salma · then Nour, Mona</p></div></div>
+          </div>
+        </div>
+        <aside class="c-panel" aria-label="Hours, being changed">
+          <div><h4>Hours</h4><p class="say" style="margin:.25rem 0 0">When the team works. AiMY covers the rest.</p></div>
+          <div><div class="lbl" style="margin-bottom:.5rem">Timezone</div><span class="say"><b>Europe/London</b></span></div>
+          <div><div class="lbl" style="margin-bottom:.5rem">Team hours</div><div class="wk" data-week></div></div>
+          <p class="say" style="margin:0"><b>AiMY covers</b> Mon to Thu, 6 pm to 8:30 am next day; Fri 4 pm to Sat 10 am; Sat 2 pm to Mon 8:30 am.</p>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════ D ═════ -->
+  <section class="xa-v" id="d">
+    <div class="xa-vh"><b>D</b><h2>The week first</h2></div>
+    <div class="xa-why">
+      <div><h3>The idea</h3><p>The week is the page: a calendar with the team's shifts as blocks and everything else in colour as AiMY's time. Drag or click a block to change a shift; the rest of the config sits in a column beside it.</p></div>
+      <div><h3>Good at</h3><p>The question asked most ("is AiMY on tonight?") is answered by a glance at the calendar.</p></div>
+      <div><h3>From</h3><p><a href="https://mobbin.com/screens/5d5556ea-ab43-4668-a16d-7e0a052e6774" target="_blank" rel="noopener">Zendesk</a>, <a href="https://mobbin.com/screens/94dad3ea-ad5e-405f-9aa3-a1d7f7d57c66" target="_blank" rel="noopener">User Interviews</a>. Risk: you turned bars down for hours; this is a calendar, but close.</p></div>
+    </div>
+    <div class="xa-frame">
+      <div class="d-wrap">
+        <div>
+          <div class="d-cal" data-cal></div>
+          <div class="d-key"><span><i style="background:var(--card-bg-raised);box-shadow:inset 0 0 0 1px var(--card-border-hover)"></i>Team works</span><span><i style="background:rgba(var(--accent-rgb),.30)"></i>AiMY covers, London time</span></div>
+        </div>
+        <div class="d-side">
+          <div class="d-item"><h4>Tickets</h4><span class="say"><b>Freshdesk</b></span></div>
+          <div class="d-item"><h4>Customers</h4><div class="chips"><span class="chip"><b>Platinum</b></span><span class="chip"><b>Gold</b></span><span class="chip"><b>Silver</b> weekdays</span></div></div>
+          <div class="d-item"><h4>Urgent when</h4><span class="say">Any of <b>10 signs</b>, 5 or more users</span></div>
+          <div class="d-item"><h4>Not urgent</h4><span class="say"><b>Reply and lower the priority</b></span></div>
+          <div class="d-item"><h4>Calls</h4><div class="chips" data-chain></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════ E ═════ -->
+  <section class="xa-v" id="e">
+    <div class="xa-vh"><b>E</b><h2>The call sequence</h2></div>
+    <div class="xa-why">
+      <div><h3>The idea</h3><p>What matters at 2 am is who gets called and when, so the page is that sequence: the checks, then each person as a step with the wait between them as a chip. The rules sit in a column on the right.</p></div>
+      <div><h3>Good at</h3><p>The timing is visible: you can count that Mona is called about 40 minutes after Yara.</p></div>
+      <div><h3>From</h3><p><a href="https://mobbin.com/screens/d5ecaffe-602c-48c8-b40a-fb22160a743d" target="_blank" rel="noopener">Better Stack</a>, <a href="https://mobbin.com/screens/617b72b1-966c-456c-b886-6e2a2dbc686c" target="_blank" rel="noopener">Unify</a>, <a href="https://mobbin.com/screens/5082efd9-8ddf-456a-8e58-e1c51c2d68c7" target="_blank" rel="noopener">Rox</a>. Risk: urgency and hours become side settings.</p></div>
+    </div>
+    <div class="xa-frame">
+      <div class="e-wrap">
+        <div class="e-seq">
+          <div class="e-step"><span class="e-n" data-i="inbox"></span><div><h4>An urgent ticket arrives in Freshdesk</h4><p>Out of hours, covered customer, any of 10 signs</p></div></div>
+          <div class="e-gap"><span class="e-wait">Do these first: 3 steps</span></div>
+          <div class="e-step call"><span class="av">YS</span><div><h4>Call Yara Sameh</h4><p>+44 20 7946 0101 · 3 calls</p></div></div>
+          <div class="e-gap"><span class="e-wait">No answer in 10 min</span></div>
+          <div class="e-step call"><span class="av">MF</span><div><h4>Call Mohamed Fathy</h4><p>+44 20 7946 0102 · 3 calls</p></div></div>
+          <div class="e-gap"><span class="e-wait">No answer in 10 min</span></div>
+          <div class="e-step call"><span class="av">SA</span><div><h4>Call Salma Adel</h4><p>+44 20 7946 0103 · 3 calls</p></div></div>
+          <div class="e-gap"><span class="e-wait warn">Nobody answered</span></div>
+          <div class="e-step call fall"><span class="av">NW</span><div><h4>Call Nour Wael</h4><p>+44 20 7946 0110</p></div></div>
+          <div class="e-gap"><span class="e-wait">No answer in 10 min</span></div>
+          <div class="e-step call fall"><span class="av">MA</span><div><h4>Call Mona Adel</h4><p>+44 20 7946 0111</p></div></div>
+          <div class="e-gap"><span class="e-wait">After an answer, 20 min to act, or the next call</span></div>
+        </div>
+        <aside class="e-side">
+          <div><h4>Hours, London time</h4><p class="say" style="margin:0">AiMY covers Mon to Thu after 6 pm, Fri 4 pm to Sat 10 am, Sat 2 pm to Mon 8:30 am</p></div>
+          <div><h4>Covered</h4><div class="chips"><span class="chip"><b>Platinum</b></span><span class="chip"><b>Gold</b></span><span class="chip"><b>Silver</b> weekdays</span></div></div>
+          <div><h4>Urgent when</h4><ul class="lines" data-urgent-short></ul></div>
+          <div><h4>Not urgent</h4><p class="say" style="margin:0"><b>Reply and lower the priority</b></p></div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════ F ═════ -->
+  <section class="xa-v" id="f">
+    <div class="xa-vh"><b>F</b><h2>Summary rows and a sheet</h2></div>
+    <div class="xa-why">
+      <div><h3>The idea</h3><p>A short list, one row per section with its answer in a line. A row opens a sheet on the right to change it; on a phone the sheet covers the list.</p></div>
+      <div><h3>Good at</h3><p>The calmest page: seven lines say the whole config, and only one section is ever being edited.</p></div>
+      <div><h3>From</h3><p><a href="https://mobbin.com/screens/e8f28cb2-31a2-4565-9822-a81469aec389" target="_blank" rel="noopener">Turo</a>, <a href="https://mobbin.com/screens/ef9f01e3-20cd-482d-a930-75d82df80c74" target="_blank" rel="noopener">Front</a>. Risk: one line hides detail until you open the row.</p></div>
+    </div>
+    <div class="xa-frame">
+      <div class="f-wrap">
+        <div class="f-list">
+          <div class="f-row"><span class="c-ico" data-i="inbox"></span><div><h4>Tickets</h4><p>Arrive in Freshdesk</p></div><span class="f-ok" data-i="check">Done</span></div>
+          <div class="f-row"><span class="c-ico" data-i="clock"></span><div><h4>Hours</h4><p>AiMY covers nights after 6 pm, Fri 4 pm to Sat 10 am, Sat 2 pm to Mon · London</p></div><span class="f-ok" data-i="check">Done</span></div>
+          <div class="f-row"><span class="c-ico" data-i="shield"></span><div><h4>Customers</h4><p>Platinum, Gold, Silver on weekdays · 2 exceptions</p></div><span class="f-ok" data-i="check">Done</span></div>
+          <div class="f-row"><span class="c-ico" data-i="alert"></span><div><h4>Urgency</h4><p>Any of 10 signs, 5 or more users · 3 questions when unclear</p></div><span class="f-ok" data-i="check">Done</span></div>
+          <div class="f-row"><span class="c-ico" data-i="moon"></span><div><h4>Routine</h4><p>Reply and lower the priority</p></div><span class="f-ok" data-i="check">Done</span></div>
+          <div class="f-row sel"><span class="c-ico" data-i="phone"></span><div><h4>Calls</h4><p>Yara, Mohamed, Salma · then Nour, Mona · 3 calls, 10 min apart</p></div><span class="f-ok" data-i="check">Done</span></div>
+          <div class="f-row"><span class="c-ico" data-i="list"></span><div><h4>Extras</h4><p>8 custom fields</p></div><span></span></div>
+        </div>
+        <aside class="f-sheet" aria-label="Calls, being changed">
+          <div class="f-sheet-h"><h4>Calls</h4><span class="f-x" data-i="x"></span></div>
+          <div><div class="lbl" style="margin-bottom:.5rem">Who's on call</div><div class="seg"><span>TeamUp calendar</span><span class="on">These people</span></div></div>
+          <div><div class="lbl" style="margin-bottom:.5rem">Called in this order</div><div class="f-people" data-people></div></div>
+          <div><div class="lbl" style="margin-bottom:.5rem">If nobody answers</div><div class="f-people" data-fallback></div></div>
+          <p class="say" style="margin:0"><b>3 calls</b> each · next after <b>10 min</b> · <b>20 min</b> to act</p>
+          <div style="display:flex;justify-content:flex-end"><span class="btn-next">Done</span></div>
+        </aside>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+  /* Lucide, verbatim, on the 24 grid. */
+  const L = {
+    inbox: '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+    clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+    shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+    alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+    moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+    phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
+    list: '<path d="M11 12H3"/><path d="M16 6H3"/><path d="M16 18H3"/><path d="M18 9v6"/><path d="M21 12h-6"/>',
+    check: '<path d="M20 6 9 17l-5-5"/>',
+    x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+    down: '<path d="m6 9 6 6 6-6"/>'
+  };
+  const svg = (k) => '<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + L[k] + '</svg></span>';
+  document.querySelectorAll('[data-i]').forEach((el) => el.insertAdjacentHTML('afterbegin', svg(el.getAttribute('data-i'))));
+
+  /* The sample, every field filled in (made up). */
+  const WEEK = [['Mon', '8:30 am', '6 pm'], ['Tue', '8:30 am', '6 pm'], ['Wed', '8:30 am', '6 pm'], ['Thu', '8:30 am', '6 pm'],
+                ['Fri', '8:30 am', '4 pm'], ['Sat', '10 am', '2 pm'], ['Sun']];
+  const URGENT = ['Users can’t log in', 'Production is down and nothing is going out', 'Data is missing or wrong in a live report', 'A payment run failed', 'Every user in an organization is affected'];
+  const KW = ['urgent', 'outage', 'down', 'data loss', 'cannot log in'];
+  const PEOPLE = [['Yara Sameh', '+44 20 7946 0101'], ['Mohamed Fathy', '+44 20 7946 0102'], ['Salma Adel', '+44 20 7946 0103']];
+  const FALL = [['Nour Wael', '+44 20 7946 0110'], ['Mona Adel', '+44 20 7946 0111']];
+  const ini = (n) => n.split(' ').map((w) => w[0]).join('');
+  const chip = (t) => '<span class="ah-wchip">' + t + svg('down') + '</span>';
+
+  document.querySelectorAll('[data-week]').forEach((el) => {
+    el.innerHTML = WEEK.map((d) => d.length > 1
+      ? '<span class="daypill">' + d[0] + '</span><span class="t">' + chip(d[1]) + '<span>–</span>' + chip(d[2]) + '</span>'
+      : '<span class="daypill off">' + d[0] + '</span><span class="t">Off. AiMY covers the day.</span>').join('');
+  });
+  document.querySelectorAll('[data-urgent]').forEach((el) => { el.innerHTML = URGENT.map((s) => '<li>' + s + '</li>').join(''); });
+  document.querySelectorAll('[data-urgent-short]').forEach((el) => { el.innerHTML = URGENT.slice(0, 2).map((s) => '<li>' + s + '</li>').join('') + '<li class="more" style="list-style:none">and 8 more signs</li>'; });
+  document.querySelectorAll('[data-kw]').forEach((el) => { el.innerHTML = KW.map((s) => '<span class="chip">“' + s + '”</span>').join(''); });
+  document.querySelectorAll('[data-chain]').forEach((el) => {
+    el.innerHTML = PEOPLE.map((p, i) => '<span class="chip"><span class="av" style="width:1.375rem;height:1.375rem;font-size:.625rem">' + ini(p[0]) + '</span><b>' + p[0] + '</b></span>').join('') +
+      '<span class="chip" style="color:var(--ink-warn);font-weight:600">then</span>' +
+      FALL.map((p) => '<span class="chip"><span class="av fall" style="width:1.375rem;height:1.375rem;font-size:.625rem">' + ini(p[0]) + '</span><b>' + p[0] + '</b></span>').join('');
+  });
+  const person = (p, i, fall) => '<div class="f-p"><span class="n">' + (i + 1) + '</span><span class="av' + (fall ? ' fall' : '') + '">' + ini(p[0]) + '</span><div><b>' + p[0] + '</b><span class="ph">' + p[1] + '</span></div></div>';
+  document.querySelectorAll('[data-people]').forEach((el) => { el.innerHTML = PEOPLE.map((p, i) => person(p, i)).join(''); });
+  document.querySelectorAll('[data-fallback]').forEach((el) => { el.innerHTML = FALL.map((p, i) => person(p, i, true)).join(''); });
+
+  /* D: the week as a calendar, 24 hours tall. */
+  const cal = document.querySelector('[data-cal]');
+  if (cal) {
+    const toH = (t) => { const m = t.match(/(\d+)(?::(\d+))?\s*(am|pm)/); let h = +m[1] % 12 + (m[3] === 'pm' ? 12 : 0); return h + (m[2] ? +m[2] / 60 : 0); };
+    let html = '<span></span>' + WEEK.map((d) => '<span class="d-h">' + d[0] + '</span>').join('');
+    html += '<div class="d-axis">' + [0, 6, 12, 18, 24].map((h) => '<span style="top:' + (h / 24 * 100) + '%">' + (h === 0 || h === 24 ? '12a' : h === 12 ? '12p' : (h % 12) + (h < 12 ? 'a' : 'p')) + '</span>').join('') + '</div>';
+    html += WEEK.map((d) => {
+      if (d.length < 2) return '<div class="d-col"></div>';
+      const s = toH(d[1]), e = toH(d[2]);
+      return '<div class="d-col"><div class="d-team" style="top:' + (s / 24 * 100) + '%;height:' + ((e - s) / 24 * 100) + '%">' + d[1].replace(' ', '') + '</div></div>';
+    }).join('');
+    cal.innerHTML = html;
+  }
+
+  /* The jump bar marks the variant in view. */
+  const links = [...document.querySelectorAll('.xa-jump a')];
+  const io = new IntersectionObserver((es) => es.forEach((e) => {
+    if (!e.isIntersecting) return;
+    links.forEach((a) => a.style.borderColor = a.getAttribute('href') === '#' + e.target.id ? 'var(--accent)' : '');
+  }), { rootMargin: '-40% 0px -55% 0px' });
+  document.querySelectorAll('.xa-v').forEach((s) => io.observe(s));
+</script>
+</body>
+</html>
