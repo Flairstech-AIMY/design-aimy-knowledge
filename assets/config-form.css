@@ -1,0 +1,502 @@
+/* ══ After-Hours Config, filled in by hand (11 Nov 2026) ═══════════════════
+   The form a Configuration File is when it is made with New document. Its
+   fields are the developers' (AIMY-2974); this is the shape they take on the
+   document page: the path a ticket takes after hours (A ticket's night,
+   picked by Nour 11 Nov 2026), each stop showing this product's answer, and
+   the picked stop's editor beside it. Values are set with one click or
+   typed; nothing hides behind a picker. Optional extras wait as pills under
+   their stop ("Also set") instead of in collapsed "More options" boxes. */
+
+.cf {
+  container: cf / inline-size;
+  --cf-ring: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
+  --cf-edge: var(--card-border);
+  --cf-edge-hover: var(--card-border-hover);
+  --cf-aimy: rgba(var(--accent-rgb), 0.55);
+  --cf-ease: var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1));
+  --cf-node: 2rem;
+  --cf-rail: rgba(var(--accent-rgb), 0.6);
+}
+.cf button { font: inherit; }
+/* The document's canvas is an overflow box that never scrolls; clipped
+   instead, nothing on this page is trapped by it. Only on this form's page. */
+.doc-canvas:has(.cf) { overflow-x: clip; overflow-y: visible; }
+
+/* ── Head: whose it is, and the other way in ── */
+.cf-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  margin: 0 0 1.75rem;
+}
+.cf-for { margin: 0; font-size: var(--ty-meta); color: var(--ink-secondary); line-height: 1.45; }
+.cf-for b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
+.cf-link {
+  display: inline-flex; align-items: center; gap: 0.4375rem; height: 2rem; padding: 0 0.625rem; margin-right: -0.625rem;
+  border: 0; border-radius: 0.5rem; background: none; cursor: pointer;
+  color: var(--ink-action); font-size: var(--ty-meta); font-weight: var(--fw-semibold);
+  transition: background-color 150ms ease, transform 160ms var(--cf-ease);
+}
+.cf-link:hover { background: rgba(var(--accent-rgb), 0.08); }
+.cf-link:active { transform: scale(0.97); }
+
+/* ── Progress: what is left before Publish, and the way to it ── */
+.cf-progress { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 1rem; margin: 0 0 1.75rem; }
+.cf-progress p { margin: 0; font-size: var(--ty-meta); color: var(--ink-secondary); line-height: 1.45; }
+.cf-progress p b { color: var(--ink-primary); font-weight: var(--fw-bold); }
+.cf-progress.is-ok p { color: var(--ink-ok); }
+.cf-progress .cf-link { margin-left: auto; }
+.cf-meter { flex: 0 0 6rem; height: 0.375rem; border-radius: 999px; background: rgba(var(--accent-rgb), 0.14); overflow: hidden; }
+.cf-meter i {
+  display: block; height: 100%; border-radius: inherit; background: var(--accent);
+  transform-origin: left center; transition: transform 250ms var(--cf-ease), background-color 250ms ease;
+}
+.cf-progress.is-ok .cf-meter i { background: var(--ok); }
+
+/* ── A ticket's night: the path, and the editor beside the picked stop ── */
+.cf-night { display: grid; grid-template-columns: 27rem minmax(0, 1fr); column-gap: 2.5rem; align-items: start; }
+.cf-path, .cf-path ol { list-style: none; margin: 0; padding: 0; }
+.cf-path { position: relative; padding-top: calc(1.25rem + 1px); }
+.cf-night.is-narrow .cf-path { padding-top: 0; }
+
+/* A stop: the node on the rail, the question, the answer under it. The rail
+   runs from each node down to the next. */
+.cf-stop { position: relative; padding: 0 0 1.5rem calc(var(--cf-node) + 0.875rem); }
+.cf-stop::before {
+  content: ""; position: absolute; left: calc(var(--cf-node) / 2 - 1px); top: var(--cf-node); bottom: 0;
+  width: 2px; background: var(--cf-rail);
+}
+.cf-stop-btn {
+  position: relative; display: flex; align-items: center; gap: 0.625rem; width: calc(100% + var(--cf-node) + 0.875rem + 0.5rem);
+  min-height: var(--cf-node); margin: 0 -0.5rem 0 calc(-1 * (var(--cf-node) + 0.875rem)); padding: 0 0.5rem 0 0;
+  border: 0; border-radius: 999px 0.75rem 0.75rem 999px; background: none; cursor: pointer; text-align: left;
+  transition: background-color 150ms ease;
+}
+.cf-stop-btn:hover { background: var(--card-bg); }
+.cf-node {
+  flex: none; display: grid; place-items: center; width: var(--cf-node); height: var(--cf-node); border-radius: 50%;
+  background: var(--card-bg-raised); color: var(--ink-action); box-shadow: inset 0 0 0 2px var(--cf-rail);
+  transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+}
+.cf-stop-q { font-size: var(--ty-body); font-weight: var(--fw-bold); color: var(--ink-primary); line-height: 1.35; padding: 0.25rem 0; }
+.cf-stop-a { display: flex; flex-direction: column; gap: 0.375rem; margin-top: 0.125rem; min-width: 0; }
+.cf-a { font-size: var(--ty-meta); color: var(--ink-secondary); line-height: 1.45; }
+.cf-a b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
+.cf-a.is-need { color: var(--ink-warn); font-weight: var(--fw-semibold); }
+.cf-a-sub { font-size: var(--ty-micro); color: var(--ink-secondary); line-height: 1.5; }
+.cf-a-list { display: flex; flex-direction: column; font-size: var(--ty-meta); color: var(--ink-primary); line-height: 1.45; }
+.cf-a-list > span { position: relative; padding-left: 0.875rem; }
+.cf-a-list > span::before { content: ""; position: absolute; left: 0.125rem; top: calc(0.725em - 0.15625rem); width: 0.3125rem; height: 0.3125rem; border-radius: 50%; background: var(--cf-aimy); }
+.cf-a-list > .cf-a-more { color: var(--ink-secondary); }
+.cf-a-list > .cf-a-more::before { content: none; }
+.cf-a-list.is-plain > span { padding-left: 0; font-weight: var(--fw-semibold); }
+.cf-a-list.is-plain > span::before { content: none; }
+.cf-a-kv { display: flex; flex-direction: column; gap: 0.125rem; font-size: var(--ty-meta); line-height: 1.45; }
+.cf-a-kv > span { display: flex; gap: 0.5rem; color: var(--ink-secondary); }
+.cf-a-kv b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
+
+/* The picked stop wears the accent and the editor joins it. */
+.cf-stop.is-current > .cf-stop-btn { background: rgba(var(--accent-rgb), 0.12); }
+.cf-stop.is-current .cf-node, .cf-panel-head .cf-node { background: var(--accent); color: #fff; box-shadow: none; }
+/* A stop still waiting on an answer is ringed in the warning colour. */
+.cf-stop.is-need .cf-node { color: var(--ink-warn); box-shadow: inset 0 0 0 2px rgba(var(--warn-rgb, 245, 158, 11), 0.7); }
+.cf-stop.is-need.is-current .cf-node { background: var(--warn); color: #1b1305; box-shadow: none; }
+
+
+/* At "Is it urgent?" the rail forks: No to the left, Yes to the right. */
+.cf-stop.is-forks { padding-bottom: 1.75rem; }
+.cf-fork { position: relative; padding: 0 0 1.5rem; }
+.cf-fork::before {
+  content: ""; position: absolute; top: -0.0625rem; left: calc(var(--cf-node) / 2 - 1px); right: calc(50% - var(--cf-node) / 2 - 0.375rem + 1px);
+  height: 1rem; border: 2px solid var(--cf-rail); border-bottom: 0; border-radius: 0.75rem 0.75rem 0 0;
+}
+.cf-lanes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 0.75rem; padding-top: 1rem; }
+.cf-lane { position: relative; min-width: 0; }
+.cf-lane-tag {
+  position: absolute; z-index: 1; top: -0.875rem; left: calc(var(--cf-node) / 2 + 0.375rem); white-space: nowrap;
+  font-size: var(--ty-micro); font-weight: var(--fw-bold); color: var(--ink-primary); line-height: 1; padding: 0.125rem 0.375rem;
+  border-radius: 999px; background: var(--card-bg-raised); box-shadow: inset 0 0 0 1px var(--cf-rail);
+}
+.cf-lane.is-yes .cf-lane-tag { color: var(--ink-warn); box-shadow: inset 0 0 0 1px rgba(var(--warn-rgb, 245, 158, 11), 0.5); }
+.cf-lane .cf-stop { padding-bottom: 0; }
+.cf-lane .cf-stop::before { content: none; }
+.cf-lane .cf-stop-q { font-size: var(--ty-meta); }
+
+/* The call order, as people. */
+.cf-chain { display: flex; flex-direction: column; gap: 0.25rem; margin: 0.125rem 0; }
+.cf-chain-p { display: flex; align-items: center; gap: 0.5rem; font-size: var(--ty-meta); color: var(--ink-primary); font-weight: var(--fw-semibold); line-height: 1.35; min-width: 0; }
+.cf-chain-p > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.cf-av {
+  flex: none; display: grid; place-items: center; width: 1.5rem; height: 1.5rem; border-radius: 50%;
+  background: rgba(var(--accent-rgb), 0.16); color: var(--ink-primary); font-size: 0.625rem; font-weight: var(--fw-bold); letter-spacing: 0.02em;
+}
+.cf-chain-gap { margin: 0.125rem 0 0 2rem; font-size: var(--ty-micro); font-weight: var(--fw-semibold); color: var(--ink-warn); }
+.cf-chain-p.is-fall .cf-av { background: rgba(var(--warn-rgb, 245, 158, 11), 0.18); }
+
+/* Custom fields sit off the path: what this product needs besides. */
+.cf-stop.is-aside { padding-bottom: 0; margin-top: 0.25rem; }
+.cf-stop.is-aside::before { content: none; }
+.cf-stop.is-aside .cf-node { background: none; box-shadow: inset 0 0 0 1.5px var(--ink-rule); color: var(--ink-secondary); }
+.cf-stop.is-aside.is-current .cf-node { background: var(--accent); color: #fff; box-shadow: none; }
+
+/* ── The editor beside the path ── */
+.cf-panel {
+  position: relative; min-width: 0; padding: 1.25rem 1.5rem 1.25rem;
+  border: 1px solid rgba(var(--accent-rgb), 0.35); border-radius: 1rem; background: var(--card-bg);
+  box-shadow: 0 0.75rem 2rem rgba(0, 0, 0, 0.18);
+}
+/* Joined to its stop by a short stretch of rail at the node's height. */
+.cf-panel::before {
+  content: ""; position: absolute; top: calc(1.25rem + var(--cf-node) / 2 - 1px); left: calc(-2.5rem - 1px); width: 2.5rem; height: 2px; background: var(--cf-rail);
+}
+.cf-panel.is-swap > * { animation: cf-swap 250ms var(--cf-ease) both; }
+.cf-panel-head { display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 1.5rem; }
+.cf-panel-head .cf-node { --cf-node: 2rem; }
+.cf-panel-head h2 { margin: 0; font-size: var(--ty-title); font-weight: var(--fw-bold); color: var(--ink-primary); line-height: 1.6rem; padding-top: 0.2rem; }
+.cf-panel-head h2:focus { outline: none; }
+.cf-panel-head p { margin: 0.125rem 0 0; font-size: var(--ty-meta); color: var(--ink-secondary); line-height: 1.5; }
+.cf-ed { min-width: 0; }
+.cf-ed .cf-sec { padding: 0; }
+.cf-ed-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--cf-edge);
+}
+.cf-nav {
+  display: inline-flex; align-items: center; gap: 0.375rem; min-height: 2.5rem; padding: 0 0.875rem;
+  border: 1px solid var(--cf-edge); border-radius: 999px; background: var(--card-bg-raised); cursor: pointer;
+  color: var(--ink-primary); font-size: var(--ty-meta); font-weight: var(--fw-semibold); text-align: left;
+  transition: border-color 150ms ease, filter 150ms ease, transform 160ms var(--cf-ease);
+}
+.cf-nav:hover { border-color: var(--cf-edge-hover); }
+.cf-nav.is-next { border-color: transparent; background: var(--brand, var(--accent)); color: #fff; padding-left: 1rem; }
+.cf-nav.is-next:hover { filter: brightness(1.08); }
+.cf-back {
+  display: inline-flex; align-items: center; gap: 0.25rem; height: 2.25rem; margin-bottom: 1.25rem; padding: 0 0.75rem 0 0.5rem;
+  border: 1px solid var(--cf-edge); border-radius: 999px; background: var(--card-bg); cursor: pointer;
+  color: var(--ink-primary); font-size: var(--ty-meta); font-weight: var(--fw-semibold);
+  transition: border-color 150ms ease, transform 160ms var(--cf-ease);
+}
+.cf-back:hover { border-color: var(--cf-edge-hover); }
+.cf-back:active, .cf-nav:active, .cf-stop-btn:active .cf-node { transform: scale(0.97); }
+
+/* Switching stops: the editor's content slides 8px in through a 3px blur
+   (page slide, 250ms, smooth out); on a phone the whole view does. */
+@keyframes cf-swap { from { opacity: 0; transform: translateY(6px); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes cf-from-right { from { opacity: 0; transform: translateX(8px); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes cf-from-left { from { opacity: 0; transform: translateX(-8px); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
+.cf-view.is-in-fwd, .cf-night.is-in-fwd { animation: cf-from-right 250ms var(--cf-ease) both; }
+.cf-view.is-in-back, .cf-night.is-in-back { animation: cf-from-left 250ms var(--cf-ease) both; }
+.cf-stop-btn:focus-visible, .cf-back:focus-visible, .cf-nav:focus-visible { outline: 2px solid rgba(var(--accent-rgb), 0.7); outline-offset: 2px; }
+
+/* ── Sections ── */
+.cf-form { min-width: 0; }
+.cf-sec { scroll-margin-top: 1.25rem; padding-bottom: 3rem; }
+.cf-sec + .cf-sec { padding-top: 0.25rem; }
+.cf-sec-head { padding-bottom: 0.875rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--cf-edge); }
+.cf-sec-head h2 { margin: 0; font-size: var(--ty-title); font-weight: var(--fw-bold); color: var(--ink-primary); line-height: 1.3; }
+.cf-sec-head p { margin: 0.25rem 0 0; font-size: var(--ty-meta); color: var(--ink-secondary); line-height: 1.5; }
+.cf-fields { display: flex; flex-direction: column; gap: 2rem; }
+/* One right edge for every field: the tables, the week and the lists end
+   where "Remove" sits. */
+.cf-field { max-width: 52rem; }
+.cf-fields:empty { display: none; }
+
+/* ── A field: label, help, control ── */
+.cf-label-row { display: flex; align-items: center; gap: 0.5rem; min-height: 1.5rem; }
+.cf-label { font-size: var(--ty-body); font-weight: var(--fw-semibold); color: var(--ink-primary); line-height: 1.4; }
+.cf-req {
+  display: inline-flex; align-items: center; height: 1.375rem; padding: 0 0.5rem; border-radius: 999px;
+  background: rgba(var(--warn-rgb, 245, 158, 11), 0.13); color: var(--ink-warn);
+  font-size: var(--ty-micro); font-weight: var(--fw-semibold); line-height: 1;
+}
+.cf-close {
+  margin-left: auto; height: 1.75rem; padding: 0 0.5rem; margin-right: -0.5rem; border: 0; border-radius: 0.5rem;
+  background: none; cursor: pointer; color: var(--ink-action); font-size: var(--ty-meta); font-weight: var(--fw-medium);
+  transition: background-color 150ms ease;
+}
+.cf-close:hover { background: rgba(var(--accent-rgb), 0.08); }
+.cf-help { margin: 0.125rem 0 0; font-size: var(--ty-meta); color: var(--ink-secondary); line-height: 1.5; }
+.cf-control { margin-top: 0.75rem; }
+.cf-note { margin: 0.5rem 0 0; font-size: var(--ty-meta); color: var(--ink-secondary); line-height: 1.45; }
+.cf-note.is-err { color: var(--ink-err); }
+
+/* Inputs share one face. */
+.cf-in, .cf-cell, .cf-li-in, .cf-num, .cf-time, .cf-cust-name {
+  font-family: inherit; font-size: var(--ty-meta); color: var(--ink-primary);
+}
+.cf-in {
+  display: block; width: 100%; max-width: 36rem; height: 2.5rem; padding: 0 0.875rem;
+  border: 1px solid var(--cf-edge); border-radius: 0.625rem; background: var(--card-bg);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.cf-in:hover { border-color: var(--cf-edge-hover); }
+.cf-in:focus, .cf-in:focus-visible { outline: none; border-color: rgba(var(--accent-rgb), 0.6); box-shadow: var(--cf-ring); }
+.cf-in::placeholder, .cf-cell::placeholder, .cf-cust-name::placeholder { color: var(--ink-placeholder, var(--ink-faint)); }
+textarea.cf-in { height: auto; min-height: 4.5rem; padding: 0.625rem 0.875rem; line-height: 1.5; resize: none; overflow: hidden; max-width: none; }
+
+/* Choice: a segmented row for a few short answers… */
+.cf-seg {
+  display: inline-flex; flex-wrap: nowrap; gap: 0.1875rem; padding: 0.1875rem;
+  border: 1px solid var(--cf-edge); border-radius: 0.75rem; background: var(--card-bg);
+}
+.cf-seg.is-wrap { flex-wrap: wrap; }
+.cf-seg-btn {
+  height: 2.125rem; padding: 0 0.875rem; border: 0; border-radius: 0.5625rem; background: none; cursor: pointer;
+  color: var(--ink-secondary); font-size: var(--ty-meta); font-weight: var(--fw-medium); white-space: nowrap;
+  transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease, transform 160ms var(--cf-ease);
+}
+.cf-seg-btn:hover { background: var(--card-bg-raised); color: var(--ink-primary); }
+.cf-seg-btn:active { transform: scale(0.97); }
+.cf-seg-btn[aria-checked="true"], .cf-seg-btn[aria-pressed="true"] {
+  background: rgba(var(--accent-rgb), 0.16); color: var(--ink-primary); font-weight: var(--fw-semibold);
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.45);
+}
+.cf-seg.is-sm { padding: 0.125rem; border-radius: 0.625rem; }
+.cf-seg.is-sm .cf-seg-btn { height: 1.75rem; padding: 0 0.625rem; border-radius: 0.5rem; }
+
+/* …and a column of options for longer ones. */
+.cf-opts { display: flex; flex-direction: column; gap: 0.375rem; max-width: 30rem; }
+.cf-opt {
+  display: flex; align-items: flex-start; gap: 0.75rem; width: 100%; padding: 0.625rem 0.875rem;
+  border: 1px solid var(--cf-edge); border-radius: 0.625rem; background: var(--card-bg); cursor: pointer; text-align: left;
+  color: var(--ink-secondary); font-size: var(--ty-meta); line-height: 1.45;
+  transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease, transform 160ms var(--cf-ease);
+}
+.cf-opt:hover { border-color: var(--cf-edge-hover); color: var(--ink-primary); }
+.cf-opt:active { transform: scale(0.99); }
+.cf-opt[aria-checked="true"] { border-color: rgba(var(--accent-rgb), 0.55); background: rgba(var(--accent-rgb), 0.10); color: var(--ink-primary); font-weight: var(--fw-semibold); }
+.cf-radio {
+  flex: none; width: 1rem; height: 1rem; margin-top: calc((1.45em - 1rem) / 2); border-radius: 50%;
+  border: 1.5px solid var(--ink-rule); transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.cf-opt[aria-checked="true"] .cf-radio { border-color: var(--accent); box-shadow: inset 0 0 0 3px var(--card-bg), inset 0 0 0 8px var(--accent); }
+
+.cf-seg-btn:focus-visible, .cf-opt:focus-visible, .cf-day:focus-visible, .cf-pill:focus-visible, .cf-add:focus-visible,
+.cf-x:focus-visible, .cf-close:focus-visible, .cf-link:focus-visible, .cf-num-btn:focus-visible {
+  outline: 2px solid rgba(var(--accent-rgb), 0.7); outline-offset: 2px;
+}
+
+/* Timezone: typed, the list only finishes the word. */
+.cf-tz { position: relative; max-width: 24rem; }
+.cf-tz-list {
+  position: absolute; z-index: 20; top: calc(100% + 0.375rem); left: 0; right: 0; padding: 0.25rem;
+  border: 1px solid var(--cf-edge-hover); border-radius: 0.75rem; background: var(--card-bg-raised);
+  box-shadow: 0 0.75rem 2rem rgba(0, 0, 0, 0.32); transform-origin: top left;
+  animation: cf-pop 150ms var(--cf-ease);
+}
+.cf-tz-list[hidden] { display: none; }
+.cf-tz-opt {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: baseline; gap: 0.625rem;
+  width: 100%; padding: 0.5rem 0.625rem; border: 0; border-radius: 0.5rem; background: none; cursor: pointer; text-align: left;
+  color: var(--ink-primary); font-size: var(--ty-meta);
+}
+.cf-tz-opt:hover, .cf-tz-opt[aria-selected="true"] { background: rgba(var(--accent-rgb), 0.12); }
+.cf-tz-full { color: var(--ink-secondary); font-size: var(--ty-micro); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cf-tz-now { color: var(--ink-secondary); font-size: var(--ty-micro); font-variant-numeric: tabular-nums; }
+
+/* Numbers: a stepper with the unit inside. */
+.cf-num {
+  display: inline-flex; align-items: center; height: 2.5rem; border: 1px solid var(--cf-edge); border-radius: 0.625rem; background: var(--card-bg);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.cf-num:hover { border-color: var(--cf-edge-hover); }
+.cf-num:focus-within { border-color: rgba(var(--accent-rgb), 0.6); box-shadow: var(--cf-ring); }
+.cf-num-in {
+  width: 3.25rem; height: 100%; padding: 0; border: 0; background: none; text-align: right;
+  font: inherit; color: var(--ink-primary); font-weight: var(--fw-semibold); font-variant-numeric: tabular-nums;
+}
+.cf-num-in:focus { outline: none; }
+.cf-unit { padding: 0 0.25rem 0 0.375rem; color: var(--ink-secondary); }
+.cf-num-btn {
+  display: grid; place-items: center; width: 2.25rem; height: 100%; border: 0; background: none; cursor: pointer; color: var(--ink-secondary);
+  transition: color 150ms ease, background-color 150ms ease, transform 160ms var(--cf-ease);
+}
+.cf-num-btn:first-child { border-radius: 0.5625rem 0 0 0.5625rem; }
+.cf-num-btn:last-child { border-radius: 0 0.5625rem 0.5625rem 0; }
+.cf-num-btn:hover { color: var(--ink-primary); background: var(--card-bg-raised); }
+.cf-num-btn:active svg { transform: scale(0.85); }
+.cf-num-btn svg { transition: transform 160ms var(--cf-ease); }
+.cf-def { margin-left: 0.75rem; font-size: var(--ty-meta); color: var(--ink-secondary); }
+
+/* ── Team hours: a row per day, the week drawn beside it ── */
+.cf-week { max-width: 30rem; }
+.cf-wk-row { display: grid; grid-template-columns: 3.5rem minmax(0, 1fr); align-items: center; gap: 1rem; min-height: 2.75rem; }
+.cf-wk-row + .cf-wk-row { border-top: 1px solid var(--cf-edge); }
+.cf-day {
+  width: 3.5rem; height: 2rem; border: 1px dashed var(--cf-edge-hover); border-radius: 999px; background: none; cursor: pointer;
+  color: var(--ink-secondary); font-size: var(--ty-meta); font-weight: var(--fw-medium);
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 160ms var(--cf-ease);
+}
+.cf-day:hover { color: var(--ink-primary); border-color: var(--ink-rule); }
+.cf-day:active { transform: scale(0.95); }
+.cf-day[aria-pressed="true"] {
+  border-style: solid; border-color: rgba(var(--accent-rgb), 0.45); background: rgba(var(--accent-rgb), 0.16);
+  color: var(--ink-primary); font-weight: var(--fw-semibold);
+}
+.cf-wk-times { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+.cf-time {
+  width: 5.75rem; height: 2.125rem; padding: 0 0.5rem; border: 1px solid var(--cf-edge); border-radius: 0.5rem;
+  background: var(--card-bg); text-align: center; font-variant-numeric: tabular-nums;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.cf-time:hover { border-color: var(--cf-edge-hover); }
+.cf-time:focus { outline: none; border-color: rgba(var(--accent-rgb), 0.6); box-shadow: var(--cf-ring); }
+.cf-time.is-bad { border-color: var(--err); box-shadow: 0 0 0 3px rgba(var(--err-rgb, 239, 68, 68), 0.16); }
+.cf-to { color: var(--ink-secondary); font-size: var(--ty-meta); }
+.cf-wk-tag { font-size: var(--ty-micro); font-weight: var(--fw-semibold); color: var(--ink-info); white-space: nowrap; }
+.cf-off { font-size: var(--ty-meta); color: var(--ink-secondary); }
+.cf-wk-foot {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--cf-edge);
+}
+.cf-wk-sum { margin: 0; font-size: var(--ty-meta); color: var(--ink-secondary); line-height: 1.45; }
+.cf-wk-sum b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
+
+/* ── Add buttons and the "Also set" pills ── */
+.cf-add {
+  display: inline-flex; align-items: center; gap: 0.4375rem; height: 2rem; margin: 0.625rem 0 0 -0.5rem; padding: 0 0.5rem;
+  border: 0; border-radius: 0.5rem; background: none; cursor: pointer;
+  color: var(--ink-action); font-size: var(--ty-meta); font-weight: var(--fw-semibold);
+  transition: background-color 150ms ease, transform 160ms var(--cf-ease);
+}
+.cf-add:hover { background: rgba(var(--accent-rgb), 0.08); }
+.cf-add:active { transform: scale(0.97); }
+.cf-table.is-empty + .cf-add { margin-top: 0; }
+.cf-more { display: flex; align-items: flex-start; gap: 0.75rem; margin-top: 1.75rem; max-width: 52rem; }
+.cf-more-pills { display: flex; flex-wrap: wrap; gap: 0.5rem; min-width: 0; }
+.cf-fields:empty + .cf-more { margin-top: 0; }
+.cf-more-lab { flex: none; line-height: 2rem; font-size: var(--ty-meta); font-weight: var(--fw-semibold); color: var(--ink-secondary); }
+.cf-pill {
+  display: inline-flex; align-items: center; gap: 0.375rem; height: 2rem; padding: 0 0.75rem 0 0.625rem;
+  border: 1px dashed var(--cf-edge-hover); border-radius: 999px; background: none; cursor: pointer;
+  color: var(--ink-secondary); font-size: var(--ty-meta); white-space: nowrap;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 160ms var(--cf-ease);
+}
+.cf-pill:hover { border-style: solid; border-color: var(--ink-rule); background: var(--card-bg); color: var(--ink-primary); }
+.cf-pill:active { transform: scale(0.97); }
+.cf-pill svg { flex: none; }
+.cf-pill-val { margin-left: 0.375rem; color: var(--ink-primary); font-weight: var(--fw-semibold); }
+
+/* ── Lists: a line per item, hairlines between, the add field at the foot ── */
+.cf-list { max-width: none; }
+.cf-li {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 0.25rem;
+  padding: 0.25rem 0; border-top: 1px solid var(--cf-edge);
+}
+.cf-li:first-child { border-top: 0; padding-top: 0; }
+.cf-li-in {
+  display: block; width: 100%; min-height: 2.125rem; padding: 0.375rem 0.5rem; margin-left: -0.5rem;
+  border: 1px solid transparent; border-radius: 0.5rem; background: none; resize: none; overflow: hidden;
+  line-height: 1.5; transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+.cf-li-in:hover { background: var(--card-bg); }
+.cf-li-in:focus { outline: none; background: var(--card-bg); border-color: rgba(var(--accent-rgb), 0.6); box-shadow: var(--cf-ring); }
+.cf-x {
+  display: grid; place-items: center; width: 1.75rem; height: 1.75rem; margin-top: 0.1875rem; padding: 0;
+  border: 0; border-radius: 0.375rem; background: none; cursor: pointer; color: var(--ink-secondary);
+  opacity: 0; transition: opacity 150ms ease, background-color 150ms ease, color 150ms ease;
+}
+.cf-li:hover .cf-x, .cf-li:focus-within .cf-x, .cf-tr:hover .cf-x, .cf-tr:focus-within .cf-x, .cf-x:focus-visible { opacity: 1; }
+.cf-x:hover { color: var(--ink-primary); background: var(--card-bg-raised); }
+.cf-x[data-cf-li-del]:hover, .cf-x[data-cf-row-del]:hover { color: var(--ink-err); }
+@media (hover: none) { .cf-x { opacity: 1; } }
+.cf-li-add { margin-top: 0.5rem; height: 2.375rem; max-width: none; }
+.cf-list.is-empty .cf-li-add { margin-top: 0; }
+
+/* ── Tables ── */
+.cf-table { max-width: 52rem; border: 1px solid var(--cf-edge); border-radius: 0.75rem; background: var(--card-bg); }
+.cf-table.is-empty { display: none; }
+.cf-tr {
+  display: grid; grid-template-columns: var(--cf-cols); align-items: start; gap: 0.5rem;
+  padding: 0.375rem 0.375rem 0.375rem 0.5rem;
+}
+.cf-tr + .cf-tr { border-top: 1px solid var(--cf-edge); }
+.cf-th { align-items: center; min-height: 2.25rem; padding-top: 0.25rem; padding-bottom: 0.25rem; }
+.cf-th span { padding: 0 0.5rem; font-size: var(--ty-micro); font-weight: var(--fw-semibold); color: var(--ink-secondary); }
+.cf-td { min-width: 0; }
+.cf-cell {
+  display: block; width: 100%; min-height: 2.125rem; padding: 0.375rem 0.5rem; border: 1px solid transparent; border-radius: 0.5rem;
+  background: none; line-height: 1.45; color-scheme: inherit;
+  transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+textarea.cf-cell { resize: none; overflow: hidden; }
+.cf-cell:hover { background: var(--card-bg-raised); }
+.cf-cell:focus { outline: none; background: var(--card-bg-raised); border-color: rgba(var(--accent-rgb), 0.6); box-shadow: var(--cf-ring); }
+.cf-td .cf-seg.is-sm { margin-top: 0.125rem; }
+.cf-ord {
+  display: grid; place-items: center; height: 2.125rem; font-size: var(--ty-micro); font-weight: var(--fw-semibold);
+  color: var(--ink-secondary); font-variant-numeric: tabular-nums;
+}
+.cf-row-acts { display: flex; justify-content: flex-end; gap: 0.125rem; }
+
+/* ── Custom fields ── */
+.cf-cust { padding: 1rem 1.125rem 1.125rem; border: 1px solid var(--cf-edge); border-radius: 0.875rem; background: var(--card-bg); }
+.cf-cust-name {
+  flex: 0 1 auto; min-width: 9rem; max-width: 24rem; field-sizing: content; height: 2rem; padding: 0 0.5rem; margin-left: -0.5rem;
+  border: 1px solid transparent; border-radius: 0.5rem; background: none;
+  font-size: var(--ty-body); font-weight: var(--fw-semibold);
+  transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+.cf-cust-name:hover { background: var(--card-bg-raised); }
+.cf-cust-name:focus { outline: none; background: var(--card-bg-raised); border-color: rgba(var(--accent-rgb), 0.6); box-shadow: var(--cf-ring); }
+.cf-kind {
+  flex: none; display: inline-flex; align-items: center; height: 1.375rem; padding: 0 0.5rem; border-radius: 999px;
+  background: rgba(var(--accent-rgb), 0.12); color: var(--ink-action); font-size: var(--ty-micro); font-weight: var(--fw-semibold);
+}
+.cf-cust .cf-control { margin-top: 0.625rem; }
+.cf-cust .cf-in, .cf-cust .cf-num, .cf-cust .cf-seg, .cf-cust .cf-table, .cf-cust .cf-li-in:hover { background: var(--card-bg-raised); }
+.cf-sub + .cf-sub, .cf-sub + .cf-note { margin-top: 0.875rem; }
+.cf-cust > .cf-sub { margin-top: 0.75rem; }
+.cf-sub-lab { display: block; margin-bottom: 0.375rem; font-size: var(--ty-micro); font-weight: var(--fw-semibold); color: var(--ink-secondary); }
+
+/* ── Motion ──
+   Only what was just added enters (250ms, from 6px), and what is removed
+   leaves faster than it came (150ms). Typing never moves anything. */
+@keyframes cf-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes cf-out { to { opacity: 0; transform: translateY(-2px) scale(0.99); } }
+@keyframes cf-pop { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: none; } }
+.cf .is-entering { animation: cf-in 250ms var(--cf-ease) both; }
+.cf .is-leaving { animation: cf-out 150ms var(--cf-ease) both; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) {
+  .cf .is-entering, .cf .is-leaving, .cf-tz-list, .cf-view, .cf-night, .cf-panel > * { animation: none !important; }
+  .cf *, .cf-meter i { transition-duration: 0ms !important; }
+}
+
+/* ── Narrower ──
+   Under 46rem the path is the page and a stop opens its editor as a view of
+   its own (Back to the night, Next). The week becomes a line per day (the
+   day, its bar, its hours in words, which open that day's two times); table
+   rows become small cards that carry their column names. The form changes
+   shape, it never hides. */
+.cf-night.is-narrow { grid-template-columns: minmax(0, 1fr); }
+@container cf (max-width: 46rem) {
+  .cf-progress .cf-link { margin-left: -0.625rem; }
+  .cf-meter { flex-basis: 100%; }
+}
+@container cf (max-width: 26rem) {
+  .cf-lanes { grid-template-columns: minmax(0, 1fr); row-gap: 1.5rem; }
+  .cf-fork::before { right: auto; width: 0; border-radius: 0; border-right: 0; height: 1rem; }
+  .cf-lane.is-yes .cf-lane-tag { left: calc(var(--cf-node) / 2 + 0.375rem); }
+}
+@container cf (max-width: 40rem) {
+  .cf-head { align-items: flex-start; margin-bottom: 1.25rem; }
+  .cf-panel-head h2 { font-size: var(--ty-body); line-height: 1.6rem; }
+
+  .cf-wk-times { flex-wrap: wrap; row-gap: 0.25rem; }
+  .cf-time { width: 5.5rem; }
+  .cf-wk-foot { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+
+  .cf-tr:not(.cf-th) { grid-template-columns: minmax(0, 1fr) auto; gap: 0.125rem 0.25rem; padding: 0.5rem 0.25rem 0.625rem 0.5rem; }
+  .cf-th { display: none; }
+  .cf-tr .cf-td { grid-column: 1; }
+  .cf-tr .cf-td::before { content: attr(data-col); display: block; padding: 0.25rem 0.5rem 0; font-size: var(--ty-micro); font-weight: var(--fw-semibold); color: var(--ink-secondary); }
+  .cf-tr .cf-ord { grid-column: 1; grid-row: 1; display: block; height: auto; padding: 0.375rem 0.5rem 0; text-align: left; color: var(--ink-primary); }
+  .cf-tr .cf-ord::before { content: "Called "; font-weight: var(--fw-semibold); }
+  .cf-tr .cf-row-acts { grid-column: 2; grid-row: 1; }
+  .cf-tr .cf-x { opacity: 1; margin-top: 0; }
+  .cf-seg:not(.is-wrap) { display: flex; flex-wrap: nowrap; }
+  .cf-seg:not(.is-wrap) .cf-seg-btn { flex: 1 1 auto; padding: 0 0.5rem; }
+  .cf-more { flex-direction: column; gap: 0.25rem; }
+  .cf-pill { height: auto; min-height: 2.25rem; padding-top: 0.375rem; padding-bottom: 0.375rem; white-space: normal; text-align: left; }
+  .cf-ed-foot { flex-direction: column-reverse; align-items: stretch; }
+  .cf-nav { justify-content: center; }
+  .cf-label-row { flex-wrap: wrap; }
+}

@@ -530,7 +530,8 @@
       ingenius: 'InGenius Support', roinnovation: 'RO Innovation Support',
       ultriva: 'Ultriva Support', eclipse: 'Eclipse Support',
       rightanswers: 'RightAnswers Support', panviva: 'Panviva Support',
-      qvidian: 'Qvidian Support', accuroute: 'AccuRoute Support'
+      qvidian: 'Qvidian Support', accuroute: 'AccuRoute Support',
+      objectiflune: 'Objectif Lune Support'
     },
     /* ── placeholders below this line ── */
     asteris:   { asterisImaging: 'Imaging Support', asterisVet: 'Vet Cloud Support' },
@@ -1389,6 +1390,62 @@
       props: { 'source-file': f.file, size: Math.max(1, Math.round(v.text.length / 1024)) + ' KB' },
       x: { text: v.text } });
   }));
+
+  /* One configuration filled in by hand, from the real Objectif Lune config
+     the developers designed the form with (after-hours-config-fields-for-
+     design.json, 11 Nov 2026). Their made-up samples are left out, and the
+     phone numbers are stand-ins: this prototype is public. */
+  const CFGFORM = window.AIMY_CFGFORM || null;
+  if (CFGFORM && !CORPUS.some((o) => o.id === 'cfg-objectif-lune')) {
+    CORPUS.push({ id: 'cfg-objectif-lune', t: 'config', work: 'verified', owner: 'H. Mourad',
+      title: 'Objectif Lune Support: after-hours configuration',
+      col: 'support', src: 'upload', prod: 'objectiflune', client: 'upland',
+      tags: ['after-hours', 'configuration'], upd: 1, ing: 1, xc: 6, xu: 1,
+      sum: 'How AiMY handles Objectif Lune tickets after hours: Extended Support customers whose production is down.',
+      props: {},
+      x: { text: '', form: {
+        'tickets.crm_source': 'zendesk',
+        'schedule.timezone': 'America/New_York',
+        'schedule.working_hours': [
+          { day: 'mon', start: '00:00', end: '00:00' }, { day: 'tue', start: '00:00', end: '00:00' },
+          { day: 'wed', start: '00:00', end: '00:00' }, { day: 'thu', start: '00:00', end: '00:00' },
+          { day: 'fri', start: '00:00', end: '18:30' }, { day: 'sun', start: '19:00', end: '00:00' }],
+        'coverage.customer_tiers': [{ tier: 'Extended Support', covered_days: 'all days' }],
+        'coverage.tier_source': 'The “Extended Support List - Expire Date” spreadsheet on SharePoint',
+        'urgent.examples': [
+          'A production workflow is down and no output is generated',
+          'Services won’t run, can’t be restarted and a server reboot doesn’t help',
+          'A solution that worked before is down and hurting the business',
+          'No backup production system, or the backup shows the same issue',
+          'Production output still has a watermark after activation',
+          'Extreme performance loss hurting the business, like shipping backed up'],
+        'urgent.match': 'all',
+        'urgent.definition': 'The customer is eligible for Extended Support and their production environment is down.',
+        'urgent.min_users_affected': 1,
+        'urgent.triage_questions': [
+          { question: 'Is the production environment down?', means: 'Critical if a production workflow is down and no output is generated.' },
+          { question: 'Are your services running? Can they be restarted? Can you reboot the server?', means: 'No to all: production is down and it is critical.' },
+          { question: 'Did the solution ever work, or is this a new implementation?', means: 'Worked before and hurting the business: support it now. New implementation: wait for business hours.' },
+          { question: 'Is there a backup or alternative production system? Is it active? Does it show the same issue?', means: 'No to all: critical.' },
+          { question: 'Was the production software de-activated? Is it activated on the Web Activation Manager?', means: 'If not activated, activate it on the Web Activation Manager.' },
+          { question: 'Does the output (PDF or print) have a watermark?', means: 'New printer or software: use the Web Activation Manager. Printer re-activation: email the activations team. Still watermarked in production: it can be business critical.' },
+          { question: 'Is there an extreme performance loss hurting the business?', means: 'Yes, like shipping backed up or costing a lot of money: urgent. Only slower than expected: not urgent.' }],
+        'not_urgent.action': 'clear',
+        'not_urgent.examples': [
+          'Slower than expected, but not hurting the business', 'The customer is generally unhappy',
+          'Implementing a new solution', 'Anything that doesn’t impact the business'],
+        'on_call.source': 'list',
+        'on_call.people': [
+          { name: 'David Aguilar', phone: 'GoTo (514) 555-0137 ext. 6037, then cell (450) 555-0190' },
+          { name: 'Robert Otiniano', phone: 'Cell (514) 555-0115 (call and message)' }],
+        'on_call.management_fallback': [{ name: 'Hadya Mansour', phone: '+20 100 555 0186' }],
+        'on_call.steps': [
+          'For a voicemail ticket, change the requester to the client to check their eligibility',
+          'Contact on-call with the ticket number, customer name and contact details, problem description and business impact',
+          'Use the on-call person’s preferred contact method first'],
+        _custom: [{ id: 'reassign', kind: 'text', name: 'reassign_group', value: 'OL-Extended Support' }]
+      } } });
+  }
   const byId = (id) => CORPUS.find((o) => o.id === id);
   const TOTAL = CORPUS.length;
 
@@ -4116,6 +4173,12 @@
     /* The file name, and whether AiMY can read it: the one question anyone
        asks a configuration file before trusting it. */
     config:   (o) => {
+      if (isCfgForm(o)) {
+        const n = CFGFORM.left(o);
+        return tcSum(o.sum) + `<div class="tc-tags">${n
+          ? '<span class="tag tag-warn">' + n + ' required ' + (n === 1 ? 'field' : 'fields') + ' left</span>'
+          : '<span class="tag tag-ok">AiMY reads it</span>'}</div>`;
+      }
       const r = cfgCheck(o);
       return `<p class="tc-mono">${esc(subjectFile(o) || 'No file yet')}</p>` +
         `<div class="tc-tags">${!r ? '<span class="tag tag-warn">No file yet</span>'
@@ -7029,6 +7092,10 @@
     const text = o && o.x && o.x.text;
     return CFG && text ? CFG.check(text, CFG.fmtOf(subjectFile(o) || o.title), '') : null;
   };
+  /* A configuration made with New document is filled in by hand (the
+     developers' After-Hours Config form, AIMY-2974). It stays a form until a
+     file is uploaded over it. */
+  const isCfgForm = (o) => !!(CFGFORM && o && o.t === 'config' && o.x && o.x.form && !o.x.text);
 
   function docSubject(o) {
     if (o.t === 'webpage') {
@@ -7060,6 +7127,7 @@
        whether it is valid (and if not, the line that is wrong), and three
        ways on: replace it, download it, or see what the Console makes of it.
        A file not written yet offers the templates instead. */
+    if (isCfgForm(o)) return CFGFORM.render(o, { product: PRODUCTS[o.prod] || o.prod || '' });
     if (o.t === 'config') {
       const r = cfgCheck(o), text = (o.x && o.x.text) || '';
       const pid = r && r.ok ? r.data.product_id : ((text.match(/product_id\W+([\w-]+)/) || [])[1] || '');
@@ -7072,7 +7140,8 @@
         <div class="rail-act">${entryAction('direct', file ? 'Replace the file' : 'Upload the file',
           `data-pick-files="${esc(CFG.EXT.join(','))}"`, ICO.upload)}${
           text ? `<button class="btn btn-ghost btn-sm" type="button" data-cfg-dl="${esc(o.id)}">Download</button>` : ''}${
-          pid ? `<button class="btn btn-ghost btn-sm" type="button" data-cfg-console="${esc(pid)}">See it in the Console</button>` : ''}</div>
+          pid ? `<button class="btn btn-ghost btn-sm" type="button" data-cfg-console="${esc(pid)}">See it in the Console</button>` : ''}${
+          o.x && o.x.form ? `<button class="btn btn-ghost btn-sm" type="button" data-cfg-manual="${esc(o.id)}">Fill in the form instead</button>` : ''}</div>
         ${text ? '<pre class="cfg-code"><code>' + lines.map((l, i) =>
             `<span class="cfg-ln${r && !r.ok && r.line === i + 1 ? ' is-bad' : ''}"><span class="cfg-n" aria-hidden="true">${i + 1}</span>${esc(l) || ' '}</span>`).join('') + '</code></pre>'
           : '<div class="cfg-tpls">' + CFG.TEMPLATES.map((tp) => `<div class="cfg-tpl"><b>${esc(tp.name)}</b><span>${esc(tp.when)}</span>` +
@@ -7197,7 +7266,8 @@
       fields:  () => [],
       start:   ['file'],
       ai:      { blank: [], filled: [] },
-      ready:   (o) => { const r = cfgCheck(o); return !r ? 'Upload the file first' : r.ok ? '' : 'Fix line ' + r.line + ' first'; },
+      ready:   (o) => { if (isCfgForm(o)) { const n = CFGFORM.left(o); return n ? n + ' required ' + (n === 1 ? 'field' : 'fields') + ' left' : ''; }
+        const r = cfgCheck(o); return !r ? 'Upload the file first' : r.ok ? '' : 'Fix line ' + r.line + ' first'; },
       copy:    {}
     },
 
@@ -7662,6 +7732,7 @@
     const canvas = $('#docCanvas');
     if (canvas) canvas.scrollTop = keep;
     if (!preview) wireSelectionMenu();
+    if (CFGFORM) CFGFORM.painted();
     /* Here rather than in the template, because the pattern is React and needs
        the node to exist first — the same ordering `bodyDrawn` below needs. */
     if (window.AIMY_AGENT) {
@@ -7737,7 +7808,10 @@
     /* A new document opens with the caret in its title. Only if nothing else
        is armed by the time the timer runs — otherwise a click that landed in
        the body between the paint and the timer is undone 80ms after it. */
-    else if (blank) {
+    /* Not a configuration filled in by hand: it is never "blank" in that
+       sense (its content is the form, not the body), and arming the title on
+       every repaint took the focus off whatever was pressed in the form. */
+    else if (blank && !isCfgForm(o)) {
       const t = $('[data-edit-title]');
       if (t) setTimeout(() => { if (!armedSel && !$('.doc-page [contenteditable="true"]')) armEditable($('[data-edit-title]')); }, 80);
     }
@@ -13687,6 +13761,18 @@
         patch({ doc: '', m: 'ahconfig', node: el.getAttribute('data-cfg-console') });
         return;
       }
+      /* Back from an uploaded file to the form it was laid over. The form
+         kept what was typed; Discard puts the file back. */
+      if ((el = t.closest('[data-cfg-manual]'))) {
+        const o = byId(el.getAttribute('data-cfg-manual'));
+        if (o) {
+          markDirty(o, true);
+          o.x = Object.assign({}, o.x, { text: '' });
+          delete o.props['source-file'];
+          render();
+        }
+        return;
+      }
       if ((el = t.closest('[data-cfg-dl],[data-cfg-tpl]')) && CFG) {
         const o = byId(readURL().doc);
         const save = (name, text) => {
@@ -14964,7 +15050,9 @@
        version of this that nobody can edit. */
     product:  { pitch: '—' },
     service:  { pitch: '—' },
-    config:   { text: '' }
+    /* Made here, a configuration is the form; an upload fills `text` and
+       wins over it. */
+    config:   { text: '', form: {} }
   };
 
   /* The card's one classified action. Each terminates in a completed action, a
@@ -16626,6 +16714,20 @@
 
   function init() {
     announceBuild();
+    /* The hand-filled configuration writes straight onto its document and
+       raises the page's own Save / Discard bar; its removals undo through the
+       house toast. */
+    if (CFGFORM) CFGFORM.attach({
+      doc: (id) => byId(id),
+      /* The Publish label counts what is left, so it follows the typing the
+         way writeBody keeps it in step with the body. */
+      dirty: (o) => {
+        markDirty(o);
+        const b = $('.doc-page [data-publish]');
+        if (b) { b.textContent = publishGate(o) || 'Publish'; b.disabled = true; b.title = publishTitle(o); }
+      },
+      toast: (msg, undo, sub, fn) => { toast(msg, undo, sub); undoStack = fn || null; }
+    });
     /* `data-page` was declared on both existing pages and read by nothing.
        It is the seam now: the gate boots a conversation and a shell, and none
        of the grid, filters, briefing, bell, drop layer or document machinery,
