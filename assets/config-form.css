@@ -30,21 +30,13 @@
 }
 .cf-for { margin: 0; font-size: var(--ty-meta); color: var(--ink-secondary); line-height: 1.45; }
 .cf-for b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
-.cf-link {
-  display: inline-flex; align-items: center; gap: 0.4375rem; height: 2rem; padding: 0 0.625rem; margin-right: -0.625rem;
-  border: 0; border-radius: 0.5rem; background: none; cursor: pointer;
-  color: var(--ink-action); font-size: var(--ty-meta); font-weight: var(--fw-semibold);
-  transition: background-color 150ms ease, transform 160ms var(--cf-ease);
-}
-.cf-link:hover { background: rgba(var(--accent-rgb), 0.08); }
-.cf-link:active { transform: scale(0.97); }
 
 /* ── Progress: what is left before Publish, and the way to it ── */
 .cf-progress { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 1rem; margin: 0 0 1.75rem; }
 .cf-progress p { margin: 0; font-size: var(--ty-meta); color: var(--ink-secondary); line-height: 1.45; }
 .cf-progress p b { color: var(--ink-primary); font-weight: var(--fw-bold); }
 .cf-progress.is-ok p { color: var(--ink-ok); }
-.cf-progress .cf-link { margin-left: auto; }
+
 .cf-meter { flex: 0 0 6rem; height: 0.375rem; border-radius: 999px; background: rgba(var(--accent-rgb), 0.14); overflow: hidden; }
 .cf-meter i {
   display: block; height: 100%; border-radius: inherit; background: var(--accent);
@@ -106,7 +98,6 @@
 .cf-stop.is-need .cf-node { color: var(--ink-warn); box-shadow: inset 0 0 0 2px rgba(var(--warn-rgb, 245, 158, 11), 0.7); }
 .cf-stop.is-need.is-current .cf-node { background: var(--warn); color: #1b1305; box-shadow: none; }
 
-
 /* At "Is it urgent?" the rail forks: No to the left, Yes to the right. */
 .cf-stop.is-forks { padding-bottom: 1.75rem; }
 .cf-fork { position: relative; padding: 0 0 1.5rem; }
@@ -165,23 +156,6 @@
   display: flex; align-items: center; justify-content: space-between; gap: 1rem;
   margin-top: 2rem;
 }
-.cf-nav {
-  display: inline-flex; align-items: center; gap: 0.375rem; min-height: 2.5rem; padding: 0 0.875rem;
-  border: 1px solid var(--cf-edge); border-radius: 999px; background: var(--card-bg-raised); cursor: pointer;
-  color: var(--ink-primary); font-size: var(--ty-meta); font-weight: var(--fw-semibold); text-align: left;
-  transition: border-color 150ms ease, filter 150ms ease, transform 160ms var(--cf-ease);
-}
-.cf-nav:hover { border-color: var(--cf-edge-hover); }
-.cf-nav.is-next { border-color: transparent; background: var(--brand, var(--accent)); color: #fff; padding-left: 1rem; }
-.cf-nav.is-next:hover { filter: brightness(1.08); }
-.cf-back {
-  display: inline-flex; align-items: center; gap: 0.25rem; height: 2.25rem; margin-bottom: 1.25rem; padding: 0 0.75rem 0 0.5rem;
-  border: 1px solid var(--cf-edge); border-radius: 999px; background: var(--card-bg); cursor: pointer;
-  color: var(--ink-primary); font-size: var(--ty-meta); font-weight: var(--fw-semibold);
-  transition: border-color 150ms ease, transform 160ms var(--cf-ease);
-}
-.cf-back:hover { border-color: var(--cf-edge-hover); }
-.cf-back:active, .cf-nav:active, .cf-stop-btn:active .cf-node { transform: scale(0.97); }
 
 /* Switching stops: the editor's content slides 8px in through a 3px blur
    (page slide, 250ms, smooth out); on a phone the whole view does. */
@@ -190,7 +164,6 @@
 @keyframes cf-from-left { from { opacity: 0; transform: translateX(-8px); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
 .cf-view.is-in-fwd, .cf-night.is-in-fwd { animation: cf-from-right 250ms var(--cf-ease) both; }
 .cf-view.is-in-back, .cf-night.is-in-back { animation: cf-from-left 250ms var(--cf-ease) both; }
-.cf-stop-btn:focus-visible, .cf-back:focus-visible, .cf-nav:focus-visible { outline: 2px solid rgba(var(--accent-rgb), 0.7); outline-offset: 2px; }
 
 /* ── Sections ── */
 .cf-form { min-width: 0; }
@@ -208,77 +181,17 @@
 /* ── A field: label, help, control ── */
 .cf-label-row { display: flex; align-items: center; gap: 0.5rem; min-height: 1.5rem; }
 .cf-label { font-size: var(--ty-body); font-weight: var(--fw-semibold); color: var(--ink-primary); line-height: 1.4; }
-.cf-req {
-  display: inline-flex; align-items: center; height: 1.375rem; padding: 0 0.5rem; border-radius: 999px;
-  background: rgba(var(--warn-rgb, 245, 158, 11), 0.13); color: var(--ink-warn);
-  font-size: var(--ty-micro); font-weight: var(--fw-semibold); line-height: 1;
-}
-.cf-close {
-  margin-left: auto; height: 1.75rem; padding: 0 0.5rem; margin-right: -0.5rem; border: 0; border-radius: 0.5rem;
-  background: none; cursor: pointer; color: var(--ink-action); font-size: var(--ty-meta); font-weight: var(--fw-medium);
-  transition: background-color 150ms ease;
-}
-.cf-close:hover { background: rgba(var(--accent-rgb), 0.08); }
+
 .cf-help { margin: 0.125rem 0 0; font-size: var(--ty-meta); color: var(--ink-secondary); line-height: 1.5; }
 .cf-control { margin-top: 0.75rem; }
 .cf-note { margin: 0.5rem 0 0; font-size: var(--ty-meta); color: var(--ink-secondary); line-height: 1.45; }
 .cf-note.is-err { color: var(--ink-err); }
 
 /* Inputs share one face. */
-.cf-in, .cf-cell, .cf-li-in, .cf-num, .cf-time, .cf-cust-name {
-  font-family: inherit; font-size: var(--ty-meta); color: var(--ink-primary);
-}
-.cf-in {
-  display: block; width: 100%; max-width: 36rem; height: 2.5rem; padding: 0 0.875rem;
-  border: 1px solid var(--cf-edge); border-radius: 0.625rem; background: var(--card-bg);
-  transition: border-color 150ms ease, box-shadow 150ms ease;
-}
-.cf-in:hover { border-color: var(--cf-edge-hover); }
-.cf-in:focus, .cf-in:focus-visible { outline: none; border-color: rgba(var(--accent-rgb), 0.6); box-shadow: var(--cf-ring); }
-.cf-in::placeholder, .cf-cell::placeholder, .cf-cust-name::placeholder { color: var(--ink-placeholder, var(--ink-faint)); }
-textarea.cf-in { height: auto; min-height: 4.5rem; padding: 0.625rem 0.875rem; line-height: 1.5; resize: none; overflow: hidden; max-width: none; }
 
 /* Choice: a segmented row for a few short answers… */
-.cf-seg {
-  display: inline-flex; flex-wrap: nowrap; gap: 0.1875rem; padding: 0.1875rem;
-  border: 1px solid var(--cf-edge); border-radius: 0.75rem; background: var(--card-bg);
-}
-.cf-seg.is-wrap { flex-wrap: wrap; }
-.cf-seg-btn {
-  height: 2.125rem; padding: 0 0.875rem; border: 0; border-radius: 0.5625rem; background: none; cursor: pointer;
-  color: var(--ink-secondary); font-size: var(--ty-meta); font-weight: var(--fw-medium); white-space: nowrap;
-  transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease, transform 160ms var(--cf-ease);
-}
-.cf-seg-btn:hover { background: var(--card-bg-raised); color: var(--ink-primary); }
-.cf-seg-btn:active { transform: scale(0.97); }
-.cf-seg-btn[aria-checked="true"], .cf-seg-btn[aria-pressed="true"] {
-  background: rgba(var(--accent-rgb), 0.16); color: var(--ink-primary); font-weight: var(--fw-semibold);
-  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.45);
-}
-.cf-seg.is-sm { padding: 0.125rem; border-radius: 0.625rem; }
-.cf-seg.is-sm .cf-seg-btn { height: 1.75rem; padding: 0 0.625rem; border-radius: 0.5rem; }
 
 /* …and a column of options for longer ones. */
-.cf-opts { display: flex; flex-direction: column; gap: 0.375rem; max-width: 30rem; }
-.cf-opt {
-  display: flex; align-items: flex-start; gap: 0.75rem; width: 100%; padding: 0.625rem 0.875rem;
-  border: 1px solid var(--cf-edge); border-radius: 0.625rem; background: var(--card-bg); cursor: pointer; text-align: left;
-  color: var(--ink-secondary); font-size: var(--ty-meta); line-height: 1.45;
-  transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease, transform 160ms var(--cf-ease);
-}
-.cf-opt:hover { border-color: var(--cf-edge-hover); color: var(--ink-primary); }
-.cf-opt:active { transform: scale(0.99); }
-.cf-opt[aria-checked="true"] { border-color: rgba(var(--accent-rgb), 0.55); background: rgba(var(--accent-rgb), 0.10); color: var(--ink-primary); font-weight: var(--fw-semibold); }
-.cf-radio {
-  flex: none; width: 1rem; height: 1rem; margin-top: calc((1.45em - 1rem) / 2); border-radius: 50%;
-  border: 1.5px solid var(--ink-rule); transition: border-color 150ms ease, box-shadow 150ms ease;
-}
-.cf-opt[aria-checked="true"] .cf-radio { border-color: var(--accent); box-shadow: inset 0 0 0 3px var(--card-bg), inset 0 0 0 8px var(--accent); }
-
-.cf-seg-btn:focus-visible, .cf-opt:focus-visible, .cf-day:focus-visible, .cf-pill:focus-visible, .cf-add:focus-visible,
-.cf-x:focus-visible, .cf-close:focus-visible, .cf-link:focus-visible, .cf-num-btn:focus-visible {
-  outline: 2px solid rgba(var(--accent-rgb), 0.7); outline-offset: 2px;
-}
 
 /* Timezone: typed, the list only finishes the word. */
 .cf-tz { position: relative; max-width: 24rem; }
@@ -299,51 +212,16 @@ textarea.cf-in { height: auto; min-height: 4.5rem; padding: 0.625rem 0.875rem; l
 .cf-tz-now { color: var(--ink-secondary); font-size: var(--ty-micro); font-variant-numeric: tabular-nums; }
 
 /* Numbers: a stepper with the unit inside. */
-.cf-num {
-  display: inline-flex; align-items: center; height: 2.5rem; border: 1px solid var(--cf-edge); border-radius: 0.625rem; background: var(--card-bg);
-  transition: border-color 150ms ease, box-shadow 150ms ease;
-}
-.cf-num:hover { border-color: var(--cf-edge-hover); }
-.cf-num:focus-within { border-color: rgba(var(--accent-rgb), 0.6); box-shadow: var(--cf-ring); }
-.cf-num-in {
-  /* As wide as the number, no wider (Nour: "so much unnecessary padding"). */
-  width: calc(var(--n, 1) * 1ch + 0.125rem); height: 100%; padding: 0; border: 0; background: none; text-align: right;
-  font: inherit; color: var(--ink-primary); font-weight: var(--fw-semibold); font-variant-numeric: tabular-nums;
-}
-.cf-num-in:focus { outline: none; }
+
 .cf-unit { padding: 0 0 0 0.25rem; color: var(--ink-secondary); }
-.cf-num-btn {
-  display: grid; place-items: center; width: 2.25rem; height: 100%; border: 0; background: none; cursor: pointer; color: var(--ink-secondary);
-  transition: color 150ms ease, background-color 150ms ease, transform 160ms var(--cf-ease);
-}
-.cf-num-btn:first-child { border-radius: 0.5625rem 0 0 0.5625rem; }
-.cf-num-btn:last-child { border-radius: 0 0.5625rem 0.5625rem 0; }
-.cf-num-btn:hover { color: var(--ink-primary); background: var(--card-bg-raised); }
-.cf-num-btn:active svg { transform: scale(0.85); }
-.cf-num-btn svg { transition: transform 160ms var(--cf-ease); }
-.cf-def { margin-left: 0.75rem; font-size: var(--ty-meta); color: var(--ink-secondary); }
 
 /* ── Team hours: a row per day, the week drawn beside it ── */
 .cf-week { max-width: 30rem; }
 .cf-wk-row { display: grid; grid-template-columns: 3.5rem minmax(0, 1fr); align-items: center; gap: 1rem; min-height: 2.75rem; }
 /* No lines between the days (Nour, 11 Nov 2026: no separators anywhere);
    the rows' own height spaces them. */
-.cf-day {
-  width: 3.5rem; height: 2rem; border: 1px dashed var(--cf-edge-hover); border-radius: 999px; background: none; cursor: pointer;
-  color: var(--ink-secondary); font-size: var(--ty-meta); font-weight: var(--fw-medium);
-  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 160ms var(--cf-ease);
-}
-.cf-day:hover { color: var(--ink-primary); border-color: var(--ink-rule); }
-.cf-day:active { transform: scale(0.95); }
-.cf-day[aria-pressed="true"] {
-  border-style: solid; border-color: rgba(var(--accent-rgb), 0.45); background: rgba(var(--accent-rgb), 0.16);
-  color: var(--ink-primary); font-weight: var(--fw-semibold);
-}
+
 .cf-wk-times { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
-  width: 5.75rem; height: 2.125rem; padding: 0 0.5rem; border: 1px solid var(--cf-edge); border-radius: 0.5rem;
-  background: var(--card-bg); text-align: center; font-variant-numeric: tabular-nums;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
-}
 .cf-to { color: var(--ink-secondary); font-size: var(--ty-meta); }
 .cf-wk-tag { font-size: var(--ty-micro); font-weight: var(--fw-semibold); color: var(--ink-info); white-space: nowrap; }
 .cf-off { font-size: var(--ty-meta); color: var(--ink-secondary); }
@@ -355,28 +233,12 @@ textarea.cf-in { height: auto; min-height: 4.5rem; padding: 0.625rem 0.875rem; l
 .cf-wk-sum b { color: var(--ink-primary); font-weight: var(--fw-semibold); }
 
 /* ── Add buttons and the "Also set" pills ── */
-.cf-add {
-  display: inline-flex; align-items: center; gap: 0.4375rem; height: 2rem; margin: 0.625rem 0 0 -0.5rem; padding: 0 0.5rem;
-  border: 0; border-radius: 0.5rem; background: none; cursor: pointer;
-  color: var(--ink-action); font-size: var(--ty-meta); font-weight: var(--fw-semibold);
-  transition: background-color 150ms ease, transform 160ms var(--cf-ease);
-}
-.cf-add:hover { background: rgba(var(--accent-rgb), 0.08); }
-.cf-add:active { transform: scale(0.97); }
-.cf-table.is-empty + .cf-add { margin-top: 0; }
+
 .cf-more { display: flex; align-items: flex-start; gap: 0.75rem; margin-top: 1.75rem; max-width: 52rem; }
 .cf-more-pills { display: flex; flex-wrap: wrap; gap: 0.5rem; min-width: 0; }
 .cf-fields:empty + .cf-more { margin-top: 0; }
 .cf-more-lab { flex: none; line-height: 2rem; font-size: var(--ty-meta); font-weight: var(--fw-semibold); color: var(--ink-secondary); }
-.cf-pill {
-  display: inline-flex; align-items: center; gap: 0.375rem; height: 2rem; padding: 0 0.75rem 0 0.625rem;
-  border: 1px dashed var(--cf-edge-hover); border-radius: 999px; background: none; cursor: pointer;
-  color: var(--ink-secondary); font-size: var(--ty-meta); white-space: nowrap;
-  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 160ms var(--cf-ease);
-}
-.cf-pill:hover { border-style: solid; border-color: var(--ink-rule); background: var(--card-bg); color: var(--ink-primary); }
-.cf-pill:active { transform: scale(0.97); }
-.cf-pill svg { flex: none; }
+
 .cf-pill-val { margin-left: 0.375rem; color: var(--ink-primary); font-weight: var(--fw-semibold); }
 
 /* ── Lists: a line per item, hairlines between, the add field at the foot ── */
@@ -393,14 +255,7 @@ textarea.cf-in { height: auto; min-height: 4.5rem; padding: 0.625rem 0.875rem; l
 }
 .cf-li-in:hover { background: var(--card-bg); }
 .cf-li-in:focus { outline: none; background: var(--card-bg); border-color: rgba(var(--accent-rgb), 0.6); box-shadow: var(--cf-ring); }
-.cf-x {
-  display: grid; place-items: center; width: 1.75rem; height: 1.75rem; margin-top: 0.1875rem; padding: 0;
-  border: 0; border-radius: 0.375rem; background: none; cursor: pointer; color: var(--ink-secondary);
-  opacity: 0; transition: opacity 150ms ease, background-color 150ms ease, color 150ms ease;
-}
-.cf-li:hover .cf-x, .cf-li:focus-within .cf-x, .cf-tr:hover .cf-x, .cf-tr:focus-within .cf-x, .cf-x:focus-visible { opacity: 1; }
-.cf-x:hover { color: var(--ink-primary); background: var(--card-bg-raised); }
-.cf-x[data-cf-li-del]:hover, .cf-x[data-cf-row-del]:hover { color: var(--ink-err); }
+
 @media (hover: none) { .cf-x { opacity: 1; } }
 .cf-li-add { margin-top: 0.5rem; height: 2.375rem; max-width: none; }
 .cf-list.is-empty .cf-li-add { margin-top: 0; }
@@ -416,15 +271,7 @@ textarea.cf-in { height: auto; min-height: 4.5rem; padding: 0.625rem 0.875rem; l
 .cf-th { align-items: center; min-height: 2.25rem; padding-top: 0.25rem; padding-bottom: 0.25rem; }
 .cf-th span { padding: 0 0.5rem; font-size: var(--ty-micro); font-weight: var(--fw-semibold); color: var(--ink-secondary); }
 .cf-td { min-width: 0; }
-.cf-cell {
-  display: block; width: 100%; min-height: 2.125rem; padding: 0.375rem 0.5rem; border: 1px solid transparent; border-radius: 0.5rem;
-  background: none; line-height: 1.45; color-scheme: inherit;
-  transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
-}
-textarea.cf-cell { resize: none; overflow: hidden; }
-.cf-cell:hover { background: var(--card-bg-raised); }
-.cf-cell:focus { outline: none; background: var(--card-bg-raised); border-color: rgba(var(--accent-rgb), 0.6); box-shadow: var(--cf-ring); }
-.cf-td .cf-seg.is-sm { margin-top: 0.125rem; }
+
 .cf-ord {
   display: grid; place-items: center; height: 2.125rem; font-size: var(--ty-micro); font-weight: var(--fw-semibold);
   color: var(--ink-secondary); font-variant-numeric: tabular-nums;
@@ -433,20 +280,9 @@ textarea.cf-cell { resize: none; overflow: hidden; }
 
 /* ── Custom fields ── */
 .cf-cust { padding: 1rem 1.125rem 1.125rem; border: 1px solid var(--cf-edge); border-radius: 0.875rem; background: var(--card-bg); }
-.cf-cust-name {
-  flex: 0 1 auto; min-width: 9rem; max-width: 24rem; field-sizing: content; height: 2rem; padding: 0 0.5rem; margin-left: -0.5rem;
-  border: 1px solid transparent; border-radius: 0.5rem; background: none;
-  font-size: var(--ty-body); font-weight: var(--fw-semibold);
-  transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
-}
-.cf-cust-name:hover { background: var(--card-bg-raised); }
-.cf-cust-name:focus { outline: none; background: var(--card-bg-raised); border-color: rgba(var(--accent-rgb), 0.6); box-shadow: var(--cf-ring); }
-.cf-kind {
-  flex: none; display: inline-flex; align-items: center; height: 1.375rem; padding: 0 0.5rem; border-radius: 999px;
-  background: rgba(var(--accent-rgb), 0.12); color: var(--ink-action); font-size: var(--ty-micro); font-weight: var(--fw-semibold);
-}
+
 .cf-cust .cf-control { margin-top: 0.625rem; }
-.cf-cust .cf-in, .cf-cust .cf-num, .cf-cust .cf-seg, .cf-cust .cf-table, .cf-cust .cf-li-in:hover { background: var(--card-bg-raised); }
+
 .cf-sub + .cf-sub, .cf-sub + .cf-note { margin-top: 0.875rem; }
 .cf-cust > .cf-sub { margin-top: 0.75rem; }
 .cf-sub-lab { display: block; margin-bottom: 0.375rem; font-size: var(--ty-micro); font-weight: var(--fw-semibold); color: var(--ink-secondary); }
@@ -502,21 +338,15 @@ textarea.cf-cell { resize: none; overflow: hidden; }
   .cf-tr .cf-row-acts { grid-column: 2; grid-row: 1; }
   .cf-tr .cf-x { opacity: 1; margin-top: 0; }
   .cf-seg:not(.is-wrap) { display: flex; width: 100%; }
-  .cf-seg:not(.is-wrap) .cf-seg-btn { flex: 1 1 0; min-width: 0; padding: 0 0.375rem; }
+  .cf-seg:not(.is-wrap) .seg-btn { flex: 1 1 0; min-width: 0; padding-left: 0.375rem; padding-right: 0.375rem; }
   .cf-more { flex-direction: column; gap: 0.25rem; }
   .cf-pill { height: auto; min-height: 2.25rem; padding-top: 0.375rem; padding-bottom: 0.375rem; white-space: normal; text-align: left; }
   .cf-label-row { flex-wrap: wrap; }
 }
-/* Never past the editor's edge, at any width. */
-.cf-seg { max-width: 100%; }
-.cf-seg-btn { overflow: hidden; text-overflow: ellipsis; }
-
 /* ── Hour chips ──
    The Schedule page's own time chip (.ah-wchip in diary.css) and its list;
    only the en dash between the two gets its spacing here. */
 .cf-wk-times .cf-to { font-size: var(--ty-meta); }
-}
-
 
 /* ══ Canvas and panel (Nour picked variant C, 11 Nov 2026) ══════════════════
    The path is a column of nodes on a dotted canvas in the document column,
@@ -617,3 +447,50 @@ textarea.cf-cell { resize: none; overflow: hidden; }
   .cf-fk .cf-nd:nth-of-type(1) { order: 2; }
   .cf-fk .cf-nd:nth-of-type(2) { order: 4; }
 }
+
+/* ── Library components, laid out ──
+   The controls are the design system's own (.btn, .chip, .seg, .radio-cards,
+   .stepper, .input, .ds-textarea, .tag, .link, .icon-btn, .cal); these rules
+   only place them. (Nour, 11 Nov 2026: "why are you using components out of
+   our ui library system?") */
+.cf .input, .cf-side .input { max-width: 36rem; }
+.cf .ds-textarea, .cf-side .ds-textarea { max-width: none; min-height: 4.5rem; resize: none; overflow: hidden; }
+.cf-cell.input { max-width: none; min-height: 0; resize: none; overflow: hidden; line-height: 1.45; }
+/* A one-line cell is one line tall; the library's textarea minimum is for prose. */
+textarea.cf-cell.input { height: 2.375rem; }
+.cf-li-add.input { max-width: none; margin-top: 0.5rem; }
+.cf-list.is-empty .cf-li-add { margin-top: 0; }
+.cf-cust-name.input { width: auto; max-width: 24rem; }
+.cf-label-row .tag { flex: none; }
+.cf-label-row .link { margin-left: auto; font-size: var(--ty-meta); background: none; border-top: 0; border-left: 0; border-right: 0; padding: 0; }
+.cf-numrow { display: inline-flex; align-items: center; gap: 0.5rem; }
+.cf-unit { color: var(--ink-secondary); font-size: var(--ty-meta); }
+.cf-rcards { max-width: 36rem; }
+.cf-rcards .radio-card { display: block; }
+.cf-seg { max-width: 100%; }
+.cf-seg.is-wrap { flex-wrap: wrap; }
+.cf-day { justify-content: center; min-width: 3.5rem; }
+.cf-wk-row .cf-day.default { border-style: dashed; }
+.cf .cf-add, .cf-side .cf-add { margin-top: 0.625rem; }
+.cf-table.is-empty + .cf-add { margin-top: 0; }
+.cf-pill-val { margin-left: 0.25rem; color: var(--ink-primary); }
+.cf-x { opacity: 0; transition: opacity 150ms ease; }
+.cf-li:hover .cf-x, .cf-li:focus-within .cf-x, .cf-tr:hover .cf-x, .cf-tr:focus-within .cf-x, .cf-x:focus-visible { opacity: 1; }
+@media (hover: none) { .cf-x { opacity: 1; } }
+.cf-date { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%; max-width: none; cursor: pointer; text-align: left; font-variant-numeric: tabular-nums; }
+.cf-date .ic, .cf-date svg { flex: none; color: var(--ink-secondary); }
+.cf-date-none { color: var(--ink-secondary); }
+.cf-phone-err { margin: 0.25rem 0 0; }
+.set2-pop.is-cal { width: auto; max-height: none; padding: 0; background: none; border: 0; box-shadow: none; overflow: visible; }
+
+/* Node and editor icons: plain Lucide marks, coloured by state, no badge. */
+.cf-nd-ic, .cf-panel-head .cf-node, .cf-side .cf-panel-head .cf-node {
+  width: auto; height: auto; background: none; box-shadow: none; border-radius: 0; color: var(--ink-action);
+}
+.cf-nd.is-need .cf-nd-ic, .cf-nd.is-current .cf-nd-ic { background: none; }
+.cf-nd.is-need .cf-nd-ic { color: var(--ink-warn); }
+.cf-nd.is-current .cf-nd-ic { color: var(--accent); }
+.cf-side .cf-panel-head .cf-node, .cf-panel-head .cf-node { color: var(--accent); }
+/* The editor's icon is centred on its title's line, which puts the mark on
+   the capitals (20px Poppins: caps centred on a 1.6rem line). */
+.cf-panel-head .cf-node, .cf-side .cf-panel-head .cf-node { display: flex; align-items: center; flex: none; height: 1.6rem; margin-top: 0.2rem; }

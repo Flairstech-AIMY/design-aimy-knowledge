@@ -1436,8 +1436,8 @@
           'Implementing a new solution', 'Anything that doesn’t impact the business'],
         'on_call.source': 'list',
         'on_call.people': [
-          { name: 'David Aguilar', phone: 'GoTo (514) 555-0137 ext. 6037, then cell (450) 555-0190' },
-          { name: 'Robert Otiniano', phone: 'Cell (514) 555-0115 (call and message)' }],
+          { name: 'David Aguilar', phone: '(514) 555-0137 ext. 6037' },
+          { name: 'Robert Otiniano', phone: '(514) 555-0115' }],
         'on_call.management_fallback': [{ name: 'Hadya Mansour', phone: '+20 100 555 0186' }],
         'on_call.steps': [
           'For a voicemail ticket, change the requester to the client to check their eligibility',
@@ -1495,7 +1495,7 @@
         'on_call.people': [
           { name: 'Yara Sameh', phone: '+44 20 7946 0101' },
           { name: 'Mohamed Fathy', phone: '+44 20 7946 0102' },
-          { name: 'Salma Adel', phone: '+44 20 7946 0103 (call, then message)' }],
+          { name: 'Salma Adel', phone: '+44 20 7946 0103' }],
         'on_call.management_fallback': [
           { name: 'Nour Wael', phone: '+44 20 7946 0110' },
           { name: 'Mona Adel', phone: '+44 20 7946 0111' }],

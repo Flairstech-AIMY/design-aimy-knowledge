@@ -77,10 +77,10 @@
         help: 'This product\u2019s on-call calendar.' },
       { key: 'on_call.people', label: 'On-call people', kind: 'table', add: 'Add a person', ordered: true, when: ['on_call.source', 'list'],
         help: 'Called in this order.',
-        columns: [['name', 'Name', 'text', 'minmax(0, 1fr)'], ['phone', 'Phone', 'text', 'minmax(0, 1.4fr)']] },
+        columns: [['name', 'Name', 'text', 'minmax(0, 1fr)'], ['phone', 'Phone', 'phone', 'minmax(0, 1.2fr)']] },
       { key: 'on_call.management_fallback', label: 'If nobody answers', kind: 'table', add: 'Add a person', ordered: true, required: true,
         help: 'Called in this order once everyone on call has been tried.',
-        columns: [['name', 'Name', 'text', 'minmax(0, 1fr)'], ['phone', 'Phone', 'text', 'minmax(0, 1.4fr)']] },
+        columns: [['name', 'Name', 'text', 'minmax(0, 1fr)'], ['phone', 'Phone', 'phone', 'minmax(0, 1.2fr)']] },
       { key: 'on_call.steps', label: 'Before calling', kind: 'list', add: 'Add a step', advanced: true,
         help: 'Anything to do first, one step per line.' },
       { key: 'on_call.wait_before_next_minutes', label: 'Minutes before trying the next person', kind: 'number', unit: 'min', step: 5, def: 15, min: 0, advanced: true,
@@ -111,9 +111,15 @@
     x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
     up: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
     upload: '<path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>',
+    cal: '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
     copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>'
   };
 
+  /* One dialable number: digits, spaces, + ( ) . - and an optional extension. */
+  const PHONE_OK = /^\+?[\d\s().-]{6,}(\s*(ext\.?|x)\s*\d{1,6})?$/i;
+  const MON3 = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const MONL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const dateSay = (iso) => { const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? +m[3] + ' ' + MON3[+m[2] - 1] + ' ' + m[1] : iso; };
   const DAYS = [['mon', 'Mon', 'Monday'], ['tue', 'Tue', 'Tuesday'], ['wed', 'Wed', 'Wednesday'], ['thu', 'Thu', 'Thursday'],
                 ['fri', 'Fri', 'Friday'], ['sat', 'Sat', 'Saturday'], ['sun', 'Sun', 'Sunday']];
   const DAY_I = DAYS.reduce((a, d, i) => { a[d[0]] = i; return a; }, {});
@@ -345,7 +351,7 @@
     NARROW = narrowNow();
     const head = `<div class="cf-head">
         <p class="cf-for">For <b>${esc(CTX.product || 'this product')}</b>. The product is set under What it is.</p>
-        <button class="cf-link" type="button" data-pick-files=".yaml,.yml,.json,.xml">${svg(I.upload, 15)}<span>Upload a file instead</span></button>
+        <button class="btn btn-ghost btn-sm" type="button" data-pick-files=".yaml,.yml,.json,.xml">${svg(I.upload, 14)}<span>Upload a file instead</span></button>
       </div>`;
     if (NARROW && PHONE[o.id]) {
       return head + `<div class="cf-view${FX.view ? ' is-in-' + FX.view : ''}">${stopEditor(o, PHONE[o.id], true)}</div>`;
@@ -369,7 +375,7 @@
         <p><b>${done} of ${req.length}</b> required answers in. ${miss.length
           ? 'Publish opens when all are in.'
           : 'Everything AiMY needs is here. Publish is open.'}</p>
-        ${next && !(PICK[o.id] === next && !NARROW) ? `<button class="cf-link" type="button" data-cf-stop="${next}"><span>Answer the next: ${esc(Q[next][0])}</span>${svg('<path d="m9 18 6-6-6-6"/>', 15)}</button>` : ''}
+        ${next && !(PICK[o.id] === next && !NARROW) ? `<button class="btn btn-ghost btn-sm" type="button" data-cf-stop="${next}"><span>Answer the next: ${esc(Q[next][0])}</span>${svg('<path d="m9 18 6-6-6-6"/>', 14)}</button>` : ''}
       </div>`;
   }
 
@@ -468,17 +474,17 @@
     const prev = PATH[i - 1], next = PATH[i + 1];
     const short = (x) => Q[x][0];
     const body = k === 'custom' ? customHTML(o) : secHTML(o, SCHEMA.filter((s) => s.key === k)[0]);
-    return `${phone ? `<button class="cf-back" type="button" data-cf-night>${svg('<path d="m15 18-6-6 6-6"/>', 16)}<span>Back to the night</span></button>` : ''}
+    return `${phone ? `<button class="btn btn-ghost btn-sm cf-back" type="button" data-cf-night>${svg('<path d="m15 18-6-6 6-6"/>', 16)}<span>Back to the canvas</span></button>` : ''}
       <header class="cf-panel-head">
-        <span class="cf-node" aria-hidden="true">${svg(IC[k], 15)}</span>
+        <span class="cf-node" aria-hidden="true">${svg(IC[k], 18)}</span>
         <div><h2 id="${idOf('t-' + k)}" tabindex="-1">${esc(Q[k][0])}</h2>${Q[k][1] ? `<p>${esc(Q[k][1])}</p>` : ''}</div>
         ${side ? `<button class="cf-side-x" type="button" data-cf-sideclose aria-label="Close ${esc(Q[k][0])} and show the document's details">${svg(I.x, 16)}</button>` : ''}
       </header>
       <div class="cf-ed">${body}</div>
       <div class="cf-ed-foot">
-        ${prev ? `<button class="cf-nav" type="button" data-cf-stop="${prev}">${svg('<path d="m15 18-6-6 6-6"/>', 16)}<span>${esc(short(prev))}</span></button>` : '<span></span>'}
-        ${next ? `<button class="cf-nav is-next" type="button" data-cf-stop="${next}"><span>Next: ${esc(short(next))}</span>${svg('<path d="m9 18 6-6-6-6"/>', 16)}</button>`
-          : phone ? `<button class="cf-nav is-next" type="button" data-cf-night><span>Back to the night</span>${svg('<path d="m9 18 6-6-6-6"/>', 16)}</button>` : '<span></span>'}
+        ${prev ? `<button class="btn btn-ghost btn-sm" type="button" data-cf-stop="${prev}">${svg('<path d="m15 18-6-6 6-6"/>', 14)}<span>${esc(short(prev))}</span></button>` : '<span></span>'}
+        ${next ? `<button class="btn btn-brand btn-sm" type="button" data-cf-stop="${next}"><span>Next: ${esc(short(next))}</span>${svg('<path d="m9 18 6-6-6-6"/>', 14)}</button>`
+          : phone ? `<button class="btn btn-brand btn-sm" type="button" data-cf-night><span>Back to the canvas</span>${svg('<path d="m9 18 6-6-6-6"/>', 14)}</button>` : '<span></span>'}
       </div>`;
   }
 
@@ -498,7 +504,7 @@
     return `<section class="cf-sec" data-cf-sec="${s.key}" aria-labelledby="${idOf('t-' + s.key)}">
         <div class="cf-fields">${body}</div>
         ${more.length ? `<div class="cf-more"><span class="cf-more-lab">Also set</span><div class="cf-more-pills">${more.map((f) =>
-          `<button class="cf-pill" type="button" data-cf-open="${f.key}">${svg(I.plus, 14)}<span>${esc(f.label)}${f.def !== undefined
+          `<button class="chip default cf-pill" type="button" data-cf-open="${f.key}">${svg(I.plus, 14)}<span>${esc(f.label)}${f.def !== undefined
             ? `<span class="cf-pill-val">${esc(f.kind === 'choice' ? optLabel(f, f.def) : f.def + ' ' + f.unit)}</span>` : ''}</span></button>`).join('')}</div></div>` : ''}
       </section>`;
   }
@@ -509,8 +515,8 @@
     const v = getV(form, f.key);
     const id = idOf(f.key);
     const group = f.kind === 'choice' || f.kind === 'hours' || f.kind === 'table' || f.kind === 'list' || f.kind === 'boolean' || f.kind === 'multi';
-    const req = f.required && !filled(f, v) ? '<span class="cf-req">Required</span>' : '';
-    const close = f.advanced ? `<button class="cf-close" type="button" data-cf-close="${f.key}">${f.def !== undefined ? 'Back to the default' : 'Remove'}</button>` : '';
+    const req = f.required && !filled(f, v) ? '<span class="tag tag-warn cf-req">Required</span>' : '';
+    const close = f.advanced ? `<button class="link cf-close" type="button" data-cf-close="${f.key}">${f.def !== undefined ? 'Back to the default' : 'Remove'}</button>` : '';
     const enter = FX.enter === f.key ? ' is-entering' : '';
     return `<div class="cf-field${enter}" data-cf-field="${esc(f.key)}" data-kind="${f.kind}">
         <div class="cf-label-row">${group
@@ -531,17 +537,16 @@
       case 'hours': return hoursHTML(f, v || [], lab);
       case 'number': {
         const val = v === undefined || v === null ? (f.def !== undefined ? f.def : '') : v;
-        return `<div class="cf-num">
-            <button class="cf-num-btn" type="button" data-cf-step="${esc(f.key)}|-1" aria-label="Less" tabindex="-1">${svg(I.minus, 14)}</button>
-            <input class="cf-num-in" id="${id}" inputmode="numeric" autocomplete="off" data-cf-num="${esc(f.key)}" value="${esc(val)}" style="--n: ${Math.max(1, String(val).length)}"${desc}${f.unit ? ` aria-label="${esc(f.label)}, in ${esc(f.unit === 'min' ? 'minutes' : f.unit)}"` : ''}>
-            ${f.unit ? `<span class="cf-unit" aria-hidden="true">${esc(+val === 1 && f.unit !== 'min' ? f.unit.replace(/s$/, '') : f.unit)}</span>` : ''}
-            <button class="cf-num-btn" type="button" data-cf-step="${esc(f.key)}|1" aria-label="More" tabindex="-1">${svg(I.plus, 14)}</button>
-          </div>${f.def !== undefined && +val === f.def ? '<span class="cf-def">The default</span>' : ''}`;
+        return `<span class="cf-numrow"><span class="stepper">
+            <button type="button" data-cf-step="${esc(f.key)}|-1" aria-label="Less" tabindex="-1">${svg(I.minus, 14)}</button>
+            <input id="${id}" inputmode="numeric" autocomplete="off" data-cf-num="${esc(f.key)}" value="${esc(val)}"${desc}${f.unit ? ` aria-label="${esc(f.label)}, in ${esc(f.unit === 'min' ? 'minutes' : f.unit)}"` : ''}>
+            <button type="button" data-cf-step="${esc(f.key)}|1" aria-label="More" tabindex="-1">${svg(I.plus, 14)}</button>
+          </span>${f.unit ? `<span class="cf-unit" aria-hidden="true">${esc(+val === 1 && f.unit !== 'min' ? f.unit.replace(/s$/, '') : f.unit)}</span>` : ''}${f.def !== undefined && +val === f.def ? '<span class="tag tag-neutral">The default</span>' : ''}</span>`;
       }
-      case 'long': return `<textarea class="cf-in cf-ta" id="${id}" rows="2" data-cf-text="${esc(f.key)}" data-grow${desc}>${esc(v || '')}</textarea>`;
+      case 'long': return `<textarea class="ds-textarea cf-ta" id="${id}" rows="2" data-cf-text="${esc(f.key)}" data-grow${desc}>${esc(v || '')}</textarea>`;
       case 'list': return listHTML(f, v || [], lab);
       case 'table': return tableHTML(f, v || [], lab);
-      default: return `<input class="cf-in" id="${id}" type="text" autocomplete="off" spellcheck="false" data-cf-text="${esc(f.key)}" value="${esc(v || '')}"${desc}>`;
+      default: return `<input class="input cf-in" id="${id}" type="text" autocomplete="off" spellcheck="false" data-cf-text="${esc(f.key)}" value="${esc(v || '')}"${desc}>`;
     }
   }
 
@@ -550,11 +555,16 @@
   function choiceHTML(f, v, lab) {
     const long = f.options.length > 3 || f.options.some((p) => String(p[1]).length > 22);
     const has = f.options.some((p) => p[0] === v);
-    return `<div class="${long ? 'cf-opts' : 'cf-seg'}" role="radiogroup" ${lab}>${f.options.map((p, i) => {
+    if (long) {
+      /* The library's radio cards: real radios, so arrows move between them. */
+      const name = idOf('r-' + f.key);
+      return `<div class="radio-cards cf-rcards" role="radiogroup" ${lab}>${f.options.map((p) =>
+        `<label class="radio-card"><input type="radio" name="${name}" ${p[0] === v ? 'checked' : ''} data-cf-pick="${esc(f.key)}|${esc(JSON.stringify(p[0]))}"><span class="rc-title">${esc(p[1])}</span></label>`).join('')}</div>`;
+    }
+    return `<div class="seg cf-seg" role="radiogroup" ${lab}>${f.options.map((p, i) => {
       const on = p[0] === v;
-      return `<button class="${long ? 'cf-opt' : 'cf-seg-btn'}" type="button" role="radio" aria-checked="${on}"
-          tabindex="${on || (!has && i === 0) ? 0 : -1}" data-cf-pick="${esc(f.key)}|${esc(JSON.stringify(p[0]))}">${long
-          ? '<span class="cf-radio" aria-hidden="true"></span>' : ''}<span>${esc(p[1])}</span></button>`;
+      return `<button class="seg-btn${on ? ' active' : ''}" type="button" role="radio" aria-checked="${on}"
+          tabindex="${on || (!has && i === 0) ? 0 : -1}" data-cf-pick="${esc(f.key)}|${esc(JSON.stringify(p[0]))}">${esc(p[1])}</button>`;
     }).join('')}</div>`;
   }
 
@@ -563,7 +573,7 @@
     const on = Array.isArray(v) ? v : [];
     return `<div class="cf-sub"><span class="cf-sub-lab">Options</span>${listHTML({ key: 'co:' + c.id, add: 'Add an option' }, c.options || [], lab)}</div>
       ${opts.length ? `<div class="cf-sub"><span class="cf-sub-lab">${c.kind === 'multi' ? 'Picked' : 'Picked'}</span>${c.kind === 'multi'
-        ? `<div class="cf-seg is-wrap" role="group" ${lab}>${opts.map((s) => `<button class="cf-seg-btn" type="button" aria-pressed="${on.indexOf(s) > -1}" data-cf-mpick="${esc(f.key)}|${esc(s)}">${esc(s)}</button>`).join('')}</div>`
+        ? `<div class="seg cf-seg is-wrap" role="group" ${lab}>${opts.map((s) => `<button class="seg-btn${on.indexOf(s) > -1 ? ' active' : ''}" type="button" aria-pressed="${on.indexOf(s) > -1}" data-cf-mpick="${esc(f.key)}|${esc(s)}">${esc(s)}</button>`).join('')}</div>`
         : choiceHTML({ key: f.key, options: opts.map((s) => [s, s]) }, v, lab)}</div>`
       : '<p class="cf-note">Add the options first, then pick.</p>'}`;
   }
@@ -572,7 +582,7 @@
     const id = idOf(f.key);
     const ok = zoneOk(v);
     return `<div class="cf-tz">
-        <input class="cf-in" id="${id}" type="text" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list"
+        <input class="input cf-in" id="${id}" type="text" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list"
           aria-expanded="false" aria-controls="${id}-list" data-cf-tz="${esc(f.key)}" value="${esc(v || '')}" placeholder="Type a city, like New York"${desc}>
         <div class="cf-tz-list" id="${id}-list" role="listbox" hidden></div>
       </div>
@@ -604,6 +614,45 @@
     const on = (pop || document.getElementById('setPop') || document).querySelector('.is-on');
     if (on && on.parentElement) on.parentElement.scrollTop = on.offsetTop - on.parentElement.clientHeight / 2 + on.offsetHeight / 2;
   }
+  /* A date: the library's calendar (.cal), in the Console's popover. */
+  const CALV = {};
+  function calHTML(o, key) {
+    const p = key.split('|');
+    const r = (getV(o.x.form, p[0]) || [])[+p[1]] || {};
+    const cur = r[p[2]] || '';
+    const view = CALV[key];
+    const y = view.getUTCFullYear(), mo = view.getUTCMonth();
+    const lead = (new Date(Date.UTC(y, mo, 1)).getUTCDay() + 6) % 7;
+    const days = new Date(Date.UTC(y, mo + 1, 0)).getUTCDate();
+    const iso = (d) => d.toISOString().slice(0, 10);
+    const today = iso(new Date());
+    const cells = [];
+    for (let i = lead; i > 0; i--) cells.push({ d: new Date(Date.UTC(y, mo, 1 - i)), muted: true });
+    for (let i = 1; i <= days; i++) cells.push({ d: new Date(Date.UTC(y, mo, i)) });
+    while (cells.length % 7) cells.push({ d: new Date(Date.UTC(y, mo, days + cells.length - lead - days + 1)), muted: true });
+    const chev = (d) => `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
+    return `<div class="cal" role="dialog" aria-label="Pick a date">
+      <div class="cal-head">
+        <button class="cal-nav" type="button" data-cf-calnav="${esc(key)}|-1" aria-label="Previous month">${chev('m15 18-6-6 6-6')}</button>
+        <div class="cal-title">${MONL[mo]} ${y}</div>
+        <button class="cal-nav" type="button" data-cf-calnav="${esc(key)}|1" aria-label="Next month">${chev('m9 18 6-6-6-6')}</button>
+      </div>
+      <div class="cal-grid">${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => `<div class="cal-dow">${d.slice(0, 2)}</div>`).join('')}${cells.map((c) => {
+        const d = iso(c.d);
+        const cls = ['cal-day'].concat(c.muted ? ['muted'] : [], d === today ? ['today'] : [], d === cur ? ['selected'] : []);
+        return `<button class="${cls.join(' ')}" type="button" data-cf-calday="${esc(key)}|${d}" aria-label="${esc(dateSay(d))}"${d === cur ? ' aria-pressed="true"' : ''}>${c.d.getUTCDate()}</button>`;
+      }).join('')}</div>
+    </div>`;
+  }
+  function calOpen(anchor) {
+    const S = window.AIMY_SETTINGS, o = docOf();
+    if (!S || !S.pop || !o) return;
+    const key = anchor.getAttribute('data-cf-date'), p = key.split('|');
+    const cur = ((getV(o.x.form, p[0]) || [])[+p[1]] || {})[p[2]];
+    const base = /^\d{4}-\d{2}-\d{2}$/.test(cur || '') ? new Date(cur + 'T00:00:00Z') : new Date();
+    CALV[key] = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), 1));
+    S.pop(anchor, calHTML(o, key), 'is-cal');
+  }
   function setTime(o, v, t) {
     const p = v.split('|');
     setHours(o, p[0], (rs) => { const r = rs.filter((x) => x.day === p[1])[0]; if (r) r[p[2]] = t; });
@@ -623,7 +672,7 @@
           const s = r && toMin(r.start), e = r && toMin(r.end);
           const tag = !r || s === null || e === null ? '' : s === e ? 'all day' : e !== 0 && e < s ? 'next day' : '';
           return `<div class="cf-wk-row${r ? ' is-on' : ''}" data-cf-wk="${d[0]}">
-            <button class="cf-day" type="button" aria-pressed="${!!r}" data-cf-day="${esc(f.key)}|${d[0]}"
+            <button class="chip ${r ? 'active' : 'default'} cf-day" type="button" aria-pressed="${!!r}" data-cf-day="${esc(f.key)}|${d[0]}"
               aria-label="${esc(d[2])}: ${r ? 'the team works' : 'the team is off'}">${d[1]}</button>
             <div class="cf-wk-times">${r
               ? `${tchip(f.key, d, r, 'start')}<span class="cf-to" aria-hidden="true">–</span>${tchip(f.key, d, r, 'end')}
@@ -634,8 +683,8 @@
         <div class="cf-wk-foot">
           <p class="cf-wk-sum"><b>AiMY covers</b> ${win.length ? win.map(esc).join('; ') : 'nothing: the team works all week'}.</p>
         </div>
-        ${mon ? `<button class="cf-add" type="button" data-cf-copy="${esc(f.key)}">${svg(I.copy, 14)}<span>Use Monday’s hours for Tuesday to Friday</span></button>` : ''}
-        ${rows.length ? '' : `<button class="cf-add" type="button" data-cf-week="${esc(f.key)}">${svg(I.plus, 14)}<span>Start from Monday to Friday, 9 am to 5 pm</span></button>`}
+        ${mon ? `<button class="btn btn-ghost btn-sm cf-add" type="button" data-cf-copy="${esc(f.key)}">${svg(I.copy, 14)}<span>Use Monday’s hours for Tuesday to Friday</span></button>` : ''}
+        ${rows.length ? '' : `<button class="btn btn-ghost btn-sm cf-add" type="button" data-cf-week="${esc(f.key)}">${svg(I.plus, 14)}<span>Start from Monday to Friday, 9 am to 5 pm</span></button>`}
       </div>`;
   }
 
@@ -643,9 +692,9 @@
     return `<div class="cf-list${items.length ? '' : ' is-empty'}" data-cf-list="${esc(f.key)}" role="group" ${lab}>
         ${items.map((s, i) => `<div class="cf-li${FX.enter === f.key + '|' + i ? ' is-entering' : ''}">
           <textarea class="cf-li-in" rows="1" data-grow data-cf-item="${esc(f.key)}|${i}" aria-label="Item ${i + 1}">${esc(s)}</textarea>
-          <button class="cf-x" type="button" data-cf-li-del="${esc(f.key)}|${i}" aria-label="Remove item ${i + 1}">${svg(I.x, 14)}</button>
+          <button class="icon-btn cf-x" type="button" data-cf-li-del="${esc(f.key)}|${i}" aria-label="Remove item ${i + 1}">${svg(I.x, 14)}</button>
         </div>`).join('')}
-        <input class="cf-in cf-li-add" type="text" autocomplete="off" data-cf-li-add="${esc(f.key)}" placeholder="${esc(f.add || 'Add one')}, then press Enter" aria-label="${esc(f.add || 'Add one')}">
+        <input class="input cf-li-add" type="text" autocomplete="off" data-cf-li-add="${esc(f.key)}" placeholder="${esc(f.add || 'Add one')}, then press Enter" aria-label="${esc(f.add || 'Add one')}">
       </div>`;
   }
 
@@ -656,22 +705,30 @@
       const k = f.key + '|' + i + '|' + c[0], v = r[c[0]] == null ? '' : r[c[0]];
       const al = `aria-label="${esc(c[1])}, row ${i + 1}"`;
       if (c[2] === 'days') {
-        return `<div class="cf-seg is-sm" role="radiogroup" ${al}>${[['all days', 'All days'], ['weekdays only', 'Weekdays']].map((p) =>
-          `<button class="cf-seg-btn" type="button" role="radio" aria-checked="${v === p[0]}" data-cf-cellpick="${esc(k)}|${esc(p[0])}">${p[1]}</button>`).join('')}</div>`;
+        return `<div class="seg cf-seg is-sm" role="radiogroup" ${al}>${[['all days', 'All days'], ['weekdays only', 'Weekdays']].map((p) =>
+          `<button class="seg-btn${v === p[0] ? ' active' : ''}" type="button" role="radio" aria-checked="${v === p[0]}" data-cf-cellpick="${esc(k)}|${esc(p[0])}">${p[1]}</button>`).join('')}</div>`;
       }
-      /* Text wraps instead of running off the cell, so a long phone line
-         reads whole on a phone too. Only "long" columns take a new line. */
-      if (c[2] !== 'date') return `<textarea class="cf-cell cf-ta" rows="1" data-grow${c[2] === 'long' ? '' : ' data-oneline'} data-cf-cell="${esc(k)}" ${al}>${esc(v)}</textarea>`;
-      return `<input class="cf-cell" type="date" autocomplete="off" data-cf-cell="${esc(k)}" value="${esc(v)}" ${al}>`;
+      /* A date opens the library's calendar; it reads as words ("25 Dec 2026"). */
+      if (c[2] === 'date') {
+        return `<button class="input cf-date" type="button" aria-haspopup="dialog" data-cf-date="${esc(k)}" ${al}>${v ? esc(dateSay(v)) : '<span class="cf-date-none">Pick a date</span>'}${svg(I.cal, 14)}</button>`;
+      }
+      /* A phone column holds one number AiMY can dial, nothing else. */
+      if (c[2] === 'phone') {
+        const bad = v && !PHONE_OK.test(String(v).trim());
+        return `<input class="input cf-cell${bad ? ' error' : ''}" type="tel" inputmode="tel" autocomplete="tel" spellcheck="false" data-cf-cell="${esc(k)}" data-phone value="${esc(v)}" ${al}${bad ? ' aria-invalid="true"' : ''}>` +
+          (bad ? '<p class="field-error cf-phone-err">A phone number only, like +44 20 7946 0101 or (514) 555-0137 ext. 6037.</p>' : '');
+      }
+      /* Text wraps instead of running off the cell. Only "long" columns take a new line. */
+      return `<textarea class="input cf-cell cf-ta" rows="1" data-grow${c[2] === 'long' ? '' : ' data-oneline'} data-cf-cell="${esc(k)}" ${al}>${esc(v)}</textarea>`;
     };
     return `<div class="cf-table${rows.length ? '' : ' is-empty'}" role="group" ${lab} style="--cf-cols: ${grid}">
         ${rows.length ? `<div class="cf-tr cf-th" aria-hidden="true">${f.ordered ? '<span></span>' : ''}${cols.map((c) => `<span>${esc(c[1])}</span>`).join('')}<span></span></div>` : ''}
         ${rows.map((r, i) => `<div class="cf-tr${FX.enter === f.key + '|' + i ? ' is-entering' : ''}" data-cf-row="${esc(f.key)}|${i}">
           ${f.ordered ? `<span class="cf-ord">${i + 1}</span>` : ''}${cols.map((c) => `<div class="cf-td" data-col="${esc(c[1])}">${cell(r, i, c)}</div>`).join('')}
-          <span class="cf-row-acts">${f.ordered && i ? `<button class="cf-x" type="button" data-cf-row-up="${esc(f.key)}|${i}" aria-label="Call row ${i + 1} sooner" title="Call sooner">${svg(I.up, 14)}</button>` : ''}<button class="cf-x" type="button" data-cf-row-del="${esc(f.key)}|${i}" aria-label="Remove row ${i + 1}">${svg(I.x, 14)}</button></span>
+          <span class="cf-row-acts">${f.ordered && i ? `<button class="icon-btn cf-x" type="button" data-cf-row-up="${esc(f.key)}|${i}" aria-label="Call row ${i + 1} sooner" title="Call sooner">${svg(I.up, 14)}</button>` : ''}<button class="icon-btn cf-x" type="button" data-cf-row-del="${esc(f.key)}|${i}" aria-label="Remove row ${i + 1}">${svg(I.x, 14)}</button></span>
         </div>`).join('')}
       </div>
-      <button class="cf-add" type="button" data-cf-row-add="${esc(f.key)}">${svg(I.plus, 14)}<span>${esc(f.add || 'Add a row')}</span></button>`;
+      <button class="btn btn-ghost btn-sm cf-add" type="button" data-cf-row-add="${esc(f.key)}">${svg(I.plus, 14)}<span>${esc(f.add || 'Add a row')}</span></button>`;
   }
 
   function customHTML(o) {
@@ -683,9 +740,9 @@
           const id = idOf(f.key);
           return `<div class="cf-field cf-cust${FX.enter === f.key ? ' is-entering' : ''}" data-cf-field="${esc(f.key)}" data-kind="${c.kind}">
               <div class="cf-label-row">
-                <input class="cf-cust-name" id="${id}-l" type="text" autocomplete="off" spellcheck="false" data-cf-cname="${esc(c.id)}" value="${esc(c.name || '')}" placeholder="Name this field" aria-label="Field name">
-                <span class="cf-kind">${esc(KIND_LABEL[c.kind] || c.kind)}</span>
-                <button class="cf-close" type="button" data-cf-cdel="${esc(c.id)}">Remove</button>
+                <input class="input cf-cust-name" id="${id}-l" type="text" autocomplete="off" spellcheck="false" data-cf-cname="${esc(c.id)}" value="${esc(c.name || '')}" placeholder="Name this field" aria-label="Field name">
+                <span class="tag tag-accent">${esc(KIND_LABEL[c.kind] || c.kind)}</span>
+                <button class="link cf-close" type="button" data-cf-cdel="${esc(c.id)}">Remove</button>
               </div>
               ${c.kind === 'table' ? `<div class="cf-sub"><span class="cf-sub-lab">Columns</span>${listHTML({ key: 'cc:' + c.id, add: 'Add a column' }, c.columns || [], `aria-labelledby="${id}-l"`)}</div>` : ''}
               <div class="cf-control">${c.kind === 'choice' || c.kind === 'multi' ? multiHTML(o, f, c.value, `aria-labelledby="${id}-l"`)
@@ -694,7 +751,7 @@
             </div>`;
         }).join('')}</div>
         <div class="cf-more"><span class="cf-more-lab">Add a field</span><div class="cf-more-pills">${CUSTOM_KINDS.map((k) =>
-          `<button class="cf-pill" type="button" data-cf-cadd="${k[0]}">${svg(I.plus, 14)}<span>${k[1]}</span></button>`).join('')}</div></div>
+          `<button class="chip default cf-pill" type="button" data-cf-cadd="${k[0]}">${svg(I.plus, 14)}<span>${k[1]}</span></button>`).join('')}</div></div>
       </section>`;
   }
 
@@ -774,7 +831,7 @@
       if (!f || !f.required) return;
       const tag = el.querySelector('.cf-req');
       const need = !filled(f, o.x.form[f.key]);
-      if (need && !tag) el.querySelector('.cf-label').insertAdjacentHTML('afterend', '<span class="cf-req">Required</span>');
+      if (need && !tag) el.querySelector('.cf-label').insertAdjacentHTML('afterend', '<span class="tag tag-warn cf-req">Required</span>');
       if (!need && tag) tag.remove();
     });
   }
@@ -853,6 +910,29 @@
       const o = docOf(), v = go.getAttribute('data-cf-tgo'), i = v.lastIndexOf('|');
       if (window.AIMY_SETTINGS && window.AIMY_SETTINGS.closePop) window.AIMY_SETTINGS.closePop();
       if (o) setTime(o, v.slice(0, i), v.slice(i + 1));
+      return;
+    }
+    const cal = t.closest && t.closest('[data-cf-calnav], [data-cf-calday]');
+    if (cal) {
+      const o = docOf();
+      if (!o) return;
+      if (cal.hasAttribute('data-cf-calnav')) {
+        const raw = cal.getAttribute('data-cf-calnav'), j = raw.lastIndexOf('|');
+        const key = raw.slice(0, j), v = CALV[key];
+        CALV[key] = new Date(Date.UTC(v.getUTCFullYear(), v.getUTCMonth() + +raw.slice(j + 1), 1));
+        const pop = document.getElementById('setPop');
+        if (pop) pop.innerHTML = calHTML(o, key);
+        return;
+      }
+      const v = cal.getAttribute('data-cf-calday'), i = v.lastIndexOf('|');
+      const key = v.slice(0, i), p = key.split('|');
+      const rows = clone(getV(o.x.form, p[0]) || []);
+      if (!rows[+p[1]]) rows[+p[1]] = {};
+      rows[+p[1]][p[2]] = v.slice(i + 1);
+      setV(o.x.form, p[0], rows);
+      if (window.AIMY_SETTINGS && window.AIMY_SETTINGS.closePop) window.AIMY_SETTINGS.closePop();
+      touch(o);
+      paint(o, '[data-cf-date="' + key + '"]');
       return;
     }
     if (!inForm(t)) { closeTz(); return; }
@@ -1061,6 +1141,7 @@
       return;
     }
     if ((el = t.closest('[data-cf-tchip]'))) { tchipMenu(el); return; }
+    if ((el = t.closest('[data-cf-date]'))) { calOpen(el); return; }
     if ((el = t.closest('[data-cf-week]'))) {
       const key = el.getAttribute('data-cf-week');
       form[key] = ['mon', 'tue', 'wed', 'thu', 'fri'].map((d) => ({ day: d, start: '09:00', end: '17:00' }));
@@ -1124,6 +1205,14 @@
       list[+v.slice(i + 1)] = t.value;
       setV(form, key, list);
       touch(o); meta(o); return;
+    }
+    if (t.hasAttribute('data-phone')) {
+      const bad = t.value.trim() && !PHONE_OK.test(t.value.trim());
+      t.classList.toggle('error', !!bad);
+      if (bad) t.setAttribute('aria-invalid', 'true'); else t.removeAttribute('aria-invalid');
+      let msg = t.parentElement.querySelector('.cf-phone-err');
+      if (bad && !msg) t.insertAdjacentHTML('afterend', '<p class="field-error cf-phone-err">A phone number only, like +44 20 7946 0101 or (514) 555-0137 ext. 6037.</p>');
+      if (!bad && msg) msg.remove();
     }
     if ((v = t.getAttribute('data-cf-cell'))) {
       const p = v.split('|');
