@@ -804,11 +804,20 @@
     FX = fx || {};
     /* Replacing the focused field blurs it, and that blur is not the person
        leaving: onFocusOut ignores everything while this runs. */
+    /* A redraw keeps where you were: the editor's own scroll (same node) and
+       the page's (Nour: "increasing this take me to the top of the page"). */
+    const oldSide = r.querySelector('.cf-side');
+    const sideKey = oldSide && oldSide.getAttribute('aria-label');
+    const sideTop = oldSide ? oldSide.scrollTop : 0;
+    const port = scroller(), pageTop = port ? port.scrollTop : 0;
     PAINTING = true;
     try { r.innerHTML = inner(o); } finally { PAINTING = false; }
     FX = {};
     grow(sc);
     fitSide();
+    const newSide = r.querySelector('.cf-side');
+    if (newSide && sideKey && newSide.getAttribute('aria-label') === sideKey) newSide.scrollTop = sideTop;
+    if (port && !(fx && (fx.view || fx.panel))) port.scrollTop = pageTop;
     if (keep) {
       const el = sc.querySelector(keep);
       if (el) {
