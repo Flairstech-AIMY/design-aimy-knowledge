@@ -691,7 +691,7 @@
   function listHTML(f, items, lab) {
     return `<div class="cf-list${items.length ? '' : ' is-empty'}" data-cf-list="${esc(f.key)}" role="group" ${lab}>
         ${items.map((s, i) => `<div class="cf-li${FX.enter === f.key + '|' + i ? ' is-entering' : ''}">
-          <textarea class="cf-li-in" rows="1" data-grow data-cf-item="${esc(f.key)}|${i}" aria-label="Item ${i + 1}">${esc(s)}</textarea>
+          <textarea class="input cf-li-in" rows="1" data-grow data-cf-item="${esc(f.key)}|${i}" aria-label="Item ${i + 1}">${esc(s)}</textarea>
           <button class="icon-btn cf-x" type="button" data-cf-li-del="${esc(f.key)}|${i}" aria-label="Remove item ${i + 1}">${svg(I.x, 14)}</button>
         </div>`).join('')}
         <input class="input cf-li-add" type="text" autocomplete="off" data-cf-li-add="${esc(f.key)}" placeholder="${esc(f.add || 'Add one')}, then press Enter" aria-label="${esc(f.add || 'Add one')}">
