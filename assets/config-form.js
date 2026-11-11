@@ -464,7 +464,7 @@
 
   function flowHTML(o) {
     return nodeHTML(o, 'tickets') + nodeHTML(o, 'schedule') + nodeHTML(o, 'coverage') + nodeHTML(o, 'urgent') +
-      `<div class="cf-fk" role="presentation"><span class="cf-fk-tag is-no">Not urgent</span><span class="cf-fk-tag is-yes">Urgent</span>${nodeHTML(o, 'not_urgent')}${nodeHTML(o, 'on_call')}</div>` +
+      `<div class="cf-fk" role="presentation"><div class="cf-lane is-no"><span class="cf-fk-tag is-no">Not urgent</span>${nodeHTML(o, 'not_urgent')}</div><div class="cf-lane is-yes"><span class="cf-fk-tag is-yes">Urgent</span>${nodeHTML(o, 'on_call')}</div></div>` +
       `<div class="cf-fk-extra" role="presentation">${nodeHTML(o, 'custom')}</div>`;
   }
 
