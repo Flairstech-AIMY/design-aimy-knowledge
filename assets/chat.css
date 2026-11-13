@@ -414,6 +414,11 @@ body[data-rail="collapsed"] .gate-rail-tools { display: flex; }
   gap: 0.625rem;
   padding: 0.5rem 0.625rem;
   border-radius: var(--r-sm);
+  /* Stated, because it was inheriting 1rem from the body and drawing this row
+     at 16px under a panel whose every other row is --ty-meta. The same row in
+     AiMY Sales is 14px. */
+  font-size: var(--ty-meta);
+  font-weight: var(--fw-medium);
   color: var(--ink-quiet);
   text-decoration: none;
   transition: background-color var(--t-fast), color var(--t-fast);
@@ -732,7 +737,11 @@ body[data-thread="active"] .gate-chips { display: none; }
     bottom: 0;
     left: 0;
     z-index: 30;
-    width: 16rem;
+    /* 15rem, which is the track this rail occupies docked and what the same
+       drawer measures on the Console's canvas and in AiMY Sales. It was 16rem
+       - 256 against 240 on the same phone, the one panel in the family that
+         got wider when it became a drawer. */
+    width: 15rem;
     transform: translate3d(-100%, 0, 0);
     transition: transform var(--t-base) var(--ease-out);
   }
@@ -821,6 +830,14 @@ body[data-thread="active"] .gate-chips { display: none; }
 @media (max-width: 56.25rem) {
   .gate-rail-tools { display: flex; }
   body[data-rail="open"] .gate-rail-tools { display: none; }
+
+  /* THE HEAD STARTS WHERE SALES' DOES. Docked, this header's 0.75rem of top
+     padding sits under a masthead and reads right; as a drawer it put the
+     title and its button 8px above the same pair in AiMY Sales, which takes
+     its 1.25rem from the column's own padding. Measured at 375: the row's
+     centre was y 89 here against y 97 there. Below 900 only, so the 1536
+     render of the docked rail is untouched. */
+  .gate-rail-head { padding: 1.25rem 0.75rem 0; }
 
   /* ══ THE PEEK FLOATS, SO THE THREAD MAKES ROOM FOR IT ═══════════════
      The peek is absolutely positioned in `.gate-main`, which means it is over

@@ -1498,17 +1498,34 @@ button {
 
    The classes stay on the element and are overridden here: the markup says
    what the control IS, the stylesheet says how loud. */
-.ov-chat-new {
+/* `.btn.ov-chat-new`, not `.ov-chat-new`: the library draws this control as a
+   fully-rounded pill at (0,2,0), so a (0,1,0) `border-radius` here lost to it
+   and the row kept a 9999px radius while the same row in AiMY Sales was 6px -
+   a pill beside a rounded rectangle, measured side by side at 375. */
+.btn.ov-chat-new {
   justify-content: flex-start;
   gap: 0.5rem;
   width: 100%;
-  padding: 0.4375rem 0.625rem;
+  /* PX, AND ON PURPOSE, in a file that is otherwise rem. This shell's root is
+     12.8px against Sales' 16, so the same `0.4375rem 0.625rem` drew a 24px row
+     here and a 30px one there - and every row under it sat 6px up the panel.
+     The box is the thing being matched, so the box is stated. */
+  padding: 7px 10px;
+  line-height: 16px;
+  /* The library gives `.btn-sm` a fixed height, which held this row at 24
+     whatever the padding said. Released, so the box is padding plus line. */
+  height: auto;
+  min-height: 30px;
   border: 0;
   border-radius: var(--r-sm);
   background: transparent;
   color: var(--ink-quiet);
   font-size: var(--ty-meta);
   font-weight: var(--fw-medium);
+  /* Stated, because the library's `.btn` sets one in AiMY Sales and not here:
+     the same row measured 24px tall on this shell and 30 there, which pushed
+     every row under it 6px up the panel. */
+  line-height: 1rem;
   box-shadow: none;
   transition: background-color var(--t-fast), color var(--t-fast);
 }
