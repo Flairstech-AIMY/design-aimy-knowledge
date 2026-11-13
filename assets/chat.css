@@ -307,7 +307,8 @@ body[data-rail="collapsed"] .gate-rail { visibility: hidden; }
    `pointer: coarse` still takes both to 2.75rem. A target sized for a thumb
    outranks a size shared with a mouse-driven masthead. */
 .gate-rail-btn,
-.gate-rail-peek {
+.gate-rail-peek,
+.gate-rail-new {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -336,32 +337,49 @@ body[data-rail="collapsed"] .gate-rail { visibility: hidden; }
   transition: background-color var(--t-fast), color var(--t-fast);
 }
 .gate-rail-btn svg,
-.gate-rail-peek svg { width: 1.0625rem; height: 1.0625rem; }
+.gate-rail-peek svg,
+.gate-rail-new svg { width: 1.0625rem; height: 1.0625rem; }
 :root[data-theme="light"] .gate-rail-btn,
-:root[data-theme="light"] .gate-rail-peek {
+:root[data-theme="light"] .gate-rail-peek,
+:root[data-theme="light"] .gate-rail-new {
   background: rgba(16,24,40,0.04); border-color: rgba(16,24,40,0.10);
 }
 :root[data-theme="light"] .gate-rail-btn:hover,
-:root[data-theme="light"] .gate-rail-peek:hover { background: rgba(16,24,40,0.07); }
+:root[data-theme="light"] .gate-rail-peek:hover,
+:root[data-theme="light"] .gate-rail-new:hover { background: rgba(16,24,40,0.07); }
 /* The light half of this hover already said `rgba(16,24,40,0.07)`, the exact
    value `.rail-toggle` uses — so only the dark half had drifted, to a solid
    `--card-bg-raised` (#1c2630) where the masthead washes white at 8%. A pair
    of rules that agree in one theme and not the other is drift, not intent. */
 .gate-rail-btn:hover,
-.gate-rail-peek:hover { background: rgba(255,255,255,0.08); color: var(--d200); }
+.gate-rail-peek:hover,
+.gate-rail-new:hover { background: rgba(255,255,255,0.08); color: var(--d200); }
 .gate-rail-btn:focus-visible,
-.gate-rail-peek:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
+.gate-rail-peek:focus-visible,
+.gate-rail-new:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
 
-/* The reopen control. Absolute inside `.gate-main`, at the left edge where the
-   rail used to begin, and present only while the rail is closed. */
-.gate-rail-peek {
+/* ══ THE REOPEN CONTROL, AND THE CONVERSATION THAT STARTS WITHOUT IT ════
+   Absolute inside `.gate-main`, at the left edge where the rail used to begin,
+   and present only while the rail is closed.
+
+   TWO BUTTONS NOW, SO THE GROUP IS WHAT IS POSITIONED. New conversation is the
+   first row of the panel this door opens, which means that while the rail is
+   shut - below 900, most of the time - starting one took a press, a slide and
+   then the row. It comes out and stands beside the door, on the panel's own
+   `data-newchat` hook. A second absolute button would need a left derived from
+   this one's width, and that width changes under `pointer: coarse`; one
+   positioned box with a gap has no such number. Sales and the console's canvas
+   carry the same pair. */
+.gate-rail-tools {
   position: absolute;
   top: 0.75rem;
   left: 0.75rem;
   z-index: 2;
   display: none;
+  align-items: center;
+  gap: 0.5rem;
 }
-body[data-rail="collapsed"] .gate-rail-peek { display: inline-flex; }
+body[data-rail="collapsed"] .gate-rail-tools { display: flex; }
 
 /* ══ NEW CONVERSATION, QUIETED ═════════════════════════════════════════
    `paintChats` renders this as `btn btn-brand btn-sm` — a filled primary pill
@@ -812,8 +830,8 @@ body[data-thread="active"] .gate-chips { display: none; }
    the conversation list unreachable below 900 the moment the navbar toggle was
    removed: both controls off-screen, no way in. */
 @media (max-width: 56.25rem) {
-  .gate-rail-peek { display: inline-flex; }
-  body[data-rail="open"] .gate-rail-peek { display: none; }
+  .gate-rail-tools { display: flex; }
+  body[data-rail="open"] .gate-rail-tools { display: none; }
 
   /* ══ THE PEEK FLOATS, SO THE THREAD MAKES ROOM FOR IT ═══════════════
      The peek is absolutely positioned in `.gate-main`, which means it is over
@@ -836,7 +854,8 @@ body[data-thread="active"] .gate-chips { display: none; }
      either way, and a transparent button with text moving through it reads as
      a rendering fault. The raised card ground is what the hover state already
      used, so the control keeps one material and only its elevation changes. */
-  .gate-rail-peek {
+  .gate-rail-peek,
+  .gate-rail-new {
     background: var(--card-bg-raised);
     backdrop-filter: blur(0.5rem);
     -webkit-backdrop-filter: blur(0.5rem);
@@ -937,8 +956,9 @@ body[data-thread="active"] .gate-chips { display: none; }
    size. The icon inside is left alone; the button grows around it. */
 @media (pointer: coarse) {
   .gate-rail-btn,
-  .gate-rail-peek { width: 2.75rem; height: 2.75rem; }
-  .gate-rail-peek { top: 0.5rem; left: 0.5rem; }
+  .gate-rail-peek,
+  .gate-rail-new { width: 2.75rem; height: 2.75rem; }
+  .gate-rail-tools { top: 0.5rem; left: 0.5rem; }
 }
 
 @media (max-width: 32.5rem) {   /* 520 */
