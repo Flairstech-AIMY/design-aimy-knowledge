@@ -9141,7 +9141,20 @@
        What the reader wants to know is whether anything ELSE matched. */
     const others = found.filter((k) => k !== here);
 
+    /* THE HEAD IS THE GATE'S, AND ONLY THE CANVAS DRAWS IT. The gate's rail
+       already has `.gate-rail-head` above this host, so a second one there
+       would be two headers in one panel; knowledge.css paints this one inside
+       `.aimy-overlay` only, and only below 900 where the column is a drawer.
+       The button needs no handler - makeDrawer closes on any control pressed
+       inside the panel, which is what this one is. */
     host.innerHTML = `
+      <div class="ov-chats-head">
+        <span class="ov-chats-title">Conversations</span>
+        <button class="ov-chats-shut" type="button" aria-label="Hide conversations" title="Conversations">
+          <svg viewBox="0 0 24 24" aria-hidden="true" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg>
+        </button>
+      </div>
       <button class="btn btn-brand btn-sm ov-chat-new" type="button" data-newchat>${ICO.plus}New conversation</button>
       <label class="ov-chat-find">
         <span class="k-sr">Find a conversation</span>

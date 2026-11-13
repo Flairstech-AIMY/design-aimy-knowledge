@@ -1455,6 +1455,71 @@ button {
    it is the second button that goes, nothing moves when it does. */
 .aimy-overlay.chats-open .ov-chats-new { display: none; }
 
+/* == THE PANEL'S HEAD, WHERE THE PANEL IS A DRAWER ==
+   Docked, this column has the canvas around it and needs no title. As a drawer
+   it slides over the thread, and what stood at its top was a lone panel-left
+   icon floating in 3.625rem of reserved padding: an action with nothing naming
+   what it acts on. The gate settled this first with `.gate-rail-head` - a
+   label and the control that closes the panel, because two words make the
+   strip a header and the icon an action - so this is that header, drawn on
+   the canvas, where the gate's own one cannot reach.
+
+   `.aimy-overlay` in the selector is load-bearing: the gate renders this same
+   host INSIDE `.gate-rail`, under a header it already has, and an unscoped
+   rule would give that panel two. */
+.ov-chats-head { display: none; }
+.ov-chats-title {
+  font-size: var(--ty-micro); font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-wide); text-transform: uppercase;
+  color: var(--d400); white-space: nowrap;
+}
+.ov-chats-shut {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 2.125rem; height: 2.125rem; flex-shrink: 0;
+  border-radius: var(--r-md);
+  background: rgba(255,255,255,0.04);
+  border: 0.0625rem solid rgba(255,255,255,0.08);
+  color: var(--d400); cursor: pointer;
+  transition: background-color var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
+}
+.ov-chats-shut svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 2; }
+.ov-chats-shut:hover { background: rgba(255,255,255,0.08); color: var(--d200); }
+.ov-chats-shut:focus-visible { outline: 0.125rem solid var(--brand); outline-offset: 0.125rem; }
+:root[data-theme="light"] .ov-chats-shut { background: rgba(16,24,40,0.04); border-color: rgba(16,24,40,0.10); }
+:root[data-theme="light"] .ov-chats-shut:hover { background: rgba(16,24,40,0.07); }
+
+/* == STARTING ONE, QUIETED, ON BOTH SHELLS ==
+   This lived in chat.css scoped to `.gate-rail`, which left the console's
+   canvas column with the filled primary pill `paintChats` renders. The reason
+   it was quieted was never about the gate: not one of Claude, Gemini, Mistral,
+   Grok or Perplexity fills this control, because it is the most obvious action
+   on the panel and obvious actions do not need shouting. Both shells load this
+   file, so both get it; AiMY Sales carries the same rule in its own tokens.
+
+   The classes stay on the element and are overridden here: the markup says
+   what the control IS, the stylesheet says how loud. */
+.ov-chat-new {
+  justify-content: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.4375rem 0.625rem;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ink-quiet);
+  font-size: var(--ty-meta);
+  font-weight: var(--fw-medium);
+  box-shadow: none;
+  transition: background-color var(--t-fast), color var(--t-fast);
+}
+.ov-chat-new:hover {
+  background: var(--card-bg-raised);
+  color: var(--ink-primary);
+  box-shadow: none;
+}
+.ov-chat-new:active { transform: scale(0.99); }
+.ov-chat-new svg { opacity: 0.7; }
+
 /* Present at every width, painted at none of them until the drawer exists —
    `.rail-scrim`'s own pattern, and `display` rather than the `hidden`
    attribute for its reason: opening is then one class, and the fade has
@@ -1484,22 +1549,29 @@ button {
     box-shadow: var(--shadow-xl);
     transform: translateX(-100%); visibility: hidden;
     /* ══ THE DOOR STAYS ON TOP OF WHAT IT OPENED ══════════════════════
-       `.ov-chats-toggle` is `top: 1rem; left: 1rem`, 2rem square, at z-index 4
-       against this column's 3 — correct, because while the drawer is open that
-       button is how you shut it. But the column's own 1.25rem of padding put
-       New conversation directly underneath it: measured at 900, 768 and 480,
-       the toggle occupied x 16–48 / y 76–108 and the button x 12–216 / y
-       80–104, so the control overlapped the primary action of the panel it
-       had just opened, at every width this drawer exists at.
-
-       3.625rem = 1rem of inset + 2.125rem of button + 0.5rem, which reads as
-       the drawer's head with its control in it rather than as a gap. It
-       replaces the padding rather than adding to it, so the rows below do not
-       move twice. Sales carries the same rule for the same collision. */
-    padding-top: 3.625rem;
+       THE HEAD IS REAL NOW, so there is nothing to reserve room for. This was
+       `padding-top: 3.625rem` = 1rem of inset + 2.125rem of button + 0.5rem,
+       holding New conversation clear of the toggle floating above it at
+       z-index 4; measured at 900, 768 and 480 before it, the two overlapped
+       outright. A gap shaped like a header is not a header. `.ov-chats-head`
+       is one, it is the first child of this column, and the button that was
+       floating over the gap is in it. The pair outside goes while the drawer
+       is open, below. Sales carries the same rule for the same reason. */
   }
   .aimy-overlay.chats-open .overlay-chats { transform: none; visibility: visible; }
   .ov-chats-tools { display: flex; }
+  .aimy-overlay .ov-chats-head {
+    display: flex; align-items: center; justify-content: space-between;
+    /* No margin: this column is a flex stack with a 1.25rem gap and that gap
+       is what clears the head. A margin here would be a second one. */
+    gap: 0.5rem; flex-shrink: 0;
+  }
+
+  /* AND BOTH OF THEM GO WHILE THE DRAWER IS OPEN. The door was kept because it
+     was the only way to shut the panel; the panel has its own now, in its
+     head, so leaving these two over it would be a second copy of each control
+     floating above the first. */
+  .aimy-overlay.chats-open .ov-chats-tools { display: none; }
 
   /* AND THE WAY OUT JOINS THE ROW IT IS OPPOSITE. The library draws the close
      at 2.25rem, inset 1.25rem, radius 10px; everything else on this row - and

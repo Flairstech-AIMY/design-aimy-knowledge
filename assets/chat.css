@@ -299,13 +299,14 @@ body[data-rail="collapsed"] .gate-rail { visibility: hidden; }
    the gate's moves to it rather than the other way round.
 
    `.gate-rail-peek` comes along because it IS this button in its other
-   placement — one attribute, one handler, only ever one of them on screen. It
-   keeps the raised ground and shadow its own rule gives it below 900, where it
-   floats over the thread rather than sitting in a header; that is about
-   elevation, not identity, and it is argued where it is set.
+   placement — one attribute, one handler, only ever one of them on screen — and
+   `.gate-rail-new`, which stands beside it there. Below 900 the pair floats
+   over the thread rather than sitting in a header, so it takes a backdrop blur
+   and nothing else; it had an opaque ground and a shadow as well, which made
+   it a different material from the identical pair on the canvas and in Sales.
 
-   `pointer: coarse` still takes both to 2.75rem. A target sized for a thumb
-   outranks a size shared with a mouse-driven masthead. */
+   One size at every pointer, for the same reason: see ONE SIZE FOR THIS
+   CONTROL further down. */
 .gate-rail-btn,
 .gate-rail-peek,
 .gate-rail-new {
@@ -336,9 +337,17 @@ body[data-rail="collapsed"] .gate-rail { visibility: hidden; }
   cursor: pointer;
   transition: background-color var(--t-fast), color var(--t-fast);
 }
-.gate-rail-btn svg,
+.gate-rail-btn svg { width: 1.0625rem; height: 1.0625rem; }
+/* 1rem on the floating pair, which is what `.ov-chats-toggle` on the console's
+   canvas and the same pair in AiMY Sales draw. It was 1.0625rem - one pixel
+   larger than the glyph in the identical button one screen over, measured side
+   by side on the same phone.
+
+   `.gate-rail-btn` keeps its 1.0625rem: it is `inline-flex` at every width, so
+   changing it would move the 1536 render, which this file does not do. The two
+   differ by a pixel inside the open rail and are never on screen together. */
 .gate-rail-peek svg,
-.gate-rail-new svg { width: 1.0625rem; height: 1.0625rem; }
+.gate-rail-new svg { width: 1rem; height: 1rem; }
 :root[data-theme="light"] .gate-rail-btn,
 :root[data-theme="light"] .gate-rail-peek,
 :root[data-theme="light"] .gate-rail-new {
@@ -382,36 +391,16 @@ body[data-rail="collapsed"] .gate-rail { visibility: hidden; }
 body[data-rail="collapsed"] .gate-rail-tools { display: flex; }
 
 /* ══ NEW CONVERSATION, QUIETED ═════════════════════════════════════════
-   `paintChats` renders this as `btn btn-brand btn-sm` — a filled primary pill
-   running the full width of the column. Not one of Claude, Gemini, Mistral,
-   Grok or Perplexity fills that control: it is a plain row with a small icon
-   in every one of them, because it is the most obvious action on the panel and
-   obvious actions do not need shouting. A saturated block is also the single
-   loudest thing on a page whose whole point is the ambient field behind it.
-
-   Scoped to `.gate-rail` so the Console's canvas column keeps the button it
-   has always had. */
-.gate-rail .ov-chat-new {
-  justify-content: flex-start;
-  gap: 0.5rem;
-  width: 100%;
-  padding: 0.4375rem 0.625rem;
-  border: 0;
-  border-radius: var(--r-sm);
-  background: transparent;
-  color: var(--ink-quiet);
-  font-size: var(--ty-meta);
-  font-weight: var(--fw-medium);
-  box-shadow: none;
-  transition: background-color var(--t-fast), color var(--t-fast);
-}
-.gate-rail .ov-chat-new:hover {
-  background: var(--card-bg-raised);
-  color: var(--ink-primary);
-  box-shadow: none;
-}
-.gate-rail .ov-chat-new:active { transform: scale(0.99); }
-.gate-rail .ov-chat-new svg { opacity: 0.7; }
+   IT MOVED TO knowledge.css, UNSCOPED. What stood here was scoped to
+   `.gate-rail` "so the Console's canvas column keeps the button it has always
+   had", which left three conversation panels in one family disagreeing about
+   one button: a plain row on the gate, a filled primary pill on the canvas and
+   in AiMY Sales. The argument was never about the gate - not one of Claude,
+   Gemini, Mistral, Grok or Perplexity fills this control, because it is the
+   most obvious action on the panel and obvious actions do not need shouting,
+   and a saturated block is the loudest thing on a page whose whole point is
+   the field behind it. Both shells load knowledge.css, so the rule lives
+   there now, and Sales carries the same one in its own tokens. */
 
 .gate-rail-foot {
   flex-shrink: 0;
@@ -850,16 +839,21 @@ body[data-thread="active"] .gate-chips { display: none; }
      wider net is 40px of headroom on a tablet, which is not visible. */
   body[data-thread="active"] .gate-stage .overlay-thread { padding-top: 4rem; }
 
-  /* Padding fixes where the conversation STARTS. It scrolls under the button
-     either way, and a transparent button with text moving through it reads as
-     a rendering fault. The raised card ground is what the hover state already
-     used, so the control keeps one material and only its elevation changes. */
+  /* Padding fixes where the conversation STARTS. It scrolls under these two
+     either way, and text moving through a transparent button reads as a
+     rendering fault.
+
+     THE BLUR IS WHAT ANSWERS THAT, NOT A GROUND OF ITS OWN. This was an opaque
+     `--card-bg-raised` with `--shadow-sm` on top, which made the gate's pair a
+     different material from the identical pair on the console's canvas and in
+     Sales: solid #1c2630 under a shadow beside a 4% wash with none, measured
+     side by side at 375. The wash is the one the shared rule above already
+     gives them; only the backdrop blur stays, which is the part that was
+     actually doing the reading. */
   .gate-rail-peek,
   .gate-rail-new {
-    background: var(--card-bg-raised);
     backdrop-filter: blur(0.5rem);
     -webkit-backdrop-filter: blur(0.5rem);
-    box-shadow: var(--shadow-sm);
   }
 }
 
@@ -943,23 +937,19 @@ body[data-thread="active"] .gate-chips { display: none; }
   }
 }
 
-/* ══ A DOOR BIG ENOUGH TO HIT ════════════════════════════════════════════
-   Below 900 the rail is a drawer and these two buttons are the ONLY way into
-   it, so they are the most important controls on the screen at exactly the
-   width where they were smallest: 1.75rem, which is 28px, which is a target
-   sized for a cursor.
+/* ══ ONE SIZE FOR THIS CONTROL, WHICHEVER SURFACE IT IS ON ═════════════
+   A `pointer: coarse` block stood here taking these buttons to 2.75rem. It was
+   written when they were 1.75rem and the argument was that a 28px target is
+   sized for a cursor, not a thumb. They are 2.125rem now — the size
+   `.rail-toggle`, `.topnav-bell`, the console canvas's own pair and AiMY Sales
+   all carry — and the bump had become the one thing making the gate's pair
+   visibly unlike the identical pair one screen over: 44px beside 34px on the
+   same phone, in the same product, measured side by side.
 
-   Keyed to `pointer: coarse` rather than to a width. The question is what is
-   doing the pointing, not how wide the window is — a touchscreen laptop at
-   1200px has the same problem and a narrow desktop window does not have it
-   at all. It also means nothing here can reach a mouse-driven display at any
-   size. The icon inside is left alone; the button grows around it. */
-@media (pointer: coarse) {
-  .gate-rail-btn,
-  .gate-rail-peek,
-  .gate-rail-new { width: 2.75rem; height: 2.75rem; }
-  .gate-rail-tools { top: 0.5rem; left: 0.5rem; }
-}
+   THE TARGET IS STILL THE ARGUMENT AGAINST THIS, which is why it is written
+   down rather than deleted. 34px is under the 44 a thumb wants. If that is to
+   be answered it has to be answered on all three surfaces at once, which is a
+   change to shared chrome and not to this file. */
 
 @media (max-width: 32.5rem) {   /* 520 */
   /* ══ THE CHIPS BECOME A CAROUSEL ═══════════════════════════════════════
